@@ -1,0 +1,66 @@
+name: Bug report
+description: Something in @combycode/llm-sdk behaves incorrectly.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Please do NOT paste API keys, tokens, or full
+        request/response bodies that may contain private data.
+  - type: input
+    id: version
+    attributes:
+      label: SDK version
+      description: Output of `npm ls @combycode/llm-sdk` (or the version in your lockfile).
+      placeholder: "1.0.0"
+    validations:
+      required: true
+  - type: dropdown
+    id: runtime
+    attributes:
+      label: Runtime
+      options:
+        - Node.js
+        - Bun
+        - Browser
+        - Deno
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider(s) involved
+      multiple: true
+      options:
+        - Anthropic
+        - OpenAI
+        - Google
+        - xAI
+        - OpenRouter
+        - Not provider-specific
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected vs. what actually occurred.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The smallest code snippet that reproduces it. Redact keys.
+      render: typescript
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / error output
+      description: Stack traces or hook/telemetry output. Redact anything sensitive.
+      render: shell
+    validations:
+      required: false

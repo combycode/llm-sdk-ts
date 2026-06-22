@@ -1,0 +1,12 @@
+node_modules
+dist
+*.log
+*.tsbuildinfo
+*.bak
+.DS_Store
+coverage/
+test-results/
+playwright-report/
+.idea/
+.vscode/
+*.tgz

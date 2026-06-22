@@ -1,0 +1,58 @@
+name: Release
+
+# Tag-triggered npm release. `workflow_dispatch` is a build-only dry run.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  BUN_VERSION: "1.3.5"
+
+jobs:
+  publish:
+    name: build + publish npm
+    runs-on: ubuntu-latest
+    environment: npm
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+      # Node 24 / npm 11+ is required for OIDC trusted publishing (--provenance).
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          registry-url: 'https://registry.npmjs.org/'
+
+      - run: bun install
+      - run: bun run lint
+      - run: bun run typecheck
+      - run: bun test
+      - run: bun run build
+
+      - name: Publish (idempotent; dry-run on workflow_dispatch)
+        shell: bash
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "dry-run: built only, not publishing"; exit 0
+          fi
+          semver="${GITHUB_REF_NAME#v}"
+          pkg=$(jq -r .name package.json)
+          if npm view "$pkg@$semver" version >/dev/null 2>&1; then
+            echo "$pkg@$semver already on npm -- skipping"; exit 0
+          fi
+          npm pkg set "version=$semver"
+          # Any semver prerelease (1.0.0-rc1) publishes under the rc dist-tag;
+          # stable releases default to latest.
+          tag_args=()
+          if [[ "$semver" == *-* ]]; then tag_args=(--tag rc); fi
+          npm publish --provenance --access public "${tag_args[@]}"

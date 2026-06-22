@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://llm-sdk.combycode.com/docs/
+    about: Guides, examples, and the internals reference.
+  - name: Questions & discussion
+    url: https://github.com/combycode/llm-sdk-ts/discussions
+    about: For usage questions and ideas (not bug reports).
+  - name: Security report
+    url: https://github.com/combycode/llm-sdk-ts/security/advisories/new
+    about: Report a vulnerability privately. Do NOT open a public issue.
