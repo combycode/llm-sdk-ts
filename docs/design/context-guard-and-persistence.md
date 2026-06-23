@@ -40,9 +40,9 @@ interface Persistence {
 }
 ```
 
-**Consumers**: `Cache` (via `FileCacheStore`), `PersistenceCalibrationStore`,
-`Batcher` (pending jobs), `ResponseStore` (server conversation history),
-`ConfigurationPlugin`, `Scheduler`.
+**Consumers**: `ConfigurationPlugin`, `Cache` (via `FileCacheStore`), `Scheduler`,
+`ResponseStore` (server conversation history), `ConversationPersistence`, `Batcher`
+(pending jobs).
 
 ### `MemoryPersistence` (`src/plugins/persistence/memory.ts`)
 
@@ -95,10 +95,11 @@ expiry.
 **Storage key format**: `cache:{cacheName}:{cacheKey}`. `parseStorageKey` splits on
 the second colon to recover `cacheName` and `cacheKey` for `invalidate()` scope filtering.
 
-**TTL**: per-entry, stored in `CacheEntry.expiresAt` as `storedAt + ttlMs`. Detected
-lazily on `get()` — the entry is deleted at that point. No background sweep. Default
-`ttlMs` at construction is 5 minutes (`DEFAULT_TTL_MS = 5 * 60 * 1000`). Pass
-`Number.POSITIVE_INFINITY` for entries that never expire.
+**TTL**: per-entry. Each `CacheEntry` stores `storedAt` (ms epoch) and `ttlMs`. Expiry is
+checked lazily on `get()` as `Date.now() - storedAt > ttlMs`; expired entries are deleted
+at that point. No background sweep. Default `ttlMs` at construction is 5 minutes
+(`DEFAULT_TTL_MS = 5 * 60 * 1000`). Pass `Number.POSITIVE_INFINITY` for entries that never
+expire.
 
 `invalidate(scope)` lists all keys under the `cache:` prefix and deletes entries matching
 `scope.cacheName` and/or `scope.keyPrefix`. `clear()` drops everything from the store
@@ -454,10 +455,10 @@ own internal tools.
   system prompt's facts block. The LLM is instructed to carry them forward. If
   `contextTools.extractFacts` returns an empty array, prior facts are discarded on the
   next `injectFacts` call because `renderFactsLayer([])` produces an empty-body layer.
-- `FilePersistence` key encoding uses `%xx` style but the regex `[^a-zA-Z0-9_\-.]` omits
-  `/` — keys containing `/` (e.g., `calibration:openai/gpt-4o`) are encoded as
-  `calibration%3aopenai%2fgpt-4o`. The `list()` method filters by the decoded key prefix
-  after decoding all filenames, so prefix queries work correctly.
+- `FilePersistence` key encoding uses `%xx` style. The allowed set is `[A-Za-z0-9_.-]`,
+  so both `/` and `:` are %-escaped — a key like `calibration:openai/gpt-5.5` becomes
+  `calibration%3aopenai%2fgpt-5.5`. The `list()` method decodes all filenames before
+  applying the prefix filter, so prefix queries work correctly.
 - `Cache.get()` deletes expired entries lazily. Long-lived processes with infrequently
   accessed cache namespaces accumulate stale entries until they are read. Call
   `cache.invalidate({})` on a schedule to prune them explicitly.

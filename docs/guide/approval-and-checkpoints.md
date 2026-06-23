@@ -81,7 +81,7 @@ const deployTool = defineTool({
 });
 
 const agent = createAgent({
-  model: 'anthropic/claude-haiku-4-5',
+  model: 'anthropic/claude-haiku-4.5',
   apiKey: process.env.ANTHROPIC_API_KEY!,
   tools: [deployTool],
   policy,
@@ -150,7 +150,7 @@ import { AgentLoop, FilePersistence, PermissionPolicy, createLLM, defineTool } f
 const persistence = new FilePersistence({ dir: './agent-state' });
 
 const client = createLLM({
-  model: 'anthropic/claude-haiku-4-5',
+  model: 'anthropic/claude-haiku-4.5',
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
@@ -210,7 +210,7 @@ console.log('Pending approvals:', pending.map((p) => p.toolName));
 // e.g. ['deploy']
 
 const client = createLLM({
-  model: 'anthropic/claude-haiku-4-5',
+  model: 'anthropic/claude-haiku-4.5',
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 

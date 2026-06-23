@@ -24,7 +24,7 @@ persisting data across restarts, and caching responses.
 | `ContextMeasurer` | Counts tokens in the current conversation and emits `onContextMeasure` events. Plug into an `AgentLoop`. |
 | `LayeredStrategy` | Compaction strategy: compress older history into a facts layer while preserving recent turns. |
 | `TruncateStrategy` | Compaction strategy: drop oldest messages until within budget. |
-| `CONTEXT_DEFAULTS` | Default thresholds for warning / critical / hard levels. |
+| `CONTEXT_DEFAULTS` | Default thresholds: `{ thresholds: { warn: 0.8, exact: 0.9 }, calibration: {...}, charsPerTokenFallback: 4.0 }`. |
 
 ### Permissions
 
@@ -150,14 +150,14 @@ const agent = createAgent({ model: 'anthropic/claude-haiku-4.5', engine });
 
 const measurer = new ContextMeasurer({
   hooks: engine.hooks,
+  catalog: engine.catalog,
   counter: new HeuristicCounter(),
-  maxTokens: 4096,
 });
 
 const guard = new ContextGuard({
   hooks: engine.hooks,
   measurer,
-  strategies: { truncate: new TruncateStrategy({ keepLastN: 10 }) },
+  strategies: { truncate: new TruncateStrategy({ keepRecent: 10 }) },
   defaultStrategy: 'truncate',
 });
 

@@ -104,7 +104,7 @@ before releasing the semaphore). Kept separate so engine bugs don't pollute
 per-provider error metrics.
 
 **`onWarning`**: advisory notifications from any subsystem. `WarningSource`
-includes `'agent'`, `'llm'`, `'network'`, `'queue'`, `'cache'`, `'cost'`,
+includes `'agent'`, `'llm'`, `'network'`, `'engine'`, `'queue'`, `'cache'`, `'cost'`,
 `'context'`, `'media'`, `'files'`, `'persistence'`, `'server'`, `'plugin'`.
 
 ## `AgentBus` (`src/bus/agent-bus.ts`)

@@ -21,8 +21,8 @@ Responsibilities:
 - Execute tools through `InternalToolRunner`, which pools `LLMClient` instances per
   model, injects them into the tool's execution context, validates input/output schemas,
   and emits observability hooks.
-- Provide `defineLLMTool` and `defineTemplateTool` factory functions for building
-  LLM-backed tools declaratively without writing `execute` logic manually.
+- Provide `defineLLMTool` factory function for building LLM-backed tools declaratively
+  without writing `execute` logic manually.
 
 Does NOT replace `AgentTool`. Internal tools are for SDK-internal or application-defined
 operations that need their own LLM model selection and cost tracking, not for exposing
@@ -132,11 +132,11 @@ strings scoring at or above `minScore`.
 
 ---
 
-## `LocalToolBackend` (`src/plugins/internal-tools/backends/local.ts`)
+## `LocalBackend` (`src/plugins/internal-tools/backends/local.ts`)
 
 In-memory `Map<string, InternalTool>`. The primary backend for statically registered
-tools. Built-in tools are registered via `LocalToolBackend` in
-`src/plugins/internal-tools/builtin/builtin.ts`.
+tools. Built-in tools are registered onto a `LocalBackend` via `registerBuiltinTools(backend)`
+exported from `src/plugins/internal-tools/builtin/builtin.ts`.
 
 ---
 
@@ -266,30 +266,41 @@ JSON output with no markdown fences, no prose, and no comments. It is prepended 
 tool's own system prompt via `composeJsonSystemPrompt(toolSystemPrompt)` using a
 `'---'` separator.
 
-`attachStructureGuidance` (private to `define.ts`) appends the `outputSchema` and
-`outputExample` as fenced JSON blocks inside the tool's system prompt before the JSON API
-instruction is prepended.
+`attachStructureGuidance` lives in `define.ts` (not in this file). It appends
+`outputSchema` and `outputExample` as fenced JSON blocks to the system prompt before
+`composeJsonSystemPrompt` is applied.
 
 ---
 
 ## Variant selection (`src/plugins/internal-tools/runner/variants.ts`)
 
-`PromptVariant` extends `LLMToolDefinition` fields with an `id` and an optional
-`providerMatch?: string | string[]` pattern. `selectVariant(variants, { provider, model,
-mode })` picks the first variant matching `providerMatch` (substring check on
-`"provider/model"`), falling back to the variant with `isDefault: true`, then the first
-variant. Variants allow provider-specific prompt tuning (e.g. different token limits or
-JSON instructions for different model families).
+`PromptVariant` fields: `id`, `description?`, `systemPrompt`, `userTemplate`,
+`outputExample?`, `outputSchema?`, `resolveMaxTokens?`, `modes?`, `supportedProviders?`,
+`supportedModels?`, `isDefault?`. There is no `providerMatch` field.
+
+`selectVariant(variants, { provider, model, mode })` walks a priority ladder over the
+candidate set (mode-filtered when a mode is given, else all variants):
+
+1. `supportedModels` includes `"provider/model"` within candidates.
+2. `supportedProviders` includes `provider` within candidates.
+3. `isDefault` within candidates.
+4. If a mode was given and matched at least one variant: first mode-matched variant.
+5. Global `isDefault` across all variants.
+6. Throws when none of the above match.
+
+Variants allow provider- and mode-specific prompt tuning (e.g. different token limits
+or JSON instructions for different model families).
 
 ---
 
 ## Built-in tools (`src/plugins/internal-tools/builtin/`)
 
-All registered via `LocalToolBackend` in `builtin.ts`. All use `defineLLMTool`:
+All five are built with `defineLLMTool`. They are exported as `BUILTIN_TOOLS` and
+registered onto a `LocalBackend` via `registerBuiltinTools(backend)` from `builtin.ts`:
 
 | Tool id | File | Output format |
 |---|---|---|
-| `orxa:summarize@1.0.0` | `builtin/summarize.ts` | text |
+| `orxa:summarize@1.0.0` | `builtin/summarize.ts` | json |
 | `orxa:classify@1.0.0` | `builtin/classify.ts` | json |
 | `orxa:score@1.0.0` | `builtin/score.ts` | json |
 | `orxa:structure@1.0.0` | `builtin/structure.ts` | json |
@@ -308,7 +319,7 @@ strategy compaction.
 `registry.addBackend(backend)`. The backend is queried lazily and the cache is rebuilt.
 
 **Custom tool**: create an `InternalTool` directly with a hand-written `execute` function,
-or use `defineLLMTool` for LLM-backed tools. Register via `LocalToolBackend` or a custom
+or use `defineLLMTool` for LLM-backed tools. Register via `LocalBackend` or a custom
 backend.
 
 **Custom model selection**: implement `CompatFile` and pass as `config.compat` to

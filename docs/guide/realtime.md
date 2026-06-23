@@ -11,8 +11,8 @@ from providers independent of this SDK.
 
 | Provider | Model example | Notes |
 |---|---|---|
-| `openai` | `gpt-4o-realtime-preview` | Full duplex, text + audio |
-| `google` | `gemini-2.0-flash-live` | Turn-based bidirectional, audio-native |
+| `openai` | `gpt-realtime-2` | Full duplex, text + audio |
+| `google` | `gemini-3.1-flash-live` | Turn-based bidirectional, audio-native |
 
 Passing any other provider throws immediately with a clear message.
 
@@ -26,7 +26,7 @@ createRealtime(opts: CreateRealtimeOptions): RealtimeSession
 
 | Field | Type | Required | Notes |
 |---|---|---|---|
-| `model` | `string` | yes | Bare (`gpt-4o-realtime-preview`) or namespaced (`openai/...`) |
+| `model` | `string` | yes | Bare (`gpt-realtime-2`) or namespaced (`openai/gpt-realtime-2`) |
 | `provider` | `ProviderName` | when model is bare | Ignored when model is namespaced |
 | `apiKey` | `string` | no | Falls back to `engine.apiKeys[provider]` |
 | `modalities` | `RealtimeModality[]` | no | `'text'` and/or `'audio'`. Default `['text']` |
@@ -98,7 +98,7 @@ import { createEngine, createRealtime } from '@combycode/llm-sdk';
 createEngine({ apiKeys: { openai: process.env.OPENAI_API_KEY! } });
 
 const session = createRealtime({
-  model: 'openai/gpt-4o-realtime-preview',
+  model: 'openai/gpt-realtime-2',
   modalities: ['text'],
   instructions: 'You are a helpful assistant.',
 });
@@ -128,7 +128,7 @@ import { createEngine, createRealtime } from '@combycode/llm-sdk';
 createEngine({ apiKeys: { openai: process.env.OPENAI_API_KEY! } });
 
 const session = createRealtime({
-  model: 'openai/gpt-4o-realtime-preview',
+  model: 'openai/gpt-realtime-2',
   modalities: ['audio', 'text'],
   audio: { voice: 'alloy' },
   instructions: 'Respond concisely.',

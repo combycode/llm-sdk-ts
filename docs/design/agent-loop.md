@@ -159,7 +159,10 @@ interface ContextLayer {
   content: string | ContentPart[];
   priority: number;       // lower = earlier in composed output
   tags: string[];
-  owner: string;
+  owner?: string;         // optional
+  version: number;        // monotonic; bumps on every set/patch
+  createdAt: number;
+  updatedAt: number;
   mergeParent?: boolean;  // additive vs. override when parent has same name
   metadata?: Record<string, unknown>;
 }
@@ -174,7 +177,7 @@ are reflected in child renders. Cycle detection throws.
 
 Named layers written by the SDK (`src/agent/context-registry/layers.ts`):
 - `agentloop.system` — priority 10 (stable agent role, prompt-cache-friendly prefix)
-- `_legacy_system` — priority 50 (backward-compat `history.system` setter)
+- `_legacy_system` — priority 200 (backward-compat `history.system` setter; appended last)
 - `agentloop.context` — priority 100 (dynamic per-task context)
 
 The priority ordering ensures stable content precedes dynamic content, which
@@ -256,8 +259,9 @@ Identical structure to `complete()`, except:
   `StepState` and returns an `AgentStreamEvent | null` to yield upstream.
 - After the stream loop: `finalizeUnendedToolCalls(state)` and
   `buildStepResponse(state, model, stepStart)`.
-- Tool call events are yielded as `tool_call_start` and `tool_call_end`.
-- `yield { type: 'step_end', step, usage, latencyMs }`.
+- `yield { type: 'step_end', step, usage, latencyMs }` — emitted BEFORE tool dispatch.
+- If there are tool calls: `tool_call_start` and `tool_call_end` events are yielded
+  AFTER `step_end` (tool execution happens after the step is finalized).
 - `yield { type: 'done', response: finalResponse }` at the end.
 
 ### Stream event accumulation (`src/agent/loop-internals.ts`)
@@ -326,12 +330,15 @@ interface Guardrail {
   check(ctx: GuardrailCheckContext): Promise<GuardrailDecision>;
 }
 
-interface GuardrailDecision {
-  pass: boolean;
-  tripwire?: boolean;    // if true AND !pass: halt the run
-  reason?: string;
-  severity?: 'low' | 'medium' | 'high' | 'critical';
+// Discriminated union — a guardrail either passes or trips:
+interface GuardrailPass { pass: true; }
+interface GuardrailTrip {
+  pass: false;
+  tripwire: true;        // halt the run
+  reason: string;
+  severity?: 'low' | 'medium' | 'high';  // no 'critical'
 }
+type GuardrailDecision = GuardrailPass | GuardrailTrip;
 ```
 
 Input guardrails fire before each LLM call (`runInputGuardrails`); output

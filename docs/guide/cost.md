@@ -51,7 +51,7 @@ Supply your own expected output count when you have context:
 
 ```ts
 const est = await estimate(
-  { model: 'openai/gpt-4.1-nano', prompt: 'Summarize in one sentence.', maxTokens: 200 },
+  { model: 'openai/gpt-5.4-nano', prompt: 'Summarize in one sentence.', maxTokens: 200 },
   { expectedOutputTokens: 40 },   // you expect ~40 output tokens
 );
 ```
@@ -65,7 +65,7 @@ import { complete, BudgetExceededError } from '@combycode/llm-sdk';
 
 try {
   const { text } = await complete({
-    model: 'anthropic/claude-opus-4.5',
+    model: 'anthropic/claude-opus-4.8',
     apiKey: process.env.ANTHROPIC_API_KEY,
     prompt: 'Write a 10,000-word historical novel.',
     maxTokens: 10_000,
@@ -108,7 +108,7 @@ console.log(`Output tokens: ${summary.tokens.output}`);
 console.log(`Entries:      ${summary.entries}`);
 ```
 
-All summary fields are in USD. The `CostSummary` type:
+All summary fields are in USD. Each `CostEntry` also carries `cost.source: 'provider' | 'calculated' | 'unknown'` -- `'provider'` when the response reported actual $ (xAI, OpenRouter); `'calculated'` when the SDK computed cost from token counts and catalog rates; `'unknown'` when no pricing data was available. The `CostSummary` type:
 
 ```ts
 interface CostSummary {

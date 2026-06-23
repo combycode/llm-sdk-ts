@@ -127,7 +127,7 @@ async function safeRun(userMessage: string): Promise<string> {
   }
 
   const agent = createAgent({
-    model: 'anthropic/claude-haiku-4-5',
+    model: 'anthropic/claude-haiku-4.5',
     apiKey: process.env.ANTHROPIC_API_KEY,
   });
 
@@ -152,7 +152,7 @@ const guards = moderationGuardrail({
 });
 
 const agent = createAgent({
-  model: 'anthropic/claude-haiku-4-5',
+  model: 'anthropic/claude-haiku-4.5',
   apiKey: process.env.ANTHROPIC_API_KEY,
   guardrails: guards,
 });
@@ -215,7 +215,7 @@ interface ModerationResult {
 | `input` | `boolean` | `true` | Build an input-kind guardrail (runs before LLM call) |
 | `output` | `boolean` | `false` | Build an output-kind guardrail (runs after step response) |
 | `model` | `string` | `'omni-moderation-latest'` | Passed through to `moderate()` |
-| `name` | `string` | `'moderation-input'` / `'moderation-output'` | Label shown in hooks and error messages |
+| `name` | `string` | see notes | Acts as a prefix. When set: input guardrail is named `name` verbatim; output guardrail is named `${name}-output`. When omitted: input defaults to `'moderation-input'`; output defaults to `'moderation-output'`. |
 
 The factory returns a `Guardrail[]`. Spread it or concatenate with other guardrails:
 

@@ -61,7 +61,7 @@ interface NormalizedRequest {
   tools?: Tool[];
   toolChoice?: ToolChoice;
   structured?: { schema: Record<string, unknown>; name?: string; strict?: boolean };
-  thinking?: ThinkingConfig;    // { mode: 'auto'|'on'|'off'; effort?: 'low'|'medium'|'high'|'max' }
+  thinking?: ThinkingConfig;    // discriminated union — see below
   cache?: CacheConfig;          // 'auto' | 'off' | { system?, tools?, ttl? }
   serviceTier?: ServiceTier;
   providerOptions?: Record<string, unknown>;
@@ -71,6 +71,16 @@ interface NormalizedRequest {
   timeout?: number;
   signal?: AbortSignal;
 }
+```
+
+`ThinkingConfig` is a discriminated union. `effort` is present only on the `'auto'` and
+`'on'` members; the `'off'` member has no `effort` field:
+
+```ts
+type ThinkingConfig =
+  | { mode: 'auto'; effort?: 'low' | 'medium' | 'high' | 'max' }
+  | { mode: 'on';   effort?: 'low' | 'medium' | 'high' | 'max' }
+  | { mode: 'off' };
 ```
 
 ### `src/llm/types/response.ts`
@@ -318,7 +328,7 @@ xAI (`src/llm/providers/xai/`) supports both `responses.ts` and
 
 ### Shared utilities (`src/llm/providers/_shared/`)
 
-- `response-utils.ts`: `extractFinishReason(hasToolCalls, stopReason, statusMap)` —
+- `response-utils.ts`: `extractFinishReason(hasToolCalls, providerReason, reasonMap)` —
   maps provider stop reason strings to `FinishReason`. If `hasToolCalls` is true,
   always returns `'tool_use'`.
 - `constants.ts`: `DEFAULT_MAX_TOKENS = 4096`.

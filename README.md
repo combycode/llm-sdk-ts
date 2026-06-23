@@ -28,7 +28,7 @@ Requires Node ≥ 18 or Bun ≥ 1.1.
 import { complete } from '@combycode/llm-sdk';
 
 const r = await complete({
-  model: 'anthropic/claude-haiku-4-5', // provider/model, sent verbatim
+  model: 'anthropic/claude-haiku-4.5', // provider/model, sent verbatim
   apiKey: process.env.ANTHROPIC_API_KEY,
   prompt: 'Say hello in one word.',
 });

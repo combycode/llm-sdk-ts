@@ -21,7 +21,7 @@ and fine-grained control.
 | `createLLM(opts)` | Builds a reusable `LLMClient` bound to one provider/model. |
 | `LLMClient` | Low-level client class with `.complete()`, `.stream()`, `.assistantMessage()`, `.destroy()`. |
 | `select(query)` | Pick the best matching model from the catalog by capability query (`'type:chat; vision; cheap'`). Returns a `provider/slug` string. |
-| `selectModels(query)` | Same as `select`, returns the full ranked list instead of just the first. |
+| `selectModels(query)` | Same query syntax as `select`, but returns the full ranked `ModelInfo[]` list instead of just the first `provider/slug` string. |
 | `listModels()` | Return the curated catalog (pricing + capabilities). |
 | `listModelsLive(opts)` | Live-discovery fetch of model ids from the provider API. |
 | `route(opts)` | Send to a primary model with client-side (or OpenRouter native) fallback. |
@@ -41,7 +41,7 @@ variants (used when building custom wiring; most users never touch these).
 import { complete } from '@combycode/llm-sdk';
 
 const { text } = await complete({
-  model: 'anthropic/claude-haiku-4-5',
+  model: 'anthropic/claude-haiku-4.5',
   apiKey: process.env.ANTHROPIC_API_KEY,
   prompt: 'Say hello in one word.',
 });

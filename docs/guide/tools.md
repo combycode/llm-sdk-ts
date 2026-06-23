@@ -42,7 +42,7 @@ const getWeather = defineTool({
 });
 
 const { text } = await complete({
-  model: 'anthropic/claude-haiku-4-5',
+  model: 'anthropic/claude-haiku-4.5',
   apiKey: process.env.ANTHROPIC_API_KEY,
   prompt: 'What is the weather in Paris?',
   tools: [getWeather],

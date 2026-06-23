@@ -58,7 +58,7 @@ const server = createServer({
   engine,
   agents: {
     'my-assistant': {
-      model: 'anthropic/claude-haiku-4-5',
+      model: 'anthropic/claude-haiku-4.5',
       system: 'You are a helpful assistant.',
     },
   },
@@ -104,8 +104,8 @@ const server = new OaiServer({
 
 // Register a model after construction.
 server.register({
-  model: 'gpt-4o-mini',
-  client: createLLM({ model: 'openai/gpt-4o-mini', apiKey: process.env.OPENAI_API_KEY! }),
+  model: 'gpt-5.4-mini',
+  client: createLLM({ model: 'openai/gpt-5.4-mini', apiKey: process.env.OPENAI_API_KEY! }),
 });
 
 // Wire into Bun.serve.
@@ -134,7 +134,7 @@ const server = createServer({
     },
   }),
   agents: {
-    'chat': { model: 'anthropic/claude-haiku-4-5', apiKey: process.env.ANTHROPIC_API_KEY! },
+    'chat': { model: 'anthropic/claude-haiku-4.5', apiKey: process.env.ANTHROPIC_API_KEY! },
   },
 });
 ```
@@ -143,8 +143,8 @@ When a key is not in the map, the server responds `401` and emits
 `onAuthFail`. The `userId` returned by `verify()` flows into the
 `ConversationLoaderPlugin` so each user gets an isolated history namespace.
 
-Anonymous keys (no explicit userId mapping) derive their userId from the key
-prefix: `'sk-abc...'` -> `'key:sk-abc'`.
+Anonymous keys (no explicit userId mapping) derive their userId as `key:` plus
+the first 8 characters of the key itself: `'sk-prod-abc123'` -> `'key:sk-prod-'`.
 
 ### 4. Persist conversation history
 
@@ -193,7 +193,7 @@ const agentLoader: AgentLoaderPlugin = {
     if (model !== 'custom-agent') return null; // fall back to static entry
     const config = await db.getAgentConfig(userId);
     return createAgent({
-      model: 'anthropic/claude-haiku-4-5',
+      model: 'anthropic/claude-haiku-4.5',
       apiKey: config.apiKey,
       system: config.systemPrompt,
       tools: buildToolsForUser(userId),
@@ -311,7 +311,7 @@ but simulated: the response is collected in full and fake-chunked with
 from the provider) is not yet propagated through the OAI wire format.
 
 **Model not registered returns 404.** If `router.resolve()` cannot find the
-model name, the server returns `{ error: { message: 'model "..." not found' } }`
+model name, the server returns `{ error: { message: 'model "..." not registered' } }`
 with status 404. Ensure the model string in the OAI client's request matches
 the `model` field in `ServerEntry` exactly.
 

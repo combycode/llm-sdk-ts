@@ -18,9 +18,9 @@ MCP surfaces.
 
 | Export | What it does |
 |---|---|
-| `connectMcp(config, opts?)` | Connect to one MCP server (HTTP or stdio). Returns a `McpConnection` with `.tools` (array of `AgentTool`), `.listTools()`, `.callTool()`, `.close()`. |
-| `mcpToolset(configs, opts?)` | Connect to multiple MCP servers at once. Returns a combined `McpConnection` (merged tools from all servers). |
-| `finishMcpAuth(url, opts?)` | Complete an OAuth 2.1 / PKCE authorization flow for an authenticated MCP server. Call after the user is redirected back. |
+| `connectMcp(config, opts?)` | Connect to one MCP server (HTTP or stdio). Returns a `McpConnection` with `.tools` (array of `AgentTool`), `.serverInfo`, `.listTools()`, `.client` (low-level `McpClient`), `.close()`. |
+| `mcpToolset(configs, opts?)` | Connect to multiple MCP servers at once. Returns `{ tools, connections, close() }` with the merged tool list from all servers. |
+| `finishMcpAuth(serverUrl, code, state, { auth, engine?, security? })` | Complete an OAuth 2.1 / PKCE authorization flow. Positional `code` and `state` come from the redirect callback; `auth` (an `McpAuthProvider`) is required. Returns `Promise<void>`. Reconnect via `connectMcp` afterwards. |
 | `McpClient` | Low-level client class (initialize/listTools/callTool/close). Use `connectMcp` instead for normal use. |
 | `McpError` / `McpErrorCode` | Error class and error codes from JSON-RPC layer. |
 | `McpOAuth` and related | OAuth helpers: `buildAuthorizationUrl`, `discoverMetadata`, `exchangeCode`, `generatePkce`, `refreshTokens`, `registerClient`. |
@@ -95,24 +95,68 @@ console.log(text);
 
 ### Authenticated MCP server (OAuth 2.1 + PKCE)
 
+`McpUnauthorizedError` carries no `authorizationUrl` property. When `connectMcp`
+detects that authorization is required it calls `auth.redirectToAuthorization(url)`
+on the provider you supplied -- the URL is delivered through that callback, not via
+the error. After the user completes the redirect flow, call `finishMcpAuth` with the
+`code` and `state` from the callback URL, then call `connectMcp` again.
+
+`connectMcp` only throws `McpUnauthorizedError` when you pass an `auth` provider;
+without one it will throw a generic connection error instead.
+
 ```ts
-import { connectMcp, finishMcpAuth } from '@combycode/llm-sdk';
+import { connectMcp, finishMcpAuth, McpUnauthorizedError } from '@combycode/llm-sdk';
+import type { McpAuthProvider } from '@combycode/llm-sdk';
 
-// Step 1: attempt to connect; catch McpUnauthorizedError to get the auth URL.
-import { McpUnauthorizedError } from '@combycode/llm-sdk';
+// Implement McpAuthProvider to store tokens and handle the browser redirect.
+// McpAuthProvider requires a `redirectUrl` field plus storage callbacks.
+const provider: McpAuthProvider = {
+  redirectUrl: 'https://your-app.example.com/oauth/callback',
+  clientMetadata: {
+    redirect_uris: ['https://your-app.example.com/oauth/callback'],
+    client_name: 'My App',
+  },
+  // ... implement tokens(), saveTokens(), clientInformation(), etc.
+  async redirectToAuthorization(url) {
+    // The authorization URL is delivered here -- redirect the user to it.
+    console.log('Redirect user to:', url);
+  },
+  // minimal stubs for the example:
+  async clientInformation() { return undefined; },
+  async tokens() { return undefined; },
+  async saveTokens() {},
+  async saveCodeVerifier() {},
+  async codeVerifier() { return ''; },
+  async saveState() {},
+  async state() { return undefined; },
+};
 
+// Step 1: attempt to connect with the auth provider.
 try {
-  const mcp = await connectMcp({ url: 'https://secure-mcp-server.example.com/mcp', name: 'secure' });
+  const mcp = await connectMcp(
+    { url: 'https://secure-mcp-server.example.com/mcp', name: 'secure' },
+    { auth: provider },
+  );
   // use mcp.tools ...
   await mcp.close();
 } catch (err) {
   if (err instanceof McpUnauthorizedError) {
-    // Redirect the user to err.authorizationUrl, then after redirect:
-    const mcp = await finishMcpAuth(err.authorizationUrl, {
-      code: 'OAUTH_CODE_FROM_REDIRECT',
-      state: 'STATE_FROM_REDIRECT',
+    // The auth provider's redirectToAuthorization() was already called.
+    // After the user completes the OAuth flow your callback receives code + state:
+    const code = 'OAUTH_CODE_FROM_REDIRECT';
+    const state = 'STATE_FROM_REDIRECT';
+
+    // Step 2: exchange the code for tokens (saved via the provider).
+    await finishMcpAuth('https://secure-mcp-server.example.com/mcp', code, state, {
+      auth: provider,
     });
-    // now mcp is connected and authorized
+
+    // Step 3: reconnect -- tokens are now stored in the provider.
+    const mcp = await connectMcp(
+      { url: 'https://secure-mcp-server.example.com/mcp', name: 'secure' },
+      { auth: provider },
+    );
+    // use mcp.tools ...
     await mcp.close();
   }
 }

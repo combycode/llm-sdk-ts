@@ -19,12 +19,11 @@ batches; and opening a real-time audio/text session.
 |---|---|
 | `createMediaOutput(opts)` | Build a media handle for image/audio/video generation. `.generateImage()`, `.generateAudio()`, `.generateVideo()`. Saves results to a local directory. |
 | `transcribe(opts)` | Speech-to-text (covered in [Tokens + embeddings](./tokens-embeddings.md) as well). |
-| `batch(opts)` | One-shot auto batch: submit + poll + return results. Each request mirrors `complete()` options. |
-| `submitBatch(opts)` | Submit only -- returns a `BatchJob` handle for manual polling. |
+| `batch(opts)` | One-shot auto batch: submit + poll + return results. Each request mirrors `complete()` options. Supported providers: openai, anthropic, google. |
+| `submitBatch(opts)` | Submit only -- returns a `BatchJob` handle for manual polling. Supported providers: openai, anthropic, google. |
 | `batchJob(ref)` | Reconstruct a `BatchJob` from a previously persisted `{ id, provider }`. |
 | `createRealtime(opts)` | Open a real-time session (WebSocket). Returns a `RealtimeSession` with event emitter API (`open`, `text`, `audio`, `turnComplete`, `error`, `close`). |
-| `loadContent(path)` | Load a file or URL into a `ContentPart` (image, PDF, audio, video -- MIME-sniffed). |
-| `createMediaOutput` | (also covers TTS and video generation) |
+| `loadContent(source)` | Load a URL string, file path, or `Uint8Array` bytes into a `ContentPart` (image, PDF, audio, video -- MIME-sniffed). |
 
 Type-only exports: `BatchJob`, `BatchItemResult`, `BatchRequestInput`,
 `MediaResult`, `MediaMeta`, `RealtimeSession`, `RealtimeEvent`, `LoadImageOptions`.
@@ -37,7 +36,7 @@ Type-only exports: `BatchJob`, `BatchItemResult`, `BatchRequestInput`,
 import { createMediaOutput } from '@combycode/llm-sdk';
 
 const media = createMediaOutput({
-  model: 'openai/dall-e-3',
+  model: 'openai/gpt-image-2',
   apiKey: process.env.OPENAI_API_KEY,
   dir: './.media-out',
 });
@@ -46,7 +45,7 @@ const [img] = await media.generateImage({
   prompt: 'a red circle on a white background',
   params: { size: '1024x1024' },
 });
-console.log(`Saved ${img?.meta.size} bytes to ${img?.meta.path}`);
+console.log(`Saved ${img?.id} (${img?.meta.size} bytes)`);
 ```
 
 ### Text-to-speech (TTS)
@@ -55,7 +54,7 @@ console.log(`Saved ${img?.meta.size} bytes to ${img?.meta.path}`);
 import { createMediaOutput } from '@combycode/llm-sdk';
 
 const media = createMediaOutput({
-  model: 'openai/gpt-4o-audio-preview',
+  model: 'openai/gpt-audio-1.5',
   apiKey: process.env.OPENAI_API_KEY,
   dir: './.media-out',
 });
@@ -133,7 +132,7 @@ if (status.status === 'completed') {
 import { createRealtime } from '@combycode/llm-sdk';
 
 const session = createRealtime({
-  model: 'openai/gpt-4o-realtime-preview',
+  model: 'openai/gpt-realtime-2',
   apiKey: process.env.OPENAI_API_KEY,
   modalities: ['text'],
 });

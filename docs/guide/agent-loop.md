@@ -122,7 +122,7 @@ const result = await consolidate({
     { name: 'Analyst B', model: 'openai/gpt-5.4-nano', system: 'You are a risk analyst.' },
   ],
   task: 'Should a startup invest in GPU hardware or rent cloud compute?',
-  judge: { model: 'anthropic/claude-opus-4.5' },
+  judge: { model: 'anthropic/claude-opus-4.8' },
   rounds: 3,
   onRound: ({ round, agreed }) => console.log(`Round ${round}: agreed=${agreed}`),
 });

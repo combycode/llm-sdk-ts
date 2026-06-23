@@ -146,7 +146,8 @@ engine.fetch(req, opts?)
 5. If `response.ok`: `parseResponseBody(response, responseType)`, release semaphore,
    resolve the entry.
 6. On HTTP error: `classifyError(provider, status, body, headers)` → `LLMError`.
-   - 429: `rateLimiter.pause(retryAfterMs)`, emit `onRateLimitHit`.
+   - 429: if `error.retryAfterMs` is set, `rateLimiter.pause(retryAfterMs)` (conditional);
+     emit `onRateLimitHit`.
    - Call `handleRetry(entry, error, ...)`.
 7. On thrown error (network, AbortError):
    - `DOMException.AbortError` → `kind: 'timeout'`; other → `kind: 'network'`.
@@ -197,7 +198,8 @@ Errors surface immediately. `processLoop` is not involved.
 `parseSSEStream(body: ReadableStream<Uint8Array>)` is a shared implementation
 used by all providers (no per-provider parsing). It:
 - Uses `TextDecoder` with `{ stream: true }` for incremental decoding.
-- Splits on `\n\n`, `\r\n\r\n`, or `\r\r` (RFC 8895 line endings).
+- Splits on `\n\n`, `\r\n\r\n`, or `\r\r` (SSE block separators per the WHATWG HTML
+  Living Standard).
 - Parses each block field-by-field: `event:`, `id:`, `data:`. Lines starting
   with `:` are SSE comments and are ignored.
 - Drops frames where `data === '[DONE]'` (OpenAI terminator) or where no `data`
@@ -353,8 +355,8 @@ The default `ConnectFn` wraps `globalThis.WebSocket`. When `headers` are needed
 - `settleOnWorkerCrash` ensures the queue can never deadlock if the worker
   throws before releasing the semaphore.
 - Streaming requests are never retried.
-- `emitSync` is used on hot-path events (`onEnqueue`, `onDequeue`, `onStreamChunk`,
-  `onRetry`, `onRateLimitUpdate`, `onStreamChunk`). `emit` (async, awaited) is
+- `emitSync` is used on hot-path events (`onEnqueue`, `onDequeue`, `onQueueTimeout`,
+  `onStreamChunk`, `onRetry`, `onRateLimitUpdate`). `emit` (async, awaited) is
   used where a handler may set control flags (`onRequestStart.abort`).
 - `inFlight` gauge is strictly maintained: every `semaphore.acquire()` is paired
   with a `semaphore.release()` in `finally` blocks or `settleOnWorkerCrash`.

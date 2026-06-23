@@ -32,7 +32,7 @@ network required.
 | Field | Type | Meaning |
 |---|---|---|
 | `provider` | `string` | Provider key (e.g. `"anthropic"`). |
-| `model` | `string` | Canonical normalized slug (e.g. `"claude-haiku-4-5"`). |
+| `model` | `string` | Canonical normalized slug (e.g. `"claude-haiku-4.5"`). |
 | `providerModelName` | `string?` | Exact id sent on the wire (may include a date suffix). |
 | `aliases` | `string[]?` | Alternate callable ids (snapshots, dated forms). |
 | `pricing.inputPerMTok` | `number?` | USD per 1 M input tokens. |
@@ -63,6 +63,7 @@ network required.
 | `inputModalities` | `string[]?` | Content kinds accepted: `text`, `image`, `audio`, `video`, `pdf`. |
 | `outputModalities` | `string[]?` | Content kinds produced: `text`, `image`, `audio`, `video`. |
 | `family` | `string?` | Model family (e.g. `"claude-opus"`, `"gpt"`). |
+| `version` | `string?` | Version string (e.g. `"4.5"`, `"5.4"`). Used as a ranking tiebreak when two models have equal input price. |
 | `status` | `string?` | Lifecycle: `stable`, `preview`, `legacy`. |
 | `active` | `boolean?` | Callable from this account right now. |
 
@@ -83,8 +84,8 @@ const all = listModels();
 const anthropicModels = listModels({ provider: 'anthropic' });
 
 // Inspect a model
-const haiku = engine.catalog.get('anthropic', 'claude-haiku-4-5');
-console.log(haiku?.pricing.inputPerMTok);   // e.g. 0.8
+const haiku = engine.catalog.get('anthropic', 'claude-haiku-4.5');
+console.log(haiku?.pricing.inputPerMTok);   // e.g. 1.0
 console.log(haiku?.capabilities.vision);    // true / false
 console.log(haiku?.contextWindow);          // 200000
 ```
@@ -123,16 +124,16 @@ const engine = createEngine({
 });
 
 // Register a custom / fine-tuned model
-engine.catalog.set('openai', 'my-ft-gpt-4o', {
-  pricing: { inputPerMTok: 5, outputPerMTok: 15 },
+engine.catalog.set('openai', 'my-ft-gpt-5.5', {
+  pricing: { inputPerMTok: 10, outputPerMTok: 30 },
   preferredApi: 'responses',
   supportedApis: ['responses', 'completions'],
-  contextWindow: 128000,
+  contextWindow: 1050000,
   capabilities: {
     toolUse: true,
     streaming: true,
     structuredOutput: true,
-    vision: false,
+    vision: true,
     audio: false,
     video: false,
     imageGeneration: false,
@@ -140,12 +141,12 @@ engine.catalog.set('openai', 'my-ft-gpt-4o', {
     videoGeneration: false,
   },
   // The exact id your fine-tune endpoint expects on the wire:
-  providerModelName: 'ft:gpt-4o-2024-08-06:acme::AbcXyz',
+  providerModelName: 'ft:gpt-5.5-2026-04-23:acme::AbcXyz',
 });
 
 // Now usable like any catalog model:
 const { text } = await complete({
-  model: 'openai/my-ft-gpt-4o',
+  model: 'openai/my-ft-gpt-5.5',
   prompt: 'Hello',
 });
 ```
@@ -162,7 +163,7 @@ catalog.set(
 
 Only `pricing` is required; everything else falls back to safe defaults
 (`toolUse: true`, `streaming: true`, `structuredOutput: true`, all media flags
-`false`, `preferredApi: 'completions'`).
+`false`, `preferredApi: 'completions'`, `supportedApis: [preferredApi]`).
 
 To load a batch of entries at once (same format as the bundled `catalog.json`
 files), use `catalog.load(data)`:
@@ -191,12 +192,12 @@ The SDK accepts two forms everywhere (`complete`, `stream`, `agent`, `estimate`,
 
 **Namespaced** — `"provider/model"` (recommended):
 ```ts
-const { text } = await complete({ model: 'anthropic/claude-haiku-4-5', prompt: '...' });
+const { text } = await complete({ model: 'anthropic/claude-haiku-4.5', prompt: '...' });
 ```
 
 **Bare model + explicit `provider` field**:
 ```ts
-const { text } = await complete({ model: 'claude-haiku-4-5', provider: 'anthropic', prompt: '...' });
+const { text } = await complete({ model: 'claude-haiku-4.5', provider: 'anthropic', prompt: '...' });
 ```
 
 Both forms are equivalent. The namespaced form is preferred because it is
@@ -243,7 +244,7 @@ Query syntax: a semicolon-separated string or string array. Each clause is one o
 
 | Clause | Meaning |
 |---|---|
-| `vision`, `tools`, `audio`, `structured`, `search` | Capability flag must be true. |
+| `vision`, `tools`, `audio`, `structured` | Capability flag must be true. |
 | `reasoning` | Model has a reasoning mode. |
 | `type:chat` | `model.type === 'chat'`. |
 | `status:stable` | `model.status === 'stable'`. |
@@ -253,6 +254,8 @@ Query syntax: a semicolon-separated string or string array. Each clause is one o
 | `context > 200k` | `contextWindow >= 200000`. |
 | `tier:flex` | Model has a `flex` pricing tier (also `priority`, etc.). |
 | `provider:anthropic` | Restrict to one provider (same as `opts.provider`). |
+
+To filter for web-search models use `type:search` or inspect `capabilities.builtinTools` on the returned `ModelInfo` object -- there is no `search` DSL clause because `webSearch` is not a standard `ModelCapabilities` field.
 
 Ranking: cheapest input price first; tiebreak: newest version.
 
@@ -277,7 +280,7 @@ content filter) propagate immediately.
 import { route } from '@combycode/llm-sdk';
 
 const result = await route({
-  models: ['anthropic/claude-opus-4', 'openai/gpt-4o', 'google/gemini-2.5-pro'],
+  models: ['anthropic/claude-opus-4.8', 'openai/gpt-5.5', 'google/gemini-3.1-pro'],
   prompt: 'Summarize this document.',
   maxTokens: 1024,
 });
@@ -299,42 +302,42 @@ subtle bugs.
 
 | Name type | Example | Where you use it |
 |---|---|---|
-| **Normalized id** (slug) | `anthropic/claude-haiku-4-5` | Pass to `complete()`, `select()`, `catalog.get()`, everywhere in the SDK. |
-| **API name** (`providerModelName`) | `claude-haiku-4-5-20250714` | What the adapter sends in the HTTP request body. You never write this -- the SDK translates it. |
-| **Alias** | `claude-haiku-4-5-20250714` | An alternate id (often the dated snapshot) that resolves to the same catalog entry. |
+| **Normalized id** (slug) | `anthropic/claude-haiku-4.5` | Pass to `complete()`, `select()`, `catalog.get()`, everywhere in the SDK. |
+| **API name** (`providerModelName`) | `claude-haiku-4-5-20251001` | What the adapter sends in the HTTP request body. You never write this -- the SDK translates it. |
+| **Alias** | `claude-haiku-4-5-20251001` | An alternate id (often the dated snapshot) that resolves to the same catalog entry. |
 
 Resolution flow:
 
 ```text
-You pass:   "anthropic/claude-haiku-4-5"
+You pass:   "anthropic/claude-haiku-4.5"
               |
               v
-catalog.get("anthropic", "claude-haiku-4-5")   <- direct slug lookup
+catalog.get("anthropic", "claude-haiku-4.5")   <- direct slug lookup
               |
               v
-catalog.resolveModelId("anthropic", "claude-haiku-4-5")
+catalog.resolveModelId("anthropic", "claude-haiku-4.5")
               |
               v
-adapter sends on the wire: "claude-haiku-4-5-20250714"  (<-- providerModelName)
+adapter sends on the wire: "claude-haiku-4-5-20251001"  (<-- providerModelName)
 ```
 
-If you pass an alias (e.g. the dated form `"anthropic/claude-haiku-4-5-20250714"`),
+If you pass an alias (e.g. the dated form `"anthropic/claude-haiku-4-5-20251001"`),
 the alias index resolves it to the canonical slug first, then the same translation
 applies. If you pass a completely unknown id, the SDK sends it verbatim -- no error,
 no translation.
 
 ```ts
 // All three of these resolve to the same wire request:
-await complete({ model: 'anthropic/claude-haiku-4-5', prompt: '...' });
-await complete({ model: 'anthropic/claude-haiku-4-5-20250714', prompt: '...' });  // alias
-await complete({ model: 'claude-haiku-4-5', provider: 'anthropic', prompt: '...' });
+await complete({ model: 'anthropic/claude-haiku-4.5', prompt: '...' });
+await complete({ model: 'anthropic/claude-haiku-4-5-20251001', prompt: '...' });  // alias
+await complete({ model: 'claude-haiku-4.5', provider: 'anthropic', prompt: '...' });
 ```
 
 To inspect the wire name directly:
 
 ```ts
-const wireName = engine.catalog.resolveModelId('anthropic', 'claude-haiku-4-5');
-// -> "claude-haiku-4-5-20250714"
+const wireName = engine.catalog.resolveModelId('anthropic', 'claude-haiku-4.5');
+// -> "claude-haiku-4-5-20251001"
 ```
 
 ---

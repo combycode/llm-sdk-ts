@@ -15,7 +15,7 @@ layer — all execution routes through `AgentLoop` via `dispatch`.
 
 Endpoints:
 
-- `POST /v1/chat/completions` — primary chat; fake streaming supported.
+- `POST /v1/chat/completions` — primary chat; always returns a full JSON body (streaming not yet implemented).
 - `GET  /v1/models` — lists registered entries with ORXA-specific metadata.
 - `GET  /health` — liveness probe, returns `{ status: 'ok' }`.
 - `OPTIONS *` — CORS preflight, always 204.
@@ -80,8 +80,9 @@ In-memory LRU: a `Map<string, ResponseStoreEntry>` capped at `memoryCapacity`
 persistence and deserialized via `ConversationHistory.import(snapshot)` on load.
 
 Static helpers: `ResponseStore.newId()` generates `resp_{24-char hex}`.
-`ResponseStore.hasFreshProviderState(entry, now?)` checks whether
-`providerResponseId` exists and `providerStateExpiresAt > now`.
+`ResponseStore.hasFreshProviderState(entry, now?)` returns false when
+`providerResponseId` is falsy OR when `providerStateExpiresAt === null`; returns true
+only when both are set and `providerStateExpiresAt > now`.
 
 ### `AuthPlugin` (`src/server/auth.ts`)
 
@@ -138,8 +139,8 @@ stateless HTTP calls. When absent, a fresh `ConversationHistory` is built per re
 
 Pure TypeScript interfaces for the OpenAI wire format: `OaiChatRequest`,
 `OaiChatResponse`, `OaiChatStreamChunk`, `OaiChatMessage`, `OaiContentPart`,
-`OaiToolDefinition`, `OaiErrorBody`, `OaiFinishReason`, `OaiModelEntry`. Not exported as
-part of the public SDK surface — used only internally by `oai-adapter.ts` and `server.ts`.
+`OaiToolDefinition`, `OaiErrorBody`, `OaiFinishReason`, `OaiModelEntry`. These types
+are exported from the package root (`index.ts`) as part of the public SDK surface.
 
 ---
 
@@ -177,7 +178,7 @@ internally by `Bun.serve` and called directly by tests (no real port binding nee
 3. **Routing**: branch on `request.method + url.pathname`:
    - `OPTIONS *` → 204 with CORS headers.
    - `GET /health` → `{ status: 'ok' }`.
-   - `GET /v1/models` → `router.list()`.
+   - `GET /v1/models` → `{ object: 'list', data: router.list() }`.
    - `POST /v1/chat/completions` → `handleChatCompletions`.
    - Anything else → 404.
 4. **Response emission**: emit `onServerResponse` with `{ serverId, requestId, status,
@@ -206,9 +207,10 @@ origin: *`, `access-control-allow-methods: GET, POST, OPTIONS, DELETE`,
    `estimateTokens(userText + systemPrompt)` / `estimateTokens(result.text)`.
 10. Return `buildChatResponse(...)` as JSON 200.
 
-Streaming is NOT currently implemented in the handler despite `OaiChatStreamChunk` types
-existing. The response is always a complete JSON body. `buildStreamChunk` and
-`formatSseFrame` are available in `oai-adapter.ts` for a future streaming pass.
+Streaming is not yet implemented. The handler always returns a complete JSON body
+regardless of `stream: true` in the request. `OaiChatStreamChunk`, `buildStreamChunk`,
+and `formatSseFrame` exist in `oai-adapter.ts` for a future streaming pass;
+`streamChunkChars` in `OaiServerConfig` (default 40) is also currently unused.
 
 ---
 
@@ -234,6 +236,8 @@ interface DispatchResult {
    `ctx.response.id` into `capturedProviderId` (unsubscribed in `finally`).
 2. If `input.agentLoop` is provided, use it directly.
 3. Otherwise: `mergeTools(target.internalTools, toAgentTools(input.externalTools))`.
+   - External tools are only included when `target.allowExternalTools` is true; otherwise
+     an empty array is used.
    - `mergeTools`: internal tools win on name collision; external tools that duplicate an
      internal name are silently dropped.
    - `toAgentTools`: wraps each `OaiToolDefinition` as an `AgentTool` whose `execute`
@@ -258,7 +262,7 @@ call it with `new Request('http://localhost/v1/chat/completions', { method: 'POS
 ... })` without ever binding a port. Framework adapters (Cloudflare Workers, etc.) can wrap
 `handle` to host the server under any runtime.
 
-`stop()` calls `Bun.server.stop(true)` (closes active connections).
+`stop()` is async: `await this.server.stop(true)` (closes active connections).
 
 ---
 

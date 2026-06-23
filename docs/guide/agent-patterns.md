@@ -226,7 +226,7 @@ const engine = createEngine({ apiKeys: { anthropic: process.env.ANTHROPIC_API_KE
 
 // Block any prompt containing a forbidden keyword.
 engine.hooks.on('onRunStart', (ctx) => {
-  const input = String(ctx.input ?? '');
+  const input = String(ctx.userMessage ?? '');
   if (input.toLowerCase().includes('delete all')) {
     throw new Error('Tripwire: "delete all" is not allowed in agent prompts.');
   }

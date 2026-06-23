@@ -243,8 +243,9 @@ buffer length, Blob size, or base64 length × 3/4.
 
 **Resolution pipeline** (called from `onMessageResolve`):
 
-For each message with array content, for each content part whose `source.type` is
-`'path'`, `'buffer'`, or `'file'`:
+For each message with array content, for each content part of type `'image'`,
+`'document'`, `'audio'`, or `'video'` whose `source.type` is `'path'`, `'buffer'`,
+or `'file'`:
 
 1. `source.type === 'file'`: look up the `fileId` in `this.files`. Emit `onWarning`
    with code `'file_not_found'` and return null if not found (part is left unchanged).
@@ -415,8 +416,8 @@ poll timing.
 - `FilesRegistry.resolveMessages` mutates `messages` in place. The `LLMClient` does not
   deep-clone before emitting `onMessageResolve`. Adapters that hold a reference to the
   original messages array will observe mutations.
-- `FileMediaStore` and `FileMediaStore.list` with a filter do N serial `getMeta` reads (one
-  per file). For large media stores with many entries, this is slow. No parallel batching.
+- `FileMediaStore.load` and `FileMediaStore.list` with a filter do N serial `getMeta` reads
+  (one per file). For large media stores with many entries, this is slow. No parallel batching.
 - `FileMediaStore` writes binary data and metadata in a parallel `Promise.all` but does not
   use atomic write. A crash between the two writes leaves an orphaned binary without
   metadata, which `load()` will return null for (meta read fails → return null).

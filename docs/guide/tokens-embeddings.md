@@ -17,8 +17,8 @@ transcribing speech to text.
 | Export | What it does |
 |---|---|
 | `countTokens(opts)` | Count the tokens in a string or message array. Picks the right counter per model: tiktoken for OpenAI, count-API for Anthropic/Google, heuristic otherwise. |
-| `embed(opts)` | Produce embedding vectors from a string or string array. Works with OpenAI, Google, and OpenRouter. Returns `{ vectors, dimensions, usage }`. |
-| `transcribe(opts)` | Speech-to-text. OpenAI routes to `/v1/audio/transcriptions`; Google uses a chat-style completion internally. Returns `{ text, language? }`. |
+| `embed(opts)` | Produce embedding vectors from a string or string array. Works with OpenAI, Google, and OpenRouter. Returns `{ embeddings, dimensions, usage }`. |
+| `transcribe(opts)` | Speech-to-text. OpenAI routes to `/v1/audio/transcriptions`; Google uses a chat-style completion internally. Returns `{ text }`. |
 | `HybridTokenCounter` | Low-level token counter that tries tiktoken, falls back to count-API, then heuristic. Used by `countTokens` and `estimate()` internally. |
 | `HeuristicCounter` / `TiktokenCounter` / `CountApiCounter` | Individual counters for custom wiring. |
 
@@ -42,12 +42,12 @@ console.log(`Token count: ${n}`);
 ```ts
 import { embed } from '@combycode/llm-sdk';
 
-const { vectors, dimensions } = await embed({
+const { embeddings, dimensions } = await embed({
   model: 'openai/text-embedding-3-small',
   apiKey: process.env.OPENAI_API_KEY,
   input: ['hello world', 'foo bar'],
 });
-console.log(`${vectors.length} vectors, ${dimensions} dimensions each`);
+console.log(`${embeddings.length} embeddings, ${dimensions} dimensions each`);
 ```
 
 ### Transcription (speech-to-text)
@@ -56,7 +56,7 @@ console.log(`${vectors.length} vectors, ${dimensions} dimensions each`);
 import { transcribe } from '@combycode/llm-sdk';
 
 const { text } = await transcribe({
-  model: 'openai/gpt-4o-audio-preview',
+  model: 'openai/gpt-4o-transcribe',
   apiKey: process.env.OPENAI_API_KEY,
   audio: './recording.wav', // file path, URL, or Uint8Array
 });

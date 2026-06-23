@@ -58,12 +58,12 @@ const engine = createEngine({
   apiKeys: { anthropic: process.env.ANTHROPIC_API_KEY! },
 });
 
-const telemetry = new TelemetryAdapter({ hooks: engine.hooks });
+const telemetry = new TelemetryAdapter(engine.hooks);
 
 await complete({ model: 'anthropic/claude-haiku-4.5', prompt: 'Hello' });
 await complete({ model: 'anthropic/claude-haiku-4.5', prompt: 'World' });
 
-const metrics = telemetry.getMetrics();
+const metrics = telemetry.metrics;
 console.log(`Requests: ${metrics.requests}`);
 console.log(`Total cost: $${metrics.costUsd.toFixed(6)}`);
 
