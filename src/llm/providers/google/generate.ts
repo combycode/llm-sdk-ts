@@ -379,6 +379,11 @@ export class GoogleAdapter implements ProviderAdapter {
     if (!u) return emptyUsage();
     const input = (u.promptTokenCount as number) ?? 0;
     const output = (u.candidatesTokenCount as number) ?? 0;
+    // Billed service tier (output-only `usageMetadata.serviceTier`, e.g. FLEX/PRIORITY),
+    // mirroring the anthropic/openai billed-tier helpers. pricingTier (lower-cased) keys
+    // the catalog `pricing.tiers`; serviceTier preserves the provider's raw value.
+    const rawTier =
+      typeof u.serviceTier === 'string' && u.serviceTier ? u.serviceTier : undefined;
     return {
       inputTokens: input,
       outputTokens: output,
@@ -386,6 +391,7 @@ export class GoogleAdapter implements ProviderAdapter {
       cachedTokens: (u.cachedContentTokenCount as number) ?? 0,
       cacheWriteTokens: 0,
       reasoningTokens: (u.thoughtsTokenCount as number) ?? 0,
+      ...(rawTier ? { serviceTier: rawTier, pricingTier: rawTier.toLowerCase() } : {}),
     };
   }
 }

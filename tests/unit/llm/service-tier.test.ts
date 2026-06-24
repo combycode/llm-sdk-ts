@@ -6,6 +6,7 @@ import { HookBus } from '../../../src/bus/hook-bus';
 import { AnthropicAdapter } from '../../../src/llm/providers/anthropic/messages';
 import { OpenAIAdapter } from '../../../src/llm/providers/openai/completions';
 import { OpenAIResponsesAdapter } from '../../../src/llm/providers/openai/responses';
+import { GoogleAdapter } from '../../../src/llm/providers/google/generate';
 import type { NormalizedRequest } from '../../../src/llm/types/request';
 import { parseModelTier } from '../../../src/helpers/client-resolver';
 import { CostCollector } from '../../../src/plugins/cost-collector/collector';
@@ -71,6 +72,19 @@ describe('billed serviceTier → Usage', () => {
     );
     expect(r.usage.serviceTier).toBe('batch');
     expect(r.usage.pricingTier).toBe('batch');
+  });
+
+  it('google: usageMetadata.serviceTier → serviceTier (raw) + pricingTier (lower-cased)', () => {
+    const a = new GoogleAdapter({ apiKey: 'k' });
+    const r = a.parseResponse(
+      {
+        candidates: [{ content: { parts: [{ text: 'hi' }] }, finishReason: 'STOP' }],
+        usageMetadata: { promptTokenCount: 1, candidatesTokenCount: 1, serviceTier: 'FLEX' },
+      },
+      1,
+    );
+    expect(r.usage.serviceTier).toBe('FLEX');
+    expect(r.usage.pricingTier).toBe('flex');
   });
 
   it('no provider tier → fields stay undefined', () => {
