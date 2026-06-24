@@ -95,7 +95,8 @@ interface CompletionResponse {
   text: string;                     // convenience: joined text parts
   toolCalls: ToolCallPart[];
   thinking: string | null;
-  media: MediaOutputPart[];
+  media: MediaOutputPart[];          // generated media (image/audio/video)
+  files?: FileOutput[];              // hosted-tool file outputs (e.g. code execution): {id?,name?,mimeType?,data?,source?}
   latencyMs: number;
   raw: unknown;                     // provider's raw HTTP response body
 }
@@ -256,7 +257,8 @@ Five provider directories: `src/llm/providers/{anthropic,openai,google,xai,openr
 - Tool role `'tool'` is remapped to `'user'` (Anthropic's wire format).
 - `web_search` builtin maps to `{ type: 'web_search_20250305', name: 'web_search' }`;
   `code_interpreter` maps to `{ type: 'code_execution_20260521', name: 'code_execution' }`
-  (both GA on Messages, no beta header). Other builtins are skipped.
+  (both GA on Messages, no beta header). Other builtins are skipped. Code-execution
+  file outputs (`code_execution_tool_result` blocks) are surfaced as `response.files`.
 - Service tier: `'auto'` → `'auto'`; `'standard'` → `'standard_only'`;
   `'priority'` → `'auto'`; `'flex'`/`'scale'` → `'standard_only'` or `'auto'`.
 

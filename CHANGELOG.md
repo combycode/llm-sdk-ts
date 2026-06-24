@@ -7,6 +7,9 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 ## [Unreleased]
 
 ### Added
+- Unified `CompletionResponse.files` (`FileOutput[]`) - files produced by hosted tools
+  (code execution, etc.), independent of `media`. The Anthropic adapter surfaces
+  code-execution file outputs there by file id; OpenAI/Google/xAI producers to follow.
 - Model catalog: new `ModelInfo.availability` field (`limited` / `preview`, vs default
   generally-available) so gated / early-access models are distinguishable from the
   `status` lifecycle. (Entries for specific limited/preview models are populated by the

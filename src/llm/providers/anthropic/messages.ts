@@ -13,6 +13,7 @@ import type { NormalizedRequest } from '../../types/request';
 import {
   emptyUsage,
   type CompletionResponse,
+  type FileOutput,
   type Usage,
 } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
@@ -267,6 +268,7 @@ export class AnthropicAdapter implements ProviderAdapter {
     const content: ContentPart[] = [];
     let thinking: string | null = null;
     const toolCalls: ToolCallPart[] = [];
+    const files: FileOutput[] = [];
 
     for (const block of contentBlocks) {
       if (block.type === 'text') {
@@ -282,6 +284,16 @@ export class AnthropicAdapter implements ProviderAdapter {
         };
         content.push(tc);
         toolCalls.push(tc);
+      } else if (block.type === 'code_execution_tool_result') {
+        // Hosted code-execution output: collect produced file refs (fetch by id).
+        const result = block.content as Record<string, unknown> | undefined;
+        if (result?.type === 'code_execution_result') {
+          for (const out of (result.content as Array<Record<string, unknown>>) ?? []) {
+            if (out.type === 'code_execution_output' && typeof out.file_id === 'string') {
+              files.push({ id: out.file_id, source: 'code_execution' });
+            }
+          }
+        }
       }
     }
 
@@ -301,6 +313,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         .join(''),
       toolCalls,
       media: [],
+      ...(files.length ? { files } : {}),
       thinking,
       latencyMs,
       raw,

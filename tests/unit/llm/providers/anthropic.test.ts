@@ -175,6 +175,38 @@ describe('AnthropicAdapter — tools', () => {
     expect(tools).toContainEqual({ type: 'code_execution_20260521', name: 'code_execution' });
   });
 
+  it('surfaces code_execution file outputs into response.files', () => {
+    const r = a.parseResponse(
+      {
+        id: 'm',
+        model: 'claude',
+        stop_reason: 'end_turn',
+        content: [
+          { type: 'text', text: 'done' },
+          {
+            type: 'code_execution_tool_result',
+            content: {
+              type: 'code_execution_result',
+              stdout: 'ok',
+              stderr: '',
+              return_code: 0,
+              content: [{ type: 'code_execution_output', file_id: 'file_abc' }],
+            },
+          },
+        ],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+      1,
+    );
+    expect(r.files).toEqual([{ id: 'file_abc', source: 'code_execution' }]);
+    // no code-exec output -> files absent
+    const plain = a.parseResponse(
+      { id: 'm', model: 'claude', stop_reason: 'end_turn', content: [{ type: 'text', text: 'hi' }], usage: {} },
+      1,
+    );
+    expect(plain.files).toBeUndefined();
+  });
+
   it('attaches cache_control to last function tool when cache.tools=true', () => {
     const r = a.buildRequest({
       ...baseReq,
