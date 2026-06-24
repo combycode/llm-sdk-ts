@@ -117,11 +117,14 @@ export class AnthropicAdapter implements ProviderAdapter {
         req.cache === 'auto' || (typeof req.cache === 'object' && req.cache.tools);
       body.tools = req.tools
         .map((t, i) => {
-          // Map the unified web_search builtin to Anthropic's server tool; other
-          // builtins are not supported here and are skipped.
+          // Map unified builtins to Anthropic's hosted server tools (GA on Messages,
+          // no beta header - same as web_search). Unsupported builtins are skipped.
           if (!isFunctionTool(t)) {
             if (t.type === 'web_search') {
               return { type: 'web_search_20250305', name: 'web_search', max_uses: 5 };
+            }
+            if (t.type === 'code_interpreter') {
+              return { type: 'code_execution_20260521', name: 'code_execution' };
             }
             return null;
           }

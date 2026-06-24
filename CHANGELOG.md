@@ -7,6 +7,9 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 ## [Unreleased]
 
 ### Added
+- Anthropic: the unified `code_interpreter` builtin now maps to Anthropic's hosted
+  `code_execution` tool (GA on Messages) - it was previously silently skipped. Hosted
+  code execution is now usable across Anthropic / OpenAI / Google through one interface.
 - Google service tier, both directions (parity with OpenAI/Anthropic): a requested
   unified `serviceTier` (`flex`/`standard`/`priority`) maps to Google's top-level
   request field, and the billed `usageMetadata.serviceTier` is read back into

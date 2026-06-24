@@ -254,7 +254,9 @@ Five provider directories: `src/llm/providers/{anthropic,openai,google,xai,openr
 - File refs (source type `provider_ref` or `file`) in content parts trigger the
   `anthropic-beta: files-api-2025-04-14` header.
 - Tool role `'tool'` is remapped to `'user'` (Anthropic's wire format).
-- `web_search` builtin maps to `{ type: 'web_search_20250305', name: 'web_search' }`.
+- `web_search` builtin maps to `{ type: 'web_search_20250305', name: 'web_search' }`;
+  `code_interpreter` maps to `{ type: 'code_execution_20260521', name: 'code_execution' }`
+  (both GA on Messages, no beta header). Other builtins are skipped.
 - Service tier: `'auto'` → `'auto'`; `'standard'` → `'standard_only'`;
   `'priority'` → `'auto'`; `'flex'`/`'scale'` → `'standard_only'` or `'auto'`.
 

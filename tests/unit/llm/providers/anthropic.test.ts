@@ -169,6 +169,12 @@ describe('AnthropicAdapter — tools', () => {
     expect(tools.some((t) => t.name === 'fn' && !t.type)).toBe(true);
   });
 
+  it('maps the code_interpreter builtin to anthropic hosted code_execution', () => {
+    const r = a.buildRequest({ ...baseReq, tools: [{ type: 'code_interpreter' }] });
+    const tools = r.body.tools as Array<Record<string, unknown>>;
+    expect(tools).toContainEqual({ type: 'code_execution_20260521', name: 'code_execution' });
+  });
+
   it('attaches cache_control to last function tool when cache.tools=true', () => {
     const r = a.buildRequest({
       ...baseReq,
