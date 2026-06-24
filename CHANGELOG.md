@@ -7,6 +7,10 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 ## [Unreleased]
 
 ### Added
+- Model catalog: new `ModelInfo.availability` field (`limited` / `preview`, vs default
+  generally-available) so gated / early-access models are distinguishable from the
+  `status` lifecycle. (Entries for specific limited/preview models are populated by the
+  catalog pipeline.)
 - Anthropic: the unified `code_interpreter` builtin now maps to Anthropic's hosted
   `code_execution` tool (GA on Messages) - it was previously silently skipped. Hosted
   code execution is now usable across Anthropic / OpenAI / Google through one interface.

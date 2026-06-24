@@ -65,6 +65,7 @@ network required.
 | `family` | `string?` | Model family (e.g. `"claude-opus"`, `"gpt"`). |
 | `version` | `string?` | Version string (e.g. `"4.5"`, `"5.4"`). Used as a ranking tiebreak when two models have equal input price. |
 | `status` | `string?` | Lifecycle: `stable`, `preview`, `legacy`. |
+| `availability` | `string?` | Access tier (independent of lifecycle): undefined = generally available; `limited` = gated / not enabled for every account; `preview` = early access. |
 | `active` | `boolean?` | Callable from this account right now. |
 
 ### Reading the catalog

@@ -127,6 +127,9 @@ export interface ModelInfo {
   version?: string;
   /** Lifecycle: stable | preview | legacy. */
   status?: string;
+  /** Access tier, independent of lifecycle: undefined = generally available;
+   *  'limited' = gated / not enabled for every account; 'preview' = early access. */
+  availability?: string;
   /** Callable from this account/SDK now (probe-verified). false = don't call. */
   active?: boolean;
   /** End-of-life signalled by a source. */
@@ -216,6 +219,7 @@ export class ModelCatalog {
       family: info.family,
       version: info.version,
       status: info.status,
+      availability: info.availability,
       active: info.active,
       deprecation: info.deprecation,
     });

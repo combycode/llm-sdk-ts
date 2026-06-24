@@ -14,6 +14,16 @@ describe('ModelCatalog', () => {
     expect(info?.preferredApi).toBe('completions');
   });
 
+  it('availability round-trips (limited / preview access tier; undefined = GA)', () => {
+    const c = new ModelCatalog();
+    c.set('anthropic', 'claude-fable-5', { pricing: {}, availability: 'limited' });
+    c.set('xai', 'grok-imagine-video-1.5-preview', { pricing: {}, availability: 'preview' });
+    c.set('openai', 'gpt-x', { pricing: {} });
+    expect(c.get('anthropic', 'claude-fable-5')?.availability).toBe('limited');
+    expect(c.get('xai', 'grok-imagine-video-1.5-preview')?.availability).toBe('preview');
+    expect(c.get('openai', 'gpt-x')?.availability).toBeUndefined();
+  });
+
   it('load supports legacy pricing-only and modern object formats', () => {
     const c = new ModelCatalog();
     c.load({
