@@ -23,10 +23,12 @@ describe('serviceTier → provider request param', () => {
   const openai = new OpenAIResponsesAdapter({ apiKey: 'k' });
   const completions = new OpenAIAdapter({ apiKey: 'k' });
   const anthropic = new AnthropicAdapter({ apiKey: 'k' });
+  const google = new GoogleAdapter({ apiKey: 'k' });
 
   it('omits service_tier when no tier requested', () => {
     expect(openai.buildRequest(req()).body.service_tier).toBeUndefined();
     expect(anthropic.buildRequest(req()).body.service_tier).toBeUndefined();
+    expect(google.buildRequest(req()).body.serviceTier).toBeUndefined();
   });
 
   it('openai maps standard→default, priority→priority, flex→flex, scale→scale', () => {
@@ -50,6 +52,15 @@ describe('serviceTier → provider request param', () => {
     expect(anthropic.buildRequest(req({ serviceTier: 'flex' })).body.service_tier).toBe('standard_only');
     expect(anthropic.buildRequest(req({ serviceTier: 'scale' })).body.service_tier).toBe('auto');
     expect(anthropic.buildRequest(req({ serviceTier: 'unknown' as 'auto' })).body.service_tier).toBe('auto');
+  });
+
+  it('google maps flex/standard/priority (top-level serviceTier), omits auto/scale/unknown', () => {
+    expect(google.buildRequest(req({ serviceTier: 'flex' })).body.serviceTier).toBe('flex');
+    expect(google.buildRequest(req({ serviceTier: 'standard' })).body.serviceTier).toBe('standard');
+    expect(google.buildRequest(req({ serviceTier: 'priority' })).body.serviceTier).toBe('priority');
+    expect(google.buildRequest(req({ serviceTier: 'auto' })).body.serviceTier).toBeUndefined();
+    expect(google.buildRequest(req({ serviceTier: 'scale' })).body.serviceTier).toBeUndefined();
+    expect(google.buildRequest(req({ serviceTier: 'turbo' as 'auto' })).body.serviceTier).toBeUndefined();
   });
 });
 

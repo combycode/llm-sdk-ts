@@ -7,9 +7,11 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 ## [Unreleased]
 
 ### Added
-- Google: billed service tier from `usageMetadata.serviceTier` now populates
-  `usage.serviceTier` / `usage.pricingTier` (parity with OpenAI/Anthropic), so
-  tiered cost tracking works for Google responses.
+- Google service tier, both directions (parity with OpenAI/Anthropic): a requested
+  unified `serviceTier` (`flex`/`standard`/`priority`) maps to Google's top-level
+  request field, and the billed `usageMetadata.serviceTier` is read back into
+  `usage.serviceTier` / `usage.pricingTier` for tiered cost tracking.
+  (New `providers/google/tiers.ts`.)
 
 ## [1.0.0] - 2026-06-13
 
