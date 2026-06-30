@@ -13,14 +13,18 @@
 
 import type { HookBus } from '../../bus/hook-bus';
 import type { CostEntry } from '../../bus/hook-map';
-import type { EngineFetch } from '../../network/types';
 import type { ModerationResult } from '../../helpers/moderate-types';
 import { contentText } from '../types/messages';
 import type { Message } from '../types/messages';
 import type { ProviderName } from '../types/provider';
 import type { StreamEvent } from '../types/stream';
 import { OpenAIModerationAdapter } from '../providers/openai/moderations';
-import type { ModerationEntry, ModerationRequest, ModerationStreamStrategy } from './types';
+import type {
+  EmulationConfig,
+  ModerationEntry,
+  ModerationRequest,
+  ModerationStreamStrategy,
+} from './types';
 import { MODERATION_DEFAULT_INTERVAL, MODERATION_DEFAULT_MODEL } from './types';
 
 /** Native for OpenAI, emulated for everyone else — unless explicitly forced. */
@@ -37,12 +41,6 @@ export function moderationInputText(messages: Message[]): string {
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   if (!lastUser) return '';
   return typeof lastUser.content === 'string' ? lastUser.content : contentText(lastUser.content);
-}
-
-export interface EmulationConfig {
-  apiKey: string;
-  model: string;
-  fetch: EngineFetch;
 }
 
 function emptyResult(): ModerationResult {

@@ -24,7 +24,6 @@ import type { EngineFetch, EngineFetchStream, HttpRequest, HttpResponse } from '
 import { ModelCatalog } from '../plugins/model-catalog/catalog';
 import type { RequestContext } from '../types/request-context';
 import {
-  type EmulationConfig,
   emitModerationZeroCost,
   moderationInputText,
   moderationModel,
@@ -32,7 +31,7 @@ import {
   runModeration,
   wrapModeratedStream,
 } from './moderation/runner';
-import type { ModerationReport, ModerationRequest } from './moderation/types';
+import type { EmulationConfig, ModerationReport, ModerationRequest } from './moderation/types';
 import { MODERATION_DEFAULT_INTERVAL, MODERATION_DEFAULT_STRATEGY } from './moderation/types';
 import { resolveServerState } from './server-state';
 import type { ContentPart, Message } from './types/messages';
@@ -298,6 +297,17 @@ export class LLMClient {
 
     const inputChars = JSON.stringify(normalized.messages).length;
     const estimatedInputTokens = Math.ceil(inputChars / 4);
+
+    // Resolve the emulated-moderation key BEFORE the provider call, so a missing
+    // key fails fast (the documented contract) and never discards a billed
+    // completion or skips onCompletion. The moderation calls themselves run after
+    // the response (they need result.text), reusing this config.
+    const mod = options.moderation;
+    const moderationCfg =
+      mod && resolveModerationMode(this.provider, mod) === 'emulate'
+        ? this.moderationConfig(mod)
+        : undefined;
+
     const start = performance.now();
 
     let response: HttpResponse;
@@ -329,9 +339,8 @@ export class LLMClient {
     // Emulated inline moderation (non-OpenAI providers, or forced). Native results
     // are already on result.moderation from the adapter. Report-only: attach, never
     // block. Input + output run concurrently (the moderations endpoint is free).
-    const mod = options.moderation;
-    if (mod && resolveModerationMode(this.provider, mod) === 'emulate') {
-      const cfg = this.moderationConfig(mod);
+    if (mod && moderationCfg) {
+      const cfg = moderationCfg;
       const doInput = mod.input ?? true;
       const doOutput = mod.output ?? true;
       const [inputEntry, outputEntry] = await Promise.all([

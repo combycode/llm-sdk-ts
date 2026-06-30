@@ -148,6 +148,11 @@ describe('native moderation wire helpers', () => {
     expect(parseNativeModeration({})).toBeUndefined();
   });
 
+  it('an empty moderation_results envelope yields no entry', () => {
+    const empty = { type: 'moderation_results', model: 'm', results: [] };
+    expect(parseNativeModeration({ input: empty })).toBeUndefined();
+  });
+
   it('the OpenAI Responses adapter emits body.moderation natively, and skips it when forced to emulate', () => {
     const adapter = new OpenAIResponsesAdapter({ apiKey: 'k' });
     const base: NormalizedRequest = { model: 'gpt-5', messages: [{ role: 'user', content: 'hi' }] };
@@ -188,6 +193,29 @@ describe('emulated moderation — complete()', () => {
   it('throws when emulation has no resolvable OpenAI key', async () => {
     const client = makeClient({ provider: 'anthropic' });
     await expect(client.complete('hi', { moderation: {} })).rejects.toThrow(/OpenAI API key/);
+  });
+
+  it('missing key fails fast — before the provider call (no billed completion discarded)', async () => {
+    let providerCalls = 0;
+    const trackingFetch: EngineFetch = (async (req: { url?: string }) => {
+      if (!String(req.url ?? '').includes('/moderations')) providerCalls++;
+      return { status: 200, headers: {}, body: { ok: true } } as HttpResponse;
+    }) as EngineFetch;
+    const client = makeClient({ provider: 'anthropic', fetch: trackingFetch });
+    await expect(client.complete('hi', { moderation: {} })).rejects.toThrow(/OpenAI API key/);
+    expect(providerCalls).toBe(0); // the throw must precede the billed provider request
+  });
+
+  it('empty input → an un-flagged result, no moderation HTTP call', async () => {
+    let modCalls = 0;
+    const fetch: EngineFetch = (async (req: { url?: string }) => {
+      if (String(req.url ?? '').includes('/moderations')) modCalls++;
+      return { status: 200, headers: {}, body: { results: [RAW_RESULT(false)] } } as HttpResponse;
+    }) as EngineFetch;
+    const client = makeClient({ provider: 'anthropic', fetch });
+    const res = await client.complete('', { moderation: { apiKey: 'k', output: false } });
+    expect((res.moderation?.input as { flagged: boolean }).flagged).toBe(false);
+    expect(modCalls).toBe(0); // nothing to moderate → no endpoint hit
   });
 
   it('emits an honest-zero cost entry per emulated moderation call', async () => {

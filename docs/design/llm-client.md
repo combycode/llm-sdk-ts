@@ -306,7 +306,10 @@ In-browser: adds `anthropic-dangerous-direct-browser-access: true` header
 - Builtin tools pass through with `...t.params`; `code_interpreter` defaults
   `container = { type: 'auto' }` when absent.
 - `structured` → `text.format = { type: 'json_schema', name, schema, strict }`.
-- `thinking` → `reasoning = { effort, summary: 'auto' }`.
+- `thinking` → `reasoning = { effort, summary: 'auto' }`, plus `context` when
+  `thinking.context` is set (cross-turn reasoning persistence — Responses only).
+- `moderation` (unless `mode:'emulate'`) → native `moderation = { model }`; results
+  read back into `response.moderation` by `parseResponse` / `parseStreamEvent`.
 
 **`parseResponse`**: iterates `output[]` items; `type: 'message'` → text content;
 `type: 'reasoning'` → extracts summary text as `thinking`; `type: 'function_call'`
@@ -333,7 +336,10 @@ OpenAI's `role: user|assistant|tool` format. Tool calls serialized as
 
 Targets `generateContent` (`/v1beta/models/{model}:generateContent`). Maps
 messages to `contents[]` with `role: user|model`. `system` → `systemInstruction`.
-Tools → `tools[].functionDeclarations[]`.
+Tools → `tools[].functionDeclarations[]`. Service tier both directions (see
+`google/tiers.ts`): a requested `serviceTier` (`flex|standard|priority`) maps to the
+top-level request field, and the billed `usageMetadata.serviceTier` is read back into
+`usage.serviceTier` / `usage.pricingTier` — parity with the Anthropic/OpenAI tier handling.
 
 ### xAI and OpenRouter
 

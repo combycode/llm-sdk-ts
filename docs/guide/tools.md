@@ -116,6 +116,11 @@ Server-side tools the provider runs are passed as plain objects in `tools: [...]
 `{ type: 'image_generation' }`, `{ type: 'file_search' }`, and `{ type: 'mcp' }`.
 Provider-specific configuration goes in `params`, forwarded verbatim.
 
+Files a hosted tool produces (e.g. code-execution charts or data files) are surfaced
+uniformly on `response.files` (`FileOutput[]` — `{ id?, name?, mimeType?, data?, source? }`),
+independent of generated `media`. When only `id` is set, fetch the bytes via the provider's
+files API.
+
 ### Hosted MCP tool (`{ type: 'mcp' }`)
 
 OpenAI's hosted MCP tool lets the model call a remote MCP server that **OpenAI**

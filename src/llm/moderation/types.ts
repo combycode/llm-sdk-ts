@@ -14,6 +14,7 @@
  *      moderations endpoint around the call (`mode:'emulate'`). Emulation needs an
  *      OpenAI API key (the only public moderations endpoint). */
 
+import type { EngineFetch } from '../../network/types';
 import type { ModerationResult } from '../../helpers/moderate-types';
 
 /** One side's outcome: a result, or an error string if moderation itself failed. */
@@ -63,6 +64,13 @@ export interface ModerationReport {
   output?: ModerationEntry;
   /** Whether the provider produced it natively or the client emulated it. */
   source: 'native' | 'emulated';
+}
+
+/** Resolved config for one emulated-moderation call (OpenAI moderations endpoint). */
+export interface EmulationConfig {
+  apiKey: string;
+  model: string;
+  fetch: EngineFetch;
 }
 
 /** Default moderation model when none is specified. */

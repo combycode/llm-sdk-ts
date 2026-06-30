@@ -287,8 +287,8 @@ export class AnthropicAdapter implements ProviderAdapter {
       } else if (block.type === 'code_execution_tool_result') {
         // Hosted code-execution output: collect produced file refs (fetch by id).
         const result = block.content as Record<string, unknown> | undefined;
-        if (result?.type === 'code_execution_result') {
-          for (const out of (result.content as Array<Record<string, unknown>>) ?? []) {
+        if (result?.type === 'code_execution_result' && Array.isArray(result.content)) {
+          for (const out of result.content as Array<Record<string, unknown>>) {
             if (out.type === 'code_execution_output' && typeof out.file_id === 'string') {
               files.push({ id: out.file_id, source: 'code_execution' });
             }
