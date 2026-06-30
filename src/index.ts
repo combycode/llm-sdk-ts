@@ -80,7 +80,7 @@ export type { AudioFormat, AudioOptions, AudioInput } from './llm/types/audio';
 export { contentParts, contentText } from './llm/types/messages';
 export type { Role, MessageOrigin, ContentPart, TextPart, ImagePart, DocumentPart, AudioPart, VideoPart, ToolCallPart, ToolResultPart, ImageOutputPart, AudioOutputPart, VideoOutputPart, MediaOutputPart, DataSource, Content, Message } from './llm/types/messages';
 export { isFunctionTool, isBuiltinTool } from './llm/types/tools';
-export type { FunctionTool, BuiltinTool, Tool, ToolChoice, JsonSchema } from './llm/types/tools';
+export type { FunctionTool, BuiltinTool, McpToolParams, Tool, ToolChoice, JsonSchema } from './llm/types/tools';
 export { emptyUsage } from './llm/types/response';
 export type { CompletionResponse, FinishReason, Usage } from './llm/types/response';
 export type { NormalizedRequest, ReasoningContext, ThinkingConfig, CacheConfig } from './llm/types/request';

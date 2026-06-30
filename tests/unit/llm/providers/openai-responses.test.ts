@@ -238,6 +238,31 @@ describe('OpenAIResponsesAdapter — tools', () => {
     expect(r.body.tools).toEqual([{ type: 'web_search', search_context_size: 'medium' }]);
   });
 
+  it('mcp builtin forwards tunnel_id (Secure MCP Tunnel target)', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      tools: [{ type: 'mcp', params: { server_label: 'local', tunnel_id: 'tnl_abc123' } }],
+    });
+    expect(r.body.tools).toEqual([{ type: 'mcp', server_label: 'local', tunnel_id: 'tnl_abc123' }]);
+  });
+
+  it('mcp builtin forwards server_url / connector_id targets too', () => {
+    const url = a.buildRequest({
+      ...baseReq,
+      tools: [{ type: 'mcp', params: { server_label: 's', server_url: 'https://mcp.example/sse' } }],
+    });
+    expect((url.body.tools as Array<Record<string, unknown>>)[0].server_url).toBe(
+      'https://mcp.example/sse',
+    );
+    const conn = a.buildRequest({
+      ...baseReq,
+      tools: [{ type: 'mcp', params: { server_label: 's', connector_id: 'connector_gmail' } }],
+    });
+    expect((conn.body.tools as Array<Record<string, unknown>>)[0].connector_id).toBe(
+      'connector_gmail',
+    );
+  });
+
   it('toolChoice string passthrough', () => {
     expect(a.buildRequest({ ...baseReq, toolChoice: 'auto' }).body.tool_choice).toBe('auto');
   });

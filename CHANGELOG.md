@@ -7,6 +7,10 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 ## [Unreleased]
 
 ### Added
+- Hosted MCP tool `tunnel_id` target (OpenAI Secure MCP Tunnel) — reach a private/local MCP
+  server with no public URL alongside the existing `server_url` / `connector_id` targets. The
+  `mcp` builtin already forwards `params`; added the exported `McpToolParams` type for editor
+  help and a regression test locking the forwarding. (Realtime MCP tooling tracked separately.)
 - `ThinkingConfig.context` (`'auto' | 'current_turn' | 'all_turns'`) — maps to OpenAI's
   Responses `reasoning.context`, controlling which prior-turn reasoning items are rendered back
   to the model across a stateful conversation. OpenAI Responses-only; ignored by other providers.

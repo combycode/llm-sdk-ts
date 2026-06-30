@@ -109,6 +109,39 @@ const loggedTool = defineTool({
 });
 ```
 
+## Built-in / hosted tools
+
+Server-side tools the provider runs are passed as plain objects in `tools: [...]`
+(no `defineTool`): `{ type: 'web_search' }`, `{ type: 'code_interpreter' }`,
+`{ type: 'image_generation' }`, `{ type: 'file_search' }`, and `{ type: 'mcp' }`.
+Provider-specific configuration goes in `params`, forwarded verbatim.
+
+### Hosted MCP tool (`{ type: 'mcp' }`)
+
+OpenAI's hosted MCP tool lets the model call a remote MCP server that **OpenAI**
+connects to. Identify the server with **exactly one** of three targets (use the
+exported `McpToolParams` type for editor help):
+
+```ts
+import type { McpToolParams } from '@combycode/llm-sdk';
+
+// 1. Public server — OpenAI dials the URL directly.
+{ type: 'mcp', params: { server_label: 'docs', server_url: 'https://mcp.example/sse' } }
+
+// 2. Managed connector (Gmail, Drive, …).
+{ type: 'mcp', params: { server_label: 'gmail', connector_id: 'connector_gmail' } }
+
+// 3. Secure MCP Tunnel — reach a private/local server (behind NAT/firewall, no
+//    public URL) through an outbound tunnel registered under a tunnel id.
+{ type: 'mcp', params: { server_label: 'local', tunnel_id: 'tnl_abc123' } }
+```
+
+Optional `params`: `authorization`, `headers`, `require_approval`, `allowed_tools`,
+`server_description`. OpenAI enforces the "exactly one target" rule server-side.
+
+> This is the **provider-hosted** MCP path. For connecting the SDK itself to MCP
+> servers as a client, see [MCP (Model Context Protocol)](./mcp.md).
+
 ## Related
 
 - [Agent Loop + delegate / chain / consolidate](./agent-loop.md)
