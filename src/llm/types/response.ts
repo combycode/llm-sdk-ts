@@ -1,5 +1,6 @@
 /** Universal completion response. */
 
+import type { ModerationReport } from '../moderation/types';
 import type { ContentPart, MediaOutputPart, ToolCallPart } from './messages';
 
 export interface CompletionResponse {
@@ -21,6 +22,11 @@ export interface CompletionResponse {
    *  etc. Unified across providers. When only `id` is set, fetch the bytes via the
    *  provider's files API; some providers return `data` inline. Absent when none. */
   files?: FileOutput[];
+
+  /** Inline-moderation outcome, when the `moderation` request option was used.
+   *  Report-only: present for observability; it never blocks the call. Absent when
+   *  moderation was not requested. */
+  moderation?: ModerationReport;
 
   // Timing
   latencyMs: number;

@@ -4,6 +4,7 @@
  *  and system are fixed at construction. The LLMClient internally builds
  *  this `NormalizedRequest` from (input, options, this.model, this.system). */
 
+import type { ModerationRequest } from '../moderation/types';
 import type { AudioOptions } from './audio';
 import type { Message } from './messages';
 import type { ServiceTier } from './tiers';
@@ -43,6 +44,10 @@ export interface NormalizedRequest {
   // Service tier (synchronous tiers; batch is the separate Batch API). The
   // adapter maps this to the provider's own param.
   serviceTier?: ServiceTier;
+
+  // Inline moderation (report-only). OpenAI maps it to a native `moderation`
+  // request field; other providers are emulated client-side. See ModerationRequest.
+  moderation?: ModerationRequest;
 
   // Provider-specific passthrough
   providerOptions?: Record<string, unknown>;

@@ -2,6 +2,7 @@
 
 import type { ConversationHistory } from '../../agent/history';
 import type { RequestContext } from '../../types/request-context';
+import type { ModerationRequest } from '../moderation/types';
 import type { AudioOptions } from './audio';
 import type { CacheConfig, ThinkingConfig } from './request';
 import type { ServiceTier } from './tiers';
@@ -52,6 +53,11 @@ export interface ExecuteOptions {
    *  any provider-accepted string). Maps per-provider; unsupported → no-op.
    *  `batch` is the separate Batch API, not a value here. */
   serviceTier?: ServiceTier;
+
+  /** Inline content moderation (report-only — attaches results, never blocks).
+   *  OpenAI runs it natively; other providers are emulated via OpenAI's
+   *  moderations endpoint. See ModerationRequest. */
+  moderation?: ModerationRequest;
 
   // Provider-specific
   providerOptions?: Record<string, unknown>;

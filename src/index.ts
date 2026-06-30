@@ -330,6 +330,7 @@ export { embed } from './helpers/embed';
 export type { EmbedOptions } from './helpers/embed';
 export { moderate } from './helpers/moderate';
 export type { ModerateOptions, ModerationCategories, ModerationContentPart, ModerationImageUrlPart, ModerationResult, ModerationScores, ModerationTextPart } from './helpers/moderate-types';
+export type { ModerationEntry, ModerationReport, ModerationRequest, ModerationStreamOptions, ModerationStreamStrategy } from './llm/moderation/types';
 export { listModels, listModelsLive, clearLiveModelsCache } from './helpers/models';
 export type { ListModelsLiveOptions } from './helpers/models';
 export { select, selectModels } from './helpers/select-model';

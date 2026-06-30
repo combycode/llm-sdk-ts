@@ -13,6 +13,7 @@ import {
 } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
 import { isFunctionTool } from '../../types/tools';
+import { buildNativeModeration, parseNativeModeration } from '../../moderation/native';
 import { openaiBilledTier, openaiRequestTier } from './tiers';
 import { DEFAULT_MAX_TOKENS } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
@@ -88,6 +89,11 @@ export class OpenAIAdapter implements ProviderAdapter {
     if (req.stop) body.stop = req.stop;
     const tier = openaiRequestTier(req.serviceTier);
     if (tier) body.service_tier = tier;
+
+    // Inline moderation — native passthrough (skip when the caller forced emulation).
+    if (req.moderation && req.moderation.mode !== 'emulate') {
+      body.moderation = buildNativeModeration(req.moderation);
+    }
 
     // Audio input (gpt-audio): the model only *processes* input audio when audio
     // output is also enabled, so we always enable it here. Voice/format come from
@@ -303,6 +309,8 @@ export class OpenAIAdapter implements ProviderAdapter {
     // But some OpenAI-compatible providers (DeepSeek, xAI) return it as reasoning_content.
     const reasoningContent = (message.reasoning_content as string) ?? null;
 
+    const moderation = parseNativeModeration(r.moderation);
+
     return {
       id: r.id as string,
       model: r.model as string,
@@ -313,6 +321,7 @@ export class OpenAIAdapter implements ProviderAdapter {
       toolCalls,
       media,
       thinking: reasoningContent,
+      ...(moderation ? { moderation } : {}),
       latencyMs,
       raw,
     };
@@ -320,6 +329,18 @@ export class OpenAIAdapter implements ProviderAdapter {
 
   parseStreamEvent(event: SSEEvent): StreamEvent[] {
     const data = JSON.parse(event.data) as Record<string, unknown>;
+
+    // Native moderation arrives on a dedicated chunk (choices empty/absent).
+    if (data.moderation) {
+      const report = parseNativeModeration(data.moderation);
+      const out: StreamEvent[] = [];
+      if (report?.input)
+        out.push({ type: 'moderation', phase: 'input', result: report.input, source: 'native' });
+      if (report?.output)
+        out.push({ type: 'moderation', phase: 'output', result: report.output, source: 'native' });
+      if (out.length) return out;
+    }
+
     const choices = (data.choices as Array<Record<string, unknown>>) ?? [];
     const choice = choices[0];
     if (!choice) {

@@ -1,5 +1,6 @@
 /** Universal streaming event types. */
 
+import type { ModerationEntry } from '../moderation/types';
 import type { Usage } from './response';
 
 export type MediaStreamType = 'image' | 'audio' | 'video';
@@ -15,4 +16,8 @@ export type StreamEvent =
   | { type: 'error'; error: Error }
   | { type: 'media_start'; mediaType: MediaStreamType; mimeType: string }
   | { type: 'media_chunk'; data: string; progress?: number }
-  | { type: 'media_end'; mediaId?: string };
+  | { type: 'media_end'; mediaId?: string }
+  /** A moderation result for the input or output. `source` distinguishes a
+   *  provider-native result from a client-emulated one. Emitted by the moderation
+   *  option (report-only). */
+  | { type: 'moderation'; phase: 'input' | 'output'; result: ModerationEntry; source: 'native' | 'emulated' };

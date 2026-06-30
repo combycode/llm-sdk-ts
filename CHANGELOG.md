@@ -7,6 +7,15 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 ## [Unreleased]
 
 ### Added
+- Inline moderation via the `moderation` request option on `complete()`/`stream()`
+  (parity with OpenAI's `moderation` request field, extended to all providers). Report-only:
+  results attach to `CompletionResponse.moderation` (`ModerationReport`) and never block the call.
+  Native on the OpenAI provider (one round-trip on both Responses and Chat Completions); emulated
+  via OpenAI's moderations endpoint on every other provider (`mode: 'native' | 'emulate'`).
+  Streaming supports three strategies (`buffer` default / `parallel` / `post`) trading latency for
+  how early the flag reaches the consumer, surfaced as a `moderation` stream event. Emulation
+  requires an OpenAI key (reused from the client when it is the OpenAI provider, else
+  `moderation.apiKey`); missing key throws.
 - Unified `CompletionResponse.files` (`FileOutput[]`) - files produced by hosted tools
   (code execution, etc.), independent of `media`. The Anthropic adapter surfaces
   code-execution file outputs there by file id; OpenAI/Google/xAI producers to follow.

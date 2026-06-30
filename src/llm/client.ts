@@ -23,6 +23,17 @@ import { HookBus as HookBusClass } from '../bus/hook-bus';
 import type { EngineFetch, EngineFetchStream, HttpRequest, HttpResponse } from '../network/types';
 import { ModelCatalog } from '../plugins/model-catalog/catalog';
 import type { RequestContext } from '../types/request-context';
+import {
+  type EmulationConfig,
+  emitModerationZeroCost,
+  moderationInputText,
+  moderationModel,
+  resolveModerationMode,
+  runModeration,
+  wrapModeratedStream,
+} from './moderation/runner';
+import type { ModerationReport, ModerationRequest } from './moderation/types';
+import { MODERATION_DEFAULT_INTERVAL, MODERATION_DEFAULT_STRATEGY } from './moderation/types';
 import { resolveServerState } from './server-state';
 import type { ContentPart, Message } from './types/messages';
 import type { ExecuteOptions } from './types/options';
@@ -58,6 +69,7 @@ export class LLMClient {
   readonly batchable: boolean;
 
   private readonly adapter: ProviderAdapter;
+  private readonly apiKey: string;
   private readonly fetchFn: EngineFetch;
   private readonly fetchStreamFn: EngineFetchStream | null;
   private readonly priority: number;
@@ -83,6 +95,7 @@ export class LLMClient {
     this.provider = config.provider;
     this.model = config.model;
     this.system = config.system;
+    this.apiKey = config.apiKey;
     this.hooks = config.hooks ?? new HookBusClass();
     this.fetchFn = config.fetch;
     this.fetchStreamFn = config.fetchStream ?? null;
@@ -143,6 +156,44 @@ export class LLMClient {
     };
   }
 
+  // ─── Moderation helpers ───────────────────────────────────────────────
+
+  /** Resolve the OpenAI key the emulated moderation path needs. Reuses the
+   *  client's own key when the provider is OpenAI; otherwise requires an explicit
+   *  one. Throws when none is resolvable (report-only feature, but the call still
+   *  needs a key to reach the moderations endpoint). */
+  private resolveModerationKey(mod: ModerationRequest): string {
+    const key = mod.apiKey ?? (this.provider === 'openai' ? this.apiKey : undefined);
+    if (!key) {
+      throw new Error(
+        'moderation: emulated moderation requires an OpenAI API key (the only public ' +
+          'moderations endpoint). Pass moderation.apiKey, or use the OpenAI provider.',
+      );
+    }
+    return key;
+  }
+
+  private moderationConfig(mod: ModerationRequest): EmulationConfig {
+    return {
+      apiKey: this.resolveModerationKey(mod),
+      model: moderationModel(mod),
+      fetch: this.fetchFn,
+    };
+  }
+
+  /** Fold a moderation stream event into the accumulating report. */
+  private mergeModeration(
+    prev: ModerationReport | undefined,
+    phase: 'input' | 'output',
+    result: ModerationReport['input'],
+    source: 'native' | 'emulated',
+  ): ModerationReport {
+    const next: ModerationReport = prev && prev.source === source ? { ...prev } : { source };
+    if (phase === 'input') next.input = result;
+    else next.output = result;
+    return next;
+  }
+
   /** Submit a request. Returns the parsed CompletionResponse. */
   async complete(
     input: string | ContentPart[] | Message[],
@@ -175,6 +226,7 @@ export class LLMClient {
       thinking: options.thinking,
       cache: options.cache,
       serviceTier: options.serviceTier,
+      moderation: options.moderation,
       providerOptions: options.providerOptions,
       audio: options.audio,
       outputModalities: options.outputModalities,
@@ -274,6 +326,29 @@ export class LLMClient {
 
     const result = this.adapter.parseResponse(response.body, latencyMs);
 
+    // Emulated inline moderation (non-OpenAI providers, or forced). Native results
+    // are already on result.moderation from the adapter. Report-only: attach, never
+    // block. Input + output run concurrently (the moderations endpoint is free).
+    const mod = options.moderation;
+    if (mod && resolveModerationMode(this.provider, mod) === 'emulate') {
+      const cfg = this.moderationConfig(mod);
+      const doInput = mod.input ?? true;
+      const doOutput = mod.output ?? true;
+      const [inputEntry, outputEntry] = await Promise.all([
+        doInput
+          ? runModeration(moderationInputText(normalized.messages), cfg)
+          : Promise.resolve(undefined),
+        doOutput ? runModeration(result.text, cfg) : Promise.resolve(undefined),
+      ]);
+      if (doInput) emitModerationZeroCost(this.hooks, cfg.model);
+      if (doOutput) emitModerationZeroCost(this.hooks, cfg.model);
+      result.moderation = {
+        source: 'emulated',
+        ...(inputEntry ? { input: inputEntry } : {}),
+        ...(outputEntry ? { output: outputEntry } : {}),
+      };
+    }
+
     await this.hooks.emit('onCompletion', {
       provider: this.provider,
       model: this.model,
@@ -335,6 +410,7 @@ export class LLMClient {
       thinking: options.thinking,
       cache: options.cache,
       serviceTier: options.serviceTier,
+      moderation: options.moderation,
       providerOptions: options.providerOptions,
       audio: options.audio,
       outputModalities: options.outputModalities,
@@ -388,30 +464,75 @@ export class LLMClient {
     let thinking = '';
     let usage: Usage = emptyUsage();
     let finishReason: FinishReason = 'stop';
+    let moderationReport: ModerationReport | undefined;
 
-    for await (const sseEvent of this.fetchStreamFn(httpReq, {
-      queueName: this.queueName,
-      priority: this.priority,
-      ctx: ctx as Record<string, unknown>,
-    })) {
-      const events = this.adapter.parseStreamEvent(sseEvent);
-      for (const event of events) {
-        switch (event.type) {
-          case 'text':
-            text += event.text;
-            break;
-          case 'thinking':
-            thinking += event.text;
-            break;
-          case 'usage':
-            usage = event.usage;
-            break;
-          case 'done':
-            finishReason = event.finishReason as FinishReason;
-            break;
-        }
-        yield event;
+    // Raw provider events (the unwrapped stream). Output-moderation wrappers and
+    // the accumulation loop below both consume from here.
+    const fetchStream = this.fetchStreamFn;
+    const adapter = this.adapter;
+    const queueName = this.queueName;
+    const priority = this.priority;
+    async function* rawEvents(): AsyncGenerator<StreamEvent> {
+      for await (const sseEvent of fetchStream(httpReq, {
+        queueName,
+        priority,
+        ctx: ctx as Record<string, unknown>,
+      })) {
+        for (const ev of adapter.parseStreamEvent(sseEvent)) yield ev;
       }
+    }
+
+    // Emulated path: wrap the output stream with the chosen strategy, and run input
+    // moderation up front (emitted before any output). Native moderation needs no
+    // wrapping — the adapter emits `moderation` events from the final chunk.
+    const mod = options.moderation;
+    const emulate = !!mod && resolveModerationMode(this.provider, mod) === 'emulate';
+    let eventStream: AsyncIterable<StreamEvent> = rawEvents();
+
+    if (mod && emulate && (mod.output ?? true)) {
+      const cfg = this.moderationConfig(mod);
+      const hooks = this.hooks;
+      const strategy = mod.stream?.strategy ?? MODERATION_DEFAULT_STRATEGY;
+      const interval = mod.stream?.interval ?? MODERATION_DEFAULT_INTERVAL;
+      eventStream = wrapModeratedStream(eventStream, strategy, interval, async (t) => {
+        const r = await runModeration(t, cfg);
+        emitModerationZeroCost(hooks, cfg.model);
+        return r;
+      });
+    }
+
+    if (mod && emulate && (mod.input ?? true)) {
+      const cfg = this.moderationConfig(mod);
+      const inputEntry = await runModeration(moderationInputText(normalized.messages), cfg);
+      emitModerationZeroCost(this.hooks, cfg.model);
+      moderationReport = this.mergeModeration(moderationReport, 'input', inputEntry, 'emulated');
+      yield { type: 'moderation', phase: 'input', result: inputEntry, source: 'emulated' };
+    }
+
+    for await (const event of eventStream) {
+      switch (event.type) {
+        case 'text':
+          text += event.text;
+          break;
+        case 'thinking':
+          thinking += event.text;
+          break;
+        case 'usage':
+          usage = event.usage;
+          break;
+        case 'done':
+          finishReason = event.finishReason as FinishReason;
+          break;
+        case 'moderation':
+          moderationReport = this.mergeModeration(
+            moderationReport,
+            event.phase,
+            event.result,
+            event.source,
+          );
+          break;
+      }
+      yield event;
     }
 
     // Normal completion (no throw): emit onCompletion. Aborted/errored streams
@@ -427,6 +548,7 @@ export class LLMClient {
       toolCalls: [],
       thinking: thinking || null,
       media: [],
+      ...(moderationReport ? { moderation: moderationReport } : {}),
       latencyMs: performance.now() - start,
       raw: null,
     };

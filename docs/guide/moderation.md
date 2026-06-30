@@ -29,9 +29,11 @@ The moderations endpoint is **free**. There is no cost reason to skip it. The SD
 an honest zero-cost entry on `onCostEntry` so the cost ledger records every call even though
 nothing is billed.
 
-**Provider constraint:** the moderations endpoint exists only on OpenAI. Any other provider string
-throws immediately with a descriptive error. An OpenAI API key is required -- pass it as
-`opts.apiKey` or configure `engine.apiKeys['openai']` once via `createEngine()`.
+**Provider constraint:** the moderations endpoint exists only on OpenAI. `moderate()` and the
+standalone guardrail therefore require an OpenAI API key -- pass it as `opts.apiKey` or configure
+`engine.apiKeys['openai']` once via `createEngine()`. The inline `moderation` request option
+(see below) lifts this to *all* providers by emulating the check with the same endpoint, but it
+still needs an OpenAI key to do so.
 
 ## Step by step
 
@@ -167,6 +169,62 @@ const response = await agent.complete('Write me something helpful.');
 When an input guardrail trips, the LLM call is never made. When an output guardrail trips,
 the run halts and the model output is discarded.
 
+### 6. Inline moderation on a completion (the `moderation` option)
+
+`moderate()` and `moderationGuardrail()` are separate calls you orchestrate. The `moderation`
+**request option** instead attaches moderation to the completion itself -- one option that works
+on `client.complete()` and `client.stream()` across every provider.
+
+```ts
+const res = await client.complete('some user text', {
+  moderation: { input: true, output: true },
+});
+
+if ((res.moderation?.output as { flagged?: boolean })?.flagged) {
+  // decide what to do -- the option NEVER blocks on its own
+}
+```
+
+Key properties:
+
+- **Report-only.** It *attaches* results to `response.moderation`; it never aborts the call. To
+  block on flagged content, use `moderationGuardrail()` (enforcement) -- the two compose.
+- **Native on OpenAI, emulated elsewhere.** On the OpenAI provider it maps to OpenAI's own
+  `moderation` request field (one round-trip). On every other provider the client runs OpenAI's
+  moderations endpoint around the call. Force either with `mode: 'native' | 'emulate'`.
+- **Key required for emulation.** The emulated path needs an OpenAI key. It reuses the client's
+  own key when the client provider is OpenAI; otherwise pass `moderation.apiKey`. Missing key
+  throws (it is not silently skipped). `input`/`output` flags gate the *emulated* calls; native
+  OpenAI moderation always returns both sides.
+- **Free, so the only cost is latency.** Each emulated call emits an honest zero-cost ledger entry.
+
+#### Streaming strategies
+
+Streaming forces a choice: how early does the moderation flag reach the consumer relative to the
+text it refers to? Set it with `moderation.stream.strategy` (default `'buffer'`):
+
+| Strategy | Behaviour | Trade-off |
+|---|---|---|
+| `buffer` (default) | Holds chunks, moderates at each boundary, emits the result **before** releasing the held chunks | Strongest containment (flag never trails its text); adds latency, bursty |
+| `parallel` | Forwards chunks in real-time, moderates concurrently, surfaces the result as soon as it lands | Preserves streaming; the triggering segment is already delivered when the flag arrives |
+| `post` | Forwards everything, moderates once after the stream ends | Pure after-the-fact observability |
+
+Moderation surfaces as a `moderation` stream event (`{ type: 'moderation', phase, result, source }`)
+and is also folded into the final `response.moderation`. Input moderation (emulated) is emitted
+first, before any output. `moderation.stream.interval` (default 400) sets the characters of new
+output between checks for `buffer`/`parallel`.
+
+```ts
+for await (const ev of client.stream('write a story', {
+  moderation: { apiKey: oaKey, stream: { strategy: 'buffer', interval: 300 } },
+})) {
+  if (ev.type === 'moderation' && (ev.result as { flagged?: boolean }).flagged) break; // early abort
+  if (ev.type === 'text') process.stdout.write(ev.text);
+}
+```
+
+With `buffer`, breaking on a flagged event guarantees the held (flagged) text is never forwarded.
+
 ## Your options
 
 ### `moderate()` -- `ModerateOptions`
@@ -206,6 +264,32 @@ interface ModerationResult {
 `sexual`, `sexual/minors`, `violence`, `violence/graphic`.
 
 `ModerationScores` is a parallel `Record<keyof ModerationCategories, number>` with 0-1 floats.
+
+### `moderation` request option -- `ModerationRequest`
+
+Passed on `ExecuteOptions` to `complete()` / `stream()`.
+
+| Field | Type | Default | Notes |
+|---|---|---|---|
+| `model` | `string` | `'omni-moderation-latest'` | Moderation model |
+| `input` | `boolean` | `true` | Moderate the request input (gates the emulated input call) |
+| `output` | `boolean` | `true` | Moderate the generated output (gates the emulated output call) |
+| `mode` | `'native' \| 'emulate'` | `'native'` for OpenAI, `'emulate'` otherwise | Force the path |
+| `apiKey` | `string` | client key when provider is OpenAI | OpenAI key for the emulated path; required otherwise |
+| `stream` | `{ strategy?, interval? }` | `{ strategy: 'buffer', interval: 400 }` | Streaming output-moderation controls |
+
+The result lands on `CompletionResponse.moderation` as a `ModerationReport`:
+
+```ts
+interface ModerationReport {
+  input?: ModerationResult | { error: string };
+  output?: ModerationResult | { error: string };
+  source: 'native' | 'emulated';
+}
+```
+
+A moderation-infra failure becomes an `{ error }` entry (report-only); it does not throw the
+primary call. A missing OpenAI key for the emulated path *does* throw, before the call is made.
 
 ### `moderationGuardrail()` -- `ModerationGuardrailOptions`
 

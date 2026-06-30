@@ -22,6 +22,7 @@ import {
 import { ensureAdditionalProperties } from '../../types/schema-utils';
 import type { StreamEvent } from '../../types/stream';
 import { isFunctionTool } from '../../types/tools';
+import { buildNativeModeration, parseNativeModeration } from '../../moderation/native';
 import { openaiBilledTier, openaiRequestTier } from './tiers';
 import { extractFinishReason } from '../_shared/response-utils';
 
@@ -91,6 +92,11 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     if (req.topP !== undefined) body.top_p = req.topP;
     const tier = openaiRequestTier(req.serviceTier);
     if (tier) body.service_tier = tier;
+
+    // Inline moderation — native passthrough (skip when the caller forced emulation).
+    if (req.moderation && req.moderation.mode !== 'emulate') {
+      body.moderation = buildNativeModeration(req.moderation);
+    }
 
     // Tools — function tools (flat format, strict) + built-in tools (passthrough)
     if (req.tools?.length) {
@@ -325,6 +331,8 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       if (text && content.length === 0) content.push({ type: 'text', text });
     }
 
+    const moderation = parseNativeModeration(r.moderation);
+
     return {
       id: r.id as string,
       model: (r.model as string) ?? '',
@@ -335,6 +343,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       toolCalls,
       thinking,
       media,
+      ...(moderation ? { moderation } : {}),
       latencyMs,
       raw,
     };
@@ -400,6 +409,13 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
 
     if (type === 'response.completed') {
       const response = (data.response as Record<string, unknown>) ?? data;
+      // Native moderation rides on the final response object — surface it (input
+      // first, then output) before the terminal usage/done events.
+      const moderation = parseNativeModeration(response.moderation);
+      if (moderation?.input)
+        events.push({ type: 'moderation', phase: 'input', result: moderation.input, source: 'native' });
+      if (moderation?.output)
+        events.push({ type: 'moderation', phase: 'output', result: moderation.output, source: 'native' });
       const usage = response.usage as Record<string, unknown>;
       if (usage) events.push({ type: 'usage', usage: this.parseUsage(usage) });
       events.push({

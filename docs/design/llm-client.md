@@ -64,6 +64,7 @@ interface NormalizedRequest {
   thinking?: ThinkingConfig;    // discriminated union — see below
   cache?: CacheConfig;          // 'auto' | 'off' | { system?, tools?, ttl? }
   serviceTier?: ServiceTier;
+  moderation?: ModerationRequest; // inline moderation (report-only); native on OpenAI, emulated elsewhere
   providerOptions?: Record<string, unknown>;
   audio?: AudioOptions;
   outputModalities?: Array<'text' | 'audio'>;
@@ -97,6 +98,7 @@ interface CompletionResponse {
   thinking: string | null;
   media: MediaOutputPart[];          // generated media (image/audio/video)
   files?: FileOutput[];              // hosted-tool file outputs (e.g. code execution): {id?,name?,mimeType?,data?,source?}
+  moderation?: ModerationReport;     // inline-moderation outcome when the `moderation` option was used: {input?,output?,source}
   latencyMs: number;
   raw: unknown;                     // provider's raw HTTP response body
 }
