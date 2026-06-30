@@ -7,6 +7,9 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 ## [Unreleased]
 
 ### Added
+- `ThinkingConfig.context` (`'auto' | 'current_turn' | 'all_turns'`) — maps to OpenAI's
+  Responses `reasoning.context`, controlling which prior-turn reasoning items are rendered back
+  to the model across a stateful conversation. OpenAI Responses-only; ignored by other providers.
 - Inline moderation via the `moderation` request option on `complete()`/`stream()`
   (parity with OpenAI's `moderation` request field, extended to all providers). Report-only:
   results attach to `CompletionResponse.moderation` (`ModerationReport`) and never block the call.

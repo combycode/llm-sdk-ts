@@ -64,9 +64,16 @@ export interface NormalizedRequest {
   signal?: AbortSignal;
 }
 
+/** OpenAI Responses-only: which of the model's prior-turn reasoning items are
+ *  rendered back to it on later turns of a stateful conversation (chained via
+ *  `previousResponseId` / server-state). `all_turns` keeps continuity at higher
+ *  token cost; `current_turn` drops earlier reasoning; `auto` lets OpenAI decide.
+ *  Ignored by every other provider. */
+export type ReasoningContext = 'auto' | 'current_turn' | 'all_turns';
+
 export type ThinkingConfig =
-  | { mode: 'auto'; effort?: 'low' | 'medium' | 'high' | 'max' }
-  | { mode: 'on'; effort?: 'low' | 'medium' | 'high' | 'max' }
+  | { mode: 'auto'; effort?: 'low' | 'medium' | 'high' | 'max'; context?: ReasoningContext }
+  | { mode: 'on'; effort?: 'low' | 'medium' | 'high' | 'max'; context?: ReasoningContext }
   | { mode: 'off' };
 
 export type CacheConfig =

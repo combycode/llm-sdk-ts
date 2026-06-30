@@ -276,6 +276,19 @@ describe('OpenAIResponsesAdapter — text format and reasoning', () => {
     const r = a.buildRequest({ ...baseReq, thinking: { mode: 'off' } });
     expect(r.body.reasoning).toBeUndefined();
   });
+
+  it('thinking.context → reasoning.context (cross-turn persistence)', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      thinking: { mode: 'auto', effort: 'high', context: 'all_turns' },
+    });
+    expect(r.body.reasoning).toEqual({ effort: 'high', summary: 'auto', context: 'all_turns' });
+  });
+
+  it('no context → reasoning.context omitted', () => {
+    const r = a.buildRequest({ ...baseReq, thinking: { mode: 'on' } });
+    expect((r.body.reasoning as Record<string, unknown>).context).toBeUndefined();
+  });
 });
 
 describe('OpenAIResponsesAdapter — enableStreaming', () => {

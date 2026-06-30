@@ -145,6 +145,8 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       body.reasoning = {
         effort: req.thinking.effort ?? 'medium',
         summary: 'auto',
+        // Cross-turn reasoning persistence (gpt-5/o-series, Responses only).
+        ...(req.thinking.context ? { context: req.thinking.context } : {}),
       };
     }
 

@@ -74,15 +74,24 @@ interface NormalizedRequest {
 }
 ```
 
-`ThinkingConfig` is a discriminated union. `effort` is present only on the `'auto'` and
-`'on'` members; the `'off'` member has no `effort` field:
+`ThinkingConfig` is a discriminated union. `effort` and `context` are present only on the
+`'auto'` and `'on'` members; the `'off'` member has neither:
 
 ```ts
+type ReasoningContext = 'auto' | 'current_turn' | 'all_turns';
 type ThinkingConfig =
-  | { mode: 'auto'; effort?: 'low' | 'medium' | 'high' | 'max' }
-  | { mode: 'on';   effort?: 'low' | 'medium' | 'high' | 'max' }
+  | { mode: 'auto'; effort?: 'low' | 'medium' | 'high' | 'max'; context?: ReasoningContext }
+  | { mode: 'on';   effort?: 'low' | 'medium' | 'high' | 'max'; context?: ReasoningContext }
   | { mode: 'off' };
 ```
+
+`context` is **OpenAI Responses-only** (gpt-5 / o-series). It controls which of the model's
+prior-turn reasoning items are rendered back to it on later turns of a stateful conversation
+(chained via `previousResponseId` / server-state): `all_turns` keeps continuity at higher token
+cost, `current_turn` drops earlier reasoning, `auto` lets OpenAI decide. It maps to the
+`reasoning.context` request field on the Responses API and is ignored by every other provider
+(xAI strips the whole reasoning block; Anthropic/Google never read it). On a one-shot call it
+has no effect.
 
 ### `src/llm/types/response.ts`
 
