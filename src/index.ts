@@ -134,7 +134,7 @@ export type { ConversationHistoryConfig, HistoryEntry, HistorySnapshot } from '.
 export { AgentLoop } from './agent/loop';
 export type { AgentLoopConfig } from './agent/loop-config';
 export type { AgentLoopSnapshot, AgentRunReport, AgentStreamEvent, AgentTool, ContentClass, LearnInput, StepReport, TokenCountContext, TokenCounter, ToolCallReport, ToolExecutionContext } from './agent/types';
-export type { Guardrail, GuardrailDecision, GuardrailPass, GuardrailTrip, GuardrailCheckContext, InputGuardrailContext, OutputGuardrailContext, GuardrailTriggeredContext } from './agent/guardrail-types';
+export type { Guardrail, GuardrailDecision, GuardrailPass, GuardrailTrip, GuardrailCheckContext, InputGuardrailContext, OutputGuardrailContext, GuardrailTriggeredContext, ToolInputGuardrail, ToolInputGuardrailContext, ToolInputGuardrailDecision } from './agent/guardrail-types';
 
 // Server — OpenAI-compatible HTTP server
 export { BearerKeyAuth } from './server/auth';

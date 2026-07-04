@@ -111,7 +111,7 @@ hold closure state across streaming events.
 `AgentLoopConfig` accepts: `client`, `system` (string or thunk),
 `context`, `tools`, `history`, `hooks`, `maxTokens`, `temperature`, `thinking`,
 `cache`, `parallelToolCalls`, `toolTimeout`, `maxSteps`, `guardrails`,
-`policy`, `approve`, `checkpoint`.
+`toolInputGuardrails`, `policy`, `approve`, `checkpoint`.
 
 ## `ConversationHistory` (`src/agent/history.ts`)
 
@@ -312,6 +312,10 @@ executeToolCalls(runId, step, toolCalls, reports, trace):
    - Found: return `{ found: true, tool }`.
    - Not found: emit `onToolCallError` + `onWarning`, push error report, return
      `{ found: false, errorResult }` (error result fed back to model, not a throw).
+4b. Tool-input guardrails (`_toolInputGuardrails`, if any): run each against the
+   call's `{ toolName, arguments, callId, step, trace }` **before** the permission
+   check. A trip → `buildDeniedResult(tc, reason, reports)` — denies just this call
+   (error result to the model), without halting the run or invoking `approve`.
 5. Permission policy check (`_policy.check('agent', { kind: 'tool', toolName }, 'execute')`):
    - `decision.allow=true` → proceed.
    - `decision.ask=true` → `runApprovalGate(...)`.

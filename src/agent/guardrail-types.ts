@@ -61,6 +61,33 @@ export interface Guardrail {
   check(ctx: GuardrailCheckContext): Promise<GuardrailDecision>;
 }
 
+// ─── Tool-input guardrails (per tool call, not run-halting) ───────────────
+
+/** Context for a tool-input guardrail: the specific tool call about to run. */
+export interface ToolInputGuardrailContext {
+  toolName: string;
+  arguments: Record<string, unknown>;
+  callId: string;
+  step: number;
+  trace: TraceContext;
+}
+
+/** A tool-input guardrail decision. Unlike message-level guardrails it does NOT
+ *  halt the run — a trip denies just this one tool call. */
+export type ToolInputGuardrailDecision = { pass: true } | { pass: false; reason: string };
+
+/** Validates a tool call's arguments BEFORE it executes (and before any HITL
+ *  approval interruption). On a trip the call is denied — the model receives the
+ *  denial reason as an error tool result; the run continues and the approver is
+ *  never consulted. Arguments are immutable once the model emits them, so a single
+ *  pre-execution check is sufficient. */
+export interface ToolInputGuardrail {
+  name: string;
+  check(
+    ctx: ToolInputGuardrailContext,
+  ): Promise<ToolInputGuardrailDecision> | ToolInputGuardrailDecision;
+}
+
 // ─── Hook context emitted when a guardrail trips ──────────────────────────
 
 export interface GuardrailTriggeredContext {

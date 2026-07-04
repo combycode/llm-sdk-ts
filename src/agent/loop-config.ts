@@ -6,7 +6,7 @@ import type { CacheConfig, ThinkingConfig } from '../llm/types/request';
 import type { ConversationHistory } from './history';
 import type { HistorySnapshot } from './history-types';
 import type { AgentTool } from './types';
-import type { Guardrail } from './guardrail-types';
+import type { Guardrail, ToolInputGuardrail } from './guardrail-types';
 import type { PermissionPolicy } from '../plugins/permissions/policy';
 import type { ApprovalRequest, ApprovalDecision } from './approval-types';
 import type { Persistence } from '../plugins/persistence/types';
@@ -61,6 +61,11 @@ export interface AgentLoopConfig {
    *  output guardrails run after each step's response is produced.
    *  A tripwire decision halts the run with finishReason 'guardrail'. */
   guardrails?: Guardrail[];
+
+  /** Per-tool-call input guardrails. Each runs against a tool call's arguments
+   *  BEFORE the permission/approval check and execution. A trip denies just that
+   *  call (error result to the model) without halting the run or invoking `approve`. */
+  toolInputGuardrails?: ToolInputGuardrail[];
 
   /** Permission policy wired into the tool-execution path.
    *  Called after lookup, before execution.

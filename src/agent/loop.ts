@@ -34,7 +34,7 @@ import type {
   ToolCallReport,
   ToolExecutionContext,
 } from './types';
-import type { Guardrail, GuardrailDecision } from './guardrail-types';
+import type { Guardrail, GuardrailDecision, ToolInputGuardrail } from './guardrail-types';
 import { toolKey } from './tool-key';
 import type { AgentLoopConfig } from './loop-config';
 import type { PermissionPolicy } from '../plugins/permissions/policy';
@@ -73,6 +73,7 @@ export class AgentLoop {
   private _toolTimeout: number;
   private _maxSteps: number;
   private _guardrails: Guardrail[];
+  private _toolInputGuardrails: ToolInputGuardrail[];
   private _policy: PermissionPolicy | null;
   private _approve: ((req: ApprovalRequest) => Promise<ApprovalDecision>) | null;
   private _checkpoint: import('../plugins/persistence/types').Persistence | null;
@@ -107,6 +108,7 @@ export class AgentLoop {
         ? config.maxSteps
         : DEFAULT_MAX_STEPS;
     this._guardrails = config.guardrails ?? [];
+    this._toolInputGuardrails = config.toolInputGuardrails ?? [];
     this._policy = config.policy ?? null;
     this._approve = config.approve ?? null;
     this._checkpoint = config.checkpoint ?? null;
@@ -760,6 +762,23 @@ export class AgentLoop {
       runTrace,
     );
     if (!lookup.found) return lookup.errorResult;
+
+    // ─── Tool-input guardrails ───────────────────────────────────────────
+    // Validate the call's arguments before any approval interruption or
+    // execution. A trip denies just this call (never halts the run, never asks
+    // the approver).
+    for (const g of this._toolInputGuardrails) {
+      const decision = await g.check({
+        toolName: tc.name,
+        arguments: tc.arguments,
+        callId: tc.id,
+        step,
+        trace: { sessionId: runTrace.sessionId, requestId: runTrace.requestId, callId: tc.id },
+      });
+      if (!decision.pass) {
+        return this.buildDeniedResult(tc, decision.reason, reports);
+      }
+    }
 
     // ─── Permission check ────────────────────────────────────────────────
     if (this._policy !== null) {

@@ -17,6 +17,10 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   LLM response in `complete()` and `stream()`.
 
 ### Added
+- `AgentLoopConfig.toolInputGuardrails` (`ToolInputGuardrail[]`) — per-tool-call input
+  guardrails that validate a call's arguments before the permission/approval check. A trip
+  denies just that call (error result to the model) without halting the run or invoking the
+  HITL approver; a pass runs the normal permission/approval/execution path.
 - `AgentTool.customDataExtractor` — optional hook to derive out-of-band metadata from a
   successful tool result, attached to that call's `ToolCallReport.customData`. The model never
   sees it (for your own telemetry/routing/audit); a throwing extractor is swallowed.
