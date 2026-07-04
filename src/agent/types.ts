@@ -54,6 +54,15 @@ export interface AgentTool {
     args: Record<string, unknown>,
     context: ToolExecutionContext,
   ) => Promise<string | ContentPart[]>;
+  /** Optional: derive out-of-band metadata from a successful tool result, attached
+   *  to this call's `ToolCallReport.customData`. The MODEL NEVER SEES IT — it is for
+   *  your own telemetry/routing/audit. Runs after `execute`; may be async. Errors are
+   *  swallowed (opt-in convenience must never break the tool result). */
+  customDataExtractor?: (
+    result: string | ContentPart[],
+    args: Record<string, unknown>,
+    context: Omit<ToolExecutionContext, 'signal'>,
+  ) => unknown | Promise<unknown>;
 }
 
 export interface ToolExecutionContext {
@@ -78,6 +87,9 @@ export interface ToolCallReport {
   skipped: boolean;
   error: string | null;
   metrics: Record<string, { value: number | string | boolean; type: string }>;
+  /** Out-of-band metadata from the tool's `customDataExtractor`, if any. Never sent
+   *  to the model; present only when an extractor returned a value. */
+  customData?: unknown;
 }
 
 export interface StepReport {

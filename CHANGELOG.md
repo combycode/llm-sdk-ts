@@ -17,6 +17,9 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   LLM response in `complete()` and `stream()`.
 
 ### Added
+- `AgentTool.customDataExtractor` — optional hook to derive out-of-band metadata from a
+  successful tool result, attached to that call's `ToolCallReport.customData`. The model never
+  sees it (for your own telemetry/routing/audit); a throwing extractor is swallowed.
 - Code-execution **file outputs** now surface on `response.files` across **all** providers
   (completes the channel shipped in 1.1, which had only the Anthropic producer):
   - OpenAI Responses: code-interpreter image outputs (by URL) and downloadable container

@@ -32,6 +32,7 @@ import type {
   AgentTool,
   StepReport,
   ToolCallReport,
+  ToolExecutionContext,
 } from './types';
 import type { Guardrail, GuardrailDecision } from './guardrail-types';
 import { toolKey } from './tool-key';
@@ -781,7 +782,7 @@ export class AgentLoop {
     try {
       const baseCtx = { step, callId: tc.id, metrics, trace: { sessionId: runTrace.sessionId, requestId: runTrace.requestId, callId: tc.id } };
       const result = await executeWithTimeout(lookup.tool, tc, baseCtx, this._toolTimeout);
-      return await this.buildSuccessResult(tc, result, runId, step, metrics, reports, toolStart, runTrace);
+      return await this.buildSuccessResult(tc, result, runId, step, metrics, reports, toolStart, runTrace, lookup.tool, baseCtx);
     } catch (e) {
       return handleToolError(e, tc, this.hooks, runId, this.id, step, metrics, reports, toolStart, runTrace);
     }
@@ -905,7 +906,7 @@ export class AgentLoop {
       try {
         const baseCtx = { step, callId: tc.id, metrics, trace: { sessionId: runTrace.sessionId, requestId: runTrace.requestId, callId: tc.id } };
         const result = await executeWithTimeout(tool, tc, baseCtx, this._toolTimeout);
-        return await this.buildSuccessResult(tc, result, runId, step, metrics, reports, toolStart, runTrace);
+        return await this.buildSuccessResult(tc, result, runId, step, metrics, reports, toolStart, runTrace, tool, baseCtx);
       } catch (e) {
         return handleToolError(e, tc, this.hooks, runId, this.id, step, metrics, reports, toolStart, runTrace);
       }
@@ -929,9 +930,22 @@ export class AgentLoop {
     reports: ToolCallReport[],
     toolStart: number,
     runTrace: { sessionId: string; requestId: string },
+    tool?: AgentTool,
+    context?: Omit<ToolExecutionContext, 'signal'>,
   ): Promise<ContentPart> {
     const latencyMs = performance.now() - toolStart;
     const resultStr = typeof result === 'string' ? result : JSON.stringify(result);
+
+    // Opt-in out-of-band metadata for the tool report (model never sees it).
+    // A throwing extractor must never break the tool result.
+    let customData: unknown;
+    if (tool?.customDataExtractor && context) {
+      try {
+        customData = await tool.customDataExtractor(result, tc.arguments, context);
+      } catch {
+        /* swallow — opt-in convenience */
+      }
+    }
 
     await this.hooks.emit('onToolCallComplete', {
       runId,
@@ -956,6 +970,7 @@ export class AgentLoop {
       skipped: false,
       error: null,
       metrics: Object.fromEntries(metrics),
+      ...(customData !== undefined ? { customData } : {}),
     });
     return { type: 'tool_result', id: tc.id, content: resultStr };
   }

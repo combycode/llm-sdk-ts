@@ -68,7 +68,16 @@ interface ToolCallReport {
   resultSizeBytes: number; latencyMs: number;
   skipped: boolean; error: string | null;
   metrics: Record<string, { value: number | string | boolean; type: string }>;
+  customData?: unknown;   // from AgentTool.customDataExtractor; never sent to the model
 }
+```
+
+An `AgentTool` may declare an optional `customDataExtractor(result, args, context)` that
+runs after a successful `execute`. Its return value is attached to that call's
+`ToolCallReport.customData` for your own telemetry/routing/audit — the **model never sees
+it**. A throwing extractor is swallowed (opt-in convenience must not break the tool result).
+
+```ts
 
 type AgentStreamEvent =
   | { type: 'step_start'; step: number }
