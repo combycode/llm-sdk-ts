@@ -109,6 +109,23 @@ const loggedTool = defineTool({
 });
 ```
 
+## Attaching out-of-band data — `customDataExtractor`
+
+An `AgentTool` may declare an optional `customDataExtractor(result, args, context)` that runs
+after a successful `execute`. Its return value is attached to that tool call's
+`ToolCallReport.customData` — for your own telemetry, routing, or audit. **The model never sees
+it** (it is not part of the tool result). A throwing extractor is swallowed, so this convenience
+can never break the tool result.
+
+```ts
+const lookup: AgentTool = {
+  definition: { name: 'lookup', description: 'Look up a record', parameters: { id: { type: 'string' } } },
+  execute: async ({ id }) => fetchRecord(id),
+  // model never sees this — it lands on the ToolCallReport.
+  customDataExtractor: (result, args, ctx) => ({ bytes: String(result).length, callId: ctx.callId }),
+};
+```
+
 ## Built-in / hosted tools
 
 Server-side tools the provider runs are passed as plain objects in `tools: [...]`
@@ -117,9 +134,11 @@ Server-side tools the provider runs are passed as plain objects in `tools: [...]
 Provider-specific configuration goes in `params`, forwarded verbatim.
 
 Files a hosted tool produces (e.g. code-execution charts or data files) are surfaced
-uniformly on `response.files` (`FileOutput[]` — `{ id?, name?, mimeType?, data?, source? }`),
-independent of generated `media`. When only `id` is set, fetch the bytes via the provider's
-files API.
+uniformly on `response.files` (`FileOutput[]` — `{ id?, name?, mimeType?, data?, url?, source? }`),
+independent of generated `media`. How the bytes arrive differs by provider: fetch by `id` via the
+provider's files API (Anthropic, OpenAI container files), read inline base64 `data` (Google), or
+fetch the `url` (OpenAI code-interpreter images). See the
+[Code execution guide](./code-execution.md).
 
 ### Hosted MCP tool (`{ type: 'mcp' }`)
 

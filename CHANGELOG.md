@@ -6,6 +6,8 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-05
+
 ### Fixed
 - Anthropic hosted code-execution **file outputs** now surface on `response.files` (verified
   live). Three fixes, found by real-key testing: (1) the producer parsed the outdated
@@ -80,5 +82,6 @@ First public release.
 - Service tiers end to end (request → bill → cost).
 - Cross-environment: runs on Node, Bun, and the browser. ESM, zero runtime deps.
 
+[1.2.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.2.0
 [1.1.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.1.0
 [1.0.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.0.0

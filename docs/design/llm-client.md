@@ -267,16 +267,20 @@ Five provider directories: `src/llm/providers/{anthropic,openai,google,xai,openr
   `anthropic-beta: files-api-2025-04-14` header.
 - Tool role `'tool'` is remapped to `'user'` (Anthropic's wire format).
 - `web_search` builtin maps to `{ type: 'web_search_20250305', name: 'web_search' }`;
-  `code_interpreter` maps to `{ type: 'code_execution_20260521', name: 'code_execution' }`
-  (both GA on Messages, no beta header). Other builtins are skipped. Code-execution
-  file outputs (`code_execution_tool_result` blocks) are surfaced as `response.files`.
+  `code_interpreter` maps to `{ type: 'code_execution_20260521', name: 'code_execution' }`.
+  Code execution is a **beta** feature: when it is present, `buildRequest` routes the request
+  to the beta endpoint (`path: '/v1/messages?beta=true'`) — **required** for code-execution
+  file outputs to be returned. Other builtins are skipped.
 - Service tier: `'auto'` → `'auto'`; `'standard'` → `'standard_only'`;
   `'priority'` → `'auto'`; `'flex'`/`'scale'` → `'standard_only'` or `'auto'`.
 
 **`parseResponse`**: reads `content[]` blocks; `type: 'text'` → `TextPart`,
-`type: 'thinking'` → sets `thinking`, `type: 'tool_use'` → `ToolCallPart`.
-Usage: `input_tokens`, `output_tokens`, `cache_read_input_tokens`,
-`cache_creation_input_tokens`.
+`type: 'thinking'` → sets `thinking`, `type: 'tool_use'` → `ToolCallPart`. Code-execution
+output files are collected into `response.files`: the current tool emits
+`bash_code_execution_tool_result` → `bash_code_execution_result.content[]` →
+`bash_code_execution_output.file_id`; the legacy `code_execution_tool_result` /
+`code_execution_output` shape is still handled. Usage: `input_tokens`, `output_tokens`,
+`cache_read_input_tokens`, `cache_creation_input_tokens`.
 
 **`parseStreamEvent`** dispatches on `data.type`:
 - `content_block_delta` + `text_delta` → `{ type: 'text' }`

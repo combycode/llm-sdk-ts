@@ -286,6 +286,35 @@ engine.hooks.on('onGuardrailTriggered', (ctx) => {
 });
 ```
 
+### Step 6b -- per-tool-call input guardrails (`toolInputGuardrails`)
+
+The `Guardrail`s above are message-level and *halt the whole run* on a tripwire. A
+`ToolInputGuardrail` is different: it validates **one tool call's arguments**, and a trip denies
+**just that call** (an error tool-result the model sees) without halting the run or invoking the
+HITL approver. Each runs **before** the permission/approval check, so a bad call is rejected
+before a human is ever asked.
+
+```ts
+import type { ToolInputGuardrail } from '@combycode/llm-sdk';
+
+const noProdWrites: ToolInputGuardrail = {
+  name: 'no-prod-writes',
+  check: (ctx) =>
+    ctx.toolName === 'db_write' && ctx.arguments.env === 'prod'
+      ? { pass: false, reason: 'writes to prod are not allowed' }
+      : { pass: true },
+};
+
+const agent = createAgent({
+  model: 'anthropic/claude-haiku-4.5',
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  toolInputGuardrails: [noProdWrites],
+});
+```
+
+A pass runs the normal permission/approval/execution path. Use these to gate tool arguments;
+use message-level `Guardrail`s (Step 6) to halt a run.
+
 ### Step 7 -- built-in moderation guardrail
 
 `moderationGuardrail()` is a factory that creates one or two `Guardrail` instances backed by the OpenAI moderation endpoint. Use it as the fastest path to content screening.
