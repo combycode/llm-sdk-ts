@@ -15,6 +15,8 @@ what it is for, the main exports, and a minimal runnable example.
 | [Cost Tracking + estimate()](./cost.md) | `estimate`, `CostCollector`, `BudgetExceededError`, `ModelCatalog`, budget events |
 | [Observability / Telemetry](./telemetry.md) | `createObserver`, `TelemetryAdapter`, `HookBus`, `AgentBus`, `Logger`, `ConsoleSink` |
 | [Media / Files / Batch](./media-files-batch.md) | `createMediaOutput`, `batch`, `submitBatch`, `batchJob`, `createRealtime`, `loadContent`, `transcribe` |
+| [Hosted Code Execution](./code-execution.md) | `code_interpreter` builtin, `response.files`, hosted code-exec across OpenAI / Anthropic / Google |
+| [Retrieving Output Files](./retrieving-files.md) | `retrieveFile`, `streamFile`, `RetrievedFile`, `FileStream`, buffered vs streamed, attachment metadata |
 | [MCP (Model Context Protocol)](./mcp.md) | `connectMcp`, `mcpToolset`, `finishMcpAuth`, `McpClient`, OAuth helpers |
 | [Context Guard + Permissions + Persistence + Cache](./context-guard.md) | `ContextGuard`, `ContextMeasurer`, `PermissionPolicy`, `MemoryPersistence`, `FilePersistence`, `Cache` |
 | [OpenAI-Compatible Server](./server.md) | `createServer`, `OaiServer`, `BearerKeyAuth`, `ModelRouter`, `ResponseStore` |

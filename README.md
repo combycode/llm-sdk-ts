@@ -64,6 +64,28 @@ for await (const ev of llm.stream('Count to 5.')) {
 }
 ```
 
+### Hosted code execution + output files
+
+Run the provider's code interpreter and pull the files it produces (charts, CSVs) — one
+interface, any provider. `retrieveFile` / `streamFile` fetch the bytes plus `name` / `mimeType`
+/ `size`, bound to the same model + key:
+
+```ts
+import { complete } from '@combycode/llm-sdk';
+
+const { response, retrieveFile } = await complete({
+  model: 'anthropic/claude-haiku-4.5',
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  prompt: 'Plot y = x**2 for x in 1..5, save a PNG, and return the file.',
+  tools: [{ type: 'code_interpreter' }],
+  maxTokens: 6000,
+});
+
+for (const file of response.files ?? []) {
+  const { blob, name, mimeType, size } = await retrieveFile(file); // or streamFile for large files
+}
+```
+
 ## Documentation
 
 Full guide pages covering all export groups:
@@ -77,6 +99,8 @@ Full guide pages covering all export groups:
   - [Cost Tracking + estimate()](./docs/guide/cost.md)
   - [Observability / Telemetry](./docs/guide/telemetry.md)
   - [Media / Files / Batch](./docs/guide/media-files-batch.md)
+  - [Hosted Code Execution](./docs/guide/code-execution.md)
+  - [Retrieving Output Files](./docs/guide/retrieving-files.md)
   - [MCP (Model Context Protocol)](./docs/guide/mcp.md)
   - [Context Guard + Permissions + Persistence + Cache](./docs/guide/context-guard.md)
   - [OpenAI-Compatible Server](./docs/guide/server.md)

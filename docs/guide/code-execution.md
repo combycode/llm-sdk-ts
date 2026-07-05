@@ -91,7 +91,7 @@ You don't fetch per-provider. The result object carries two helpers bound to the
 model + key** the call used — pass a `FileOutput` straight back:
 
 ```ts
-const { response, retrieveFile, streamFile } = await complete({
+const { response, retrieveFile } = await complete({
   model: 'anthropic/claude-haiku-4.5',
   apiKey: process.env.ANTHROPIC_API_KEY,
   prompt: 'Plot y = x**2 for x in 1..5 with matplotlib, save a PNG, and return the file.',
@@ -100,29 +100,16 @@ const { response, retrieveFile, streamFile } = await complete({
 });
 
 for (const file of response.files ?? []) {
-  // Whole file into memory — bytes + the metadata to display it as an attachment:
   const { blob, name, mimeType, size } = await retrieveFile(file);
-  //   name → 'chart.png'   mimeType → 'image/png'   size → 43940   blob.type is set
+  //   name → 'chart.png'   mimeType → 'image/png'   size → 43940
   //   browser: URL.createObjectURL(blob) → <img> / <a download={name}>
 }
 ```
 
-For large files, stream instead of buffering — pipe straight to a file, GridFS, or an HTTP
-response. Metadata comes back alongside the stream (the stream itself is only bytes):
-
-```ts
-const { stream, name, mimeType, size } = await streamFile(file);
-// Node sink:  Readable.fromWeb(stream).pipe(fs.createWriteStream(name))
-```
-
-Both resolve all three return shapes automatically — inline base64 `data` (Google), a `url`
-(OpenAI images), or a provider file `id` (Anthropic, OpenAI container files). Auth is sent
-**only** to the provider's own host. `retrieveFile` is also on `LLMClient` and every
-`CompleteResult`.
-
-**Where the metadata comes from:** `mimeType` ← the download's `Content-Type` (with a
-filename-extension fallback); `name` ← `Content-Disposition` (the provider's real filename,
-e.g. `chart.png`); `size` ← `Content-Length` / the blob size.
+`retrieveFile` buffers into a `Blob`; `streamFile` pipes large files to a file / GridFS / HTTP
+response without buffering. Both resolve all three shapes (inline `data`, `url`, provider file
+`id`) and return the real `name` / `mimeType` / `size`, with auth sent only to the provider's
+own host. **Full reference:** [Retrieving output files](./retrieving-files.md).
 
 ## Streaming — files arrive as `file` events
 

@@ -140,7 +140,9 @@ type StreamEvent =
   | { type: 'error'; error: Error }
   | { type: 'media_start'; mediaType: 'image'|'audio'|'video'; mimeType: string }
   | { type: 'media_chunk'; data: string; progress?: number }
-  | { type: 'media_end'; mediaId?: string };
+  | { type: 'media_end'; mediaId?: string }
+  | { type: 'file'; file: FileOutput }         // hosted-tool output file (code-execution artifact)
+  | { type: 'moderation'; phase: 'input'|'output'; result: ModerationEntry; source: 'native'|'emulated' };
 ```
 
 ## `LLMClient` class (`src/llm/client.ts`)

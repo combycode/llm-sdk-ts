@@ -6,6 +6,8 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-06
+
 ### Added
 - **Streaming file parity.** `stream()` now surfaces hosted code-execution output files with the
   same coverage as `complete()`: a new `{ type: 'file', file }` `StreamEvent` is emitted as each

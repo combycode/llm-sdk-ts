@@ -17,9 +17,9 @@ and fine-grained control.
 
 | Export | What it does |
 |---|---|
-| `complete(opts)` | One-shot helper. Sends a prompt, runs the tool loop if tools are supplied, returns `{ text, response, parsed? }`. The fastest path for most tasks. |
+| `complete(opts)` | One-shot helper. Sends a prompt, runs the tool loop if tools are supplied, returns `{ text, response, parsed?, retrieveFile, streamFile }`. The fastest path for most tasks. |
 | `createLLM(opts)` | Builds a reusable `LLMClient` bound to one provider/model. |
-| `LLMClient` | Low-level client class with `.complete()`, `.stream()`, `.assistantMessage()`, `.destroy()`. |
+| `LLMClient` | Low-level client class with `.complete()`, `.stream()`, `.retrieveFile()`, `.streamFile()`, `.assistantMessage()`, `.destroy()`. |
 | `select(query)` | Pick the best matching model from the catalog by capability query (`'type:chat; vision; cheap'`). Returns a `provider/slug` string. |
 | `selectModels(query)` | Same query syntax as `select`, but returns the full ranked `ModelInfo[]` list instead of just the first `provider/slug` string. |
 | `listModels()` | Return the curated catalog (pricing + capabilities). |
@@ -27,7 +27,11 @@ and fine-grained control.
 | `route(opts)` | Send to a primary model with client-side (or OpenRouter native) fallback. |
 
 Type-only exports: `CompleteOptions`, `CompleteResult`, `Message`, `ContentPart`,
-`Role`, `CompletionResponse`, `Usage`, `FinishReason`, `StreamEvent`, `NormalizedRequest`.
+`Role`, `CompletionResponse`, `Usage`, `FinishReason`, `StreamEvent`, `NormalizedRequest`,
+`RetrievedFile`, `FileStream`.
+
+> Hosted-tool output files (code-execution charts/CSVs) surface on `response.files`; fetch
+> their bytes with `retrieveFile` / `streamFile` — see [Retrieving output files](./retrieving-files.md).
 
 Provider adapter exports: `AnthropicAdapter`, `OpenAIResponsesAdapter`,
 `GoogleAdapter`, `XAIAdapter`, `OpenRouterAdapter`, and their batch/file/media
