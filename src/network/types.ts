@@ -17,8 +17,10 @@ export interface HttpRequest {
   model: string;
   /** How to parse the response body. Default 'json' (LLM responses, image-gen
    *  with b64_json, video-status JSON). Use 'arraybuffer' for binary downloads
-   *  (TTS audio bytes, video file bytes). 'text' for plain-text responses. */
-  responseType?: 'json' | 'arraybuffer' | 'text';
+   *  (TTS audio bytes, video file bytes). 'text' for plain-text responses.
+   *  'stream' returns the raw `ReadableStream<Uint8Array>` body un-buffered (large
+   *  file downloads that pipe straight to a sink). */
+  responseType?: 'json' | 'arraybuffer' | 'text' | 'stream';
   /** When the request body is already a Uint8Array / ArrayBuffer (binary
    *  upload like multipart) the queue should NOT JSON.stringify it. Default
    *  false → body is JSON.stringify'd. */

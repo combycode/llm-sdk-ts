@@ -47,6 +47,8 @@ function makeResponse(text: string): CompleteResult {
       latencyMs: 0,
       raw: null,
     },
+    retrieveFile: async () => ({ blob: new Blob([]), mimeType: 'application/octet-stream', size: 0 }),
+    streamFile: async () => ({ stream: new ReadableStream<Uint8Array>() }),
   };
 }
 

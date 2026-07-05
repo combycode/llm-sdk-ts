@@ -6,6 +6,17 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+### Added
+- **File-content retrieval** for hosted-tool output files. `CompleteResult`, `LLMClient`, and
+  the agent result now expose `retrieveFile(file)` → `{ blob, name, mimeType, size }` and
+  `streamFile(file)` → `{ stream, name, mimeType, size }`, resolving a `FileOutput`'s inline
+  `data`, `url`, or provider file `id` through the same model + key the call used — no
+  re-passing credentials. `streamFile` pipes large files to a sink without buffering. Name /
+  mime / size come from the download response headers (Content-Disposition / Content-Type /
+  Content-Length, with a filename-extension mime fallback). New network `responseType: 'stream'`
+  returns the raw body and releases the queue slot immediately. Exports `RetrievedFile`,
+  `FileStream`. Auth is sent only to the provider's own host.
+
 ## [1.2.0] - 2026-07-05
 
 ### Fixed

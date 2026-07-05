@@ -441,7 +441,7 @@ describe('OpenAIResponsesAdapter — parseResponse', () => {
     const res = a.parseResponse(raw, 0);
     expect(res.files).toEqual([
       { url: 'https://oai/img.png', source: 'code_execution' },
-      { id: 'file_9', name: 'chart.csv', source: 'code_execution' },
+      { id: 'file_9', name: 'chart.csv', ref: { containerId: 'c1' }, source: 'code_execution' },
     ]);
   });
 

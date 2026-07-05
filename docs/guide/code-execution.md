@@ -53,6 +53,7 @@ interface FileOutput {
   data?: string;      // inline base64, when returned inline
   url?: string;       // fetchable URL, when returned as one
   source?: string;    // e.g. 'code_execution'
+  ref?: Record<string, unknown>;  // provider meta (e.g. OpenAI containerId) used by retrieveFile
 }
 ```
 
@@ -75,14 +76,53 @@ The same code runs against any provider — you never touch a provider-specific 
 
 ## How each provider returns the bytes
 
-`response.files` is unified, but the bytes live in different places per provider. Fetch them by
-whichever field is set:
+`response.files` is unified, but the bytes live in different places per provider. You don't
+fetch per-provider, though — the helpers below resolve every shape:
 
 | Provider | Fields set | How to get the bytes |
 |---|---|---|
-| **Anthropic** | `{ id, source }` | Fetch via the Files API using `id`. |
-| **OpenAI** | `{ url, source }` (code-interpreter images) or `{ id, name, source }` (container files) | Fetch `url`, or fetch the container file by `id`. |
-| **Google** | `{ data, mimeType, source }` | `data` is base64 — decode it directly. |
+| **Anthropic** | `{ id, source }` | Uniform — `retrieveFile(file)` / `streamFile(file)` (see below). |
+| **OpenAI** | `{ url, source }` (code-interpreter images) or `{ id, name, ref, source }` (container files) | Uniform — `retrieveFile(file)` / `streamFile(file)` (see below). |
+| **Google** | `{ data, mimeType, source }` | Uniform — `retrieveFile(file)` / `streamFile(file)` (see below). |
+
+## Read the bytes — `retrieveFile` / `streamFile`
+
+You don't fetch per-provider. The result object carries two helpers bound to the **same
+model + key** the call used — pass a `FileOutput` straight back:
+
+```ts
+const { response, retrieveFile, streamFile } = await complete({
+  model: 'anthropic/claude-haiku-4.5',
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  prompt: 'Plot y = x**2 for x in 1..5 with matplotlib, save a PNG, and return the file.',
+  tools: [{ type: 'code_interpreter' }],
+  maxTokens: 6000,
+});
+
+for (const file of response.files ?? []) {
+  // Whole file into memory — bytes + the metadata to display it as an attachment:
+  const { blob, name, mimeType, size } = await retrieveFile(file);
+  //   name → 'chart.png'   mimeType → 'image/png'   size → 43940   blob.type is set
+  //   browser: URL.createObjectURL(blob) → <img> / <a download={name}>
+}
+```
+
+For large files, stream instead of buffering — pipe straight to a file, GridFS, or an HTTP
+response. Metadata comes back alongside the stream (the stream itself is only bytes):
+
+```ts
+const { stream, name, mimeType, size } = await streamFile(file);
+// Node sink:  Readable.fromWeb(stream).pipe(fs.createWriteStream(name))
+```
+
+Both resolve all three return shapes automatically — inline base64 `data` (Google), a `url`
+(OpenAI images), or a provider file `id` (Anthropic, OpenAI container files). Auth is sent
+**only** to the provider's own host. `retrieveFile` is also on `LLMClient` and every
+`CompleteResult`.
+
+**Where the metadata comes from:** `mimeType` ← the download's `Content-Type` (with a
+filename-extension fallback); `name` ← `Content-Disposition` (the provider's real filename,
+e.g. `chart.png`); `size` ← `Content-Length` / the blob size.
 
 ## Gotchas and notes
 

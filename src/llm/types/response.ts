@@ -51,6 +51,10 @@ export interface FileOutput {
   url?: string;
   /** What produced it (e.g. 'code_execution'). */
   source?: string;
+  /** Provider-specific retrieval hints, used by `retrieveFile`/`streamFile` when the
+   *  file is fetched by `id` (e.g. OpenAI container files set `{ containerId }`).
+   *  Absent for providers that don't need extra context. */
+  ref?: Record<string, unknown>;
 }
 
 export type FinishReason = 'stop' | 'tool_use' | 'length' | 'content_filter' | 'error';

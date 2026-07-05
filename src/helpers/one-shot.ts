@@ -21,7 +21,8 @@ import { parseStructured } from '../llm/client-internal';
 import type { LLMClientConfig } from '../llm/client-config';
 import type { AudioOptions } from '../llm/types/audio';
 import type { ContentPart, Message } from '../llm/types/messages';
-import type { CompletionResponse } from '../llm/types/response';
+import type { CompletionResponse, FileOutput } from '../llm/types/response';
+import type { FileStream, RetrievedFile } from '../llm/files/retrieve';
 import type { ProviderName } from '../llm/types/provider';
 import type { ServiceTier } from '../llm/types/tiers';
 import type { BuiltinTool } from '../llm/types/tools';
@@ -98,6 +99,12 @@ export interface CompleteResult<T = unknown> {
    *  otherwise `undefined`. The generic on `complete<T>(...)` types this. */
   parsed?: T;
   response: CompletionResponse;
+  /** Fetch a hosted-tool output file (from `response.files`): bytes (`Blob`) +
+   *  `name` / `mimeType` / `size` — bound to the SAME model + key this call used. */
+  retrieveFile(file: FileOutput): Promise<RetrievedFile>;
+  /** Stream a hosted-tool output file (`ReadableStream` + `name` / `mimeType` /
+   *  `size`) — for large files piped straight to a sink. Same model + key. */
+  streamFile(file: FileOutput): Promise<FileStream>;
 }
 
 export async function complete<T = unknown>(opts: CompleteOptions): Promise<CompleteResult<T>> {
@@ -159,7 +166,13 @@ export async function complete<T = unknown>(opts: CompleteOptions): Promise<Comp
       });
     }
 
-    const result: CompleteResult<T> = { text: res.text, response: res };
+    const result: CompleteResult<T> = {
+      text: res.text,
+      response: res,
+      // Bound to this call's client (same provider/model/key/engine).
+      retrieveFile: (file) => llm.retrieveFile(file),
+      streamFile: (file) => llm.streamFile(file),
+    };
     if (opts.structured?.schema) {
       result.parsed = parseStructured<T>(res.text);
     }

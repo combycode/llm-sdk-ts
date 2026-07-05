@@ -302,7 +302,13 @@ export class QueueState {
       this.processed++;
 
       if (response.ok) {
-        const body = await parseResponseBody(response, entry.request.responseType ?? 'json');
+        // 'stream' → hand back the raw body un-buffered (large downloads pipe to a
+        // sink); the slot is released immediately so the queue isn't held open for
+        // the whole transfer.
+        const body =
+          entry.request.responseType === 'stream'
+            ? response.body
+            : await parseResponseBody(response, entry.request.responseType ?? 'json');
         this.semaphore.release();
         entry.resolve({ status: response.status, headers: resHeaders, body });
         return;

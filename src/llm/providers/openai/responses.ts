@@ -282,6 +282,8 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
                 files.push({
                   id: a.file_id,
                   ...(typeof a.filename === 'string' ? { name: a.filename } : {}),
+                  // Container files are fetched via /v1/containers/{cid}/files/{id}/content.
+                  ...(typeof a.container_id === 'string' ? { ref: { containerId: a.container_id } } : {}),
                   source: 'code_execution',
                 });
               }

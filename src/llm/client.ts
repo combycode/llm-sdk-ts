@@ -33,13 +33,15 @@ import {
 } from './moderation/runner';
 import type { EmulationConfig, ModerationReport, ModerationRequest } from './moderation/types';
 import { MODERATION_DEFAULT_INTERVAL, MODERATION_DEFAULT_STRATEGY } from './moderation/types';
+import { retrieveFile as retrieveFileImpl, streamFile as streamFileImpl } from './files/retrieve';
+import type { FileStream, RetrieveContext, RetrievedFile } from './files/retrieve';
 import { resolveServerState } from './server-state';
 import type { ContentPart, Message } from './types/messages';
 import type { ExecuteOptions } from './types/options';
 import type { ApiType, ProviderAdapter, ProviderName } from './types/provider';
 import type { NormalizedRequest } from './types/request';
 import { emptyUsage } from './types/response';
-import type { CompletionResponse, FinishReason, Usage } from './types/response';
+import type { CompletionResponse, FileOutput, FinishReason, Usage } from './types/response';
 import type { StreamEvent } from './types/stream';
 import type { LLMClientConfig } from './client-config';
 import {
@@ -191,6 +193,32 @@ export class LLMClient {
     if (phase === 'input') next.input = result;
     else next.output = result;
     return next;
+  }
+
+  // ─── File retrieval (hosted-tool output files) ─────────────────────────
+
+  private retrieveContext(): RetrieveContext {
+    return {
+      provider: this.provider,
+      apiKey: this.apiKey,
+      fetch: this.fetchFn,
+      baseURL: this.adapter.baseURL(),
+    };
+  }
+
+  /** Fetch a hosted-tool output file (e.g. a code-execution file from
+   *  `response.files`): its bytes as a `Blob` plus `name` / `mimeType` / `size`.
+   *  Resolves inline `data`, a `url`, or a provider file `id` — all through this
+   *  client's provider + auth + engine. */
+  retrieveFile(file: FileOutput): Promise<RetrievedFile> {
+    return retrieveFileImpl(file, this.retrieveContext());
+  }
+
+  /** Stream a hosted-tool output file: a `ReadableStream<Uint8Array>` plus
+   *  best-effort `name` / `mimeType` / `size` (from the response headers). For large
+   *  files piped straight to a file / GridFS / HTTP response without buffering. */
+  streamFile(file: FileOutput): Promise<FileStream> {
+    return streamFileImpl(file, this.retrieveContext());
   }
 
   /** Submit a request. Returns the parsed CompletionResponse. */

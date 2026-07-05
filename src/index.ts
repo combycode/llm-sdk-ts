@@ -83,6 +83,7 @@ export { isFunctionTool, isBuiltinTool } from './llm/types/tools';
 export type { FunctionTool, BuiltinTool, McpToolParams, Tool, ToolChoice, JsonSchema } from './llm/types/tools';
 export { emptyUsage } from './llm/types/response';
 export type { CompletionResponse, FileOutput, FinishReason, Usage } from './llm/types/response';
+export type { FileStream, RetrievedFile } from './llm/files/retrieve';
 export type { NormalizedRequest, ReasoningContext, ThinkingConfig, CacheConfig } from './llm/types/request';
 export type { MediaStreamType, StreamEvent } from './llm/types/stream';
 export type { ExecuteOptions } from './llm/types/options';
