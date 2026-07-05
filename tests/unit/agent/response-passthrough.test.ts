@@ -44,4 +44,23 @@ describe('agent loop response passthrough', () => {
     const res = await new AgentLoop({ client: clientReturning({}) }).complete('go');
     expect(res.files).toBeUndefined();
   });
+
+  it('retrieveFile / streamFile delegate to the underlying client', async () => {
+    const file = { id: 'f1', source: 'code_execution' };
+    const blob = new Blob(['x']);
+    const stream = new ReadableStream<Uint8Array>();
+    const client = {
+      ...clientReturning({}),
+      retrieveFile: async (f: unknown) => ({ blob, name: 'chart.png', mimeType: 'image/png', size: 1, _f: f }),
+      streamFile: async (f: unknown) => ({ stream, name: 'chart.png', mimeType: 'image/png', size: 1, _f: f }),
+    } as unknown as LLMClient;
+
+    const agent = new AgentLoop({ client });
+    const r = await agent.retrieveFile(file as never);
+    expect(r.blob).toBe(blob);
+    expect((r as unknown as { _f: unknown })._f).toBe(file); // exact descriptor passed through
+    const s = await agent.streamFile(file as never);
+    expect(s.stream).toBe(stream);
+    expect((s as unknown as { _f: unknown })._f).toBe(file);
+  });
 });

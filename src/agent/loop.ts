@@ -20,7 +20,8 @@ import {
 } from '../llm/types/messages';
 import type { ExecuteOptions } from '../llm/types/options';
 import type { CacheConfig, ThinkingConfig } from '../llm/types/request';
-import { emptyUsage, type CompletionResponse, type Usage } from '../llm/types/response';
+import { emptyUsage, type CompletionResponse, type FileOutput, type Usage } from '../llm/types/response';
+import type { FileStream, RetrievedFile } from '../llm/files/retrieve';
 import type { LLMClient } from '../llm/client';
 import { parseStructured as parseStructuredText } from '../llm/client-internal';
 import { writeAgentLoopContext, writeAgentLoopSystem } from './context-registry/layers';
@@ -156,6 +157,22 @@ export class AgentLoop {
   /** Model is owned by client. */
   get model(): string {
     return this.client.model;
+  }
+
+  // ─── File retrieval (hosted-tool output files) ──────────────────────────
+
+  /** Fetch a hosted-tool output file from the run's `response.files` — its bytes
+   *  as a `Blob` plus `name` / `mimeType` / `size`. Delegates to the underlying
+   *  client, so it uses this agent's provider + key (same as `retrieveFile` on a
+   *  `complete()` result). */
+  retrieveFile(file: FileOutput): Promise<RetrievedFile> {
+    return this.client.retrieveFile(file);
+  }
+
+  /** Stream a hosted-tool output file (large files) — a `ReadableStream` plus
+   *  best-effort `name` / `mimeType` / `size`. Delegates to the underlying client. */
+  streamFile(file: FileOutput): Promise<FileStream> {
+    return this.client.streamFile(file);
   }
 
   get system(): string {
