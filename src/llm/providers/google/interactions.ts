@@ -335,6 +335,11 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
     return events;
   }
 
+  /** Stateless — the Interactions adapter surfaces no code-execution file outputs. */
+  createStreamParser(): (event: SSEEvent) => StreamEvent[] {
+    return (event) => this.parseStreamEvent(event);
+  }
+
   private parseUsage(u: Record<string, unknown> | undefined): Usage {
     if (!u) return emptyUsage();
     const input = (u.total_input_tokens as number) ?? (u.prompt_tokens as number) ?? 0;

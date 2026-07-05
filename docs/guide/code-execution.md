@@ -124,6 +124,28 @@ Both resolve all three return shapes automatically — inline base64 `data` (Goo
 filename-extension fallback); `name` ← `Content-Disposition` (the provider's real filename,
 e.g. `chart.png`); `size` ← `Content-Length` / the blob size.
 
+## Streaming — files arrive as `file` events
+
+`stream()` has full file parity with `complete()`. As the model finalizes each output file, a
+`{ type: 'file', file }` event is emitted mid-stream, and the same files are collected onto the
+streamed final response's `files` (surfaced via the `onCompletion` hook / agent final response).
+The event carries the `FileOutput` **descriptor** (id / url / inline data + name), not the bytes —
+fetch those with the same `retrieveFile` / `streamFile`:
+
+```ts
+for await (const ev of llm.stream(PROMPT, { tools: [{ type: 'code_interpreter' }], maxTokens: 6000 })) {
+  if (ev.type === 'text') process.stdout.write(ev.text);
+  if (ev.type === 'file') {
+    // A chart/CSV just finalized — fetch its bytes + attachment metadata.
+    const { blob, name, mimeType, size } = await llm.retrieveFile(ev.file);
+  }
+}
+```
+
+The routing is identical across providers: Anthropic emits the file id in its code-execution
+result block, OpenAI in the container-file annotation / image output, and Google folds its inline
+code-execution artifact into a `file` event (kept distinct from conversational `media`).
+
 ## Gotchas and notes
 
 - **Anthropic beta routing is automatic.** Anthropic's code execution is a beta feature and its

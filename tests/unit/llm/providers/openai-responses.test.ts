@@ -583,4 +583,55 @@ describe('OpenAIResponsesAdapter — parseStreamEvent', () => {
     const events = a.parseStreamEvent(evt);
     expect(events).toEqual([{ type: 'done', finishReason: 'length' }]);
   });
+
+  it('output_item.done message with container_file_citation → file event', () => {
+    const evt: SSEEvent = {
+      data: JSON.stringify({
+        type: 'response.output_item.done',
+        item: {
+          type: 'message',
+          content: [
+            {
+              type: 'output_text',
+              text: 'chart',
+              annotations: [
+                {
+                  type: 'container_file_citation',
+                  file_id: 'cfile_1',
+                  filename: 'chart.png',
+                  container_id: 'cntr_9',
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    };
+    expect(a.parseStreamEvent(evt)).toEqual([
+      {
+        type: 'file',
+        file: {
+          id: 'cfile_1',
+          name: 'chart.png',
+          ref: { containerId: 'cntr_9' },
+          source: 'code_execution',
+        },
+      },
+    ]);
+  });
+
+  it('output_item.done code_interpreter_call image → file event by url', () => {
+    const evt: SSEEvent = {
+      data: JSON.stringify({
+        type: 'response.output_item.done',
+        item: {
+          type: 'code_interpreter_call',
+          outputs: [{ type: 'image', url: 'https://api.openai.com/x.png' }],
+        },
+      }),
+    };
+    expect(a.parseStreamEvent(evt)).toEqual([
+      { type: 'file', file: { url: 'https://api.openai.com/x.png', source: 'code_execution' } },
+    ]);
+  });
 });

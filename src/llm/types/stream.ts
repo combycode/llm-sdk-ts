@@ -1,7 +1,7 @@
 /** Universal streaming event types. */
 
 import type { ModerationEntry } from '../moderation/types';
-import type { Usage } from './response';
+import type { FileOutput, Usage } from './response';
 
 export type MediaStreamType = 'image' | 'audio' | 'video';
 
@@ -17,6 +17,11 @@ export type StreamEvent =
   | { type: 'media_start'; mediaType: MediaStreamType; mimeType: string }
   | { type: 'media_chunk'; data: string; progress?: number }
   | { type: 'media_end'; mediaId?: string }
+  /** A hosted-tool output file (e.g. a code-execution chart/CSV) became available.
+   *  Carries the `FileOutput` descriptor (id / url / inline data + name / mimeType),
+   *  not the bytes — fetch those via `retrieveFile` / `streamFile`. The same file
+   *  is also collected onto the streamed final response's `files`. */
+  | { type: 'file'; file: FileOutput }
   /** A moderation result for the input or output. `source` distinguishes a
    *  provider-native result from a client-emulated one. Emitted by the moderation
    *  option (report-only). */

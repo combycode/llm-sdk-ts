@@ -25,6 +25,9 @@ function streamAdapter(): ProviderAdapter {
     parseStreamEvent(sse: SSEEvent): StreamEvent[] {
       return [JSON.parse(sse.data) as StreamEvent];
     },
+    createStreamParser() {
+      return (sse: SSEEvent) => this.parseStreamEvent(sse);
+    },
     enableStreaming() {},
     authHeaders() {
       return {};
@@ -103,6 +106,55 @@ describe('LLMClient.stream — onCompletion', () => {
     expect(completions[0].response.usage.inputTokens).toBe(100);
     expect(completions[0].response.usage.outputTokens).toBe(50);
     expect(seen.join('')).toBe('Hello'); // events still pass through
+  });
+
+  it('accumulates streamed file events onto the final response.files', async () => {
+    const hooks = new HookBus();
+    const completions: Array<{ response: CompletionResponse }> = [];
+    hooks.on('onCompletion', (c) => {
+      completions.push(c as never);
+    });
+
+    const client = makeClient(
+      hooks,
+      streamOf([
+        { type: 'text', text: 'chart ready' },
+        { type: 'file', file: { id: 'file_1', name: 'chart.png', source: 'code_execution' } },
+        { type: 'file', file: { url: 'https://api.openai.com/x.png', source: 'code_execution' } },
+        usageEvent,
+        { type: 'done', finishReason: 'stop' },
+      ]),
+    );
+
+    const streamedFiles: string[] = [];
+    for await (const ev of client.stream('make a chart')) {
+      if (ev.type === 'file') streamedFiles.push(ev.file.id ?? ev.file.url ?? '');
+    }
+
+    // Events pass through live...
+    expect(streamedFiles).toEqual(['file_1', 'https://api.openai.com/x.png']);
+    // ...and land on the final response for parity with complete().
+    expect(completions[0].response.files).toEqual([
+      { id: 'file_1', name: 'chart.png', source: 'code_execution' },
+      { url: 'https://api.openai.com/x.png', source: 'code_execution' },
+    ]);
+  });
+
+  it('omits response.files when no file events were streamed', async () => {
+    const hooks = new HookBus();
+    const completions: Array<{ response: CompletionResponse }> = [];
+    hooks.on('onCompletion', (c) => {
+      completions.push(c as never);
+    });
+
+    const client = makeClient(
+      hooks,
+      streamOf([{ type: 'text', text: 'hi' }, { type: 'done', finishReason: 'stop' }]),
+    );
+    for await (const _ of client.stream('hi')) {
+      // drain
+    }
+    expect(completions[0].response.files).toBeUndefined();
   });
 
   it('does NOT emit onCompletion when the stream aborts mid-way', async () => {

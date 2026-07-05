@@ -51,6 +51,9 @@ function makeMockAdapter(provider = 'mock'): ProviderAdapter & {
     parseStreamEvent() {
       return [];
     },
+    createStreamParser() {
+      return () => [];
+    },
     authHeaders() {
       return { 'x-api-key': 'mock-key' };
     },

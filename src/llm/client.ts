@@ -502,20 +502,23 @@ export class LLMClient {
     let usage: Usage = emptyUsage();
     let finishReason: FinishReason = 'stop';
     let moderationReport: ModerationReport | undefined;
+    const files: FileOutput[] = [];
 
     // Raw provider events (the unwrapped stream). Output-moderation wrappers and
     // the accumulation loop below both consume from here.
     const fetchStream = this.fetchStreamFn;
-    const adapter = this.adapter;
     const queueName = this.queueName;
     const priority = this.priority;
+    // One parser instance per stream — holds any per-stream state (e.g. Google's
+    // code-execution latch) in its closure, isolated from concurrent streams.
+    const parseStream = this.adapter.createStreamParser();
     async function* rawEvents(): AsyncGenerator<StreamEvent> {
       for await (const sseEvent of fetchStream(httpReq, {
         queueName,
         priority,
         ctx: ctx as Record<string, unknown>,
       })) {
-        for (const ev of adapter.parseStreamEvent(sseEvent)) yield ev;
+        for (const ev of parseStream(sseEvent)) yield ev;
       }
     }
 
@@ -560,6 +563,11 @@ export class LLMClient {
         case 'done':
           finishReason = event.finishReason as FinishReason;
           break;
+        case 'file':
+          // Hosted-tool output file (code-execution artifact) — collect for the
+          // final response so streamed `response.files` matches complete().
+          files.push(event.file);
+          break;
         case 'moderation':
           moderationReport = this.mergeModeration(
             moderationReport,
@@ -585,6 +593,7 @@ export class LLMClient {
       toolCalls: [],
       thinking: thinking || null,
       media: [],
+      ...(files.length ? { files } : {}),
       ...(moderationReport ? { moderation: moderationReport } : {}),
       latencyMs: performance.now() - start,
       raw: null,

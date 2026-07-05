@@ -54,6 +54,41 @@ function anthropicBilledTier(raw: unknown): { serviceTier?: string; pricingTier?
   return typeof raw === 'string' && raw ? { serviceTier: raw, pricingTier: raw } : {};
 }
 
+/** Extract hosted code-execution output files from one content block. Shared by
+ *  the buffered (`parseResponse`) and streamed (`content_block_start`) paths so
+ *  both surface the exact same `FileOutput[]`. The current tool
+ *  (code_execution_20260521) emits `bash_code_execution_tool_result` →
+ *  `bash_code_execution_result` → `content[]` of `bash_code_execution_output`;
+ *  older tool versions emit the `code_execution_*` equivalents. Both carry
+ *  `file_id`. (`text_editor_code_execution_tool_result` blocks are file
+ *  create/view/edit markers with no downloadable id, so they are not surfaced.) */
+function filesFromCodeExecBlock(block: Record<string, unknown>): FileOutput[] {
+  if (
+    block.type !== 'bash_code_execution_tool_result' &&
+    block.type !== 'code_execution_tool_result'
+  ) {
+    return [];
+  }
+  const result = block.content as Record<string, unknown> | undefined;
+  if (
+    !result ||
+    (result.type !== 'bash_code_execution_result' && result.type !== 'code_execution_result') ||
+    !Array.isArray(result.content)
+  ) {
+    return [];
+  }
+  const files: FileOutput[] = [];
+  for (const out of result.content as Array<Record<string, unknown>>) {
+    if (
+      (out.type === 'bash_code_execution_output' || out.type === 'code_execution_output') &&
+      typeof out.file_id === 'string'
+    ) {
+      files.push({ id: out.file_id, source: 'code_execution' });
+    }
+  }
+  return files;
+}
+
 export class AnthropicAdapter implements ProviderAdapter {
   readonly name = 'anthropic' as const;
   protected readonly apiKey: string;
@@ -293,34 +328,9 @@ export class AnthropicAdapter implements ProviderAdapter {
         };
         content.push(tc);
         toolCalls.push(tc);
-      } else if (
-        block.type === 'bash_code_execution_tool_result' ||
-        block.type === 'code_execution_tool_result'
-      ) {
-        // Hosted code-execution output files (fetch bytes by file_id via the Files
-        // API). The current tool (code_execution_20260521) emits
-        // `bash_code_execution_tool_result` → `bash_code_execution_result` →
-        // `content[]` of `bash_code_execution_output`; older tool versions emit the
-        // `code_execution_*` equivalents. Both carry `file_id`. (The parallel
-        // `text_editor_code_execution_tool_result` blocks are file create/view/edit
-        // markers with no downloadable id, so they are not surfaced here.)
-        const result = block.content as Record<string, unknown> | undefined;
-        if (
-          result &&
-          (result.type === 'bash_code_execution_result' ||
-            result.type === 'code_execution_result') &&
-          Array.isArray(result.content)
-        ) {
-          for (const out of result.content as Array<Record<string, unknown>>) {
-            if (
-              (out.type === 'bash_code_execution_output' ||
-                out.type === 'code_execution_output') &&
-              typeof out.file_id === 'string'
-            ) {
-              files.push({ id: out.file_id, source: 'code_execution' });
-            }
-          }
-        }
+      } else {
+        // Hosted code-execution output files (fetch bytes by file_id via the Files API).
+        files.push(...filesFromCodeExecBlock(block));
       }
     }
 
@@ -367,6 +377,10 @@ export class AnthropicAdapter implements ProviderAdapter {
       if (block.type === 'tool_use') {
         return [{ type: 'tool_call_start', id: block.id as string, name: block.name as string }];
       }
+      // Server-computed code-execution result blocks arrive complete in
+      // content_block_start (not token-streamed) — surface their output files.
+      const files = filesFromCodeExecBlock(block);
+      if (files.length) return files.map((file) => ({ type: 'file', file }));
     }
 
     if (type === 'content_block_stop') {
@@ -394,6 +408,12 @@ export class AnthropicAdapter implements ProviderAdapter {
     }
 
     return [];
+  }
+
+  /** Stateless — every event is self-contained (code-execution result blocks
+   *  arrive complete in a single content_block_start). */
+  createStreamParser(): (event: SSEEvent) => StreamEvent[] {
+    return (event) => this.parseStreamEvent(event);
   }
 
   private parseUsage(u: Record<string, unknown> | undefined): Usage {

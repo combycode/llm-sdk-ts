@@ -40,6 +40,40 @@ function filenameForMime(mimeType: string): string {
   return 'file.bin';
 }
 
+/** Extract hosted code-execution output files from one Responses output item.
+ *  Shared by the buffered (`parseResponse`) and streamed (`response.output_item.done`)
+ *  paths so both surface the exact same `FileOutput[]`. Two sources:
+ *    - `message` items → `container_file_citation` annotations (downloadable
+ *      container files, fetched by file id from `/v1/containers/{cid}/files/{id}`);
+ *    - `code_interpreter_call` items → image outputs returned by URL. */
+function filesFromResponsesOutputItem(item: Record<string, unknown>): FileOutput[] {
+  const files: FileOutput[] = [];
+  const type = item.type as string;
+  if (type === 'message') {
+    for (const c of (item.content as Array<Record<string, unknown>>) ?? []) {
+      if (c.type !== 'output_text') continue;
+      for (const a of (c.annotations as Array<Record<string, unknown>>) ?? []) {
+        if (a.type === 'container_file_citation' && typeof a.file_id === 'string') {
+          files.push({
+            id: a.file_id,
+            ...(typeof a.filename === 'string' ? { name: a.filename } : {}),
+            ...(typeof a.container_id === 'string' ? { ref: { containerId: a.container_id } } : {}),
+            source: 'code_execution',
+          });
+        }
+      }
+    }
+  }
+  if (type === 'code_interpreter_call') {
+    for (const out of (item.outputs as Array<Record<string, unknown>>) ?? []) {
+      if (out.type === 'image' && typeof out.url === 'string') {
+        files.push({ url: out.url, source: 'code_execution' });
+      }
+    }
+  }
+  return files;
+}
+
 export class OpenAIResponsesAdapter implements ProviderAdapter {
   readonly name: ProviderAdapter['name'] = 'openai';
   protected readonly apiKey: string;
@@ -268,6 +302,10 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     for (const item of output) {
       const type = item.type as string;
 
+      // Hosted code-execution output files (container-file annotations on a
+      // message, or code-interpreter image URLs) — shared with the stream path.
+      files.push(...filesFromResponsesOutputItem(item));
+
       if (type === 'message') {
         const itemContent = (item.content as Array<Record<string, unknown>>) ?? [];
         for (const c of itemContent) {
@@ -275,28 +313,6 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
             const t = c.text as string;
             text += t;
             content.push({ type: 'text', text: t });
-            // Downloadable code-execution files land as container_file_citation
-            // annotations on the assistant text (fetch bytes by file id).
-            for (const a of (c.annotations as Array<Record<string, unknown>>) ?? []) {
-              if (a.type === 'container_file_citation' && typeof a.file_id === 'string') {
-                files.push({
-                  id: a.file_id,
-                  ...(typeof a.filename === 'string' ? { name: a.filename } : {}),
-                  // Container files are fetched via /v1/containers/{cid}/files/{id}/content.
-                  ...(typeof a.container_id === 'string' ? { ref: { containerId: a.container_id } } : {}),
-                  source: 'code_execution',
-                });
-              }
-            }
-          }
-        }
-      }
-
-      // Hosted code-interpreter output: image artifacts arrive as {type:'image', url}.
-      if (type === 'code_interpreter_call') {
-        for (const out of (item.outputs as Array<Record<string, unknown>>) ?? []) {
-          if (out.type === 'image' && typeof out.url === 'string') {
-            files.push({ url: out.url, source: 'code_execution' });
           }
         }
       }
@@ -418,6 +434,9 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
 
     if (type === 'response.output_item.done') {
       const item = data.item as Record<string, unknown>;
+      // Code-execution output files finalize with their output item — same
+      // extraction as the buffered path, emitted as they complete.
+      for (const file of filesFromResponsesOutputItem(item)) events.push({ type: 'file', file });
       if (item?.type === 'function_call') {
         events.push({ type: 'tool_call_end', id: (item.call_id as string) ?? '' });
       }
@@ -454,6 +473,12 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     }
 
     return events;
+  }
+
+  /** Stateless — each output item finalizes with all its file annotations in a
+   *  single response.output_item.done event. */
+  createStreamParser(): (event: SSEEvent) => StreamEvent[] {
+    return (event) => this.parseStreamEvent(event);
   }
 
   protected parseUsage(u: Record<string, unknown> | undefined): Usage {

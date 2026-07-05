@@ -34,8 +34,17 @@ export interface ProviderAdapter {
   /** Parse provider's raw HTTP response body to a normalized CompletionResponse. */
   parseResponse(raw: unknown, latencyMs: number): CompletionResponse;
 
-  /** Convert one SSE event from the provider stream into zero or more StreamEvents. */
+  /** Convert one SSE event from the provider stream into zero or more StreamEvents.
+   *  Stateless per-event primitive — see `createStreamParser` for the per-stream
+   *  entry point the client actually calls. */
   parseStreamEvent(event: SSEEvent): StreamEvent[];
+
+  /** Create a per-stream parser. Returns a function that converts each SSE event
+   *  into zero or more StreamEvents, holding any per-stream state (e.g. whether the
+   *  turn has begun hosted code execution) in its closure. The client calls this
+   *  once per `stream()` so each stream gets isolated state. Stateless adapters
+   *  return `parseStreamEvent` bound to themselves. */
+  createStreamParser(): (event: SSEEvent) => StreamEvent[];
 
   /** Auth headers (Bearer / x-api-key / etc.). */
   authHeaders(): Record<string, string>;

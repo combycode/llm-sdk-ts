@@ -502,3 +502,59 @@ describe('GoogleAdapter — parseStreamEvent', () => {
     expect(a.parseStreamEvent(evt)[0].type).toBe('usage');
   });
 });
+
+describe('GoogleAdapter — createStreamParser (stateful code-exec latch)', () => {
+  const a = new GoogleAdapter({ apiKey: 'k' });
+  const sse = (obj: unknown): SSEEvent => ({ data: JSON.stringify(obj) });
+  const inlineDataEvent = sse({
+    candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: 'CHART' } }] } }],
+  });
+
+  it('without any code-exec marker, inlineData stays media', () => {
+    const parse = a.createStreamParser();
+    const events = parse(inlineDataEvent);
+    expect(events.map((e) => e.type)).toEqual(['media_start', 'media_chunk', 'media_end']);
+  });
+
+  it('latches across events: a prior code-exec marker routes a LATER inlineData to a file', () => {
+    const parse = a.createStreamParser();
+    // Event 1: the executableCode marker arrives (no file yet).
+    parse(sse({ candidates: [{ content: { parts: [{ executableCode: { code: 'print(1)' } }] } }] }));
+    // Event 2 (separate SSE frame): the produced chart blob → file, not media.
+    expect(parse(inlineDataEvent)).toEqual([
+      { type: 'file', file: { data: 'CHART', mimeType: 'image/png', source: 'code_execution' } },
+    ]);
+  });
+
+  it('marker and inlineData in the SAME event → file (pre-scan order-independent)', () => {
+    const parse = a.createStreamParser();
+    const evt = sse({
+      candidates: [
+        {
+          content: {
+            parts: [
+              { inlineData: { mimeType: 'image/png', data: 'CHART' } },
+              { codeExecutionResult: { outcome: 'OK' } },
+            ],
+          },
+        },
+      ],
+    });
+    expect(parse(evt)).toContainEqual({
+      type: 'file',
+      file: { data: 'CHART', mimeType: 'image/png', source: 'code_execution' },
+    });
+  });
+
+  it('parser instances are isolated — one stream latching does not affect another', () => {
+    const p1 = a.createStreamParser();
+    const p2 = a.createStreamParser();
+    p1(sse({ candidates: [{ content: { parts: [{ executableCode: { code: 'x' } }] } }] }));
+    // p2 never saw a marker → its inlineData is still media.
+    expect(p2(inlineDataEvent).map((e) => e.type)).toEqual([
+      'media_start',
+      'media_chunk',
+      'media_end',
+    ]);
+  });
+});

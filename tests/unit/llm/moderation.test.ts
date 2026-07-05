@@ -72,6 +72,9 @@ function textAdapter(text: string): ProviderAdapter {
     parseStreamEvent(sse: SSEEvent): StreamEvent[] {
       return [JSON.parse(sse.data) as StreamEvent];
     },
+    createStreamParser() {
+      return (sse: SSEEvent) => this.parseStreamEvent(sse);
+    },
     enableStreaming() {},
     authHeaders() {
       return {};

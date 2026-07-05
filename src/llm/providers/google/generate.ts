@@ -31,6 +31,12 @@ export interface GoogleAdapterConfig {
   baseURL?: string;
 }
 
+/** Per-stream state threaded through `createStreamParser`. `codeExec` latches once
+ *  a code-execution marker is seen so later inline blobs route to `files`. */
+interface GoogleStreamState {
+  codeExec: boolean;
+}
+
 export class GoogleAdapter implements ProviderAdapter {
   readonly name = 'google' as const;
   private readonly apiKey: string;
@@ -328,6 +334,22 @@ export class GoogleAdapter implements ProviderAdapter {
   }
 
   parseStreamEvent(event: SSEEvent): StreamEvent[] {
+    // Stateless entry — with no persisted state, inline data can't be known to be
+    // a code-execution artifact, so it routes to media (unchanged behavior).
+    return this.streamEvents(event, { codeExec: false });
+  }
+
+  /** Stateful — Google splits the code-execution marker (`executableCode` /
+   *  `codeExecutionResult`) and the produced file (`inlineData`) across parts and
+   *  often across SSE events. The closure remembers "code execution began in this
+   *  stream" so a later `inlineData` blob is routed to `files` (a code-exec
+   *  artifact) rather than `media` (conversational output). */
+  createStreamParser(): (event: SSEEvent) => StreamEvent[] {
+    const state: GoogleStreamState = { codeExec: false };
+    return (event) => this.streamEvents(event, state);
+  }
+
+  private streamEvents(event: SSEEvent, state: GoogleStreamState): StreamEvent[] {
     const data = JSON.parse(event.data) as Record<string, unknown>;
     const candidates = (data.candidates as Array<Record<string, unknown>>) ?? [];
     const candidate = candidates[0];
@@ -344,6 +366,12 @@ export class GoogleAdapter implements ProviderAdapter {
     const parts = (rawContent.parts as Array<Record<string, unknown>>) ?? [];
     const events: StreamEvent[] = [];
 
+    // A code-execution marker may share an event with its output file or precede
+    // it; latch the flag from all parts first so inlineData routing is correct.
+    for (const part of parts) {
+      if (part.executableCode || part.codeExecutionResult) state.codeExec = true;
+    }
+
     for (const part of parts) {
       if (part.text !== undefined && !part.thought)
         events.push({ type: 'text', text: part.text as string });
@@ -351,14 +379,22 @@ export class GoogleAdapter implements ProviderAdapter {
       if (part.inlineData) {
         const inline = part.inlineData as { mimeType: string; data: string };
         const mime = inline.mimeType;
-        const mediaType = mime.startsWith('image/')
-          ? ('image' as const)
-          : mime.startsWith('audio/')
-            ? ('audio' as const)
-            : ('video' as const);
-        events.push({ type: 'media_start', mediaType, mimeType: mime });
-        events.push({ type: 'media_chunk', data: inline.data });
-        events.push({ type: 'media_end' });
+        if (state.codeExec) {
+          // Code-execution artifact (e.g. a generated chart) → unified files channel.
+          events.push({
+            type: 'file',
+            file: { data: inline.data, mimeType: mime, source: 'code_execution' },
+          });
+        } else {
+          const mediaType = mime.startsWith('image/')
+            ? ('image' as const)
+            : mime.startsWith('audio/')
+              ? ('audio' as const)
+              : ('video' as const);
+          events.push({ type: 'media_start', mediaType, mimeType: mime });
+          events.push({ type: 'media_chunk', data: inline.data });
+          events.push({ type: 'media_end' });
+        }
       }
       if (part.functionCall) {
         const fc = part.functionCall as Record<string, unknown>;

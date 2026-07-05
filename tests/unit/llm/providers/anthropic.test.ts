@@ -650,6 +650,25 @@ describe('AnthropicAdapter — parseStreamEvent', () => {
     ]);
   });
 
+  it('content_block_start with bash_code_execution_tool_result → file event', () => {
+    const evt: SSEEvent = {
+      event: 'content_block_start',
+      data: JSON.stringify({
+        type: 'content_block_start',
+        content_block: {
+          type: 'bash_code_execution_tool_result',
+          content: {
+            type: 'bash_code_execution_result',
+            content: [{ type: 'bash_code_execution_output', file_id: 'file_xyz' }],
+          },
+        },
+      }),
+    };
+    expect(a.parseStreamEvent(evt)).toEqual([
+      { type: 'file', file: { id: 'file_xyz', source: 'code_execution' } },
+    ]);
+  });
+
   it('message_delta with stop_reason → done event', () => {
     const evt: SSEEvent = {
       event: 'message_delta',

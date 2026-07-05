@@ -7,6 +7,13 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 ## [Unreleased]
 
 ### Added
+- **Streaming file parity.** `stream()` now surfaces hosted code-execution output files with the
+  same coverage as `complete()`: a new `{ type: 'file', file }` `StreamEvent` is emitted as each
+  file finalizes mid-stream, and the files are collected onto the streamed final response's
+  `files` (via `onCompletion` / the agent final response). New `ProviderAdapter.createStreamParser()`
+  returns a per-stream parser so adapters can hold per-stream state — used by Google to route an
+  inline code-execution artifact (whose "code ran" marker and bytes arrive in separate SSE events)
+  to `files` rather than conversational `media`. Verified live on Anthropic, OpenAI, and Google.
 - **File-content retrieval** for hosted-tool output files. `CompleteResult`, `LLMClient`, and
   the agent result now expose `retrieveFile(file)` → `{ blob, name, mimeType, size }` and
   `streamFile(file)` → `{ stream, name, mimeType, size }`, resolving a `FileOutput`'s inline

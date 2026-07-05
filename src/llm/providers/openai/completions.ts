@@ -396,6 +396,11 @@ export class OpenAIAdapter implements ProviderAdapter {
     return events;
   }
 
+  /** Stateless — Chat Completions has no hosted code-execution file outputs. */
+  createStreamParser(): (event: SSEEvent) => StreamEvent[] {
+    return (event) => this.parseStreamEvent(event);
+  }
+
   private parseUsage(u: Record<string, unknown> | undefined): Usage {
     if (!u) return emptyUsage();
     const input = (u.prompt_tokens as number) ?? (u.input_tokens as number) ?? 0;

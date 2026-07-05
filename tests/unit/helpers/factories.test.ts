@@ -38,6 +38,7 @@ function makeMockAdapter(): ProviderAdapter {
       };
     },
     parseStreamEvent: () => [],
+    createStreamParser: () => () => [],
     authHeaders: () => ({ 'x-api-key': 'mock' }),
     baseURL: () => 'https://mock.test',
     completionPath: () => '/m',
