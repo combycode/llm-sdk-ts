@@ -6,6 +6,26 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+### Fixed
+- Anthropic hosted code-execution **file outputs** now surface on `response.files` (verified
+  live). Three fixes, found by real-key testing: (1) the producer parsed the outdated
+  `code_execution_tool_result` shape, but the current `code_execution_20260521` tool emits
+  `bash_code_execution_tool_result` → `bash_code_execution_output.file_id` (now both are
+  handled); (2) code execution needs the beta endpoint — requests using `code_interpreter` now
+  hit `/v1/messages?beta=true`, without which no file outputs are returned; (3) `AgentLoop`'s
+  final response dropped `files` (and `moderation`) — both are now propagated from the final
+  LLM response in `complete()` and `stream()`.
+
+### Added
+- Code-execution **file outputs** now surface on `response.files` across **all** providers
+  (completes the channel shipped in 1.1, which had only the Anthropic producer):
+  - OpenAI Responses: code-interpreter image outputs (by URL) and downloadable container
+    files (`container_file_citation` → file id + name).
+  - Google: hosted code-execution `inlineData` artifacts (base64), routed to `files`
+    instead of `media` when the turn used code execution.
+  - xAI: inherited from the OpenAI Responses adapter.
+  - `FileOutput` gains a `url` field (for providers that return a fetchable URL).
+
 ## [1.1.0] - 2026-06-30
 
 ### Added

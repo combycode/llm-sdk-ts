@@ -46,6 +46,9 @@ export interface FileOutput {
   mimeType?: string;
   /** Inline bytes (base64) when the provider returns the file inline; else absent. */
   data?: string;
+  /** URL to fetch the file when the provider returns one (e.g. OpenAI code-interpreter
+   *  image outputs); else absent. */
+  url?: string;
   /** What produced it (e.g. 'code_execution'). */
   source?: string;
 }

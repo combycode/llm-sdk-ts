@@ -118,8 +118,9 @@ export class AnthropicAdapter implements ProviderAdapter {
         req.cache === 'auto' || (typeof req.cache === 'object' && req.cache.tools);
       body.tools = req.tools
         .map((t, i) => {
-          // Map unified builtins to Anthropic's hosted server tools (GA on Messages,
-          // no beta header - same as web_search). Unsupported builtins are skipped.
+          // Map unified builtins to Anthropic's hosted server tools. web_search is GA;
+          // code_execution is a BETA feature — it needs the beta endpoint (`?beta=true`,
+          // set below) for its file outputs to surface. Unsupported builtins are skipped.
           if (!isFunctionTool(t)) {
             if (t.type === 'web_search') {
               return { type: 'web_search_20250305', name: 'web_search', max_uses: 5 };
@@ -185,7 +186,15 @@ export class AnthropicAdapter implements ProviderAdapter {
     const headers: Record<string, string> = {};
     if (hasFileRef) headers['anthropic-beta'] = 'files-api-2025-04-14';
 
-    return { body, headers };
+    // Hosted code execution is a beta feature: its output files (container files,
+    // returned as bash_code_execution_output.file_id) only surface on the beta
+    // endpoint. `client.beta.messages` hits `/v1/messages?beta=true`; mirror that
+    // when the code_interpreter builtin is used.
+    const usesCodeExec = req.tools?.some(
+      (t) => !isFunctionTool(t) && t.type === 'code_interpreter',
+    );
+
+    return { body, headers, ...(usesCodeExec ? { path: '/v1/messages?beta=true' } : {}) };
   }
 
   enableStreaming(providerReq: ProviderHttpRequest, _req: NormalizedRequest): void {
@@ -284,12 +293,30 @@ export class AnthropicAdapter implements ProviderAdapter {
         };
         content.push(tc);
         toolCalls.push(tc);
-      } else if (block.type === 'code_execution_tool_result') {
-        // Hosted code-execution output: collect produced file refs (fetch by id).
+      } else if (
+        block.type === 'bash_code_execution_tool_result' ||
+        block.type === 'code_execution_tool_result'
+      ) {
+        // Hosted code-execution output files (fetch bytes by file_id via the Files
+        // API). The current tool (code_execution_20260521) emits
+        // `bash_code_execution_tool_result` → `bash_code_execution_result` →
+        // `content[]` of `bash_code_execution_output`; older tool versions emit the
+        // `code_execution_*` equivalents. Both carry `file_id`. (The parallel
+        // `text_editor_code_execution_tool_result` blocks are file create/view/edit
+        // markers with no downloadable id, so they are not surfaced here.)
         const result = block.content as Record<string, unknown> | undefined;
-        if (result?.type === 'code_execution_result' && Array.isArray(result.content)) {
+        if (
+          result &&
+          (result.type === 'bash_code_execution_result' ||
+            result.type === 'code_execution_result') &&
+          Array.isArray(result.content)
+        ) {
           for (const out of result.content as Array<Record<string, unknown>>) {
-            if (out.type === 'code_execution_output' && typeof out.file_id === 'string') {
+            if (
+              (out.type === 'bash_code_execution_output' ||
+                out.type === 'code_execution_output') &&
+              typeof out.file_id === 'string'
+            ) {
               files.push({ id: out.file_id, source: 'code_execution' });
             }
           }

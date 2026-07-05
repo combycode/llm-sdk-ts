@@ -175,7 +175,19 @@ describe('AnthropicAdapter — tools', () => {
     expect(tools).toContainEqual({ type: 'code_execution_20260521', name: 'code_execution' });
   });
 
-  it('surfaces code_execution file outputs into response.files', () => {
+  it('code_interpreter routes to the beta endpoint (code-exec file outputs need ?beta=true)', () => {
+    const r = a.buildRequest({ ...baseReq, tools: [{ type: 'code_interpreter' }] });
+    expect(r.path).toBe('/v1/messages?beta=true');
+  });
+
+  it('no code_interpreter → default endpoint (no path override)', () => {
+    expect(a.buildRequest({ ...baseReq }).path).toBeUndefined();
+  });
+
+  it('surfaces code_execution file outputs into response.files (real API block shapes)', () => {
+    // Current tool (code_execution_20260521) → bash_code_execution_tool_result, plus a
+    // text_editor create marker (no file_id → must be ignored). Shapes taken verbatim
+    // from the anthropic-ts SDK (BetaBashCodeExecution*/BetaTextEditorCodeExecution*).
     const r = a.parseResponse(
       {
         id: 'm',
@@ -184,13 +196,19 @@ describe('AnthropicAdapter — tools', () => {
         content: [
           { type: 'text', text: 'done' },
           {
-            type: 'code_execution_tool_result',
+            type: 'text_editor_code_execution_tool_result',
+            tool_use_id: 'srvtoolu_1',
+            content: { type: 'text_editor_code_execution_create_result', is_file_update: false },
+          },
+          {
+            type: 'bash_code_execution_tool_result',
+            tool_use_id: 'srvtoolu_2',
             content: {
-              type: 'code_execution_result',
-              stdout: 'ok',
+              type: 'bash_code_execution_result',
+              stdout: '',
               stderr: '',
               return_code: 0,
-              content: [{ type: 'code_execution_output', file_id: 'file_abc' }],
+              content: [{ type: 'bash_code_execution_output', file_id: 'file_abc' }],
             },
           },
         ],
@@ -199,6 +217,31 @@ describe('AnthropicAdapter — tools', () => {
       1,
     );
     expect(r.files).toEqual([{ id: 'file_abc', source: 'code_execution' }]);
+
+    // Older tool versions emit the code_execution_* equivalents — still supported.
+    const legacy = a.parseResponse(
+      {
+        id: 'm',
+        model: 'claude',
+        stop_reason: 'end_turn',
+        content: [
+          {
+            type: 'code_execution_tool_result',
+            content: {
+              type: 'code_execution_result',
+              stdout: 'ok',
+              stderr: '',
+              return_code: 0,
+              content: [{ type: 'code_execution_output', file_id: 'file_legacy' }],
+            },
+          },
+        ],
+        usage: { input_tokens: 1, output_tokens: 1 },
+      },
+      1,
+    );
+    expect(legacy.files).toEqual([{ id: 'file_legacy', source: 'code_execution' }]);
+
     // no code-exec output -> files absent
     const plain = a.parseResponse(
       { id: 'm', model: 'claude', stop_reason: 'end_turn', content: [{ type: 'text', text: 'hi' }], usage: {} },

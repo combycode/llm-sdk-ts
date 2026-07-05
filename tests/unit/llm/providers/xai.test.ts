@@ -117,4 +117,16 @@ describe('XAIResponsesAdapter', () => {
   it('name is xai', () => {
     expect(new XAIResponsesAdapter({ apiKey: 'k' }).name).toBe('xai');
   });
+
+  it('inherits code-execution file producer from the OpenAI Responses adapter', () => {
+    const a = new XAIResponsesAdapter({ apiKey: 'k' });
+    const raw = {
+      id: 'r',
+      model: 'm',
+      output: [{ type: 'code_interpreter_call', outputs: [{ type: 'image', url: 'https://x/i.png' }] }],
+    };
+    expect(a.parseResponse(raw, 0).files).toEqual([
+      { url: 'https://x/i.png', source: 'code_execution' },
+    ]);
+  });
 });

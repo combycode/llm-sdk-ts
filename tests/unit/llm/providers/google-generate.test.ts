@@ -326,6 +326,41 @@ describe('GoogleAdapter — parseResponse', () => {
     expect(res.text).toBe('answer');
   });
 
+  it('code-execution inlineData → response.files (not media)', () => {
+    const raw = {
+      candidates: [
+        {
+          content: {
+            parts: [
+              { executableCode: { language: 'PYTHON', code: 'print(1)' } },
+              { codeExecutionResult: { outcome: 'OUTCOME_OK', output: '1' } },
+              { inlineData: { mimeType: 'image/png', data: 'CHARTB64' } },
+              { text: 'here is your chart' },
+            ],
+          },
+          finishReason: 'STOP',
+        },
+      ],
+    };
+    const res = a.parseResponse(raw, 0);
+    expect(res.files).toEqual([
+      { data: 'CHARTB64', mimeType: 'image/png', source: 'code_execution' },
+    ]);
+    expect(res.media).toHaveLength(0); // not double-counted as media
+    expect(res.text).toBe('here is your chart');
+  });
+
+  it('inlineData WITHOUT code-execution stays media (unchanged)', () => {
+    const raw = {
+      candidates: [
+        { content: { parts: [{ inlineData: { mimeType: 'image/png', data: 'IMGB64' } }] }, finishReason: 'STOP' },
+      ],
+    };
+    const res = a.parseResponse(raw, 0);
+    expect(res.media).toHaveLength(1);
+    expect(res.files).toBeUndefined();
+  });
+
   it('functionCall → tool_call with finishReason tool_use', () => {
     const raw = {
       candidates: [

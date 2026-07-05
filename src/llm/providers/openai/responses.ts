@@ -17,6 +17,7 @@ import type { NormalizedRequest } from '../../types/request';
 import {
   emptyUsage,
   type CompletionResponse,
+  type FileOutput,
   type Usage,
 } from '../../types/response';
 import { ensureAdditionalProperties } from '../../types/schema-utils';
@@ -260,6 +261,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     const content: ContentPart[] = [];
     const toolCalls: ToolCallPart[] = [];
     const media: MediaOutputPart[] = [];
+    const files: FileOutput[] = [];
     let thinking: string | null = null;
     let text = '';
 
@@ -273,6 +275,26 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
             const t = c.text as string;
             text += t;
             content.push({ type: 'text', text: t });
+            // Downloadable code-execution files land as container_file_citation
+            // annotations on the assistant text (fetch bytes by file id).
+            for (const a of (c.annotations as Array<Record<string, unknown>>) ?? []) {
+              if (a.type === 'container_file_citation' && typeof a.file_id === 'string') {
+                files.push({
+                  id: a.file_id,
+                  ...(typeof a.filename === 'string' ? { name: a.filename } : {}),
+                  source: 'code_execution',
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Hosted code-interpreter output: image artifacts arrive as {type:'image', url}.
+      if (type === 'code_interpreter_call') {
+        for (const out of (item.outputs as Array<Record<string, unknown>>) ?? []) {
+          if (out.type === 'image' && typeof out.url === 'string') {
+            files.push({ url: out.url, source: 'code_execution' });
           }
         }
       }
@@ -345,6 +367,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       toolCalls,
       thinking,
       media,
+      ...(files.length ? { files } : {}),
       ...(moderation ? { moderation } : {}),
       latencyMs,
       raw,

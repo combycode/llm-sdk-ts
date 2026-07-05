@@ -411,6 +411,45 @@ describe('OpenAIResponsesAdapter — parseResponse', () => {
     });
   });
 
+  it('code_interpreter image outputs + container-file citations → response.files', () => {
+    const raw = {
+      id: 'r',
+      model: 'm',
+      output: [
+        {
+          type: 'code_interpreter_call',
+          outputs: [
+            { type: 'logs', logs: 'stdout text' },
+            { type: 'image', url: 'https://oai/img.png' },
+          ],
+        },
+        {
+          type: 'message',
+          content: [
+            {
+              type: 'output_text',
+              text: 'see chart.csv',
+              annotations: [
+                { type: 'container_file_citation', container_id: 'c1', file_id: 'file_9', filename: 'chart.csv' },
+                { type: 'url_citation', url: 'https://x' },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const res = a.parseResponse(raw, 0);
+    expect(res.files).toEqual([
+      { url: 'https://oai/img.png', source: 'code_execution' },
+      { id: 'file_9', name: 'chart.csv', source: 'code_execution' },
+    ]);
+  });
+
+  it('no code-execution → files omitted', () => {
+    const raw = { id: 'r', model: 'm', output: [{ type: 'message', content: [{ type: 'output_text', text: 'hi' }] }] };
+    expect(a.parseResponse(raw, 0).files).toBeUndefined();
+  });
+
   it('status incomplete → finishReason length when no toolCalls', () => {
     const raw = { id: 'r', model: 'm', status: 'incomplete', output: [] };
     expect(a.parseResponse(raw, 0).finishReason).toBe('length');

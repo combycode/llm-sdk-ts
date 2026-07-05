@@ -396,6 +396,10 @@ export class AgentLoop {
       toolCalls: lastResponse?.toolCalls ?? [],
       thinking: lastResponse?.thinking ?? null,
       media: lastResponse?.media ?? [],
+      // Propagate hosted-tool file outputs + inline-moderation result from the final
+      // LLM response (e.g. code-execution files produced during the run).
+      ...(lastResponse?.files ? { files: lastResponse.files } : {}),
+      ...(lastResponse?.moderation ? { moderation: lastResponse.moderation } : {}),
       latencyMs: performance.now() - startPerf,
       raw: lastResponse?.raw ?? null,
     };
@@ -638,6 +642,8 @@ export class AgentLoop {
       toolCalls: lastResponse?.toolCalls ?? [],
       thinking: lastResponse?.thinking ?? null,
       media: [],
+      ...(lastResponse?.files ? { files: lastResponse.files } : {}),
+      ...(lastResponse?.moderation ? { moderation: lastResponse.moderation } : {}),
       latencyMs: performance.now() - startPerf,
       raw: null,
     };

@@ -106,7 +106,7 @@ interface CompletionResponse {
   toolCalls: ToolCallPart[];
   thinking: string | null;
   media: MediaOutputPart[];          // generated media (image/audio/video)
-  files?: FileOutput[];              // hosted-tool file outputs (e.g. code execution): {id?,name?,mimeType?,data?,source?}
+  files?: FileOutput[];              // hosted-tool file outputs (e.g. code execution): {id?,name?,mimeType?,data?,url?,source?}
   moderation?: ModerationReport;     // inline-moderation outcome when the `moderation` option was used: {input?,output?,source}
   latencyMs: number;
   raw: unknown;                     // provider's raw HTTP response body
@@ -311,9 +311,11 @@ In-browser: adds `anthropic-dangerous-direct-browser-access: true` header
 - `moderation` (unless `mode:'emulate'`) → native `moderation = { model }`; results
   read back into `response.moderation` by `parseResponse` / `parseStreamEvent`.
 
-**`parseResponse`**: iterates `output[]` items; `type: 'message'` → text content;
-`type: 'reasoning'` → extracts summary text as `thinking`; `type: 'function_call'`
-→ `ToolCallPart`; `type: 'image_generation_call'` → `ImageOutputPart`.
+**`parseResponse`**: iterates `output[]` items; `type: 'message'` → text content
+(and `container_file_citation` annotations → `response.files`); `type: 'reasoning'`
+→ summary text as `thinking`; `type: 'function_call'` → `ToolCallPart`;
+`type: 'image_generation_call'` → `ImageOutputPart`; `type: 'code_interpreter_call'`
+→ image outputs (by URL) into `response.files` (`source: 'code_execution'`).
 
 **`parseStreamEvent`** dispatches on SSE event types prefixed `response.`:
 - `response.output_text.delta` → `{ type: 'text' }`
@@ -340,6 +342,8 @@ Tools → `tools[].functionDeclarations[]`. Service tier both directions (see
 `google/tiers.ts`): a requested `serviceTier` (`flex|standard|priority`) maps to the
 top-level request field, and the billed `usageMetadata.serviceTier` is read back into
 `usage.serviceTier` / `usage.pricingTier` — parity with the Anthropic/OpenAI tier handling.
+Hosted code execution (`{ codeExecution: {} }`): when the turn used it, `inlineData`
+artifacts are surfaced on `response.files` (`source: 'code_execution'`) rather than `media`.
 
 ### xAI and OpenRouter
 

@@ -17,6 +17,7 @@ import type { NormalizedRequest } from '../../types/request';
 import {
   emptyUsage,
   type CompletionResponse,
+  type FileOutput,
   type Usage,
 } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
@@ -233,7 +234,13 @@ export class GoogleAdapter implements ProviderAdapter {
     const content: ContentPart[] = [];
     const toolCalls: ToolCallPart[] = [];
     const media: MediaOutputPart[] = [];
+    const files: FileOutput[] = [];
     let thinking: string | null = null;
+
+    // When the model ran hosted code execution, its inlineData blobs are file
+    // artifacts (e.g. a generated chart) → route them to the unified files channel
+    // rather than treating them as conversational media.
+    const hasCodeExec = parts.some((p) => p.executableCode || p.codeExecutionResult);
 
     for (const part of parts) {
       if (part.text !== undefined && !part.thought) {
@@ -242,11 +249,14 @@ export class GoogleAdapter implements ProviderAdapter {
       if (part.thought && part.text) {
         thinking = part.text as string;
       }
-      // Inline media output (image/audio/video from generateContent)
+      // Inline media output (image/audio/video from generateContent), OR a
+      // code-execution file artifact when the turn used code execution.
       if (part.inlineData) {
         const inline = part.inlineData as { mimeType: string; data: string };
         const mime = inline.mimeType;
-        if (mime.startsWith('image/')) {
+        if (hasCodeExec) {
+          files.push({ data: inline.data, mimeType: mime, source: 'code_execution' });
+        } else if (mime.startsWith('image/')) {
           const p: ImageOutputPart = {
             type: 'image_output',
             mediaId: '',
@@ -311,6 +321,7 @@ export class GoogleAdapter implements ProviderAdapter {
       toolCalls,
       thinking,
       media,
+      ...(files.length ? { files } : {}),
       latencyMs,
       raw,
     };
