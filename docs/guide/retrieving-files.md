@@ -22,7 +22,8 @@ from the download response.
 
 ## Two helpers, one descriptor
 
-Both live on every `CompleteResult` and on `LLMClient`:
+Both live on every `CompleteResult`, on `LLMClient`, and on `AgentLoop` (so an agent run can
+fetch the files it produced with the same call):
 
 ```ts
 retrieveFile(file) → { blob: Blob;                        name?; mimeType: string; size: number }
