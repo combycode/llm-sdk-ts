@@ -66,6 +66,54 @@ describe('OpenRouterAdapter (Chat Completions)', () => {
       'content-type': 'application/json',
     });
   });
+
+  it('url_citation annotations → web_search builtinToolCalls (parseResponse)', () => {
+    const a = new OpenRouterAdapter({ apiKey: 'k' });
+    const raw = {
+      id: 'r',
+      model: 'openai/gpt-x',
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: 'Canberra.',
+            annotations: [{ type: 'url_citation', url_citation: { url: 'https://x' } }],
+          },
+          finish_reason: 'stop',
+        },
+      ],
+    };
+    expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([{ tool: 'web_search' }]);
+  });
+
+  it('no annotations → no builtinToolCalls', () => {
+    const a = new OpenRouterAdapter({ apiKey: 'k' });
+    const raw = {
+      id: 'r',
+      model: 'm',
+      choices: [{ message: { role: 'assistant', content: 'hi' }, finish_reason: 'stop' }],
+    };
+    expect(a.parseResponse(raw, 0).builtinToolCalls).toBeUndefined();
+  });
+
+  it('createStreamParser emits web_search once when a delta carries url_citation', () => {
+    const a = new OpenRouterAdapter({ apiKey: 'k' });
+    const parse = a.createStreamParser();
+    const chunk = (obj: unknown) => parse({ data: JSON.stringify(obj) });
+    chunk({ choices: [{ delta: { content: 'Canberra' } }] });
+    const withCite = chunk({
+      choices: [{ delta: { annotations: [{ type: 'url_citation', url_citation: { url: 'https://x' } }] } }],
+    });
+    expect(withCite).toEqual([
+      { type: 'builtin_tool_start', tool: 'web_search' },
+      { type: 'builtin_tool_end', tool: 'web_search' },
+    ]);
+    // Only once per stream.
+    const again = chunk({
+      choices: [{ delta: { annotations: [{ type: 'url_citation', url_citation: { url: 'https://y' } }] } }],
+    });
+    expect(again).toEqual([]);
+  });
 });
 
 describe('OpenRouterResponsesAdapter', () => {

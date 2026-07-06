@@ -142,6 +142,8 @@ type StreamEvent =
   | { type: 'media_chunk'; data: string; progress?: number }
   | { type: 'media_end'; mediaId?: string }
   | { type: 'file'; file: FileOutput }         // hosted-tool output file (code-execution artifact)
+  | { type: 'builtin_tool_start'; tool: string; id?: string }  // provider-run tool began (web_search/code_interpreter)
+  | { type: 'builtin_tool_end'; tool: string; id?: string }    // provider-run tool finished
   | { type: 'moderation'; phase: 'input'|'output'; result: ModerationEntry; source: 'native'|'emulated' };
 ```
 

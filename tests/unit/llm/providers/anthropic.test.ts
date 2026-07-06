@@ -665,7 +665,21 @@ describe('AnthropicAdapter — parseStreamEvent', () => {
       }),
     };
     expect(a.parseStreamEvent(evt)).toEqual([
+      { type: 'builtin_tool_end', tool: 'code_interpreter' },
       { type: 'file', file: { id: 'file_xyz', source: 'code_execution' } },
+    ]);
+  });
+
+  it('content_block_start with server_tool_use → builtin_tool_start', () => {
+    const evt: SSEEvent = {
+      event: 'content_block_start',
+      data: JSON.stringify({
+        type: 'content_block_start',
+        content_block: { type: 'server_tool_use', id: 'srvtu_1', name: 'web_search' },
+      }),
+    };
+    expect(a.parseStreamEvent(evt)).toEqual([
+      { type: 'builtin_tool_start', tool: 'web_search', id: 'srvtu_1' },
     ]);
   });
 

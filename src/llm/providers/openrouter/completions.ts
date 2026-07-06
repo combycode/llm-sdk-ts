@@ -1,13 +1,26 @@
 /** OpenRouter provider adapter — OpenAI-compatible with extensions. */
 
+import type { SSEEvent } from '../../../network/types';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import type { NormalizedRequest } from '../../types/request';
+import type { CompletionResponse } from '../../types/response';
+import type { StreamEvent } from '../../types/stream';
 import { isFunctionTool } from '../../types/tools';
 import { OpenAIAdapter } from '../openai/completions';
 
 export interface OpenRouterAdapterConfig {
   apiKey: string;
   baseURL?: string;
+}
+
+/** OpenRouter's `:online` web search surfaces as `url_citation` annotations on the
+ *  message/delta (there is no discrete tool-call item). Their presence is the signal
+ *  that web search ran, so it maps to a unified `web_search` builtin-tool call. */
+function hasUrlCitation(annotations: unknown): boolean {
+  return (
+    Array.isArray(annotations) &&
+    annotations.some((a) => (a as Record<string, unknown>)?.type === 'url_citation')
+  );
 }
 
 export class OpenRouterAdapter extends OpenAIAdapter {
@@ -49,5 +62,38 @@ export class OpenRouterAdapter extends OpenAIAdapter {
     }
 
     return result;
+  }
+
+  override parseResponse(raw: unknown, latencyMs: number): CompletionResponse {
+    const result = super.parseResponse(raw, latencyMs);
+    const choices = (raw as Record<string, unknown>).choices as Array<Record<string, unknown>>;
+    const annotations = (choices?.[0]?.message as Record<string, unknown>)?.annotations;
+    if (hasUrlCitation(annotations)) {
+      result.builtinToolCalls = [...(result.builtinToolCalls ?? []), { tool: 'web_search' }];
+    }
+    return result;
+  }
+
+  /** Stateful — emit a single `web_search` builtin-tool pair the first time
+   *  `url_citation` annotations appear in the stream (the `:online` search signal). */
+  override createStreamParser(): (event: SSEEvent) => StreamEvent[] {
+    let webSearchEmitted = false;
+    return (event: SSEEvent): StreamEvent[] => {
+      const events = this.parseStreamEvent(event);
+      if (!webSearchEmitted) {
+        const choice = (JSON.parse(event.data).choices as Array<Record<string, unknown>>)?.[0];
+        const annotations =
+          (choice?.delta as Record<string, unknown>)?.annotations ??
+          (choice?.message as Record<string, unknown>)?.annotations;
+        if (hasUrlCitation(annotations)) {
+          webSearchEmitted = true;
+          events.push(
+            { type: 'builtin_tool_start', tool: 'web_search' },
+            { type: 'builtin_tool_end', tool: 'web_search' },
+          );
+        }
+      }
+      return events;
+    };
   }
 }

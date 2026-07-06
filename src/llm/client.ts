@@ -41,7 +41,13 @@ import type { ExecuteOptions } from './types/options';
 import type { ApiType, ProviderAdapter, ProviderName } from './types/provider';
 import type { NormalizedRequest } from './types/request';
 import { emptyUsage } from './types/response';
-import type { CompletionResponse, FileOutput, FinishReason, Usage } from './types/response';
+import type {
+  BuiltinToolCall,
+  CompletionResponse,
+  FileOutput,
+  FinishReason,
+  Usage,
+} from './types/response';
 import type { StreamEvent } from './types/stream';
 import type { LLMClientConfig } from './client-config';
 import {
@@ -503,6 +509,7 @@ export class LLMClient {
     let finishReason: FinishReason = 'stop';
     let moderationReport: ModerationReport | undefined;
     const files: FileOutput[] = [];
+    const builtinToolCalls: BuiltinToolCall[] = [];
 
     // Raw provider events (the unwrapped stream). Output-moderation wrappers and
     // the accumulation loop below both consume from here.
@@ -568,6 +575,10 @@ export class LLMClient {
           // final response so streamed `response.files` matches complete().
           files.push(event.file);
           break;
+        case 'builtin_tool_start':
+          // Durable trail of provider-run builtin tools (parity with complete()).
+          builtinToolCalls.push({ tool: event.tool, ...(event.id ? { id: event.id } : {}) });
+          break;
         case 'moderation':
           moderationReport = this.mergeModeration(
             moderationReport,
@@ -594,6 +605,7 @@ export class LLMClient {
       thinking: thinking || null,
       media: [],
       ...(files.length ? { files } : {}),
+      ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
       ...(moderationReport ? { moderation: moderationReport } : {}),
       latencyMs: performance.now() - start,
       raw: null,

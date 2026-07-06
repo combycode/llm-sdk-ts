@@ -6,6 +6,20 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-06
+
+### Added
+- **Builtin-tool activity in streams + a durable trail.** Provider-run hosted tools (web search,
+  code execution) now surface `{ type: 'builtin_tool_start' }` / `{ type: 'builtin_tool_end' }`
+  stream events as they run, and a `response.builtinToolCalls` trail (`BuiltinToolCall[]` —
+  `{ tool, id? }` with unified tool names) on both `complete()` and streamed responses (propagated
+  through `AgentLoop`). Informational only — unlike `tool_call_*` (a function call the client must
+  execute), the provider runs these itself. Normalized across providers (Anthropic `server_tool_use`
+  / `*_tool_result`, OpenAI/xAI `web_search_call` / `code_interpreter_call` output items, Google
+  `executableCode` / `codeExecutionResult` parts + `googleSearch` grounding, OpenRouter
+  `:online` `url_citation` annotations → `web_search`). Verified live on Anthropic, OpenAI,
+  Google, xAI, and OpenRouter. Exports `BuiltinToolCall`.
+
 ## [1.4.0] - 2026-07-06
 
 ### Fixed

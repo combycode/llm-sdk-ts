@@ -16,6 +16,7 @@ import { googleRequestTier, googleBilledTier } from './tiers';
 import type { NormalizedRequest } from '../../types/request';
 import {
   emptyUsage,
+  type BuiltinToolCall,
   type CompletionResponse,
   type FileOutput,
   type Usage,
@@ -35,6 +36,8 @@ export interface GoogleAdapterConfig {
  *  a code-execution marker is seen so later inline blobs route to `files`. */
 interface GoogleStreamState {
   codeExec: boolean;
+  /** web_search (grounding) builtin_tool events emitted once per stream. */
+  webSearchEmitted?: boolean;
 }
 
 export class GoogleAdapter implements ProviderAdapter {
@@ -314,6 +317,13 @@ export class GoogleAdapter implements ProviderAdapter {
       { MAX_TOKENS: 'length', SAFETY: 'content_filter' },
     );
 
+    // Provider-run builtin tools — durable trail. Google has no call ids for these:
+    // code execution is signalled by executableCode/codeExecutionResult parts, web
+    // search (googleSearch grounding) by candidate.groundingMetadata.
+    const builtinToolCalls: BuiltinToolCall[] = [];
+    if (hasCodeExec) builtinToolCalls.push({ tool: 'code_interpreter' });
+    if (candidate.groundingMetadata) builtinToolCalls.push({ tool: 'web_search' });
+
     return {
       id: crypto.randomUUID(), // Google doesn't return a response ID in generateContent
       model: '',
@@ -328,6 +338,7 @@ export class GoogleAdapter implements ProviderAdapter {
       thinking,
       media,
       ...(files.length ? { files } : {}),
+      ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
       latencyMs,
       raw,
     };
@@ -376,6 +387,9 @@ export class GoogleAdapter implements ProviderAdapter {
       if (part.text !== undefined && !part.thought)
         events.push({ type: 'text', text: part.text as string });
       if (part.thought && part.text) events.push({ type: 'thinking', text: part.text as string });
+      // Code-execution builtin: the code to run, then its result.
+      if (part.executableCode) events.push({ type: 'builtin_tool_start', tool: 'code_interpreter' });
+      if (part.codeExecutionResult) events.push({ type: 'builtin_tool_end', tool: 'code_interpreter' });
       if (part.inlineData) {
         const inline = part.inlineData as { mimeType: string; data: string };
         const mime = inline.mimeType;
@@ -410,6 +424,14 @@ export class GoogleAdapter implements ProviderAdapter {
           events.push({ type: 'tool_call_delta', id: '', arguments: JSON.stringify(fc.args) });
         events.push({ type: 'tool_call_end', id: '' });
       }
+    }
+
+    // Web search (googleSearch grounding) has no per-call stream markers — surface
+    // one start/end pair the first time grounding metadata appears in the stream.
+    if (candidate.groundingMetadata && !state.webSearchEmitted) {
+      state.webSearchEmitted = true;
+      events.push({ type: 'builtin_tool_start', tool: 'web_search' });
+      events.push({ type: 'builtin_tool_end', tool: 'web_search' });
     }
 
     const fr = candidate.finishReason as string | undefined;

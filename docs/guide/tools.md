@@ -144,6 +144,13 @@ Which models support which builtin is in the catalog: `capabilities.builtinTools
 `catalog.supportsBuiltinTool(provider, model, tool)`, or `select('code_interpreter')`. Coverage:
 `web_search` on all providers; `code_interpreter` on all except OpenRouter.
 
+**Seeing what ran.** Provider-run builtins surface a durable trail on
+`response.builtinToolCalls` (`{ tool, id? }[]` — the unified tool names) and, while streaming,
+`{ type: 'builtin_tool_start' }` / `{ type: 'builtin_tool_end' }` events as each runs. These are
+**informational** — unlike `tool_call_*` (a function call the client must execute), the provider
+runs these itself, so there's nothing to run or return. Use them to show a "🔎 Searching… /
+⚙️ Running code…" indicator.
+
 ### Hosted MCP tool (`{ type: 'mcp' }`)
 
 OpenAI's hosted MCP tool lets the model call a remote MCP server that **OpenAI**

@@ -23,6 +23,11 @@ export interface CompletionResponse {
    *  provider's files API; some providers return `data` inline. Absent when none. */
   files?: FileOutput[];
 
+  /** Hosted (provider-run) builtin tools the model invoked this turn — e.g. a web
+   *  search or code-execution run. A durable trail of what was called (the provider
+   *  ran them server-side; nothing for the client to execute). Absent when none. */
+  builtinToolCalls?: BuiltinToolCall[];
+
   /** Inline-moderation outcome, when the `moderation` request option was used.
    *  Report-only: present for observability; it never blocks the call. Absent when
    *  moderation was not requested. */
@@ -55,6 +60,15 @@ export interface FileOutput {
    *  file is fetched by `id` (e.g. OpenAI container files set `{ containerId }`).
    *  Absent for providers that don't need extra context. */
   ref?: Record<string, unknown>;
+}
+
+/** A hosted builtin tool the model invoked (provider-run). */
+export interface BuiltinToolCall {
+  /** Unified tool name: `'web_search'` | `'code_interpreter'` | … (normalized from
+   *  each provider's native name — e.g. Anthropic `code_execution`). */
+  tool: string;
+  /** Provider call id, when available (correlates the stream start/end events). */
+  id?: string;
 }
 
 export type FinishReason = 'stop' | 'tool_use' | 'length' | 'content_filter' | 'error';

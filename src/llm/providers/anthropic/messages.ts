@@ -12,10 +12,12 @@ import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider'
 import type { NormalizedRequest } from '../../types/request';
 import {
   emptyUsage,
+  type BuiltinToolCall,
   type CompletionResponse,
   type FileOutput,
   type Usage,
 } from '../../types/response';
+import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
 import { ensureAdditionalProperties } from '../../types/schema-utils';
 import type { ServiceTier } from '../../types/tiers';
@@ -313,6 +315,7 @@ export class AnthropicAdapter implements ProviderAdapter {
     let thinking: string | null = null;
     const toolCalls: ToolCallPart[] = [];
     const files: FileOutput[] = [];
+    const builtinToolCalls: BuiltinToolCall[] = [];
 
     for (const block of contentBlocks) {
       if (block.type === 'text') {
@@ -328,6 +331,12 @@ export class AnthropicAdapter implements ProviderAdapter {
         };
         content.push(tc);
         toolCalls.push(tc);
+      } else if (block.type === 'server_tool_use') {
+        // Provider-run builtin tool (web search / code execution) — durable trail.
+        builtinToolCalls.push({
+          tool: unifiedBuiltinTool(block.name as string),
+          ...(typeof block.id === 'string' ? { id: block.id } : {}),
+        });
       } else {
         // Hosted code-execution output files (fetch bytes by file_id via the Files API).
         files.push(...filesFromCodeExecBlock(block));
@@ -351,6 +360,7 @@ export class AnthropicAdapter implements ProviderAdapter {
       toolCalls,
       media: [],
       ...(files.length ? { files } : {}),
+      ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
       thinking,
       latencyMs,
       raw,
@@ -377,10 +387,27 @@ export class AnthropicAdapter implements ProviderAdapter {
       if (block.type === 'tool_use') {
         return [{ type: 'tool_call_start', id: block.id as string, name: block.name as string }];
       }
+      const events: StreamEvent[] = [];
+      const blockType = block.type as string;
+      // Provider-run builtin tool: `server_tool_use` is the call, `*_tool_result`
+      // its completion (which also carries any code-execution output files).
+      if (blockType === 'server_tool_use') {
+        events.push({
+          type: 'builtin_tool_start',
+          tool: unifiedBuiltinTool(block.name as string),
+          ...(typeof block.id === 'string' ? { id: block.id } : {}),
+        });
+      } else if (blockType?.endsWith('_tool_result')) {
+        events.push({
+          type: 'builtin_tool_end',
+          tool: unifiedBuiltinTool(blockType),
+          ...(typeof block.tool_use_id === 'string' ? { id: block.tool_use_id } : {}),
+        });
+      }
       // Server-computed code-execution result blocks arrive complete in
       // content_block_start (not token-streamed) — surface their output files.
-      const files = filesFromCodeExecBlock(block);
-      if (files.length) return files.map((file) => ({ type: 'file', file }));
+      for (const file of filesFromCodeExecBlock(block)) events.push({ type: 'file', file });
+      return events;
     }
 
     if (type === 'content_block_stop') {

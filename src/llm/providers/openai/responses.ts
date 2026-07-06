@@ -16,10 +16,12 @@ import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider'
 import type { NormalizedRequest } from '../../types/request';
 import {
   emptyUsage,
+  type BuiltinToolCall,
   type CompletionResponse,
   type FileOutput,
   type Usage,
 } from '../../types/response';
+import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import { ensureAdditionalProperties } from '../../types/schema-utils';
 import type { StreamEvent } from '../../types/stream';
 import { isFunctionTool } from '../../types/tools';
@@ -38,6 +40,18 @@ function filenameForMime(mimeType: string): string {
   if (mimeType === 'text/plain') return 'file.txt';
   if (mimeType.startsWith('image/')) return `file.${mimeType.slice('image/'.length)}`;
   return 'file.bin';
+}
+
+/** Hosted builtin-tool output items (provider-run) → a unified `BuiltinToolCall`,
+ *  or null for non-builtin items. Shared by the buffered and streamed paths. */
+const RESPONSES_BUILTIN_ITEMS = new Set(['web_search_call', 'code_interpreter_call']);
+function builtinCallFromResponsesItem(item: Record<string, unknown>): BuiltinToolCall | null {
+  const type = item.type as string;
+  if (!RESPONSES_BUILTIN_ITEMS.has(type)) return null;
+  return {
+    tool: unifiedBuiltinTool(type),
+    ...(typeof item.id === 'string' ? { id: item.id } : {}),
+  };
 }
 
 /** Extract hosted code-execution output files from one Responses output item.
@@ -296,6 +310,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     const toolCalls: ToolCallPart[] = [];
     const media: MediaOutputPart[] = [];
     const files: FileOutput[] = [];
+    const builtinToolCalls: BuiltinToolCall[] = [];
     let thinking: string | null = null;
     let text = '';
 
@@ -305,6 +320,10 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       // Hosted code-execution output files (container-file annotations on a
       // message, or code-interpreter image URLs) — shared with the stream path.
       files.push(...this.filesFromOutputItem(item));
+
+      // Hosted builtin-tool calls (web search / code interpreter) — durable trail.
+      const builtinCall = builtinCallFromResponsesItem(item);
+      if (builtinCall) builtinToolCalls.push(builtinCall);
 
       if (type === 'message') {
         const itemContent = (item.content as Array<Record<string, unknown>>) ?? [];
@@ -386,6 +405,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       thinking,
       media,
       ...(files.length ? { files } : {}),
+      ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
       ...(moderation ? { moderation } : {}),
       latencyMs,
       raw,
@@ -421,6 +441,10 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       if (item?.type === 'image_generation_call') {
         events.push({ type: 'media_start', mediaType: 'image', mimeType: 'image/png' });
       }
+      const builtin = builtinCallFromResponsesItem(item ?? {});
+      if (builtin) {
+        events.push({ type: 'builtin_tool_start', tool: builtin.tool, ...(builtin.id ? { id: builtin.id } : {}) });
+      }
     }
 
     // Partial image streaming (OpenAI image_generation tool with partial_images > 0)
@@ -437,6 +461,10 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       // Code-execution output files finalize with their output item — same
       // extraction as the buffered path, emitted as they complete.
       for (const file of this.filesFromOutputItem(item)) events.push({ type: 'file', file });
+      const builtin = builtinCallFromResponsesItem(item ?? {});
+      if (builtin) {
+        events.push({ type: 'builtin_tool_end', tool: builtin.tool, ...(builtin.id ? { id: builtin.id } : {}) });
+      }
       if (item?.type === 'function_call') {
         events.push({ type: 'tool_call_end', id: (item.call_id as string) ?? '' });
       }

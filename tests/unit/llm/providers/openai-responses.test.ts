@@ -632,6 +632,19 @@ describe('OpenAIResponsesAdapter — parseStreamEvent', () => {
     };
     expect(a.parseStreamEvent(evt)).toEqual([
       { type: 'file', file: { url: 'https://api.openai.com/x.png', source: 'code_execution' } },
+      { type: 'builtin_tool_end', tool: 'code_interpreter' },
+    ]);
+  });
+
+  it('output_item.added web_search_call → builtin_tool_start', () => {
+    const evt: SSEEvent = {
+      data: JSON.stringify({
+        type: 'response.output_item.added',
+        item: { type: 'web_search_call', id: 'ws_1' },
+      }),
+    };
+    expect(a.parseStreamEvent(evt)).toEqual([
+      { type: 'builtin_tool_start', tool: 'web_search', id: 'ws_1' },
     ]);
   });
 });

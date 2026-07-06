@@ -140,6 +140,33 @@ describe('LLMClient.stream — onCompletion', () => {
     ]);
   });
 
+  it('accumulates builtin_tool_start events onto response.builtinToolCalls', async () => {
+    const hooks = new HookBus();
+    const completions: Array<{ response: CompletionResponse }> = [];
+    hooks.on('onCompletion', (c) => {
+      completions.push(c as never);
+    });
+
+    const client = makeClient(
+      hooks,
+      streamOf([
+        { type: 'builtin_tool_start', tool: 'web_search', id: 'ws_1' },
+        { type: 'builtin_tool_end', tool: 'web_search', id: 'ws_1' },
+        { type: 'text', text: 'answer' },
+        { type: 'builtin_tool_start', tool: 'code_interpreter' },
+        { type: 'builtin_tool_end', tool: 'code_interpreter' },
+        { type: 'done', finishReason: 'stop' },
+      ]),
+    );
+    for await (const _ of client.stream('go')) {
+      // drain
+    }
+    expect(completions[0].response.builtinToolCalls).toEqual([
+      { tool: 'web_search', id: 'ws_1' },
+      { tool: 'code_interpreter' },
+    ]);
+  });
+
   it('omits response.files when no file events were streamed', async () => {
     const hooks = new HookBus();
     const completions: Array<{ response: CompletionResponse }> = [];
