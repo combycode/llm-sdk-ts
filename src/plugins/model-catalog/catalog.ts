@@ -5,6 +5,8 @@ import googleCatalog from '../../llm/providers/google/catalog.json';
 import openaiCatalog from '../../llm/providers/openai/catalog.json';
 import openrouterCatalog from '../../llm/providers/openrouter/catalog.json';
 import xaiCatalog from '../../llm/providers/xai/catalog.json';
+import { PROVIDER_BUILTIN_TOOLS } from '../../llm/providers/builtin-tools';
+import type { ProviderName } from '../../llm/types/provider';
 
 const PROVIDER_DEFAULT_CATALOGS: Record<string, unknown>[] = [
   anthropicCatalog as Record<string, unknown>,
@@ -178,6 +180,17 @@ const DEFAULT_REASONING: ModelReasoning = {
   summaryAvailable: false,
 };
 
+/** Populate `builtinTools` from the adapter-sourced provider map. Applied only to
+ *  tool-capable (chat-family) models — embeddings/tts/image/stt models (`toolUse:
+ *  false`) get none. An explicit `builtinTools` on the entry always wins. */
+function withBuiltinTools(provider: string, caps: ModelCapabilities): ModelCapabilities {
+  if (caps.builtinTools !== undefined) return caps;
+  if (!caps.toolUse) return caps;
+  const tools = PROVIDER_BUILTIN_TOOLS[provider as ProviderName];
+  if (!tools || tools.length === 0) return caps;
+  return { ...caps, builtinTools: [...tools] };
+}
+
 export class ModelCatalog {
   private models = new Map<string, ModelInfo>();
   /** `provider/alias` → `provider/canonical-slug`. Lets get()/resolveModelId
@@ -202,7 +215,7 @@ export class ModelCatalog {
       supportedApis: info.supportedApis ?? [info.preferredApi ?? 'completions'],
       contextWindow: info.contextWindow,
       maxOutput: info.maxOutput,
-      capabilities: { ...DEFAULT_CAPABILITIES, ...info.capabilities },
+      capabilities: withBuiltinTools(provider, { ...DEFAULT_CAPABILITIES, ...info.capabilities }),
       reasoning: { ...DEFAULT_REASONING, ...info.reasoning },
       mediaOnly: info.mediaOnly,
       tokenizer: info.tokenizer,
@@ -262,6 +275,17 @@ export class ModelCatalog {
 
   supportsTools(provider: string, model: string): boolean {
     return this.get(provider, model)?.capabilities.toolUse ?? false;
+  }
+
+  /** Hosted server-side builtin tools this model supports (e.g. `['web_search',
+   *  'code_interpreter']`). Empty when unknown or the model isn't tool-capable. */
+  builtinToolsFor(provider: string, model: string): string[] {
+    return [...(this.get(provider, model)?.capabilities.builtinTools ?? [])];
+  }
+
+  /** Whether this model supports a specific hosted builtin tool. */
+  supportsBuiltinTool(provider: string, model: string, tool: string): boolean {
+    return this.get(provider, model)?.capabilities.builtinTools?.includes(tool) ?? false;
   }
 
   supportsPreviousResponseId(provider: string, model: string): boolean {

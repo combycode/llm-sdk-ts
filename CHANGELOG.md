@@ -16,6 +16,18 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   overridable method so Responses-compatible providers can extend file extraction.
 
 ### Added
+- **Adapter-sourced builtin-tool capabilities in the catalog.** Every tool-capable (chat-family)
+  model now carries `capabilities.builtinTools` — `['web_search', 'code_interpreter']` for
+  anthropic/openai/google/xai, `['web_search']` for openrouter (it doesn't route hosted code
+  execution) — injected at catalog load from a single provider map (`PROVIDER_BUILTIN_TOOLS`) that
+  mirrors what the adapters actually support. New `catalog.builtinToolsFor()` /
+  `supportsBuiltinTool()` accessors and `select('web_search')` / `select('code_interpreter')`
+  queries (`search` stays an alias for `web_search`). Non-tool models (embeddings/tts/image) get
+  none. A reliable per-model source can refine this later.
+
+## [1.3.0] - 2026-07-06
+
+### Added
 - **Streaming file parity.** `stream()` now surfaces hosted code-execution output files with the
   same coverage as `complete()`: a new `{ type: 'file', file }` `StreamEvent` is emitted as each
   file finalizes mid-stream, and the files are collected onto the streamed final response's

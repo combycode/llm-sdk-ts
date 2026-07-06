@@ -45,15 +45,22 @@ const DEFAULT_TAGS: Record<string, string> = {
 };
 
 const CAP_KEYS: Record<string, string> = {
-  search: 'webSearch',
   vision: 'vision',
   tools: 'toolUse',
   audio: 'audio',
   structured: 'structuredOutput',
 };
+/** Query tokens that check `capabilities.builtinTools` membership (hosted server
+ *  tools). `search` is kept as an alias for `web_search`. */
+const BUILTIN_TOOL_KEYS: Record<string, string> = {
+  search: 'web_search',
+  web_search: 'web_search',
+  code_interpreter: 'code_interpreter',
+};
 const KNOWN_KEYS = new Set([
   'price', 'context', 'reasoning', 'type', 'tier', 'status', 'provider', 'active',
   ...Object.keys(CAP_KEYS),
+  ...Object.keys(BUILTIN_TOOL_KEYS),
 ]);
 
 function parseNum(v: string): number {
@@ -130,6 +137,16 @@ function matches(m: ModelInfo, c: Crit, th: typeof DEFAULT_THRESHOLDS, tier?: st
     case 'active':
       return isNo(c.value) ? m.active === false : m.active !== false;
     default: {
+      const tool = BUILTIN_TOOL_KEYS[c.key];
+      if (tool) {
+        // builtinTools membership, with legacy `webSearch` boolean as a fallback.
+        const inList = m.capabilities.builtinTools?.includes(tool) ?? false;
+        const legacy =
+          tool === 'web_search' &&
+          !!(m.capabilities as unknown as Record<string, unknown>).webSearch;
+        const has = inList || legacy;
+        return isNo(c.value) ? !has : has;
+      }
       const cap = CAP_KEYS[c.key];
       const has = !!(m.capabilities as unknown as Record<string, unknown>)[cap];
       return isNo(c.value) ? !has : has;

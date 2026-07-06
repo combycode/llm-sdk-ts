@@ -81,4 +81,32 @@ describe('select()', () => {
       expect(m.active).not.toBe(false);
     }
   });
+
+  it('web_search filter returns only models with the builtin', () => {
+    const eng = engineWith(allKeys);
+    const hits = selectModels('web_search', { engine: eng });
+    expect(hits.length).toBeGreaterThan(0);
+    for (const m of hits) expect(m.capabilities.builtinTools).toContain('web_search');
+  });
+
+  it('code_interpreter filter returns only models with the builtin', () => {
+    const eng = engineWith(allKeys);
+    const hits = selectModels('code_interpreter', { engine: eng });
+    expect(hits.length).toBeGreaterThan(0);
+    for (const m of hits) expect(m.capabilities.builtinTools).toContain('code_interpreter');
+  });
+
+  it('code_interpreter excludes openrouter (not routed there)', () => {
+    const eng = engineWith({ ...allKeys, openrouter: 'k' });
+    for (const m of selectModels('code_interpreter', { engine: eng })) {
+      expect(m.provider).not.toBe('openrouter');
+    }
+  });
+
+  it('search is an alias for web_search', () => {
+    const eng = engineWith(allKeys);
+    for (const m of selectModels('search', { engine: eng })) {
+      expect(m.capabilities.builtinTools).toContain('web_search');
+    }
+  });
 });
