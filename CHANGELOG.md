@@ -6,6 +6,14 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-07-06
+
+### Fixed
+- **Anthropic file retrieval from the browser** was blocked by CORS. `retrieveFile` /
+  `streamFile` now send Anthropic's `anthropic-dangerous-direct-browser-access: true` header
+  when running in a browser (matching the completion adapter), so hosted code-execution files
+  download directly. No effect on Node/Bun.
+
 ## [1.5.0] - 2026-07-06
 
 ### Added

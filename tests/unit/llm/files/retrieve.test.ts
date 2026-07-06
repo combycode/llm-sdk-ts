@@ -66,6 +66,21 @@ describe('retrieveFile', () => {
     expect(r.headers['anthropic-beta']).toBe('files-api-2025-04-14');
     expect(r.headers['x-api-key']).toBe('sk-test');
     expect(r.responseType).toBe('arraybuffer');
+    // On Node/Bun the browser CORS opt-in header is omitted.
+    expect(r.headers['anthropic-dangerous-direct-browser-access']).toBeUndefined();
+  });
+
+  it('anthropic in a browser adds the CORS opt-in header (else the download is blocked)', async () => {
+    const rec = recordingFetch(new Uint8Array([9]).buffer, { 'content-type': 'image/png' });
+    const g = globalThis as unknown as { window?: unknown };
+    const prev = g.window;
+    g.window = { document: {} }; // make isBrowser() true
+    try {
+      await retrieveFile({ id: 'file_abc' }, ctx({ provider: 'anthropic', fetch: rec.fetch }));
+      expect(rec.last().headers['anthropic-dangerous-direct-browser-access']).toBe('true');
+    } finally {
+      g.window = prev;
+    }
   });
 
   it('openai container file → /v1/containers/{cid}/files/{id}/content with Bearer', async () => {

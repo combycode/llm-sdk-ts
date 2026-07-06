@@ -8,6 +8,7 @@
  *
  *  All HTTP flows through the injected `EngineFetch` (auth, queue, cost, traces). */
 
+import { isBrowser } from '../../runtime/runtime';
 import { base64ToBytes } from '../../util/base64';
 import type { EngineFetch } from '../../network/types';
 import type { ProviderName } from '../types/provider';
@@ -68,6 +69,10 @@ function contentRequest(
         'anthropic-version': '2023-06-01',
         'anthropic-beta': 'files-api-2025-04-14',
         accept: 'application/binary',
+        // Enable CORS for direct browser requests (same header the completion
+        // adapter sets); harmless on Node/Bun. Without it the browser blocks the
+        // file download by CORS.
+        ...(isBrowser() ? { 'anthropic-dangerous-direct-browser-access': 'true' } : {}),
       },
     };
   }
@@ -93,7 +98,11 @@ function providerAuth(ctx: RetrieveContext, url: string): Record<string, string>
   const base = ctx.baseURL ?? DEFAULT_BASE[ctx.provider];
   if (!url.startsWith(base)) return {};
   if (ctx.provider === 'anthropic') {
-    return { 'x-api-key': ctx.apiKey, 'anthropic-version': '2023-06-01' };
+    return {
+      'x-api-key': ctx.apiKey,
+      'anthropic-version': '2023-06-01',
+      ...(isBrowser() ? { 'anthropic-dangerous-direct-browser-access': 'true' } : {}),
+    };
   }
   if (ctx.provider === 'google') return { 'x-goog-api-key': ctx.apiKey };
   return { authorization: `Bearer ${ctx.apiKey}` };
