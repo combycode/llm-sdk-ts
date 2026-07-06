@@ -304,7 +304,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
 
       // Hosted code-execution output files (container-file annotations on a
       // message, or code-interpreter image URLs) — shared with the stream path.
-      files.push(...filesFromResponsesOutputItem(item));
+      files.push(...this.filesFromOutputItem(item));
 
       if (type === 'message') {
         const itemContent = (item.content as Array<Record<string, unknown>>) ?? [];
@@ -436,7 +436,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       const item = data.item as Record<string, unknown>;
       // Code-execution output files finalize with their output item — same
       // extraction as the buffered path, emitted as they complete.
-      for (const file of filesFromResponsesOutputItem(item)) events.push({ type: 'file', file });
+      for (const file of this.filesFromOutputItem(item)) events.push({ type: 'file', file });
       if (item?.type === 'function_call') {
         events.push({ type: 'tool_call_end', id: (item.call_id as string) ?? '' });
       }
@@ -479,6 +479,13 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
    *  single response.output_item.done event. */
   createStreamParser(): (event: SSEEvent) => StreamEvent[] {
     return (event) => this.parseStreamEvent(event);
+  }
+
+  /** Hosted code-execution output files from one output item. Overridable so
+   *  Responses-compatible providers with a different file shape (e.g. xAI, which
+   *  embeds files in the code-interpreter `logs` payload) can extend it. */
+  protected filesFromOutputItem(item: Record<string, unknown>): FileOutput[] {
+    return filesFromResponsesOutputItem(item);
   }
 
   protected parseUsage(u: Record<string, unknown> | undefined): Usage {

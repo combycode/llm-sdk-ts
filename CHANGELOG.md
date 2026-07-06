@@ -6,7 +6,14 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
-## [1.3.0] - 2026-07-06
+### Fixed
+- **xAI hosted code-execution files** now surface on `response.files` (parity with the other
+  providers). xAI returns code-interpreter output files inline inside the `code_interpreter_call`
+  `logs` JSON (`output_files:[{file_name, mime_type, data:[…bytes]}]`) and only when the request
+  asks for them — so `XAIResponsesAdapter` now sends `include:['code_interpreter_call.outputs']`
+  when `code_interpreter` is used and extracts the inline bytes into `FileOutput`. Verified live on
+  `complete()` and `stream()`. `OpenAIResponsesAdapter.filesFromOutputItem` is now a `protected`
+  overridable method so Responses-compatible providers can extend file extraction.
 
 ### Added
 - **Streaming file parity.** `stream()` now surfaces hosted code-execution output files with the

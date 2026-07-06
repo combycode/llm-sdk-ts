@@ -129,4 +129,49 @@ describe('XAIResponsesAdapter', () => {
       { url: 'https://x/i.png', source: 'code_execution' },
     ]);
   });
+
+  it('requests include:code_interpreter_call.outputs when code_interpreter is used', () => {
+    const a = new XAIResponsesAdapter({ apiKey: 'k' });
+    const r = a.buildRequest({ ...baseReq, tools: [{ type: 'code_interpreter' }] });
+    expect(r.body.include).toEqual(['code_interpreter_call.outputs']);
+  });
+
+  it('does NOT add include when no code_interpreter tool', () => {
+    const a = new XAIResponsesAdapter({ apiKey: 'k' });
+    const r = a.buildRequest({ ...baseReq, tools: [{ type: 'web_search' }] });
+    expect(r.body.include).toBeUndefined();
+  });
+
+  it('extracts inline code-execution files from the logs JSON envelope', () => {
+    const a = new XAIResponsesAdapter({ apiKey: 'k' });
+    const logs = JSON.stringify({
+      stdout: 'Plot saved\n',
+      exit_code: 0,
+      output_files: [
+        { file_name: 'plot.png', mime_type: 'image/png', size: 4, data: [1, 2, 3, 4] },
+      ],
+    });
+    const raw = {
+      id: 'r',
+      model: 'm',
+      output: [{ type: 'code_interpreter_call', outputs: [{ type: 'logs', logs }] }],
+    };
+    const files = a.parseResponse(raw, 0).files;
+    expect(files).toHaveLength(1);
+    expect(files?.[0].name).toBe('plot.png');
+    expect(files?.[0].mimeType).toBe('image/png');
+    expect(files?.[0].source).toBe('code_execution');
+    // Inline bytes → base64 → FileOutput.data (retrieved via the inline path).
+    expect(typeof files?.[0].data).toBe('string');
+  });
+
+  it('ignores plain-text logs that are not the JSON envelope', () => {
+    const a = new XAIResponsesAdapter({ apiKey: 'k' });
+    const raw = {
+      id: 'r',
+      model: 'm',
+      output: [{ type: 'code_interpreter_call', outputs: [{ type: 'logs', logs: 'hello stdout' }] }],
+    };
+    expect(a.parseResponse(raw, 0).files).toBeUndefined();
+  });
 });
