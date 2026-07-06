@@ -84,6 +84,7 @@ fetch per-provider, though — the helpers below resolve every shape:
 | **Anthropic** | `{ id, source }` | Uniform — `retrieveFile(file)` / `streamFile(file)` (see below). |
 | **OpenAI** | `{ url, source }` (code-interpreter images) or `{ id, name, ref, source }` (container files) | Uniform — `retrieveFile(file)` / `streamFile(file)` (see below). |
 | **Google** | `{ data, mimeType, source }` | Uniform — `retrieveFile(file)` / `streamFile(file)` (see below). |
+| **xAI** | `{ data, name, mimeType, source }` (inline bytes from the code-interpreter logs) | Uniform — `retrieveFile(file)` / `streamFile(file)` (see below). |
 
 ## Read the bytes — `retrieveFile` / `streamFile`
 
@@ -144,8 +145,10 @@ code-execution artifact into a `file` event (kept distinct from conversational `
 - **Agent runs carry files through too.** `response.files` propagates through `AgentLoop` /
   `createAgent`, so a code-execution step inside an agent run still surfaces its files on the
   final response.
-- **Not all providers have it.** OpenAI, Anthropic, and Google support hosted code execution;
-  xAI (via the OpenAI Responses shape) and OpenRouter do not expose a code-execution tool.
+- **Not all providers have it.** OpenAI, Anthropic, Google, and xAI support hosted code execution
+  (xAI returns its output files inline in the code-interpreter logs — the SDK handles that for you).
+  OpenRouter does not route hosted code execution, so `code_interpreter` is unavailable there
+  (web search still works, via its `:online` routing).
 
 ## Next steps
 

@@ -6,6 +6,8 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-06
+
 ### Fixed
 - **xAI hosted code-execution files** now surface on `response.files` (parity with the other
   providers). xAI returns code-interpreter output files inline inside the `code_interpreter_call`

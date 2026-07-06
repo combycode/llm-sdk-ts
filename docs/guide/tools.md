@@ -134,11 +134,15 @@ Server-side tools the provider runs are passed as plain objects in `tools: [...]
 Provider-specific configuration goes in `params`, forwarded verbatim.
 
 Files a hosted tool produces (e.g. code-execution charts or data files) are surfaced
-uniformly on `response.files` (`FileOutput[]` — `{ id?, name?, mimeType?, data?, url?, source? }`),
-independent of generated `media`. How the bytes arrive differs by provider: fetch by `id` via the
-provider's files API (Anthropic, OpenAI container files), read inline base64 `data` (Google), or
-fetch the `url` (OpenAI code-interpreter images). See the
-[Code execution guide](./code-execution.md).
+uniformly on `response.files` (`FileOutput[]` — `{ id?, name?, mimeType?, data?, url?, ref?, source? }`),
+independent of generated `media`. You don't fetch per-provider — `retrieveFile(file)` /
+`streamFile(file)` resolve every shape (id via the provider's files API, inline base64 `data` from
+Google/xAI, or a `url`). See the [Code execution guide](./code-execution.md) and
+[Retrieving output files](./retrieving-files.md).
+
+Which models support which builtin is in the catalog: `capabilities.builtinTools`,
+`catalog.supportsBuiltinTool(provider, model, tool)`, or `select('code_interpreter')`. Coverage:
+`web_search` on all providers; `code_interpreter` on all except OpenRouter.
 
 ### Hosted MCP tool (`{ type: 'mcp' }`)
 

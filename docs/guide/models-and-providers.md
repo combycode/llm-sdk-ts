@@ -251,6 +251,7 @@ Query syntax: a semicolon-separated string or string array. Each clause is one o
 | Clause | Meaning |
 |---|---|
 | `vision`, `tools`, `audio`, `structured` | Capability flag must be true. |
+| `web_search`, `code_interpreter` | Model supports that hosted builtin tool (checks `capabilities.builtinTools`). `search` is an alias for `web_search`. |
 | `reasoning` | Model has a reasoning mode. |
 | `type:chat` | `model.type === 'chat'`. |
 | `status:stable` | `model.status === 'stable'`. |
@@ -261,7 +262,11 @@ Query syntax: a semicolon-separated string or string array. Each clause is one o
 | `tier:flex` | Model has a `flex` pricing tier (also `priority`, etc.). |
 | `provider:anthropic` | Restrict to one provider (same as `opts.provider`). |
 
-To filter for web-search models use `type:search` or inspect `capabilities.builtinTools` on the returned `ModelInfo` object -- there is no `search` DSL clause because `webSearch` is not a standard `ModelCapabilities` field.
+Filter for hosted-tool support directly: `select('web_search')` or `select('code_interpreter')`
+match against `capabilities.builtinTools` (populated for every tool-capable model — `web_search`
+on all providers, `code_interpreter` on all except OpenRouter). `catalog.builtinToolsFor(provider,
+model)` and `catalog.supportsBuiltinTool(provider, model, tool)` expose the same data
+programmatically.
 
 Ranking: cheapest input price first; tiebreak: newest version.
 
