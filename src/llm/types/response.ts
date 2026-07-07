@@ -62,13 +62,23 @@ export interface FileOutput {
   ref?: Record<string, unknown>;
 }
 
-/** A hosted builtin tool the model invoked (provider-run). */
+/** A hosted builtin tool the model invoked (provider-run), with its inputs/outputs. */
 export interface BuiltinToolCall {
   /** Unified tool name: `'web_search'` | `'code_interpreter'` | … (normalized from
    *  each provider's native name — e.g. Anthropic `code_execution`). */
   tool: string;
   /** Provider call id, when available (correlates the stream start/end events). */
   id?: string;
+  /** `code_interpreter`: the code the model executed. */
+  code?: string;
+  /** `code_interpreter`: the code's textual output (stdout / logs). */
+  output?: string;
+  /** `web_search`: the query the model searched for (the first, if it issued several).
+   *  Absent for page-open/read steps — see `url`. */
+  query?: string;
+  /** `web_search`: the URL the model opened/read (OpenAI/xAI `open_page`/`find`
+   *  actions, which carry a URL instead of a query). Absent for plain searches. */
+  url?: string;
 }
 
 export type FinishReason = 'stop' | 'tool_use' | 'length' | 'content_filter' | 'error';

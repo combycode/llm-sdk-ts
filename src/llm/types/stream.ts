@@ -29,8 +29,10 @@ export type StreamEvent =
    *  itself, so there is nothing to execute or return. Also collected onto the
    *  streamed final response's `builtinToolCalls`. */
   | { type: 'builtin_tool_start'; tool: string; id?: string }
-  /** A hosted builtin tool finished executing server-side. */
-  | { type: 'builtin_tool_end'; tool: string; id?: string }
+  /** A hosted builtin tool finished executing server-side. Carries its inputs/outputs
+   *  (`code` + `output` for code execution, `query` for web search) — the same payload
+   *  the client collects onto `response.builtinToolCalls`. */
+  | { type: 'builtin_tool_end'; tool: string; id?: string; code?: string; output?: string; query?: string; url?: string }
   /** A moderation result for the input or output. `source` distinguishes a
    *  provider-native result from a client-emulated one. Emitted by the moderation
    *  option (report-only). */

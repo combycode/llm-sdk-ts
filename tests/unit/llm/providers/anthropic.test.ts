@@ -553,6 +553,42 @@ describe('AnthropicAdapter — parseResponse', () => {
     ]);
   });
 
+  it('builtinToolCalls carry code + output (server_tool_use input + result stdout)', () => {
+    const raw = {
+      id: 'm',
+      model: 'm',
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 1, output_tokens: 1 },
+      content: [
+        { type: 'server_tool_use', id: 'srv_1', name: 'code_execution', input: { code: 'print(1+1)' } },
+        {
+          type: 'code_execution_tool_result',
+          tool_use_id: 'srv_1',
+          content: { type: 'code_execution_result', stdout: '2\n', content: [] },
+        },
+      ],
+    };
+    expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([
+      { tool: 'code_interpreter', id: 'srv_1', code: 'print(1+1)', output: '2\n' },
+    ]);
+  });
+
+  it('web_search server_tool_use → query in builtinToolCalls', () => {
+    const raw = {
+      id: 'm',
+      model: 'm',
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 1, output_tokens: 1 },
+      content: [
+        { type: 'server_tool_use', id: 'srv_2', name: 'web_search', input: { query: 'weather' } },
+        { type: 'web_search_tool_result', tool_use_id: 'srv_2', content: [{ type: 'web_search_result', url: 'x' }] },
+      ],
+    };
+    expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([
+      { tool: 'web_search', id: 'srv_2', query: 'weather' },
+    ]);
+  });
+
   it('max_tokens stop_reason → finishReason "length"', () => {
     const raw = {
       id: 'm',
@@ -681,6 +717,22 @@ describe('AnthropicAdapter — parseStreamEvent', () => {
     expect(a.parseStreamEvent(evt)).toEqual([
       { type: 'builtin_tool_start', tool: 'web_search', id: 'srvtu_1' },
     ]);
+  });
+
+  it('createStreamParser correlates streamed server_tool_use input to builtin_tool_end', () => {
+    const parse = new AnthropicAdapter({ apiKey: 'k' }).createStreamParser();
+    const sse = (obj: unknown): SSEEvent => ({ event: (obj as { type: string }).type, data: JSON.stringify(obj) });
+    // server_tool_use opens (input empty), input streams via delta, then stops.
+    expect(
+      parse(sse({ type: 'content_block_start', content_block: { type: 'server_tool_use', id: 'srv_1', name: 'code_execution', input: {} } })),
+    ).toEqual([{ type: 'builtin_tool_start', tool: 'code_interpreter', id: 'srv_1' }]);
+    expect(parse(sse({ type: 'content_block_delta', delta: { type: 'input_json_delta', partial_json: '{"code": "print(' } }))).toEqual([]);
+    expect(parse(sse({ type: 'content_block_delta', delta: { type: 'input_json_delta', partial_json: '1+1)"}' } }))).toEqual([]);
+    parse(sse({ type: 'content_block_stop' }));
+    // result block → builtin_tool_end carries the accumulated code + stdout.
+    expect(
+      parse(sse({ type: 'content_block_start', content_block: { type: 'code_execution_tool_result', tool_use_id: 'srv_1', content: { type: 'code_execution_result', stdout: '2\n', content: [] } } })),
+    ).toEqual([{ type: 'builtin_tool_end', tool: 'code_interpreter', id: 'srv_1', code: 'print(1+1)', output: '2\n' }]);
   });
 
   it('message_delta with stop_reason → done event', () => {

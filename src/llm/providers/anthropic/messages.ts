@@ -91,6 +91,37 @@ function filesFromCodeExecBlock(block: Record<string, unknown>): FileOutput[] {
   return files;
 }
 
+/** Builtin-tool payload from a `server_tool_use` input: the code (code execution)
+ *  or the query (web search). Shared by the buffered + streamed paths. */
+function builtinInputPayload(
+  tool: string,
+  input: Record<string, unknown> | undefined,
+): { code?: string; query?: string } {
+  if (!input) return {};
+  if (tool === 'code_interpreter') {
+    const code = input.code ?? input.command;
+    return typeof code === 'string' ? { code } : {};
+  }
+  if (tool === 'web_search') {
+    return typeof input.query === 'string' ? { query: input.query } : {};
+  }
+  return {};
+}
+
+/** stdout from a code-execution `*_tool_result` block's content, if present. */
+function resultStdout(content: unknown): string | undefined {
+  const c = content as Record<string, unknown> | undefined;
+  return c && typeof c.stdout === 'string' ? c.stdout : undefined;
+}
+
+/** Per-stream state threaded through `createStreamParser`. */
+interface AnthropicStreamState {
+  /** The currently-open `server_tool_use` block whose input JSON is being accumulated. */
+  current?: { id: string; tool: string; json: string };
+  /** Finalized server_tool_use inputs (code / query), by id, awaiting their result. */
+  pending: Map<string, { code?: string; query?: string }>;
+}
+
 export class AnthropicAdapter implements ProviderAdapter {
   readonly name = 'anthropic' as const;
   protected readonly apiKey: string;
@@ -332,12 +363,23 @@ export class AnthropicAdapter implements ProviderAdapter {
         content.push(tc);
         toolCalls.push(tc);
       } else if (block.type === 'server_tool_use') {
-        // Provider-run builtin tool (web search / code execution) — durable trail.
+        // Provider-run builtin tool (web search / code execution) — durable trail
+        // with its input (code / query).
+        const tool = unifiedBuiltinTool(block.name as string);
         builtinToolCalls.push({
-          tool: unifiedBuiltinTool(block.name as string),
+          tool,
           ...(typeof block.id === 'string' ? { id: block.id } : {}),
+          ...builtinInputPayload(tool, block.input as Record<string, unknown>),
         });
       } else {
+        // `*_tool_result`: attach its stdout to the matching call (by tool_use_id).
+        if (typeof block.type === 'string' && block.type.endsWith('_tool_result')) {
+          const output = resultStdout(block.content);
+          if (output) {
+            const call = builtinToolCalls.find((c) => c.id === (block.tool_use_id as string));
+            if (call) call.output = output;
+          }
+        }
         // Hosted code-execution output files (fetch bytes by file_id via the Files API).
         files.push(...filesFromCodeExecBlock(block));
       }
@@ -368,6 +410,20 @@ export class AnthropicAdapter implements ProviderAdapter {
   }
 
   parseStreamEvent(event: SSEEvent): StreamEvent[] {
+    // Stateless entry — the per-event primitive; no server_tool_use input correlation.
+    return this.streamEvents(event, { pending: new Map() });
+  }
+
+  /** Stateful — Anthropic streams `server_tool_use` input via `input_json_delta`
+   *  (empty at block start) and returns the result in a separate `*_tool_result`
+   *  block. The closure accumulates each call's input (code / query) and attaches it
+   *  to the matching `builtin_tool_end`. */
+  createStreamParser(): (event: SSEEvent) => StreamEvent[] {
+    const state: AnthropicStreamState = { pending: new Map() };
+    return (event) => this.streamEvents(event, state);
+  }
+
+  private streamEvents(event: SSEEvent, state: AnthropicStreamState): StreamEvent[] {
     if (event.event === 'ping') return [];
     const data = JSON.parse(event.data) as Record<string, unknown>;
     const type = data.type as string;
@@ -378,6 +434,12 @@ export class AnthropicAdapter implements ProviderAdapter {
       if (delta.type === 'thinking_delta')
         return [{ type: 'thinking', text: delta.thinking as string }];
       if (delta.type === 'input_json_delta') {
+        // A server_tool_use input is accumulated (attached to builtin_tool_end); a
+        // regular function tool_use streams its arguments as tool_call_delta.
+        if (state.current) {
+          state.current.json += (delta.partial_json as string) ?? '';
+          return [];
+        }
         return [{ type: 'tool_call_delta', id: '', arguments: delta.partial_json as string }];
       }
     }
@@ -385,23 +447,35 @@ export class AnthropicAdapter implements ProviderAdapter {
     if (type === 'content_block_start') {
       const block = data.content_block as Record<string, unknown>;
       if (block.type === 'tool_use') {
+        state.current = undefined;
         return [{ type: 'tool_call_start', id: block.id as string, name: block.name as string }];
       }
       const events: StreamEvent[] = [];
       const blockType = block.type as string;
-      // Provider-run builtin tool: `server_tool_use` is the call, `*_tool_result`
-      // its completion (which also carries any code-execution output files).
+      // Provider-run builtin tool: `server_tool_use` is the call (its input streams in
+      // via input_json_delta), `*_tool_result` its completion (carrying output +
+      // any code-execution files).
       if (blockType === 'server_tool_use') {
+        const tool = unifiedBuiltinTool(block.name as string);
+        state.current = { id: (block.id as string) ?? '', tool, json: '' };
         events.push({
           type: 'builtin_tool_start',
-          tool: unifiedBuiltinTool(block.name as string),
+          tool,
           ...(typeof block.id === 'string' ? { id: block.id } : {}),
         });
       } else if (blockType?.endsWith('_tool_result')) {
+        const tool = unifiedBuiltinTool(blockType);
+        const id = typeof block.tool_use_id === 'string' ? block.tool_use_id : undefined;
+        const input = id ? state.pending.get(id) : undefined;
+        if (id) state.pending.delete(id);
+        const output = resultStdout(block.content);
         events.push({
           type: 'builtin_tool_end',
-          tool: unifiedBuiltinTool(blockType),
-          ...(typeof block.tool_use_id === 'string' ? { id: block.tool_use_id } : {}),
+          tool,
+          ...(id ? { id } : {}),
+          ...(input?.code ? { code: input.code } : {}),
+          ...(input?.query ? { query: input.query } : {}),
+          ...(output ? { output } : {}),
         });
       }
       // Server-computed code-execution result blocks arrive complete in
@@ -411,7 +485,18 @@ export class AnthropicAdapter implements ProviderAdapter {
     }
 
     if (type === 'content_block_stop') {
-      // Could be tool_call_end but we don't have the ID here; accumulate at client level
+      // Finalize an accumulated server_tool_use input → payload keyed by id, ready
+      // for its *_tool_result.
+      if (state.current) {
+        let input: Record<string, unknown> = {};
+        try {
+          input = JSON.parse(state.current.json || '{}') as Record<string, unknown>;
+        } catch {
+          /* partial/invalid JSON → no payload */
+        }
+        state.pending.set(state.current.id, builtinInputPayload(state.current.tool, input));
+        state.current = undefined;
+      }
     }
 
     if (type === 'message_delta') {
@@ -435,12 +520,6 @@ export class AnthropicAdapter implements ProviderAdapter {
     }
 
     return [];
-  }
-
-  /** Stateless — every event is self-contained (code-execution result blocks
-   *  arrive complete in a single content_block_start). */
-  createStreamParser(): (event: SSEEvent) => StreamEvent[] {
-    return (event) => this.parseStreamEvent(event);
   }
 
   private parseUsage(u: Record<string, unknown> | undefined): Usage {

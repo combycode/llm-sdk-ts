@@ -450,6 +450,107 @@ describe('OpenAIResponsesAdapter — parseResponse', () => {
     expect(a.parseResponse(raw, 0).files).toBeUndefined();
   });
 
+  it('builtinToolCalls carry code + output (code_interpreter) and query (web_search)', () => {
+    const raw = {
+      id: 'r',
+      model: 'm',
+      output: [
+        {
+          type: 'code_interpreter_call',
+          id: 'ci_1',
+          code: 'print(1+1)',
+          outputs: [{ type: 'logs', logs: '2\n' }],
+        },
+        { type: 'web_search_call', id: 'ws_1', action: { type: 'search', query: 'capital of Japan' } },
+      ],
+    };
+    expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([
+      { tool: 'code_interpreter', id: 'ci_1', code: 'print(1+1)', output: '2\n' },
+      { tool: 'web_search', id: 'ws_1', query: 'capital of Japan' },
+    ]);
+  });
+
+  it('web_search query falls back to action.queries[0]', () => {
+    const raw = {
+      id: 'r',
+      model: 'm',
+      output: [{ type: 'web_search_call', id: 'ws_1', action: { queries: ['q one', 'q two'] } }],
+    };
+    expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([
+      { tool: 'web_search', id: 'ws_1', query: 'q one' },
+    ]);
+  });
+
+  it('web_search open_page action → url (not query)', () => {
+    const raw = {
+      id: 'r',
+      model: 'm',
+      output: [
+        { type: 'web_search_call', id: 'ws_s', action: { type: 'search', query: 'amadey' } },
+        { type: 'web_search_call', id: 'ws_o', action: { type: 'open_page', url: 'https://x.dev/p' } },
+      ],
+    };
+    expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([
+      { tool: 'web_search', id: 'ws_s', query: 'amadey' },
+      { tool: 'web_search', id: 'ws_o', url: 'https://x.dev/p' },
+    ]);
+  });
+
+  // Dedup of OpenAI's plt.show() auto-display artifact (id-named + image + zero-span).
+  const citation = (file_id: string, filename: string, start = 0, end = 0) => ({
+    type: 'container_file_citation',
+    container_id: 'c1',
+    file_id,
+    filename,
+    start_index: start,
+    end_index: end,
+  });
+  const msg = (annotations: unknown[]) => ({
+    id: 'r',
+    model: 'm',
+    output: [{ type: 'message', content: [{ type: 'output_text', text: 't', annotations }] }],
+  });
+
+  it('dedup: display+save drops the auto-display, keeps the saved image', () => {
+    const raw = msg([
+      citation('cfile_disp', 'cfile_disp.png', 0, 0), // plt.show() artifact
+      citation('cfile_save', 'chart.png', 21, 48), // savefig
+    ]);
+    expect(a.parseResponse(raw, 0).files).toEqual([
+      { id: 'cfile_save', name: 'chart.png', ref: { containerId: 'c1' }, source: 'code_execution' },
+    ]);
+  });
+
+  it('dedup: display-only keeps the sole figure (no saved image sibling)', () => {
+    const raw = msg([citation('cfile_xyz', 'cfile_xyz.png', 0, 0)]);
+    expect(a.parseResponse(raw, 0).files).toEqual([
+      { id: 'cfile_xyz', name: 'cfile_xyz.png', ref: { containerId: 'c1' }, source: 'code_execution' },
+    ]);
+  });
+
+  it('dedup: multi-save drops only the display artifact, keeps distinct saves', () => {
+    const raw = msg([
+      citation('cfile_disp', 'cfile_disp.png', 0, 0),
+      citation('cfile_csv', 'data.csv', 8, 34),
+      citation('cfile_png', 'chart.png', 40, 67),
+    ]);
+    expect(a.parseResponse(raw, 0).files).toEqual([
+      { id: 'cfile_csv', name: 'data.csv', ref: { containerId: 'c1' }, source: 'code_execution' },
+      { id: 'cfile_png', name: 'chart.png', ref: { containerId: 'c1' }, source: 'code_execution' },
+    ]);
+  });
+
+  it('dedup: display-png + save-csv keeps both (display is not a dup of a csv)', () => {
+    const raw = msg([
+      citation('cfile_img', 'cfile_img.png', 0, 0),
+      citation('cfile_csv', 'data.csv', 24, 50),
+    ]);
+    expect(a.parseResponse(raw, 0).files).toEqual([
+      { id: 'cfile_img', name: 'cfile_img.png', ref: { containerId: 'c1' }, source: 'code_execution' },
+      { id: 'cfile_csv', name: 'data.csv', ref: { containerId: 'c1' }, source: 'code_execution' },
+    ]);
+  });
+
   it('status incomplete → finishReason length when no toolCalls', () => {
     const raw = { id: 'r', model: 'm', status: 'incomplete', output: [] };
     expect(a.parseResponse(raw, 0).finishReason).toBe('length');

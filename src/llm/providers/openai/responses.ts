@@ -42,16 +42,95 @@ function filenameForMime(mimeType: string): string {
   return 'file.bin';
 }
 
-/** Hosted builtin-tool output items (provider-run) → a unified `BuiltinToolCall`,
- *  or null for non-builtin items. Shared by the buffered and streamed paths. */
+/** Code-interpreter stdout/logs. OpenAI logs are plain text `{type:'logs', logs}`;
+ *  xAI wraps stdout in a JSON envelope in the same field — pull stdout from either. */
+function codeOutputFromResponsesItem(item: Record<string, unknown>): string | undefined {
+  const parts: string[] = [];
+  for (const out of (item.outputs as Array<Record<string, unknown>>) ?? []) {
+    if (out.type !== 'logs' || typeof out.logs !== 'string') continue;
+    try {
+      const j = JSON.parse(out.logs) as Record<string, unknown>;
+      if (typeof j.stdout === 'string') {
+        parts.push(j.stdout);
+        continue;
+      }
+    } catch {
+      /* not JSON → plain logs */
+    }
+    parts.push(out.logs);
+  }
+  return parts.length ? parts.join('') : undefined;
+}
+
+/** web_search_call carries a query under `action` for a `search` step (`.query` /
+ *  `.queries[]`), or a `url` for an `open_page` / `find` step (the page it read). */
+function searchActionPayload(item: Record<string, unknown>): { query?: string; url?: string } {
+  const action = item.action as Record<string, unknown> | undefined;
+  if (!action) return {};
+  const out: { query?: string; url?: string } = {};
+  if (typeof action.query === 'string') out.query = action.query;
+  else if (Array.isArray(action.queries) && typeof action.queries[0] === 'string')
+    out.query = action.queries[0];
+  if (typeof action.url === 'string') out.url = action.url;
+  return out;
+}
+
+/** Hosted builtin-tool output items (provider-run) → a unified `BuiltinToolCall`
+ *  (with its code/output/query payload), or null for non-builtin items. Shared by
+ *  the buffered and streamed paths. */
 const RESPONSES_BUILTIN_ITEMS = new Set(['web_search_call', 'code_interpreter_call']);
 function builtinCallFromResponsesItem(item: Record<string, unknown>): BuiltinToolCall | null {
   const type = item.type as string;
   if (!RESPONSES_BUILTIN_ITEMS.has(type)) return null;
+  const call: BuiltinToolCall = { tool: unifiedBuiltinTool(type) };
+  if (typeof item.id === 'string') call.id = item.id;
+  if (type === 'code_interpreter_call') {
+    if (typeof item.code === 'string') call.code = item.code;
+    const output = codeOutputFromResponsesItem(item);
+    if (output) call.output = output;
+  } else if (type === 'web_search_call') {
+    const { query, url } = searchActionPayload(item);
+    if (query) call.query = query;
+    if (url) call.url = url;
+  }
+  return call;
+}
+
+/** Spread a `BuiltinToolCall`'s optional payload into a `builtin_tool_end` event. */
+function builtinEndPayload(call: BuiltinToolCall): Record<string, string> {
   return {
-    tool: unifiedBuiltinTool(type),
-    ...(typeof item.id === 'string' ? { id: item.id } : {}),
+    ...(call.id ? { id: call.id } : {}),
+    ...(call.code ? { code: call.code } : {}),
+    ...(call.output ? { output: call.output } : {}),
+    ...(call.query ? { query: call.query } : {}),
+    ...(call.url ? { url: call.url } : {}),
   };
+}
+
+const IMAGE_EXTS = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp']);
+
+function fileExt(name: string): string {
+  const i = name.lastIndexOf('.');
+  return i >= 0 ? name.slice(i + 1).toLowerCase() : '';
+}
+
+interface Citation {
+  fileId: string;
+  filename?: string;
+  containerId?: string;
+  /** `[start_index, end_index]` of the text this citation anchors to. */
+  span: [number, number];
+}
+
+/** A container_file_citation that is OpenAI's matplotlib auto-display artifact
+ *  (`plt.show()`), NOT an explicitly-saved file. Verified across scenarios: it is
+ *  named after its own id, is an image, and its citation is zero-width (not anchored
+ *  to any text — real saves are anchored to the `sandbox:` link). All three hold for
+ *  auto-displays and never for saved files. */
+function isDisplayArtifact(c: Citation): boolean {
+  if (!c.filename) return false;
+  const ext = fileExt(c.filename);
+  return c.filename === `${c.fileId}.${ext}` && IMAGE_EXTS.has(ext) && c.span[0] === c.span[1];
 }
 
 /** Extract hosted code-execution output files from one Responses output item.
@@ -59,23 +138,41 @@ function builtinCallFromResponsesItem(item: Record<string, unknown>): BuiltinToo
  *  paths so both surface the exact same `FileOutput[]`. Two sources:
  *    - `message` items → `container_file_citation` annotations (downloadable
  *      container files, fetched by file id from `/v1/containers/{cid}/files/{id}`);
- *    - `code_interpreter_call` items → image outputs returned by URL. */
+ *    - `code_interpreter_call` items → image outputs returned by URL.
+ *
+ *  Dedup: `plt.show()` makes OpenAI emit an auto-display container file ALONGSIDE the
+ *  explicitly-saved one. When the same image was also saved, we drop the display
+ *  duplicate (matches ChatGPT's own UI); a display-only run keeps its sole figure. */
 function filesFromResponsesOutputItem(item: Record<string, unknown>): FileOutput[] {
   const files: FileOutput[] = [];
   const type = item.type as string;
   if (type === 'message') {
+    const citations: Citation[] = [];
     for (const c of (item.content as Array<Record<string, unknown>>) ?? []) {
       if (c.type !== 'output_text') continue;
       for (const a of (c.annotations as Array<Record<string, unknown>>) ?? []) {
         if (a.type === 'container_file_citation' && typeof a.file_id === 'string') {
-          files.push({
-            id: a.file_id,
-            ...(typeof a.filename === 'string' ? { name: a.filename } : {}),
-            ...(typeof a.container_id === 'string' ? { ref: { containerId: a.container_id } } : {}),
-            source: 'code_execution',
+          citations.push({
+            fileId: a.file_id,
+            filename: typeof a.filename === 'string' ? a.filename : undefined,
+            containerId: typeof a.container_id === 'string' ? a.container_id : undefined,
+            span: [Number(a.start_index) || 0, Number(a.end_index) || 0],
           });
         }
       }
+    }
+    // A saved (non-artifact) image citation → its auto-display twin is a duplicate.
+    const hasSavedImage = citations.some(
+      (c) => !isDisplayArtifact(c) && IMAGE_EXTS.has(fileExt(c.filename ?? '')),
+    );
+    for (const c of citations) {
+      if (hasSavedImage && isDisplayArtifact(c)) continue; // drop the display duplicate
+      files.push({
+        id: c.fileId,
+        ...(c.filename ? { name: c.filename } : {}),
+        ...(c.containerId ? { ref: { containerId: c.containerId } } : {}),
+        source: 'code_execution',
+      });
     }
   }
   if (type === 'code_interpreter_call') {
@@ -463,7 +560,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       for (const file of this.filesFromOutputItem(item)) events.push({ type: 'file', file });
       const builtin = builtinCallFromResponsesItem(item ?? {});
       if (builtin) {
-        events.push({ type: 'builtin_tool_end', tool: builtin.tool, ...(builtin.id ? { id: builtin.id } : {}) });
+        events.push({ type: 'builtin_tool_end', tool: builtin.tool, ...builtinEndPayload(builtin) });
       }
       if (item?.type === 'function_call') {
         events.push({ type: 'tool_call_end', id: (item.call_id as string) ?? '' });

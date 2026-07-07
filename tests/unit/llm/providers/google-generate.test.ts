@@ -348,6 +348,25 @@ describe('GoogleAdapter — parseResponse', () => {
     ]);
     expect(res.media).toHaveLength(0); // not double-counted as media
     expect(res.text).toBe('here is your chart');
+    // Builtin-tool trail carries the code + its output.
+    expect(res.builtinToolCalls).toEqual([
+      { tool: 'code_interpreter', code: 'print(1)', output: '1' },
+    ]);
+  });
+
+  it('grounding metadata → web_search builtinToolCall with the query', () => {
+    const raw = {
+      candidates: [
+        {
+          content: { parts: [{ text: 'Canberra.' }] },
+          finishReason: 'STOP',
+          groundingMetadata: { webSearchQueries: ['capital of Australia'] },
+        },
+      ],
+    };
+    expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([
+      { tool: 'web_search', query: 'capital of Australia' },
+    ]);
   });
 
   it('inlineData WITHOUT code-execution stays media (unchanged)', () => {

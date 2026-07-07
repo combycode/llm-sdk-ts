@@ -38,6 +38,8 @@ interface GoogleStreamState {
   codeExec: boolean;
   /** web_search (grounding) builtin_tool events emitted once per stream. */
   webSearchEmitted?: boolean;
+  /** Code from the last `executableCode` part, to attach to its `builtin_tool_end`. */
+  pendingCode?: string;
 }
 
 export class GoogleAdapter implements ProviderAdapter {
@@ -318,11 +320,32 @@ export class GoogleAdapter implements ProviderAdapter {
     );
 
     // Provider-run builtin tools — durable trail. Google has no call ids for these:
-    // code execution is signalled by executableCode/codeExecutionResult parts, web
-    // search (googleSearch grounding) by candidate.groundingMetadata.
+    // code execution is `executableCode` (code) + `codeExecutionResult` (output)
+    // parts (paired in order); web search (googleSearch grounding) carries its query
+    // in candidate.groundingMetadata.webSearchQueries.
     const builtinToolCalls: BuiltinToolCall[] = [];
-    if (hasCodeExec) builtinToolCalls.push({ tool: 'code_interpreter' });
-    if (candidate.groundingMetadata) builtinToolCalls.push({ tool: 'web_search' });
+    const codes = parts
+      .filter((p) => (p.executableCode as Record<string, unknown>)?.code)
+      .map((p) => (p.executableCode as Record<string, unknown>).code as string);
+    const outputs = parts
+      .filter((p) => p.codeExecutionResult)
+      .map((p) => String((p.codeExecutionResult as Record<string, unknown>).output ?? ''));
+    if (codes.length) {
+      codes.forEach((code, i) => {
+        builtinToolCalls.push({
+          tool: 'code_interpreter',
+          code,
+          ...(outputs[i] ? { output: outputs[i] } : {}),
+        });
+      });
+    } else if (hasCodeExec) {
+      builtinToolCalls.push({ tool: 'code_interpreter', ...(outputs[0] ? { output: outputs[0] } : {}) });
+    }
+    const grounding = candidate.groundingMetadata as Record<string, unknown> | undefined;
+    if (grounding) {
+      const q = (grounding.webSearchQueries as string[] | undefined)?.[0];
+      builtinToolCalls.push({ tool: 'web_search', ...(typeof q === 'string' ? { query: q } : {}) });
+    }
 
     return {
       id: crypto.randomUUID(), // Google doesn't return a response ID in generateContent
@@ -387,9 +410,23 @@ export class GoogleAdapter implements ProviderAdapter {
       if (part.text !== undefined && !part.thought)
         events.push({ type: 'text', text: part.text as string });
       if (part.thought && part.text) events.push({ type: 'thinking', text: part.text as string });
-      // Code-execution builtin: the code to run, then its result.
-      if (part.executableCode) events.push({ type: 'builtin_tool_start', tool: 'code_interpreter' });
-      if (part.codeExecutionResult) events.push({ type: 'builtin_tool_end', tool: 'code_interpreter' });
+      // Code-execution builtin: the code to run, then its result. Carry the code +
+      // output on the end event (start marks progress).
+      if (part.executableCode) {
+        const code = (part.executableCode as Record<string, unknown>).code;
+        state.pendingCode = typeof code === 'string' ? code : undefined;
+        events.push({ type: 'builtin_tool_start', tool: 'code_interpreter' });
+      }
+      if (part.codeExecutionResult) {
+        const output = (part.codeExecutionResult as Record<string, unknown>).output;
+        events.push({
+          type: 'builtin_tool_end',
+          tool: 'code_interpreter',
+          ...(state.pendingCode ? { code: state.pendingCode } : {}),
+          ...(typeof output === 'string' && output ? { output } : {}),
+        });
+        state.pendingCode = undefined;
+      }
       if (part.inlineData) {
         const inline = part.inlineData as { mimeType: string; data: string };
         const mime = inline.mimeType;
@@ -430,8 +467,15 @@ export class GoogleAdapter implements ProviderAdapter {
     // one start/end pair the first time grounding metadata appears in the stream.
     if (candidate.groundingMetadata && !state.webSearchEmitted) {
       state.webSearchEmitted = true;
+      const q = ((candidate.groundingMetadata as Record<string, unknown>).webSearchQueries as
+        | string[]
+        | undefined)?.[0];
       events.push({ type: 'builtin_tool_start', tool: 'web_search' });
-      events.push({ type: 'builtin_tool_end', tool: 'web_search' });
+      events.push({
+        type: 'builtin_tool_end',
+        tool: 'web_search',
+        ...(typeof q === 'string' ? { query: q } : {}),
+      });
     }
 
     const fr = candidate.finishReason as string | undefined;

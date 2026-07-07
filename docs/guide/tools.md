@@ -145,11 +145,24 @@ Which models support which builtin is in the catalog: `capabilities.builtinTools
 `web_search` on all providers; `code_interpreter` on all except OpenRouter.
 
 **Seeing what ran.** Provider-run builtins surface a durable trail on
-`response.builtinToolCalls` (`{ tool, id? }[]` — the unified tool names) and, while streaming,
-`{ type: 'builtin_tool_start' }` / `{ type: 'builtin_tool_end' }` events as each runs. These are
-**informational** — unlike `tool_call_*` (a function call the client must execute), the provider
-runs these itself, so there's nothing to run or return. Use them to show a "🔎 Searching… /
-⚙️ Running code…" indicator.
+`response.builtinToolCalls` and, while streaming, `{ type: 'builtin_tool_start' }` /
+`{ type: 'builtin_tool_end' }` events as each runs. Each entry carries **what the tool ran**:
+
+```ts
+interface BuiltinToolCall {
+  tool: string;      // 'web_search' | 'code_interpreter'
+  id?: string;
+  code?: string;     // code_interpreter: the code the model executed
+  output?: string;   // code_interpreter: the code's stdout / logs
+  query?: string;    // web_search: the query the model searched for
+  url?: string;      // web_search: a page the model opened/read (open_page/find steps)
+}
+```
+
+The payload is normalized across providers and present on both `complete()` and streamed responses
+(the `builtin_tool_end` event carries the same fields). These are **informational** — unlike
+`tool_call_*` (a function call the client must execute), the provider runs these itself. Use them
+to show a "🔎 Searching: <query>" / "⚙️ Running code" panel with the actual code and output.
 
 ### Hosted MCP tool (`{ type: 'mcp' }`)
 

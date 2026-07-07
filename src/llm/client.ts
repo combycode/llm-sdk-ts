@@ -575,9 +575,17 @@ export class LLMClient {
           // final response so streamed `response.files` matches complete().
           files.push(event.file);
           break;
-        case 'builtin_tool_start':
-          // Durable trail of provider-run builtin tools (parity with complete()).
-          builtinToolCalls.push({ tool: event.tool, ...(event.id ? { id: event.id } : {}) });
+        case 'builtin_tool_end':
+          // Durable trail of provider-run builtin tools (parity with complete()) —
+          // collected on END, which carries the full payload (code/output/query).
+          builtinToolCalls.push({
+            tool: event.tool,
+            ...(event.id ? { id: event.id } : {}),
+            ...(event.code ? { code: event.code } : {}),
+            ...(event.output ? { output: event.output } : {}),
+            ...(event.query ? { query: event.query } : {}),
+            ...(event.url ? { url: event.url } : {}),
+          });
           break;
         case 'moderation':
           moderationReport = this.mergeModeration(

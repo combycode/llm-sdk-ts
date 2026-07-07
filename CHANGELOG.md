@@ -6,13 +6,36 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
-## [1.5.1] - 2026-07-06
+### Added
+- **Builtin-tool call payloads.** `BuiltinToolCall` (and the `builtin_tool_end` stream event) now
+  carry what the tool ran: `code` + `output` (stdout) for `code_interpreter`, and `query` (search
+  step) or `url` (page-open step) for `web_search` — normalized across every provider (OpenAI/xAI
+  `code_interpreter_call.code` + `web_search_call.action` `query`/`queries[]`/`url`, Anthropic
+  `server_tool_use.input` streamed via `input_json_delta` and correlated to its `*_tool_result`
+  stdout, Google `executableCode`/`codeExecutionResult` + grounding `webSearchQueries`). A single
+  OpenAI web search is a multi-step agent: `search` actions carry a query, `open_page`/`find`
+  actions carry the URL they read. Available on both `complete()` and streamed responses; verified
+  live on all four providers.
 
 ### Fixed
-- **Anthropic file retrieval from the browser** was blocked by CORS. `retrieveFile` /
-  `streamFile` now send Anthropic's `anthropic-dangerous-direct-browser-access: true` header
-  when running in a browser (matching the completion adapter), so hosted code-execution files
-  download directly. No effect on Node/Bun.
+- **Duplicate OpenAI code-execution files.** When code calls `plt.show()` *and* saves the figure,
+  OpenAI emits an extra auto-display container file alongside the saved one — surfacing the same
+  chart twice on `response.files`. The Responses adapter now drops the auto-display artifact (an
+  image citation named after its own file id, with a zero-width span) when the same image was also
+  saved, matching ChatGPT's own UI. A display-only run keeps its sole figure; distinct saved files
+  are never collapsed. Investigated across providers: only OpenAI has this pattern (Anthropic/xAI
+  return only saved files; Google returns one artifact per output) — so the fix is scoped to the
+  OpenAI Responses adapter.
+
+## [1.5.1] - 2026-07-06
+
+### Changed
+- `retrieveFile` / `streamFile` now send Anthropic's `anthropic-dangerous-direct-browser-access:
+  true` header in the browser, for consistency with the completion adapter. **Note:** this does
+  NOT make Anthropic hosted-tool files downloadable from a browser — Anthropic's Files API
+  (`GET /v1/files/{id}/content`) does not return CORS headers (unlike `/v1/messages`), so file
+  retrieval for Anthropic is **server-side only** (verified against the API + the official docs).
+  OpenAI works in-browser; Google and xAI return files inline (no fetch), so they work too.
 
 ## [1.5.0] - 2026-07-06
 
