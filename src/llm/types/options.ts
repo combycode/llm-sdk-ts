@@ -43,6 +43,10 @@ export interface ExecuteOptions {
     schema: Record<string, unknown>;
     name?: string;
     strict?: boolean;
+    /** Opt-in repair: if the model's final output fails to parse, re-prompt this
+     *  many times with the parse error before throwing `InvalidFinalOutputError`.
+     *  Default 0 (throw immediately). Honoured by `LLMClient.structuredComplete`. */
+    repairAttempts?: number;
   };
 
   // Audio output (voice/format) + which modalities to return. Default ['text'].

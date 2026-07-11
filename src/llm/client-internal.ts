@@ -9,6 +9,7 @@ import type { ContentPart, Message } from './types/messages';
 import type { ExecuteOptions } from './types/options';
 import type { ApiType, ProviderAdapter, ProviderName } from './types/provider';
 import type { CompletionResponse } from './types/response';
+import { InvalidFinalOutputError } from './output-errors';
 
 export const PRIORITY_INTERACTIVE = 1;
 export const PRIORITY_BACKGROUND = 2;
@@ -84,7 +85,13 @@ export function parseStructured<T>(text: string): T {
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```\s*$/i, '')
     .trim();
-  return JSON.parse(stripped) as T;
+  try {
+    return JSON.parse(stripped) as T;
+  } catch (cause) {
+    // Typed, differentiated failure — callers can `instanceof InvalidFinalOutputError`
+    // and inspect `.rawText`, instead of catching a bare SyntaxError.
+    throw new InvalidFinalOutputError(text, { cause });
+  }
 }
 
 export function buildContext(client: LLMClient, options: ExecuteOptions): RequestContext {

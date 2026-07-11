@@ -7,6 +7,16 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 ## [Unreleased]
 
 ### Added
+- **Typed structured-output failure + opt-in repair.** Structured output that can't be parsed now throws
+  a typed `InvalidFinalOutputError` (extends `AgentRunError`, carries `reason: 'invalid_final_output'` and
+  the model's `rawText`) instead of a bare `SyntaxError`, so callers can `instanceof`/inspect/retry.
+  `structuredComplete` gains an opt-in `structured.repairAttempts` (default 0): on a parse failure it
+  re-prompts with the error up to N times before throwing. Exports `AgentRunError`,
+  `InvalidFinalOutputError`. (`max_steps` / `model_refusal` stay returned results, differentiated by
+  `finishReason` / `AgentRunReport.reason`; run-error handler hooks can layer on later.)
+- **`user_profile_id` + Interactions `cached_content`.** Anthropic forwards `providerOptions.userProfileId`
+  to the `anthropic-user-profile-id` header; Google Interactions maps `providerOptions.cachedContent` to
+  its `cached_content` resource.
 - **Sampling penalties.** `presencePenalty` / `frequencyPenalty` ([-2, 2]) on `complete()` / `stream()`
   (and `NormalizedRequest`), mapped to the providers that accept them — OpenAI/xAI **chat-completions**
   (`presence_penalty` / `frequency_penalty`), OpenRouter (inherited), Google **generateContent**

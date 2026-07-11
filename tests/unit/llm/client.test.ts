@@ -5,6 +5,7 @@
 import { describe, expect, it } from 'bun:test';
 import { HookBus } from '../../../src/bus/hook-bus';
 import { LLMClient } from '../../../src/llm/client';
+import { InvalidFinalOutputError } from '../../../src/llm/output-errors';
 import type { Message } from '../../../src/llm/types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../../src/llm/types/provider';
 import type { NormalizedRequest } from '../../../src/llm/types/request';
@@ -516,5 +517,57 @@ describe('LLMClient.stream — error when no fetchStream provided', () => {
     await expect(iter[Symbol.asyncIterator]().next()).rejects.toThrow(
       'no fetchStream function configured',
     );
+  });
+});
+
+describe('LLMClient — structuredComplete (typed error + repair)', () => {
+  /** Fetch that returns a queue of bodies (one per call), last repeats. */
+  function makeQueuedFetch(texts: string[]): { fetch: EngineFetch; count: () => number } {
+    let i = 0;
+    return {
+      count: () => i,
+      fetch: async () => {
+        const text = texts[Math.min(i, texts.length - 1)];
+        i++;
+        return Promise.resolve({ status: 200, headers: {}, body: { text } }) as Promise<HttpResponse>;
+      },
+    };
+  }
+  const mk = (fetch: EngineFetch) =>
+    new LLMClient({ provider: 'anthropic', model: 'claude-3', apiKey: 'k', adapter: makeMockAdapter(), fetch });
+  const SCHEMA = { type: 'object', properties: { n: { type: 'number' } } };
+
+  it('parses valid JSON output', async () => {
+    const client = mk(makeQueuedFetch(['{"n":1}']).fetch);
+    expect(await client.structuredComplete<{ n: number }>('go', SCHEMA)).toEqual({ n: 1 });
+  });
+
+  it('throws InvalidFinalOutputError (with rawText) on unparseable output, no repair', async () => {
+    const client = mk(makeQueuedFetch(['not json']).fetch);
+    try {
+      await client.structuredComplete('go', SCHEMA);
+      throw new Error('should have thrown');
+    } catch (e) {
+      expect(e).toBeInstanceOf(InvalidFinalOutputError);
+      expect((e as InvalidFinalOutputError).reason).toBe('invalid_final_output');
+      expect((e as InvalidFinalOutputError).rawText).toBe('not json');
+    }
+  });
+
+  it('repairAttempts retries and succeeds when a later attempt is valid', async () => {
+    const qf = makeQueuedFetch(['oops', '{"n":7}']);
+    const client = mk(qf.fetch);
+    const out = await client.structuredComplete<{ n: number }>('go', SCHEMA, { structured: { schema: SCHEMA, repairAttempts: 1 } });
+    expect(out).toEqual({ n: 7 });
+    expect(qf.count()).toBe(2); // original + 1 repair
+  });
+
+  it('throws after repairs are exhausted', async () => {
+    const qf = makeQueuedFetch(['bad', 'still bad', 'nope']);
+    const client = mk(qf.fetch);
+    await expect(
+      client.structuredComplete('go', SCHEMA, { structured: { schema: SCHEMA, repairAttempts: 1 } }),
+    ).rejects.toBeInstanceOf(InvalidFinalOutputError);
+    expect(qf.count()).toBe(2); // original + 1 repair, then gives up
   });
 });

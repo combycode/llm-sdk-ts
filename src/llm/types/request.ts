@@ -37,6 +37,8 @@ export interface NormalizedRequest {
     schema: Record<string, unknown>;
     name?: string;
     strict?: boolean;
+    /** Opt-in repair-retry count for `structuredComplete` (default 0). */
+    repairAttempts?: number;
   };
 
   // Thinking / reasoning

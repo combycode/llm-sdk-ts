@@ -63,6 +63,7 @@ export type { FetchFn, HttpRequest, HttpResponse, SSEEvent, QueueSnapshot, Trace
 export { RealtimeConnectionImpl } from './network/realtime-connection';
 export { LLMError, classifyError } from './network/errors';
 export type { ErrorKind } from './network/errors';
+export { AgentRunError, InvalidFinalOutputError } from './llm/output-errors';
 export { Semaphore } from './network/semaphore';
 export { RateLimiter, TokenBucket } from './network/rate-limiter';
 export type { RateLimiterConfig, TokenBucketConfig } from './network/rate-limiter';

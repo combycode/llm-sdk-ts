@@ -61,6 +61,7 @@ import {
   resolveAdapter,
   resolveApi,
 } from './client-internal';
+import { InvalidFinalOutputError } from './output-errors';
 
 // ─── LLMClient ──────────────────────────────────────────────────────────
 
@@ -414,11 +415,28 @@ export class LLMClient {
     schema: Record<string, unknown>,
     options: ExecuteOptions = {},
   ): Promise<T> {
-    const res = await this.complete(input, {
-      ...options,
-      structured: { ...(options.structured ?? {}), schema },
-    });
-    return parseStructured<T>(res.text);
+    const structured = { ...(options.structured ?? {}), schema };
+    const repairAttempts = Math.max(0, structured.repairAttempts ?? 0);
+    const messages = normalizeInput(input);
+
+    // Attempt 0 = the original call; each further attempt appends the parse error
+    // and re-prompts (opt-in `repairAttempts`, default 0). The typed
+    // InvalidFinalOutputError is re-thrown once repairs are exhausted.
+    for (let attempt = 0; ; attempt++) {
+      const res = await this.complete(messages, { ...options, structured });
+      try {
+        return parseStructured<T>(res.text);
+      } catch (err) {
+        if (!(err instanceof InvalidFinalOutputError) || attempt >= repairAttempts) throw err;
+        messages.push(
+          { role: 'assistant', content: res.text },
+          {
+            role: 'user',
+            content: `Your previous reply was not valid JSON for the required schema (${err.message}). Reply with ONLY the JSON object matching the schema — no prose, no code fences.`,
+          },
+        );
+      }
+    }
   }
 
   async *stream(
