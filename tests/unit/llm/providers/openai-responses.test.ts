@@ -52,6 +52,12 @@ describe('OpenAIResponsesAdapter — buildRequest basics', () => {
     expect(r.body.max_output_tokens).toBe(1000);
   });
 
+  it('does NOT send presence/frequency penalties (Responses API rejects them)', () => {
+    const r = a.buildRequest({ ...baseReq, presencePenalty: 0.5, frequencyPenalty: 0.5 });
+    expect(r.body.presence_penalty).toBeUndefined();
+    expect(r.body.frequency_penalty).toBeUndefined();
+  });
+
   it('temperature and top_p passthrough', () => {
     const r = a.buildRequest({ ...baseReq, temperature: 0.4, topP: 0.8 });
     expect(r.body.temperature).toBe(0.4);

@@ -7,6 +7,12 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 ## [Unreleased]
 
 ### Added
+- **Sampling penalties.** `presencePenalty` / `frequencyPenalty` ([-2, 2]) on `complete()` / `stream()`
+  (and `NormalizedRequest`), mapped to the providers that accept them — OpenAI/xAI **chat-completions**
+  (`presence_penalty` / `frequency_penalty`), OpenRouter (inherited), Google **generateContent**
+  (`generationConfig.presencePenalty` / `frequencyPenalty`) and **Interactions** (snake_case). Ignored by
+  OpenAI/xAI **Responses** and Anthropic, which don't accept them (verified against the SDK sources — the
+  Responses API has no penalty fields). Verified live on OpenAI, Google, and xAI.
 - **Unified `web_fetch` hosted tool.** New `{ type: 'web_fetch' }` builtin that reads a
   user-provided URL, mapped to Anthropic's `web_fetch_20260318` (GA; `params` like `allowed_domains`
   / `blocked_domains` / `citations` / `max_content_tokens` / `max_uses` forwarded verbatim, with

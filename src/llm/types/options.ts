@@ -25,6 +25,12 @@ export interface ExecuteOptions {
   maxTokens?: number;
   temperature?: number;
   topP?: number;
+  /** Penalise tokens by prior presence ([-2, 2]). Honoured by OpenAI/xAI chat-completions,
+   *  OpenRouter, and Google (generateContent + Interactions); ignored by OpenAI/xAI Responses
+   *  and Anthropic, which don't accept it. */
+  presencePenalty?: number;
+  /** Penalise tokens by prior frequency ([-2, 2]). Same provider support as `presencePenalty`. */
+  frequencyPenalty?: number;
   stop?: string[];
 
   // Tools (schema-only — caller dispatches; AgentLoop's executable tools come

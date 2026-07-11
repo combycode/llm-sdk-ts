@@ -22,6 +22,10 @@ export interface NormalizedRequest {
   maxTokens?: number;
   temperature?: number;
   topP?: number;
+  /** Penalise tokens by prior presence (OpenAI/xAI chat-completions, OpenRouter, Google). */
+  presencePenalty?: number;
+  /** Penalise tokens by prior frequency (OpenAI/xAI chat-completions, OpenRouter, Google). */
+  frequencyPenalty?: number;
   stop?: string[];
 
   // Tools

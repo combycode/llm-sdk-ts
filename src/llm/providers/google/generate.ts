@@ -82,6 +82,8 @@ export class GoogleAdapter implements ProviderAdapter {
     if (req.maxTokens) config.maxOutputTokens = req.maxTokens;
     if (req.temperature !== undefined) config.temperature = req.temperature;
     if (req.topP !== undefined) config.topP = req.topP;
+    if (req.presencePenalty !== undefined) config.presencePenalty = req.presencePenalty;
+    if (req.frequencyPenalty !== undefined) config.frequencyPenalty = req.frequencyPenalty;
     if (req.stop) config.stopSequences = req.stop;
 
     // Audio output (when requested via outputModalities): generateContent returns

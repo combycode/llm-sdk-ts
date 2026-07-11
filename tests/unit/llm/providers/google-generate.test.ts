@@ -52,6 +52,13 @@ describe('GoogleAdapter — web_search builtin', () => {
     expect(r.body.tools).toContainEqual({ urlContext: {} });
   });
 
+  it('maps presence/frequency penalties into generationConfig', () => {
+    const r = a.buildRequest({ ...baseReq, presencePenalty: 0.4, frequencyPenalty: 0.2 });
+    const gc = r.body.generationConfig as Record<string, unknown>;
+    expect(gc.presencePenalty).toBe(0.4);
+    expect(gc.frequencyPenalty).toBe(0.2);
+  });
+
   it('sets responseModalities AUDIO when outputModalities includes audio', () => {
     const r = a.buildRequest({ ...baseReq, outputModalities: ['audio'], audio: { voice: 'warm' } });
     const gc = r.body.generationConfig as {

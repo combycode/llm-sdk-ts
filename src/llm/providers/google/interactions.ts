@@ -89,6 +89,8 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
     if (req.maxTokens) genConfig.max_output_tokens = req.maxTokens;
     if (req.temperature !== undefined) genConfig.temperature = req.temperature;
     if (req.topP !== undefined) genConfig.top_p = req.topP;
+    if (req.presencePenalty !== undefined) genConfig.presence_penalty = req.presencePenalty;
+    if (req.frequencyPenalty !== undefined) genConfig.frequency_penalty = req.frequencyPenalty;
     if (req.stop) genConfig.stop_sequences = req.stop;
 
     // Tools — only function tools are accepted on this surface.

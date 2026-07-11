@@ -64,6 +64,13 @@ describe('GoogleInteractionsAdapter — buildRequest basics', () => {
       stop_sequences: ['END'],
     });
   });
+
+  it('maps presence/frequency penalties (snake_case) into generation_config', () => {
+    const r = a.buildRequest({ ...baseReq, presencePenalty: 0.3, frequencyPenalty: 0.6 });
+    const gc = r.body.generation_config as Record<string, unknown>;
+    expect(gc.presence_penalty).toBe(0.3);
+    expect(gc.frequency_penalty).toBe(0.6);
+  });
 });
 
 describe('GoogleInteractionsAdapter — content parts', () => {

@@ -86,6 +86,8 @@ export class OpenAIAdapter implements ProviderAdapter {
 
     if (req.temperature !== undefined) body.temperature = req.temperature;
     if (req.topP !== undefined) body.top_p = req.topP;
+    if (req.presencePenalty !== undefined) body.presence_penalty = req.presencePenalty;
+    if (req.frequencyPenalty !== undefined) body.frequency_penalty = req.frequencyPenalty;
     if (req.stop) body.stop = req.stop;
     const tier = openaiRequestTier(req.serviceTier);
     if (tier) body.service_tier = tier;

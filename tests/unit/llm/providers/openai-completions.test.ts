@@ -170,6 +170,18 @@ describe('OpenAIAdapter — buildRequest basics', () => {
     expect(r.body.top_p).toBe(0.95);
     expect(r.body.stop).toEqual(['END']);
   });
+
+  it('maps presence/frequency penalties (shared by xAI-completions + OpenRouter via inheritance)', () => {
+    const r = a.buildRequest({ ...baseReq, presencePenalty: 0.5, frequencyPenalty: -0.3 });
+    expect(r.body.presence_penalty).toBe(0.5);
+    expect(r.body.frequency_penalty).toBe(-0.3);
+  });
+
+  it('omits penalties when not set', () => {
+    const r = a.buildRequest(baseReq);
+    expect(r.body.presence_penalty).toBeUndefined();
+    expect(r.body.frequency_penalty).toBeUndefined();
+  });
 });
 
 describe('OpenAIAdapter — tools', () => {
