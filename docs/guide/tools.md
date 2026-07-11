@@ -129,9 +129,10 @@ const lookup: AgentTool = {
 ## Built-in / hosted tools
 
 Server-side tools the provider runs are passed as plain objects in `tools: [...]`
-(no `defineTool`): `{ type: 'web_search' }`, `{ type: 'code_interpreter' }`,
-`{ type: 'image_generation' }`, `{ type: 'file_search' }`, and `{ type: 'mcp' }`.
-Provider-specific configuration goes in `params`, forwarded verbatim.
+(no `defineTool`): `{ type: 'web_search' }`, `{ type: 'web_fetch' }`,
+`{ type: 'code_interpreter' }`, `{ type: 'image_generation' }`, `{ type: 'file_search' }`,
+and `{ type: 'mcp' }`. Provider-specific configuration goes in `params`, forwarded verbatim
+(e.g. `{ type: 'web_fetch', params: { allowed_domains: ['docs.example'], max_content_tokens: 4096 } }`).
 
 Files a hosted tool produces (e.g. code-execution charts or data files) are surfaced
 uniformly on `response.files` (`FileOutput[]` — `{ id?, name?, mimeType?, data?, url?, ref?, source? }`),
@@ -142,7 +143,9 @@ Google/xAI, or a `url`). See the [Code execution guide](./code-execution.md) and
 
 Which models support which builtin is in the catalog: `capabilities.builtinTools`,
 `catalog.supportsBuiltinTool(provider, model, tool)`, or `select('code_interpreter')`. Coverage:
-`web_search` on all providers; `code_interpreter` on all except OpenRouter.
+`web_search` on all providers; `code_interpreter` on all except OpenRouter; `web_fetch` on
+Anthropic (`web_fetch_20260318`) and Google (`urlContext`) — OpenAI's `web_search` already
+opens pages, and xAI / OpenRouter expose no separate fetch tool.
 
 **Seeing what ran.** Provider-run builtins surface a durable trail on
 `response.builtinToolCalls` and, while streaming, `{ type: 'builtin_tool_start' }` /
@@ -150,12 +153,12 @@ Which models support which builtin is in the catalog: `capabilities.builtinTools
 
 ```ts
 interface BuiltinToolCall {
-  tool: string;      // 'web_search' | 'code_interpreter'
+  tool: string;      // 'web_search' | 'web_fetch' | 'code_interpreter'
   id?: string;
   code?: string;     // code_interpreter: the code the model executed
   output?: string;   // code_interpreter: the code's stdout / logs
   query?: string;    // web_search: the query the model searched for
-  url?: string;      // web_search: a page the model opened/read (open_page/find steps)
+  url?: string;      // web_search: a page opened/read; web_fetch: the URL fetched
 }
 ```
 

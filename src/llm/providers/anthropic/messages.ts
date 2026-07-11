@@ -96,7 +96,7 @@ function filesFromCodeExecBlock(block: Record<string, unknown>): FileOutput[] {
 function builtinInputPayload(
   tool: string,
   input: Record<string, unknown> | undefined,
-): { code?: string; query?: string } {
+): { code?: string; query?: string; url?: string } {
   if (!input) return {};
   if (tool === 'code_interpreter') {
     const code = input.code ?? input.command;
@@ -104,6 +104,9 @@ function builtinInputPayload(
   }
   if (tool === 'web_search') {
     return typeof input.query === 'string' ? { query: input.query } : {};
+  }
+  if (tool === 'web_fetch') {
+    return typeof input.url === 'string' ? { url: input.url } : {};
   }
   return {};
 }
@@ -119,7 +122,7 @@ interface AnthropicStreamState {
   /** The currently-open `server_tool_use` block whose input JSON is being accumulated. */
   current?: { id: string; tool: string; json: string };
   /** Finalized server_tool_use inputs (code / query), by id, awaiting their result. */
-  pending: Map<string, { code?: string; query?: string }>;
+  pending: Map<string, { code?: string; query?: string; url?: string }>;
 }
 
 export class AnthropicAdapter implements ProviderAdapter {
@@ -202,6 +205,17 @@ export class AnthropicAdapter implements ProviderAdapter {
                 type: 'web_search_20260318',
                 name: 'web_search',
                 max_uses: 5,
+                allowed_callers: ['direct'],
+                ...t.params,
+              };
+            }
+            if (t.type === 'web_fetch') {
+              // Current GA version. Like web_search it defaults to programmatic tool
+              // calling, so default allowed_callers to ['direct']; forward params
+              // (allowed_domains, blocked_domains, citations, max_content_tokens, max_uses).
+              return {
+                type: 'web_fetch_20260318',
+                name: 'web_fetch',
                 allowed_callers: ['direct'],
                 ...t.params,
               };
@@ -488,6 +502,7 @@ export class AnthropicAdapter implements ProviderAdapter {
           ...(id ? { id } : {}),
           ...(input?.code ? { code: input.code } : {}),
           ...(input?.query ? { query: input.query } : {}),
+          ...(input?.url ? { url: input.url } : {}),
           ...(output ? { output } : {}),
         });
       }

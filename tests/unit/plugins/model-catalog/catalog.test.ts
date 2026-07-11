@@ -18,8 +18,13 @@ describe('ModelCatalog', () => {
     it('injects provider builtin tools for tool-capable models', () => {
       const c = new ModelCatalog();
       c.set('anthropic', 'claude-x', { pricing: {}, capabilities: { toolUse: true } as never });
-      expect(c.builtinToolsFor('anthropic', 'claude-x')).toEqual(['web_search', 'code_interpreter']);
+      expect(c.builtinToolsFor('anthropic', 'claude-x')).toEqual([
+        'web_search',
+        'web_fetch',
+        'code_interpreter',
+      ]);
       expect(c.supportsBuiltinTool('anthropic', 'claude-x', 'code_interpreter')).toBe(true);
+      expect(c.supportsBuiltinTool('anthropic', 'claude-x', 'web_fetch')).toBe(true);
       expect(c.supportsBuiltinTool('anthropic', 'claude-x', 'file_search')).toBe(false);
     });
 

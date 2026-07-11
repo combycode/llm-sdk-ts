@@ -201,6 +201,21 @@ describe('AnthropicAdapter — tools', () => {
     });
   });
 
+  it('maps the web_fetch builtin to web_fetch_20260318 with allowed_callers default + forwarded params', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      tools: [{ type: 'web_fetch', params: { max_content_tokens: 4096, allowed_domains: ['docs.dev'] } }],
+    });
+    const tools = r.body.tools as Array<Record<string, unknown>>;
+    expect(tools).toContainEqual({
+      type: 'web_fetch_20260318',
+      name: 'web_fetch',
+      allowed_callers: ['direct'],
+      max_content_tokens: 4096,
+      allowed_domains: ['docs.dev'],
+    });
+  });
+
   it('maps the code_interpreter builtin to anthropic hosted code_execution', () => {
     const r = a.buildRequest({ ...baseReq, tools: [{ type: 'code_interpreter' }] });
     const tools = r.body.tools as Array<Record<string, unknown>>;
@@ -602,6 +617,26 @@ describe('AnthropicAdapter — parseResponse', () => {
     };
     expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([
       { tool: 'code_interpreter', id: 'srv_1', code: 'print(1+1)', output: '2\n' },
+    ]);
+  });
+
+  it('web_fetch server_tool_use → url in builtinToolCalls', () => {
+    const raw = {
+      id: 'm',
+      model: 'm',
+      stop_reason: 'end_turn',
+      usage: { input_tokens: 1, output_tokens: 1 },
+      content: [
+        { type: 'server_tool_use', id: 'srv_f', name: 'web_fetch', input: { url: 'https://docs.dev/x' } },
+        {
+          type: 'web_fetch_tool_result',
+          tool_use_id: 'srv_f',
+          content: { type: 'web_fetch_result', url: 'https://docs.dev/x', retrieved_at: null },
+        },
+      ],
+    };
+    expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([
+      { tool: 'web_fetch', id: 'srv_f', url: 'https://docs.dev/x' },
     ]);
   });
 

@@ -10,7 +10,7 @@ export interface FunctionTool {
 }
 
 export interface BuiltinTool {
-  type: 'image_generation' | 'web_search' | 'code_interpreter' | 'file_search' | 'mcp';
+  type: 'image_generation' | 'web_search' | 'web_fetch' | 'code_interpreter' | 'file_search' | 'mcp';
   params?: Record<string, unknown>;
 }
 

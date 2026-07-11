@@ -38,6 +38,8 @@ interface GoogleStreamState {
   codeExec: boolean;
   /** web_search (grounding) builtin_tool events emitted once per stream. */
   webSearchEmitted?: boolean;
+  /** web_fetch (urlContext) builtin_tool events emitted once per stream. */
+  urlFetchEmitted?: boolean;
   /** Code from the last `executableCode` part, to attach to its `builtin_tool_end`. */
   pendingCode?: string;
 }
@@ -124,6 +126,10 @@ export class GoogleAdapter implements ProviderAdapter {
       // Unified code_interpreter builtin → Gemini code execution.
       if (req.tools.some((t) => !isFunctionTool(t) && t.type === 'code_interpreter')) {
         tools.push({ codeExecution: {} });
+      }
+      // Unified web_fetch builtin → Gemini URL context (reads user-provided URLs).
+      if (req.tools.some((t) => !isFunctionTool(t) && t.type === 'web_fetch')) {
+        tools.push({ urlContext: {} });
       }
       if (tools.length) body.tools = tools;
     }
@@ -346,6 +352,15 @@ export class GoogleAdapter implements ProviderAdapter {
       const q = (grounding.webSearchQueries as string[] | undefined)?.[0];
       builtinToolCalls.push({ tool: 'web_search', ...(typeof q === 'string' ? { query: q } : {}) });
     }
+    // web_fetch (urlContext): one entry per fetched URL from urlContextMetadata.
+    const urlCtx = candidate.urlContextMetadata as Record<string, unknown> | undefined;
+    const urlMeta = urlCtx?.urlMetadata as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(urlMeta)) {
+      for (const m of urlMeta) {
+        const url = m.retrievedUrl as string | undefined;
+        builtinToolCalls.push({ tool: 'web_fetch', ...(typeof url === 'string' ? { url } : {}) });
+      }
+    }
 
     return {
       id: crypto.randomUUID(), // Google doesn't return a response ID in generateContent
@@ -476,6 +491,23 @@ export class GoogleAdapter implements ProviderAdapter {
         tool: 'web_search',
         ...(typeof q === 'string' ? { query: q } : {}),
       });
+    }
+
+    // web_fetch (urlContext) — like grounding, no per-call markers: emit one
+    // start/end pair per retrieved URL the first time the metadata appears.
+    const streamUrlMeta = (candidate.urlContextMetadata as Record<string, unknown> | undefined)
+      ?.urlMetadata as Array<Record<string, unknown>> | undefined;
+    if (Array.isArray(streamUrlMeta) && !state.urlFetchEmitted) {
+      state.urlFetchEmitted = true;
+      for (const m of streamUrlMeta) {
+        const url = m.retrievedUrl as string | undefined;
+        events.push({ type: 'builtin_tool_start', tool: 'web_fetch' });
+        events.push({
+          type: 'builtin_tool_end',
+          tool: 'web_fetch',
+          ...(typeof url === 'string' ? { url } : {}),
+        });
+      }
     }
 
     const fr = candidate.finishReason as string | undefined;

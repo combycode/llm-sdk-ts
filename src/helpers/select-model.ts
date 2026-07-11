@@ -55,6 +55,7 @@ const CAP_KEYS: Record<string, string> = {
 const BUILTIN_TOOL_KEYS: Record<string, string> = {
   search: 'web_search',
   web_search: 'web_search',
+  web_fetch: 'web_fetch',
   code_interpreter: 'code_interpreter',
 };
 const KNOWN_KEYS = new Set([

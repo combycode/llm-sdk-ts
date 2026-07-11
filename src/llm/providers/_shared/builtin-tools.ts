@@ -9,10 +9,12 @@ const NATIVE_TO_UNIFIED: Record<string, string> = {
   code_interpreter_call: 'code_interpreter',
   // Anthropic server_tool_use names
   web_search: 'web_search',
+  web_fetch: 'web_fetch',
   code_execution: 'code_interpreter',
   bash_code_execution: 'code_interpreter',
   // Anthropic *_tool_result block types
   web_search_tool_result: 'web_search',
+  web_fetch_tool_result: 'web_fetch',
   code_execution_tool_result: 'code_interpreter',
   bash_code_execution_tool_result: 'code_interpreter',
 };

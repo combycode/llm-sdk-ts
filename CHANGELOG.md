@@ -7,6 +7,15 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 ## [Unreleased]
 
 ### Added
+- **Unified `web_fetch` hosted tool.** New `{ type: 'web_fetch' }` builtin that reads a
+  user-provided URL, mapped to Anthropic's `web_fetch_20260318` (GA; `params` like `allowed_domains`
+  / `blocked_domains` / `citations` / `max_content_tokens` / `max_uses` forwarded verbatim, with
+  `allowed_callers: ['direct']` defaulted so it works on chat models) and Google's `urlContext` tool.
+  The fetched URL surfaces on `response.builtinToolCalls` (`{ tool: 'web_fetch', url }`) and the
+  streamed `builtin_tool_start` / `builtin_tool_end` events, normalized across both providers.
+  `capabilities.builtinTools` / `catalog.supportsBuiltinTool()` / `select('web_fetch')` report it on
+  Anthropic + Google (OpenAI's `web_search` already opens pages; xAI / OpenRouter expose no fetch
+  tool). Verified live on Anthropic and Google.
 - **Builtin-tool call payloads.** `BuiltinToolCall` (and the `builtin_tool_end` stream event) now
   carry what the tool ran: `code` + `output` (stdout) for `code_interpreter`, and `query` (search
   step) or `url` (page-open step) for `web_search` — normalized across every provider (OpenAI/xAI

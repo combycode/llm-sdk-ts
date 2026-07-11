@@ -47,6 +47,11 @@ describe('GoogleAdapter — web_search builtin', () => {
     expect(r.body.tools).toContainEqual({ codeExecution: {} });
   });
 
+  it('maps the web_fetch builtin to a urlContext tool', () => {
+    const r = a.buildRequest({ ...baseReq, tools: [{ type: 'web_fetch' }] });
+    expect(r.body.tools).toContainEqual({ urlContext: {} });
+  });
+
   it('sets responseModalities AUDIO when outputModalities includes audio', () => {
     const r = a.buildRequest({ ...baseReq, outputModalities: ['audio'], audio: { voice: 'warm' } });
     const gc = r.body.generationConfig as {
@@ -366,6 +371,27 @@ describe('GoogleAdapter — parseResponse', () => {
     };
     expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([
       { tool: 'web_search', query: 'capital of Australia' },
+    ]);
+  });
+
+  it('urlContextMetadata → web_fetch builtinToolCall per retrieved URL', () => {
+    const raw = {
+      candidates: [
+        {
+          content: { parts: [{ text: 'summary' }] },
+          finishReason: 'STOP',
+          urlContextMetadata: {
+            urlMetadata: [
+              { retrievedUrl: 'https://a.dev/1', urlRetrievalStatus: 'URL_RETRIEVAL_STATUS_SUCCESS' },
+              { retrievedUrl: 'https://a.dev/2' },
+            ],
+          },
+        },
+      ],
+    };
+    expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([
+      { tool: 'web_fetch', url: 'https://a.dev/1' },
+      { tool: 'web_fetch', url: 'https://a.dev/2' },
     ]);
   });
 

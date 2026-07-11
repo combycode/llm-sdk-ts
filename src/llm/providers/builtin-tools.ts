@@ -10,14 +10,17 @@
  *    - web_search       → anthropic, openai, google, xai, openrouter
  *    - code_interpreter → anthropic, openai, google, xai   (NOT openrouter: it
  *      proxies function tools + its own plugins, but does not route hosted code
- *      execution — confirmed against the API). */
+ *      execution — confirmed against the API).
+ *    - web_fetch        → anthropic (web_fetch_20260318), google (urlContext).
+ *      OpenAI has no separate fetch tool (its web_search does page-open); xAI /
+ *      openrouter expose none. */
 
 import type { ProviderName } from '../types/provider';
 
 export const PROVIDER_BUILTIN_TOOLS: Record<ProviderName, readonly string[]> = {
-  anthropic: ['web_search', 'code_interpreter'],
+  anthropic: ['web_search', 'web_fetch', 'code_interpreter'],
   openai: ['web_search', 'code_interpreter'],
-  google: ['web_search', 'code_interpreter'],
+  google: ['web_search', 'web_fetch', 'code_interpreter'],
   xai: ['web_search', 'code_interpreter'],
   openrouter: ['web_search'],
 };
