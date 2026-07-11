@@ -1593,9 +1593,10 @@
       "gpt-4o-mini-2024-07-18"
     ],
     "pricing": {
-      "inputPerMTok": 1.25,
-      "outputPerMTok": 5,
-      "perMinute": 0.003
+      "inputPerMTok": 0.15,
+      "outputPerMTok": 0.6,
+      "perMinute": 0.003,
+      "cacheReadPerMTok": 0.075
     },
     "preferredApi": "responses",
     "supportedApis": [
@@ -2248,8 +2249,8 @@
       "gpt-realtime-2025-08-28"
     ],
     "pricing": {
-      "inputPerMTok": 4,
-      "outputPerMTok": 24,
+      "inputPerMTok": 32,
+      "outputPerMTok": 64,
       "cacheReadPerMTok": 0.4,
       "audioInputPerMTok": 32,
       "audioOutputPerMTok": 64
@@ -2348,8 +2349,8 @@
       "gpt-realtime-2"
     ],
     "pricing": {
-      "inputPerMTok": 4,
-      "outputPerMTok": 24,
+      "inputPerMTok": 32,
+      "outputPerMTok": 64,
       "cacheReadPerMTok": 0.4,
       "audioInputPerMTok": 32,
       "audioOutputPerMTok": 64
@@ -2484,7 +2485,8 @@
     "family": "gpt-realtime",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "contextWindow": 128000
   },
   "openai/gpt-realtime-whisper": {
     "providerModelName": "gpt-realtime-whisper",
@@ -2527,7 +2529,8 @@
     "family": "gpt-realtime",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "contextWindow": 128000
   },
   "openai/o1": {
     "providerModelName": "o1",
@@ -2636,7 +2639,8 @@
     },
     "preferredApi": "responses",
     "supportedApis": [
-      "responses"
+      "responses",
+      "completions"
     ],
     "contextWindow": 200000,
     "maxOutput": 100000,
@@ -2770,9 +2774,9 @@
       "o4-mini-2025-04-16"
     ],
     "pricing": {
-      "inputPerMTok": 4,
-      "outputPerMTok": 16,
-      "cacheReadPerMTok": 1,
+      "inputPerMTok": 1.1,
+      "outputPerMTok": 4.4,
+      "cacheReadPerMTok": 0.275,
       "tiers": {
         "batch": {
           "inputPerMTok": 2,
@@ -3109,7 +3113,9 @@
       "tts-1",
       "tts-1-1106"
     ],
-    "pricing": { "perMChars": 15 },
+    "pricing": {
+      "perMChars": 15
+    },
     "preferredApi": "responses",
     "supportedApis": [
       "responses",
@@ -3187,7 +3193,9 @@
       "tts-1-hd",
       "tts-1-hd-1106"
     ],
-    "pricing": { "perMChars": 30 },
+    "pricing": {
+      "perMChars": 30
+    },
     "preferredApi": "responses",
     "supportedApis": [
       "responses",
@@ -3347,7 +3355,9 @@
     "aliases": [
       "whisper-1"
     ],
-    "pricing": { "perMinute": 0.006 },
+    "pricing": {
+      "perMinute": 0.006
+    },
     "preferredApi": "responses",
     "supportedApis": [
       "responses",
@@ -3381,7 +3391,8 @@
     "family": "whisper",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "contextWindow": 16000
   },
   "openai/gpt-4o-transcribe": {
     "providerModelName": "gpt-4o-transcribe",
@@ -3571,6 +3582,300 @@
     ],
     "family": "moderation",
     "version": "1",
+    "status": "stable",
+    "active": true
+  },
+  "openai/gpt-realtime-2.1-mini": {
+    "providerModelName": "gpt-realtime-2.1-mini",
+    "aliases": [
+      "gpt-realtime-2.1-mini"
+    ],
+    "pricing": {
+      "inputPerMTok": 10,
+      "cacheReadPerMTok": 0.3,
+      "outputPerMTok": 20
+    },
+    "preferredApi": "responses",
+    "supportedApis": [
+      "responses",
+      "completions"
+    ],
+    "contextWindow": 128000,
+    "maxOutput": 4096,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": false,
+      "vision": false,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "realtime",
+    "inputModalities": [
+      "text",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "gpt-realtime",
+    "version": "2.1",
+    "status": "stable",
+    "active": true
+  },
+  "openai/gpt-realtime-2.1": {
+    "providerModelName": "gpt-realtime-2.1",
+    "aliases": [
+      "gpt-realtime-2.1"
+    ],
+    "pricing": {
+      "inputPerMTok": 32,
+      "cacheReadPerMTok": 0.4,
+      "outputPerMTok": 64
+    },
+    "preferredApi": "responses",
+    "supportedApis": [
+      "responses",
+      "completions"
+    ],
+    "contextWindow": 128000,
+    "maxOutput": 32000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": false,
+      "vision": false,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "realtime",
+    "inputModalities": [
+      "text",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "gpt-realtime",
+    "version": "2.1",
+    "status": "stable",
+    "active": true
+  },
+  "openai/gpt-5.6-sol": {
+    "providerModelName": "gpt-5.6-sol",
+    "aliases": [
+      "gpt-5.6-sol"
+    ],
+    "pricing": {
+      "inputPerMTok": 5,
+      "outputPerMTok": 30,
+      "cacheReadPerMTok": 0.5,
+      "tiers": {
+        "batch": {
+          "inputPerMTok": 2.5,
+          "outputPerMTok": 15,
+          "cacheReadPerMTok": 0.25
+        },
+        "flex": {
+          "inputPerMTok": 2.5,
+          "outputPerMTok": 15,
+          "cacheReadPerMTok": 0.25
+        },
+        "priority": {
+          "inputPerMTok": 10,
+          "outputPerMTok": 60,
+          "cacheReadPerMTok": 1
+        }
+      }
+    },
+    "preferredApi": "responses",
+    "supportedApis": [
+      "responses",
+      "completions"
+    ],
+    "contextWindow": 1050000,
+    "maxOutput": 128000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false,
+      "webSearch": true
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "gpt-sol",
+    "version": "5.6",
+    "status": "stable",
+    "active": true
+  },
+  "openai/gpt-5.6-terra": {
+    "providerModelName": "gpt-5.6-terra",
+    "aliases": [
+      "gpt-5.6-terra"
+    ],
+    "pricing": {
+      "inputPerMTok": 2.5,
+      "outputPerMTok": 15,
+      "cacheReadPerMTok": 0.25,
+      "tiers": {
+        "batch": {
+          "inputPerMTok": 1.25,
+          "outputPerMTok": 7.5,
+          "cacheReadPerMTok": 0.125
+        },
+        "flex": {
+          "inputPerMTok": 1.25,
+          "outputPerMTok": 7.5,
+          "cacheReadPerMTok": 0.125
+        },
+        "priority": {
+          "inputPerMTok": 5,
+          "outputPerMTok": 30,
+          "cacheReadPerMTok": 0.5
+        }
+      }
+    },
+    "preferredApi": "responses",
+    "supportedApis": [
+      "responses",
+      "completions"
+    ],
+    "contextWindow": 1050000,
+    "maxOutput": 128000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false,
+      "webSearch": true
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "gpt-terra",
+    "version": "5.6",
+    "status": "stable",
+    "active": true
+  },
+  "openai/gpt-5.6-luna": {
+    "providerModelName": "gpt-5.6-luna",
+    "aliases": [
+      "gpt-5.6-luna"
+    ],
+    "pricing": {
+      "inputPerMTok": 1,
+      "outputPerMTok": 6,
+      "cacheReadPerMTok": 0.1,
+      "tiers": {
+        "batch": {
+          "inputPerMTok": 0.5,
+          "outputPerMTok": 3,
+          "cacheReadPerMTok": 0.05
+        },
+        "flex": {
+          "inputPerMTok": 0.5,
+          "outputPerMTok": 3,
+          "cacheReadPerMTok": 0.05
+        },
+        "priority": {
+          "inputPerMTok": 2,
+          "outputPerMTok": 12,
+          "cacheReadPerMTok": 0.2
+        }
+      }
+    },
+    "preferredApi": "responses",
+    "supportedApis": [
+      "responses",
+      "completions"
+    ],
+    "contextWindow": 1050000,
+    "maxOutput": 128000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false,
+      "webSearch": true
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "gpt-luna",
+    "version": "5.6",
     "status": "stable",
     "active": true
   }

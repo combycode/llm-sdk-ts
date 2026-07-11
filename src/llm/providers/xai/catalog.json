@@ -105,7 +105,8 @@
     "family": "grok",
     "version": "4.20",
     "status": "stable",
-    "active": true
+    "active": true,
+    "contextWindow": 2000000
   },
   "xai/grok-4.20-multi-agent": {
     "providerModelName": "grok-4.20-multi-agent-0309",
@@ -276,7 +277,7 @@
     ],
     "pricing": {
       "perUnit": {
-        "1k": 0.002,
+        "1k": 0.02,
         "2k": 0.02
       },
       "perImage": 0.02
@@ -350,10 +351,10 @@
     ],
     "pricing": {
       "perUnit": {
-        "1k": 0.01,
-        "2k": 0.05
+        "1k": 0.05,
+        "2k": 0.07
       },
-      "perImage": 0.04
+      "perImage": 0.05
     },
     "preferredApi": "responses",
     "supportedApis": [
@@ -425,10 +426,10 @@
     "pricing": {
       "perSecond": 0.01,
       "perUnit": {
-        "480p": 0.002,
-        "720p": 0.05,
-        "1080p": 0.07
-      }
+        "480p": 0.05,
+        "720p": 0.07
+      },
+      "perImage": 0.002
     },
     "preferredApi": "responses",
     "supportedApis": [
@@ -494,14 +495,17 @@
   "xai/grok-imagine-video-1.5": {
     "providerModelName": "grok-imagine-video-1.5-preview",
     "aliases": [
-      "grok-imagine-video-1.5-preview"
+      "grok-imagine-video-1.5-preview",
+      "grok-imagine-video-1.5"
     ],
     "pricing": {
       "perSecond": 0.01,
       "perUnit": {
         "480p": 0.08,
-        "720p": 0.14
-      }
+        "720p": 0.14,
+        "1080p": 0.25
+      },
+      "perImage": 0.01
     },
     "preferredApi": "responses",
     "supportedApis": [
@@ -563,5 +567,60 @@
         ]
       }
     }
+  },
+  "xai/grok-4.5": {
+    "providerModelName": "grok-4.5",
+    "aliases": [
+      "grok-4.5"
+    ],
+    "pricing": {
+      "inputPerMTok": 2,
+      "outputPerMTok": 6,
+      "cacheReadPerMTok": 0.5,
+      "tiers": {
+        "long-context": {
+          "inputPerMTok": 4,
+          "outputPerMTok": 12,
+          "cacheReadPerMTok": 1
+        }
+      }
+    },
+    "preferredApi": "responses",
+    "supportedApis": [
+      "responses",
+      "completions"
+    ],
+    "contextWindow": 500000,
+    "maxOutput": 500000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "grok",
+    "version": "4.5",
+    "status": "stable",
+    "active": true
   }
 }

@@ -51,7 +51,7 @@
     "family": "claude-opus",
     "version": "4",
     "status": "legacy",
-    "active": true,
+    "active": false,
     "deprecation": {
       "date": "2026-05-14",
       "source": "litellm"
@@ -395,7 +395,7 @@
     "family": "claude-sonnet",
     "version": "4",
     "status": "legacy",
-    "active": true,
+    "active": false,
     "deprecation": {
       "date": "2026-05-14",
       "source": "litellm"
@@ -562,5 +562,164 @@
     "version": "4.5",
     "status": "stable",
     "active": true
+  },
+  "anthropic/claude-fable-5": {
+    "providerModelName": "claude-fable-5",
+    "aliases": [
+      "claude-fable-5"
+    ],
+    "pricing": {
+      "inputPerMTok": 10,
+      "outputPerMTok": 50,
+      "cacheReadPerMTok": 1,
+      "tiers": {
+        "batch": {
+          "inputPerMTok": 5,
+          "outputPerMTok": 25
+        }
+      }
+    },
+    "preferredApi": "messages",
+    "supportedApis": [
+      "messages"
+    ],
+    "contextWindow": 1000000,
+    "maxOutput": 128000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image",
+      "pdf"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "claude-fable",
+    "version": "5",
+    "status": "stable",
+    "active": true
+  },
+  "anthropic/claude-sonnet-5": {
+    "providerModelName": "claude-sonnet-5",
+    "aliases": [
+      "claude-sonnet-5"
+    ],
+    "pricing": {
+      "inputPerMTok": 2,
+      "outputPerMTok": 10,
+      "cacheReadPerMTok": 0.2,
+      "tiers": {
+        "batch": {
+          "inputPerMTok": 1,
+          "outputPerMTok": 5
+        }
+      }
+    },
+    "preferredApi": "messages",
+    "supportedApis": [
+      "messages"
+    ],
+    "contextWindow": 1000000,
+    "maxOutput": 128000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image",
+      "pdf"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "claude-sonnet",
+    "version": "5",
+    "status": "stable",
+    "active": true
+  },
+  "anthropic/claude-mythos-5": {
+    "providerModelName": "claude-mythos-5",
+    "aliases": [
+      "claude-mythos-5"
+    ],
+    "pricing": {
+      "inputPerMTok": 10,
+      "outputPerMTok": 50,
+      "cacheReadPerMTok": 1,
+      "tiers": {
+        "batch": {
+          "inputPerMTok": 5,
+          "outputPerMTok": 25
+        }
+      }
+    },
+    "preferredApi": "messages",
+    "supportedApis": [
+      "messages"
+    ],
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "claude-mythos",
+    "version": "5",
+    "status": "stable",
+    "active": true,
+    "availability": "limited"
   }
 }
