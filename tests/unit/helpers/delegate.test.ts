@@ -156,14 +156,12 @@ describe('delegate — execute round-trip', () => {
     expect(joined).toContain('my specific task');
   });
 
-  it('when inner agent LLM errors, AgentLoop swallows it and returns empty text', async () => {
-    // AgentLoop.complete() catches LLM errors internally (finishReason:'error'),
-    // so delegate() returns the (empty) text rather than throwing.
+  it('when inner agent LLM errors, the error propagates (no silent empty)', async () => {
+    // AgentLoop.complete() now re-throws a failed LLM call instead of returning
+    // empty text, so a delegated sub-agent failure surfaces to the caller (when used
+    // as a tool inside a parent loop, the parent turns it into an error tool result).
     const agent = new AgentLoop({ client: mockErrorClient('inner failure'), hooks: new HookBus() });
     const tool = delegate('flaky', 'Throws', agent);
-    const result = await tool.execute({ task: 'do something' }, NOOP_CTX);
-    // AgentLoop returns empty string on error (no lastResponse.text)
-    expect(typeof result).toBe('string');
-    expect(result).toBe('');
+    await expect(tool.execute({ task: 'do something' }, NOOP_CTX)).rejects.toThrow('inner failure');
   });
 });

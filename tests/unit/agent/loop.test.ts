@@ -414,9 +414,26 @@ describe('AgentLoop — hook emission', () => {
     } as unknown as LLMClient;
 
     const loop = new AgentLoop({ client, hooks });
-    const res = await loop.complete('go');
-    expect(res.finishReason).toBe('error');
+    // A failed LLM call throws (it does not silently return finishReason:'error').
+    await expect(loop.complete('go')).rejects.toThrow('llm-down');
     expect(errors.length).toBe(1);
+  });
+
+  it('stream() throws on a failed LLM call (no silent early done)', async () => {
+    const client = {
+      ...makeMockClient(),
+      async *stream() {
+        throw new Error('stream-down');
+      },
+    } as unknown as LLMClient;
+
+    const loop = new AgentLoop({ client });
+    const drain = async () => {
+      for await (const _ of loop.stream('go')) {
+        // drain
+      }
+    };
+    await expect(drain()).rejects.toThrow('stream-down');
   });
 
   it('hook can override tool result via overrideResult', async () => {

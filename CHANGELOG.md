@@ -26,6 +26,15 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   override any default through `params`. Live-verified across all providers (scenario 27, 5/5).
 
 ### Fixed
+- **Agent loop no longer swallows failed runs into empty text.** `AgentLoop.complete()` and
+  `.stream()` caught any mid-run LLM error, set `finishReason:'error'`, and returned an empty
+  `CompletionResponse` (or ended the stream) with the error message dropped — so a tool-using
+  `complete()` / `delegate()` / `handoff()` returned `""` on an auth failure, rate limit, context
+  overflow, etc., while the same call *without* tools threw. Both now **re-throw** the original error
+  (preserving `LLMError` kind/status) after finalizing metrics/hooks, matching the no-tools path and
+  the raw client stream. `AgentLoop.run()` is unchanged — it still returns an `AgentRunReport` with
+  `reason:'error'` + `error` for callers that want partial results. Live-verified (bad key → thrown
+  `auth` error, not empty text).
 - **Agent loop now continues stateful turns server-side.** After a tool call the loop stamped its
   assistant turn without provenance, so multi-turn runs on a stateful API always resent the full
   transcript. On Google Interactions that transcript replay is *rejected* (the API requires resuming

@@ -247,6 +247,9 @@ export class AgentLoop {
     let lastResponse: CompletionResponse | null = null;
     let reason: 'done' | 'stopped' | 'error' | 'guardrail' | 'max_steps' = 'done';
     let errorMsg: string | undefined;
+    // Original thrown error, re-thrown by complete()/stream() so a failed run never
+    // silently returns empty text (run() keeps the non-throwing AgentRunReport).
+    let caughtError: unknown;
     let guardrailTripReason: string | undefined;
 
     try {
@@ -384,6 +387,7 @@ export class AgentLoop {
     } catch (e) {
       reason = 'error';
       errorMsg = e instanceof Error ? e.message : String(e);
+      caughtError = e;
 
       await this.hooks.emit('onRunError', {
         runId,
@@ -453,6 +457,10 @@ export class AgentLoop {
       runTrace,
     });
 
+    // A failed LLM call must surface, not silently return empty text (the no-tools
+    // path throws too). Finalize first so metrics/hooks fire, then re-throw.
+    if (reason === 'error') throw caughtError ?? new Error(errorMsg ?? 'agent run failed');
+
     return finalResponse;
   }
 
@@ -490,6 +498,9 @@ export class AgentLoop {
     let lastResponse: CompletionResponse | null = null;
     let reason: 'done' | 'stopped' | 'error' | 'guardrail' | 'max_steps' = 'done';
     let errorMsg: string | undefined;
+    // Original thrown error, re-thrown by complete()/stream() so a failed run never
+    // silently returns empty text (run() keeps the non-throwing AgentRunReport).
+    let caughtError: unknown;
     let guardrailTripReason: string | undefined;
 
     try {
@@ -645,6 +656,7 @@ export class AgentLoop {
     } catch (e) {
       reason = 'error';
       errorMsg = e instanceof Error ? e.message : String(e);
+      caughtError = e;
       await this.hooks.emit('onRunError', {
         runId,
         agentId: this.id,
@@ -705,6 +717,10 @@ export class AgentLoop {
       totalToolTimeMs,
       runTrace,
     });
+
+    // Match complete() + the raw client stream: a failed run throws (it does not
+    // silently end with an empty 'done'). Finalize first so metrics/hooks fire.
+    if (reason === 'error') throw caughtError ?? new Error(errorMsg ?? 'agent run failed');
 
     yield { type: 'done', response: finalResponse };
   }
