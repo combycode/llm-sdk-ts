@@ -191,7 +191,20 @@ export class AnthropicAdapter implements ProviderAdapter {
           // set below) for its file outputs to surface. Unsupported builtins are skipped.
           if (!isFunctionTool(t)) {
             if (t.type === 'web_search') {
-              return { type: 'web_search_20250305', name: 'web_search', max_uses: 5 };
+              // Current GA version. Unlike 20250305, it defaults to *programmatic*
+              // tool calling (via code execution), which many chat models (e.g. haiku)
+              // reject — so default allowed_callers to ['direct'] to preserve the classic
+              // direct-call behaviour. Forward the unified params (allowed_domains,
+              // blocked_domains, user_location, response_inclusion, max_uses,
+              // allowed_callers) verbatim like the OpenAI adapter; the caller overrides
+              // any default.
+              return {
+                type: 'web_search_20260318',
+                name: 'web_search',
+                max_uses: 5,
+                allowed_callers: ['direct'],
+                ...t.params,
+              };
             }
             if (t.type === 'code_interpreter') {
               return { type: 'code_execution_20260521', name: 'code_execution' };

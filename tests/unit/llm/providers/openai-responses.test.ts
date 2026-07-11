@@ -481,6 +481,24 @@ describe('OpenAIResponsesAdapter — parseResponse', () => {
     ]);
   });
 
+  it('web_search prefers action.queries[] over the deprecated scalar action.query', () => {
+    const raw = {
+      id: 'r',
+      model: 'm',
+      output: [
+        {
+          type: 'web_search_call',
+          id: 'ws_1',
+          // OpenAI now sends both during deprecation; queries[] is authoritative.
+          action: { type: 'search', query: 'old scalar', queries: ['new array query'] },
+        },
+      ],
+    };
+    expect(a.parseResponse(raw, 0).builtinToolCalls).toEqual([
+      { tool: 'web_search', id: 'ws_1', query: 'new array query' },
+    ]);
+  });
+
   it('web_search open_page action → url (not query)', () => {
     const raw = {
       id: 'r',

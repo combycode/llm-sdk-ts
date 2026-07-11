@@ -165,8 +165,40 @@ describe('AnthropicAdapter — tools', () => {
     });
     const tools = r.body.tools as Array<Record<string, unknown>>;
     expect(tools).toHaveLength(2);
-    expect(tools).toContainEqual({ type: 'web_search_20250305', name: 'web_search', max_uses: 5 });
+    expect(tools).toContainEqual({
+      type: 'web_search_20260318',
+      name: 'web_search',
+      max_uses: 5,
+      allowed_callers: ['direct'],
+    });
     expect(tools.some((t) => t.name === 'fn' && !t.type)).toBe(true);
+  });
+
+  it('web_search forwards params (domain filters, user_location, response_inclusion) and caller max_uses overrides the default', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      tools: [
+        {
+          type: 'web_search',
+          params: {
+            max_uses: 2,
+            allowed_domains: ['example.com'],
+            user_location: { type: 'approximate', country: 'US' },
+            response_inclusion: 'excluded',
+          },
+        },
+      ],
+    });
+    const tools = r.body.tools as Array<Record<string, unknown>>;
+    expect(tools).toContainEqual({
+      type: 'web_search_20260318',
+      name: 'web_search',
+      max_uses: 2, // caller value wins over the default 5
+      allowed_callers: ['direct'], // default preserved (not overridden by these params)
+      allowed_domains: ['example.com'],
+      user_location: { type: 'approximate', country: 'US' },
+      response_inclusion: 'excluded',
+    });
   });
 
   it('maps the code_interpreter builtin to anthropic hosted code_execution', () => {

@@ -62,15 +62,18 @@ function codeOutputFromResponsesItem(item: Record<string, unknown>): string | un
   return parts.length ? parts.join('') : undefined;
 }
 
-/** web_search_call carries a query under `action` for a `search` step (`.query` /
- *  `.queries[]`), or a `url` for an `open_page` / `find` step (the page it read). */
+/** web_search_call carries a query under `action` for a `search` step
+ *  (`.queries[]`, or the deprecated scalar `.query`), or a `url` for an
+ *  `open_page` / `find` step (the page it read). */
 function searchActionPayload(item: Record<string, unknown>): { query?: string; url?: string } {
   const action = item.action as Record<string, unknown> | undefined;
   if (!action) return {};
   const out: { query?: string; url?: string } = {};
-  if (typeof action.query === 'string') out.query = action.query;
-  else if (Array.isArray(action.queries) && typeof action.queries[0] === 'string')
+  // OpenAI deprecated the singular `action.query` in favour of `action.queries[]`.
+  // Prefer the array; fall back to the legacy scalar for older/streamed items.
+  if (Array.isArray(action.queries) && typeof action.queries[0] === 'string')
     out.query = action.queries[0];
+  else if (typeof action.query === 'string') out.query = action.query;
   if (typeof action.url === 'string') out.url = action.url;
   return out;
 }

@@ -17,7 +17,18 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   actions carry the URL they read. Available on both `complete()` and streamed responses; verified
   live on all four providers.
 
+### Changed
+- **Anthropic web-search bumped to `web_search_20260318`** (from `web_search_20250305`) and now forwards
+  the unified `BuiltinTool.params` verbatim — `allowed_domains`, `blocked_domains`, `user_location`,
+  `response_inclusion`, `max_uses` (previously all silently dropped). The new version defaults to
+  *programmatic* tool calling (via code execution), which chat models like haiku reject, so the adapter
+  sends `allowed_callers: ['direct']` by default to preserve the classic direct-call behaviour; callers
+  override any default through `params`. Live-verified across all providers (scenario 27, 5/5).
+
 ### Fixed
+- **OpenAI web-search query precedence.** OpenAI deprecated the singular `web_search_call.action.query`
+  in favour of `action.queries[]`; the Responses adapter now prefers the array and falls back to the
+  scalar, so `BuiltinToolCall.query` stays populated on the new wire.
 - **Duplicate OpenAI code-execution files.** When code calls `plt.show()` *and* saves the figure,
   OpenAI emits an extra auto-display container file alongside the saved one — surfacing the same
   chart twice on `response.files`. The Responses adapter now drops the auto-display artifact (an
