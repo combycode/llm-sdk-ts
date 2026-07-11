@@ -26,6 +26,11 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   override any default through `params`. Live-verified across all providers (scenario 27, 5/5).
 
 ### Fixed
+- **xAI `service_tier` maps to xAI's own enum.** The xAI adapter inherited OpenAI's tier map and could
+  emit `auto` / `flex` / `scale`, which xAI's API rejects (its `ServiceTier` is `default` | `priority`
+  only). It now remaps from the unified tier — `standard` → `default`, `priority` → `priority`, and any
+  value xAI can't honor is omitted (the server picks its default) rather than 400'ing. Live-verified:
+  `priority` sent and billed back (`usage.serviceTier`/`pricingTier`), `flex` no longer errors.
 - **Agent loop no longer swallows failed runs into empty text.** `AgentLoop.complete()` and
   `.stream()` caught any mid-run LLM error, set `finishReason:'error'`, and returned an empty
   `CompletionResponse` (or ended the stream) with the error message dropped — so a tool-using

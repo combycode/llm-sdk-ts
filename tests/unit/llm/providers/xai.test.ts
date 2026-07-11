@@ -90,6 +90,19 @@ describe('XAIResponsesAdapter', () => {
     expect(r.body.instructions).toBeUndefined();
   });
 
+  it('service_tier: maps to xAI default|priority and omits values xAI rejects', () => {
+    const a = new XAIResponsesAdapter({ apiKey: 'k' });
+    const tier = (serviceTier?: string) =>
+      a.buildRequest({ ...baseReq, serviceTier } as NormalizedRequest).body.service_tier;
+    expect(tier('priority')).toBe('priority');
+    expect(tier('standard')).toBe('default');
+    // auto/flex/scale have no xAI equivalent → omitted (the inherited OpenAI map would 400).
+    expect(tier('flex')).toBeUndefined();
+    expect(tier('auto')).toBeUndefined();
+    expect(tier('scale')).toBeUndefined();
+    expect(tier(undefined)).toBeUndefined();
+  });
+
   it('strips reasoning param for non-multi-agent models', () => {
     const a = new XAIResponsesAdapter({ apiKey: 'k' });
     const r = a.buildRequest({

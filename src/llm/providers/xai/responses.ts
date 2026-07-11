@@ -12,6 +12,7 @@ import type { FileOutput } from '../../types/response';
 import { isFunctionTool } from '../../types/tools';
 import { bytesToBase64 } from '../../../util/base64';
 import { OpenAIResponsesAdapter } from '../openai/responses';
+import { xaiRequestTier } from './tiers';
 
 export interface XAIResponsesAdapterConfig {
   apiKey: string;
@@ -73,6 +74,12 @@ export class XAIResponsesAdapter extends OpenAIResponsesAdapter {
     if (!req.model.includes('multi-agent')) {
       delete body.reasoning;
     }
+
+    // Service tier: the inherited OpenAI map can emit auto/flex/scale, which xAI
+    // rejects (its enum is DEFAULT|PRIORITY only). Remap from the unified tier.
+    const xaiTier = xaiRequestTier(req.serviceTier);
+    if (xaiTier) body.service_tier = xaiTier;
+    else delete body.service_tier;
 
     // Code-execution output files are returned only when explicitly requested via
     // `include`. xAI accepts the OpenAI-style token here (its own `code_execution_*`
