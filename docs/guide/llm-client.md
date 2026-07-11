@@ -67,6 +67,56 @@ for await (const ev of llm.stream('Count to 5.')) {
 }
 ```
 
+### Structured output (typed error + opt-in repair)
+
+`structuredComplete(input, schema, options)` returns the parsed object typed as `T`. If the model's
+final output can't be parsed it throws a typed **`InvalidFinalOutputError`** (extends `AgentRunError`,
+carries `reason: 'invalid_final_output'` and the model's `rawText`) — not a bare `SyntaxError` — so you
+can differentiate and inspect. Pass `structured.repairAttempts` to have it re-prompt with the parse
+error before giving up (default `0`).
+
+```ts
+import { createLLM, InvalidFinalOutputError } from '@combycode/llm-sdk';
+
+const llm = createLLM({ model: 'openai/gpt-5.4-nano', apiKey: process.env.OPENAI_API_KEY });
+const schema = { type: 'object', properties: { city: { type: 'string' }, tempC: { type: 'number' } } };
+
+try {
+  const weather = await llm.structuredComplete<{ city: string; tempC: number }>(
+    'Weather in Paris as JSON.',
+    schema,
+    { structured: { schema, repairAttempts: 1 } }, // retry once on a parse failure
+  );
+  console.log(weather.city, weather.tempC);
+} catch (e) {
+  if (e instanceof InvalidFinalOutputError) console.error('bad output:', e.rawText);
+}
+```
+
+### Sampling penalties
+
+`presencePenalty` / `frequencyPenalty` (`[-2, 2]`) are honoured by OpenAI/xAI **chat-completions**,
+OpenRouter, and Google (**generateContent** + Interactions). OpenAI/xAI **Responses** and Anthropic
+have no penalty fields, so they ignore them.
+
+```ts
+await complete({ model: 'openai/gpt-5.4-nano', apiKey, prompt: '…', presencePenalty: 0.6, frequencyPenalty: 0.3 });
+```
+
+### Provider-specific options (`providerOptions`)
+
+`providerOptions` is a passthrough for provider features that have no unified equivalent. Each adapter
+reads the keys it understands and ignores the rest:
+
+- **Anthropic** — `userProfileId` → the `anthropic-user-profile-id` header (identifies the end user a
+  request acts on behalf of; needs the account-level `user-profiles` beta).
+- **Google Interactions** (`api: 'interactions'`) — `cachedContent` → the `cached_content` resource
+  (`projects/…/cachedContents/…`).
+
+```ts
+await complete({ model: 'anthropic/claude-haiku-4.5', apiKey, prompt: '…', providerOptions: { userProfileId: 'usr_42' } });
+```
+
 ### Multi-turn with server-state
 
 ```ts

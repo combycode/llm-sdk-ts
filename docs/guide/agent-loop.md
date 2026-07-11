@@ -174,6 +174,23 @@ if (res.finishReason === 'length') {
 
 The same `reason` is delivered in the `onRunComplete` hook payload.
 
+## Errors vs bounded stops
+
+A **failed LLM call** during a run (auth, rate limit, context overflow, provider error) **throws** out
+of `agent.complete()` / `agent.stream()` — the original `LLMError` (with `kind`/`status`) — matching a
+no-tools `complete()`. It never silently returns empty text. If you want partial results + a status
+instead of a throw, use `agent.run()`, which returns an `AgentRunReport` with `reason: 'error'` and the
+`error` message. **Bounded stops** are not errors: `max_steps` returns `finishReason: 'length'` (see
+above) and a model refusal returns normally — both are inspectable via `finishReason` / `report.reason`.
+
+## Server-state continuation
+
+On a stateful API (OpenAI Responses, Google Interactions) the loop automatically **continues by id**
+(`previous_response_id` / `previous_interaction_id`) between tool rounds instead of resending the whole
+transcript — gated by the catalog's retention TTL (openai/xai 30d, google 72h) and model binding. No
+configuration needed; it falls back to full history when the stored turn is too old or the provider
+isn't stateful.
+
 ## Related
 
 - [Tools (defineTool)](./tools.md)
