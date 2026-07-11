@@ -6,6 +6,8 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-07-11
+
 ### Added
 - **Typed structured-output failure + opt-in repair.** Structured output that can't be parsed now throws
   a typed `InvalidFinalOutputError` (extends `AgentRunError`, carries `reason: 'invalid_final_output'` and
@@ -236,6 +238,7 @@ First public release.
 - Service tiers end to end (request → bill → cost).
 - Cross-environment: runs on Node, Bun, and the browser. ESM, zero runtime deps.
 
+[1.6.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.6.0
 [1.2.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.2.0
 [1.1.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.1.0
 [1.0.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.0.0
