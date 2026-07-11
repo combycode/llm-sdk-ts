@@ -1,9 +1,11 @@
 /** resolveServerState (server-state decision brain) unit tests. */
 
 import { describe, expect, it } from 'bun:test';
+import { buildAssistantMessage } from '../../../src/llm/client-internal';
 import { resolveServerState } from '../../../src/llm/server-state';
 import type { Message } from '../../../src/llm/types/messages';
 import type { ProviderName } from '../../../src/llm/types/provider';
+import type { CompletionResponse } from '../../../src/llm/types/response';
 import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
 
 const catalog = new ModelCatalog(); // empty → provider-level defaults
@@ -132,5 +134,50 @@ describe('resolveServerState', () => {
       now: NOW,
     });
     expect(r.previousResponseId).toBeUndefined();
+  });
+});
+
+describe('buildAssistantMessage (provenance stamping — feeds resolveServerState)', () => {
+  const resp = (id: string): CompletionResponse =>
+    ({ id, content: [{ type: 'text', text: 'ok' }] }) as CompletionResponse;
+
+  it('stateful API stamps origin.serverStateId from the response id', () => {
+    for (const api of ['responses', 'interactions'] as const) {
+      const m = buildAssistantMessage(resp('resp_1'), { provider: 'google', model: 'g', api });
+      expect(m.origin?.serverStateId).toBe('resp_1');
+      expect(m.id).toBe('resp_1');
+    }
+  });
+
+  it('non-stateful API does NOT stamp serverStateId', () => {
+    for (const api of ['generate', 'completions', 'messages'] as const) {
+      const m = buildAssistantMessage(resp('resp_1'), { provider: 'anthropic', model: 'a', api });
+      expect(m.origin?.serverStateId).toBeUndefined();
+      expect(m.origin?.provider).toBe('anthropic');
+    }
+  });
+
+  it('no response id → no serverStateId even on a stateful API', () => {
+    const m = buildAssistantMessage(resp(''), { provider: 'openai', model: 'o', api: 'responses' });
+    expect(m.origin?.serverStateId).toBeUndefined();
+  });
+
+  it('the stamped message chains on the next turn via resolveServerState', () => {
+    const asstTurn = buildAssistantMessage(resp('int_42'), {
+      provider: 'google',
+      model: 'gemini-3.1-flash-lite',
+      api: 'interactions',
+    });
+    const d = resolveServerState({
+      messages: [{ role: 'user', content: 'hi' }, asstTurn, { role: 'tool', content: 'result' }],
+      provider: 'google',
+      model: 'gemini-3.1-flash-lite',
+      catalog,
+      stateful: true,
+      now: Date.now(),
+    });
+    // Only the post-interaction turn is resent; the id continues server-side.
+    expect(d.previousResponseId).toBe('int_42');
+    expect(d.messages).toEqual([{ role: 'tool', content: 'result' }]);
   });
 });

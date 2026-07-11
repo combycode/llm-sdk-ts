@@ -26,6 +26,14 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   override any default through `params`. Live-verified across all providers (scenario 27, 5/5).
 
 ### Fixed
+- **Agent loop now continues stateful turns server-side.** After a tool call the loop stamped its
+  assistant turn without provenance, so multi-turn runs on a stateful API always resent the full
+  transcript. On Google Interactions that transcript replay is *rejected* (the API requires resuming
+  by `previous_interaction_id`), which surfaced as an **empty final answer** on agentic tool use. The
+  loop now stamps `id` / `createdAt` / `origin.serverStateId` (via the shared `buildAssistantMessage`),
+  so the server-state brain continues by id and sends only the new turn — gated, as before, by catalog
+  support, the retention TTL (openai/xai 30d, google 72h), and model binding. Live-verified: Interactions
+  agentic round-trip now answers; OpenAI Responses / Anthropic tool loops unchanged.
 - **Google Interactions streaming (opt-in `api: 'interactions'`) brought current with the 2.10 wire.**
   The regenerated Interactions client replaced the old `content.delta` / `interaction.complete` events
   with a step machine — `step.start` / `step.delta` / `step.stop`, `interaction.created` /

@@ -8,9 +8,33 @@ import type { LLMClientConfig } from './client-config';
 import type { ContentPart, Message } from './types/messages';
 import type { ExecuteOptions } from './types/options';
 import type { ApiType, ProviderAdapter, ProviderName } from './types/provider';
+import type { CompletionResponse } from './types/response';
 
 export const PRIORITY_INTERACTIVE = 1;
 export const PRIORITY_BACKGROUND = 2;
+
+/** Build a history assistant message from a response, stamped with provenance
+ *  (id, createdAt, origin). On a stateful API (responses / interactions) the origin
+ *  carries the server-state id so a later turn can continue server-side instead of
+ *  resending the transcript. Shared by `LLMClient.assistantMessage` (manual multi-turn)
+ *  and the agent loop (so its tool turns also chain server-side). */
+export function buildAssistantMessage(
+  response: CompletionResponse,
+  origin: { provider: ProviderName; model: string; api: ApiType },
+): Message {
+  const stateful = origin.api === 'responses' || origin.api === 'interactions';
+  return {
+    role: 'assistant',
+    content: response.content,
+    id: response.id || crypto.randomUUID(),
+    createdAt: Date.now(),
+    origin: {
+      provider: origin.provider,
+      model: origin.model,
+      ...(stateful && response.id ? { serverStateId: response.id } : {}),
+    },
+  };
+}
 
 export function normalizeInput(input: string | ContentPart[] | Message[]): Message[] {
   if (typeof input === 'string') {

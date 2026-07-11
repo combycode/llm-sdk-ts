@@ -23,7 +23,7 @@ import type { CacheConfig, ThinkingConfig } from '../llm/types/request';
 import { emptyUsage, type CompletionResponse, type FileOutput, type Usage } from '../llm/types/response';
 import type { FileStream, RetrievedFile } from '../llm/files/retrieve';
 import type { LLMClient } from '../llm/client';
-import { parseStructured as parseStructuredText } from '../llm/client-internal';
+import { buildAssistantMessage, parseStructured as parseStructuredText } from '../llm/client-internal';
 import { writeAgentLoopContext, writeAgentLoopSystem } from './context-registry/layers';
 import { ConversationHistory } from './history';
 import type {
@@ -308,8 +308,17 @@ export class AgentLoop {
         totalLlmTimeMs += stepLatency;
         addUsage(totalUsage, lastResponse.usage);
 
+        // Stamp provenance (id/createdAt/origin.serverStateId on a stateful API) so
+        // the next iteration can continue server-side (previous_response_id /
+        // previous_interaction_id) instead of resending the whole transcript — which
+        // some stateful APIs (Google Interactions) reject outright. The server-state
+        // brain still gates on catalog support + retention TTL + model binding.
         this._history.append(
-          { role: 'assistant', content: lastResponse.content },
+          buildAssistantMessage(lastResponse, {
+            provider: this.client.provider,
+            model: this.client.model,
+            api: this.client.api,
+          }),
           { model: this.client.model, usage: lastResponse.usage, latencyMs: stepLatency },
         );
 
@@ -554,8 +563,16 @@ export class AgentLoop {
         finalText = state.stepText;
         lastResponse = stepResponse;
 
+        // Provenance-stamped (see the non-stream path) but keep the streamed content.
         this._history.append(
-          { role: 'assistant', content },
+          {
+            ...buildAssistantMessage(lastResponse, {
+              provider: this.client.provider,
+              model: this.client.model,
+              api: this.client.api,
+            }),
+            content,
+          },
           { model: this.client.model, usage: state.stepUsage, latencyMs: stepLatency },
         );
 

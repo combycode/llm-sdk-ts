@@ -53,6 +53,7 @@ import type { LLMClientConfig } from './client-config';
 import {
   PRIORITY_BACKGROUND,
   PRIORITY_INTERACTIVE,
+  buildAssistantMessage,
   buildContext,
   extractSystem,
   normalizeInput,
@@ -149,18 +150,11 @@ export class LLMClient {
    *    const r2 = await llm.complete(messages); // sends id + only the new turn
    */
   assistantMessage(response: CompletionResponse): Message {
-    const stateful = this.api === 'responses' || this.api === 'interactions';
-    return {
-      role: 'assistant',
-      content: response.content,
-      id: response.id || crypto.randomUUID(),
-      createdAt: Date.now(),
-      origin: {
-        provider: this.provider,
-        model: this.model,
-        ...(stateful && response.id ? { serverStateId: response.id } : {}),
-      },
-    };
+    return buildAssistantMessage(response, {
+      provider: this.provider,
+      model: this.model,
+      api: this.api,
+    });
   }
 
   // ─── Moderation helpers ───────────────────────────────────────────────
