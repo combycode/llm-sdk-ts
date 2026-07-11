@@ -31,6 +31,14 @@ export interface GoogleInteractionsAdapterConfig {
   baseURL?: string;
 }
 
+/** Per-stream state for the Interactions step machine: the id of the currently
+ *  open `function_call` step (to attach its id-less `arguments_delta`) and whether
+ *  any tool call occurred (to pick the `done` finish reason). */
+interface InteractionsStreamState {
+  callId?: string;
+  sawToolCall: boolean;
+}
+
 export class GoogleInteractionsAdapter implements ProviderAdapter {
   readonly name = 'google' as const;
   private readonly apiKey: string;
@@ -292,52 +300,93 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
     };
   }
 
-  parseStreamEvent(event: SSEEvent): StreamEvent[] {
+  /** Translate one Interactions SSE event to unified events. The 2.10 wire is a
+   *  step machine (verified live): `step.start` opens a typed step (`model_output`,
+   *  `function_call`, `thought`…), `step.delta` streams its payload (`{type:'text'}`,
+   *  `{type:'arguments_delta'}`, `{type:'thought_summary'}`, internal
+   *  `thought_signature`), `step.stop` closes it, and `interaction.completed` /
+   *  `interaction.failed` finish the turn (usage under `interaction.usage`). A
+   *  function call's `arguments_delta` carries no id, so we correlate it to the
+   *  currently-open call id held in `state`. */
+  private streamEvents(event: SSEEvent, state: InteractionsStreamState): StreamEvent[] {
     const data = JSON.parse(event.data) as Record<string, unknown>;
     const type = (data.event_type as string) ?? (data.type as string);
     const events: StreamEvent[] = [];
 
-    if (type === 'content.delta') {
-      const delta = data.delta as Record<string, unknown>;
-      if (delta?.type === 'text') {
-        events.push({ type: 'text', text: delta.text as string });
-      }
-      if (delta?.type === 'function_call') {
-        // Google streams function calls as complete objects in delta
-        events.push({
-          type: 'tool_call_start',
-          id: (delta.id as string) ?? '',
-          name: (delta.name as string) ?? '',
-        });
-        if (delta.arguments) {
-          events.push({
-            type: 'tool_call_delta',
-            id: (delta.id as string) ?? '',
-            arguments: JSON.stringify(delta.arguments),
-          });
+    if (type === 'step.start') {
+      const step = (data.step as Record<string, unknown>) ?? {};
+      if (step.type === 'function_call') {
+        const id = (step.id as string) ?? '';
+        state.callId = id;
+        state.sawToolCall = true;
+        events.push({ type: 'tool_call_start', id, name: (step.name as string) ?? '' });
+        // Args normally stream via arguments_delta; forward any inline object too.
+        const args = step.arguments as Record<string, unknown> | undefined;
+        if (args && Object.keys(args).length > 0) {
+          events.push({ type: 'tool_call_delta', id, arguments: JSON.stringify(args) });
         }
-        events.push({ type: 'tool_call_end', id: (delta.id as string) ?? '' });
       }
+      return events;
     }
 
-    if (type === 'interaction.complete') {
+    if (type === 'step.delta') {
+      const delta = (data.delta as Record<string, unknown>) ?? {};
+      const dtype = delta.type as string;
+      if (dtype === 'text') {
+        events.push({ type: 'text', text: (delta.text as string) ?? '' });
+      } else if (dtype === 'thought_summary') {
+        events.push({ type: 'thinking', text: (delta.text as string) ?? '' });
+      } else if (dtype === 'arguments_delta') {
+        // arguments already a JSON string fragment; belongs to the open call.
+        events.push({ type: 'tool_call_delta', id: state.callId ?? '', arguments: (delta.arguments as string) ?? '' });
+      }
+      // thought_signature and other delta kinds are internal → no unified event.
+      return events;
+    }
+
+    if (type === 'step.stop') {
+      // step.stop carries only an index; close the currently-open function call.
+      if (state.callId) {
+        events.push({ type: 'tool_call_end', id: state.callId });
+        state.callId = undefined;
+      }
+      return events;
+    }
+
+    if (type === 'interaction.completed' || type === 'interaction.failed') {
+      // Defensive: flush a still-open call if step.stop was omitted.
+      if (state.callId) {
+        events.push({ type: 'tool_call_end', id: state.callId });
+        state.callId = undefined;
+      }
       const interaction = (data.interaction as Record<string, unknown>) ?? {};
-      const usage = interaction.usage as Record<string, unknown>;
+      const usage =
+        (interaction.usage as Record<string, unknown>) ??
+        ((data.metadata as Record<string, unknown>)?.total_usage as Record<string, unknown>);
       if (usage) events.push({ type: 'usage', usage: this.parseUsage(usage) });
       events.push({
         type: 'done',
-        finishReason: extractFinishReason(false, interaction.status as string, {
+        finishReason: extractFinishReason(state.sawToolCall, interaction.status as string, {
           failed: 'error',
         }),
       });
+      return events;
     }
 
+    // interaction.created / interaction.status_update / interaction.requires_action → no unified event.
     return events;
   }
 
-  /** Stateless — the Interactions adapter surfaces no code-execution file outputs. */
+  parseStreamEvent(event: SSEEvent): StreamEvent[] {
+    // Stateless single-event entry (no cross-event correlation of tool-call args).
+    return this.streamEvents(event, { sawToolCall: false });
+  }
+
+  /** Per-stream stateful parser — correlates a function call's streamed arguments
+   *  and end to the call opened by its `step.start`. */
   createStreamParser(): (event: SSEEvent) => StreamEvent[] {
-    return (event) => this.parseStreamEvent(event);
+    const state: InteractionsStreamState = { sawToolCall: false };
+    return (event) => this.streamEvents(event, state);
   }
 
   private parseUsage(u: Record<string, unknown> | undefined): Usage {

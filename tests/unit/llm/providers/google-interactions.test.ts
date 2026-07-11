@@ -245,54 +245,61 @@ describe('GoogleInteractionsAdapter — parseResponse', () => {
   });
 });
 
-describe('GoogleInteractionsAdapter — parseStreamEvent', () => {
+describe('GoogleInteractionsAdapter — stream (2.10 step-machine wire)', () => {
   const a = new GoogleInteractionsAdapter({ apiKey: 'k' });
+  const sse = (o: unknown): SSEEvent => ({ data: JSON.stringify(o) });
 
-  it('content.delta text', () => {
-    const evt: SSEEvent = {
-      data: JSON.stringify({ event_type: 'content.delta', delta: { type: 'text', text: 'hi' } }),
-    };
-    expect(a.parseStreamEvent(evt)).toEqual([{ type: 'text', text: 'hi' }]);
-  });
-
-  it('content.delta function_call → start + delta + end', () => {
-    const evt: SSEEvent = {
-      data: JSON.stringify({
-        event_type: 'content.delta',
-        delta: { type: 'function_call', id: 'c1', name: 'lookup', arguments: { q: 'x' } },
-      }),
-    };
-    const events = a.parseStreamEvent(evt);
-    expect(events).toEqual([
-      { type: 'tool_call_start', id: 'c1', name: 'lookup' },
-      { type: 'tool_call_delta', id: 'c1', arguments: '{"q":"x"}' },
-      { type: 'tool_call_end', id: 'c1' },
+  it('step.delta text → text event', () => {
+    expect(a.parseStreamEvent(sse({ event_type: 'step.delta', delta: { type: 'text', text: 'hi' } }))).toEqual([
+      { type: 'text', text: 'hi' },
     ]);
   });
 
-  it('interaction.complete success → usage + done', () => {
-    const evt: SSEEvent = {
-      data: JSON.stringify({
-        event_type: 'interaction.complete',
-        interaction: {
-          status: 'completed',
-          usage: { total_input_tokens: 5, total_output_tokens: 3 },
-        },
-      }),
-    };
-    const events = a.parseStreamEvent(evt);
+  it('step.delta thought_summary → thinking event', () => {
+    expect(
+      a.parseStreamEvent(sse({ event_type: 'step.delta', delta: { type: 'thought_summary', text: 'hmm' } })),
+    ).toEqual([{ type: 'thinking', text: 'hmm' }]);
+  });
+
+  it('internal deltas (thought_signature) and lifecycle events yield nothing', () => {
+    expect(a.parseStreamEvent(sse({ event_type: 'step.delta', delta: { type: 'thought_signature', signature: 'x' } }))).toEqual([]);
+    expect(a.parseStreamEvent(sse({ event_type: 'interaction.created', interaction: { id: 'i' } }))).toEqual([]);
+    expect(a.parseStreamEvent(sse({ event_type: 'interaction.status_update', status: 'in_progress' }))).toEqual([]);
+  });
+
+  it('createStreamParser correlates a function call: step.start → arguments_delta → step.stop', () => {
+    const parse = a.createStreamParser();
+    // A text step first (its step.stop must NOT emit a tool_call_end).
+    expect(parse(sse({ event_type: 'step.start', step: { type: 'model_output' } }))).toEqual([]);
+    expect(parse(sse({ event_type: 'step.delta', delta: { type: 'text', text: 'ok' } }))).toEqual([{ type: 'text', text: 'ok' }]);
+    expect(parse(sse({ event_type: 'step.stop', index: 0 }))).toEqual([]);
+    // Then a function-call step: id from step.start, args streamed id-less.
+    expect(parse(sse({ event_type: 'step.start', step: { type: 'function_call', id: 'fc1', name: 'get_weather', arguments: {} } }))).toEqual([
+      { type: 'tool_call_start', id: 'fc1', name: 'get_weather' },
+    ]);
+    expect(parse(sse({ event_type: 'step.delta', delta: { type: 'arguments_delta', arguments: '{"city":"Paris"}' } }))).toEqual([
+      { type: 'tool_call_delta', id: 'fc1', arguments: '{"city":"Paris"}' },
+    ]);
+    expect(parse(sse({ event_type: 'step.stop', index: 1 }))).toEqual([{ type: 'tool_call_end', id: 'fc1' }]);
+    // completed after a tool call → tool_use finish reason.
+    expect(parse(sse({ event_type: 'interaction.completed', interaction: { status: 'completed', usage: { total_input_tokens: 5, total_output_tokens: 3 } } }))).toEqual([
+      { type: 'usage', usage: expect.objectContaining({ inputTokens: 5, outputTokens: 3 }) },
+      { type: 'done', finishReason: 'tool_use' },
+    ]);
+  });
+
+  it('interaction.completed (no tools) → usage from interaction.usage + done stop', () => {
+    const events = a.parseStreamEvent(
+      sse({ event_type: 'interaction.completed', interaction: { status: 'completed', usage: { total_input_tokens: 8, total_output_tokens: 2 } } }),
+    );
     expect(events.length).toBe(2);
     expect(events[0].type).toBe('usage');
     expect(events[1]).toEqual({ type: 'done', finishReason: 'stop' });
   });
 
-  it('interaction.complete failed → done error', () => {
-    const evt: SSEEvent = {
-      data: JSON.stringify({
-        event_type: 'interaction.complete',
-        interaction: { status: 'failed' },
-      }),
-    };
-    expect(a.parseStreamEvent(evt)).toEqual([{ type: 'done', finishReason: 'error' }]);
+  it('interaction.failed → done error', () => {
+    expect(a.parseStreamEvent(sse({ event_type: 'interaction.failed', interaction: { status: 'failed' } }))).toEqual([
+      { type: 'done', finishReason: 'error' },
+    ]);
   });
 });

@@ -26,6 +26,16 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   override any default through `params`. Live-verified across all providers (scenario 27, 5/5).
 
 ### Fixed
+- **Google Interactions streaming (opt-in `api: 'interactions'`) brought current with the 2.10 wire.**
+  The regenerated Interactions client replaced the old `content.delta` / `interaction.complete` events
+  with a step machine — `step.start` / `step.delta` / `step.stop`, `interaction.created` /
+  `interaction.completed` / `interaction.status_update` — so the previous parser produced no output.
+  The parser now reads `step.delta` payloads (`text`, `thought_summary` → thinking, `arguments_delta`),
+  opens/attaches/closes a function call across `step.start` → `arguments_delta` → `step.stop` (the
+  `arguments_delta` carries no id, so a per-stream parser correlates it), and finishes on
+  `interaction.completed` / `interaction.failed` with usage from `interaction.usage`. Live-verified
+  against the 2.10 API (streamed text, tool calls, usage). The default Google path (`generateContent`)
+  is unaffected.
 - **OpenAI web-search query precedence.** OpenAI deprecated the singular `web_search_call.action.query`
   in favour of `action.queries[]`; the Responses adapter now prefers the array and falls back to the
   scalar, so `BuiltinToolCall.query` stays populated on the new wire.
