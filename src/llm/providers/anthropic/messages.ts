@@ -281,6 +281,15 @@ export class AnthropicAdapter implements ProviderAdapter {
     const headers: Record<string, string> = {};
     if (hasFileRef) headers['anthropic-beta'] = 'files-api-2025-04-14';
 
+    // user_profile_id: forward a providerOptions.userProfileId to the
+    // `anthropic-user-profile-id` header (identifies the end user a request acts on
+    // behalf of; needs the account-level `user-profiles` beta). Mirrors the official
+    // SDK, which sets only this header.
+    const userProfileId = req.providerOptions?.userProfileId;
+    if (typeof userProfileId === 'string' && userProfileId) {
+      headers['anthropic-user-profile-id'] = userProfileId;
+    }
+
     // Hosted code execution is a beta feature: its output files (container files,
     // returned as bash_code_execution_output.file_id) only surface on the beta
     // endpoint. `client.beta.messages` hits `/v1/messages?beta=true`; mirror that

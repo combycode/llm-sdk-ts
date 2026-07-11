@@ -49,6 +49,12 @@ describe('GoogleInteractionsAdapter — buildRequest basics', () => {
     expect(r.body.generation_config).toBeUndefined();
   });
 
+  it('providerOptions.cachedContent → cached_content passthrough', () => {
+    const r = a.buildRequest({ ...baseReq, providerOptions: { cachedContent: 'projects/p/locations/l/cachedContents/c' } });
+    expect(r.body.cached_content).toBe('projects/p/locations/l/cachedContents/c');
+    expect(a.buildRequest(baseReq).body.cached_content).toBeUndefined();
+  });
+
   it('generation_config with all params (renames to snake_case)', () => {
     const r = a.buildRequest({
       ...baseReq,

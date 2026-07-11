@@ -216,6 +216,13 @@ describe('AnthropicAdapter — tools', () => {
     });
   });
 
+  it('providerOptions.userProfileId → anthropic-user-profile-id header', () => {
+    const r = a.buildRequest({ ...baseReq, providerOptions: { userProfileId: 'usr_42' } });
+    expect((r.headers as Record<string, string>)['anthropic-user-profile-id']).toBe('usr_42');
+    const none = a.buildRequest(baseReq);
+    expect((none.headers as Record<string, string>)['anthropic-user-profile-id']).toBeUndefined();
+  });
+
   it('maps the code_interpreter builtin to anthropic hosted code_execution', () => {
     const r = a.buildRequest({ ...baseReq, tools: [{ type: 'code_interpreter' }] });
     const tools = r.body.tools as Array<Record<string, unknown>>;

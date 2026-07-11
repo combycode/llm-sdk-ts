@@ -505,6 +505,19 @@ describe('OpenAIResponsesAdapter — parseResponse', () => {
     ]);
   });
 
+  it('tolerates unknown output items (e.g. additional_tools) without throwing', () => {
+    const raw = {
+      id: 'r',
+      model: 'm',
+      output: [
+        { type: 'additional_tools', tools: [{ type: 'function', name: 'x' }] }, // unknown → skipped
+        { type: 'message', content: [{ type: 'output_text', text: 'hi' }] },
+      ],
+    };
+    const res = a.parseResponse(raw, 0);
+    expect(res.text).toBe('hi'); // known item still parsed; unknown one ignored
+  });
+
   it('web_search open_page action → url (not query)', () => {
     const raw = {
       id: 'r',

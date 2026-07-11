@@ -112,6 +112,12 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
 
     if (Object.keys(genConfig).length > 0) body.generation_config = genConfig;
 
+    // Explicit cached content: the Interactions API takes a cached-content resource
+    // name (`projects/…/cachedContents/…`), not our ephemeral `cache` block, so it's a
+    // providerOptions passthrough.
+    const cachedContent = req.providerOptions?.cachedContent;
+    if (typeof cachedContent === 'string' && cachedContent) body.cached_content = cachedContent;
+
     // Structured output — polymorphic response_format (response_mime_type removed).
     if (req.structured) {
       body.response_format = {
