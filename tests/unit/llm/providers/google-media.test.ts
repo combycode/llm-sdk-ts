@@ -61,7 +61,7 @@ describe('GoogleMediaAdapter — image routing', () => {
     expect(params.sampleCount).toBe(2);
   });
 
-  it('gemini image params → responseFormat.image.{aspectRatio,imageSize}', async () => {
+  it('gemini image params → generationConfig.imageConfig.{aspectRatio,imageSize}', async () => {
     let captured: HttpRequest | undefined;
     await a.generateImage(
       {
@@ -77,9 +77,11 @@ describe('GoogleMediaAdapter — image routing', () => {
         },
       ),
     );
-    const gc = (captured?.body as { generationConfig: { responseFormat?: { image: Record<string, unknown> } } })
+    const gc = (captured?.body as { generationConfig: { imageConfig?: Record<string, unknown> } })
       .generationConfig;
-    expect(gc.responseFormat?.image).toEqual({ aspectRatio: '21:9', imageSize: '4K' });
+    // gemini-image generateContent takes aspect ratio/size under imageConfig; the old
+    // responseFormat.image path 400s ("Invalid value at …response_format.image.aspect_ratio").
+    expect(gc.imageConfig).toEqual({ aspectRatio: '21:9', imageSize: '4K' });
   });
 
   it('captures usageMetadata (token-priced gemini image)', async () => {

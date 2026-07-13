@@ -70,7 +70,7 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
       const image: Record<string, unknown> = {};
       if (req.params?.aspectRatio) image.aspectRatio = req.params.aspectRatio;
       if (req.params?.imageSize) image.imageSize = req.params.imageSize;
-      if (Object.keys(image).length) generationConfig.responseFormat = { image };
+      if (Object.keys(image).length) generationConfig.imageConfig = image;
 
       const { items, usage } = await this.generateContentMedia(
         model,

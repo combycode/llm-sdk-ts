@@ -6,6 +6,20 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+## [1.6.1] - 2026-07-13
+
+### Fixed
+- **Google gemini-image aspect ratio / size (broken image generation).** The `generateContent` image
+  path put `aspectRatio` / `imageSize` under `generationConfig.responseFormat.image`, which the API
+  rejects (`Invalid value at 'generation_config.response_format.image.aspect_ratio'`) — so any image
+  request that passed an aspect ratio 400'd. They belong under `generationConfig.imageConfig`. Verified
+  live: `imageConfig.aspectRatio` returns an image for every ratio. (Regressed into view once the 1.6.0
+  catalog started advertising `aspectRatio` media params, so the sandbox began sending it.)
+- **Per-model image sizes in the catalog.** The gemini-image `imageSize` options were a blanket
+  `512/1K/2K/4K`, but the models 400 on sizes they don't support. Narrowed per model
+  (live-probed + confirmed against the official docs): `gemini-3.1-flash-lite-image` → `1K` only;
+  `gemini-3-pro-image` / `nano-banana-pro` → `1K/2K/4K` (no 512); `gemini-3.1-flash-image` keeps all four.
+
 ## [1.6.0] - 2026-07-11
 
 ### Added
@@ -238,6 +252,7 @@ First public release.
 - Service tiers end to end (request → bill → cost).
 - Cross-environment: runs on Node, Bun, and the browser. ESM, zero runtime deps.
 
+[1.6.1]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.6.1
 [1.6.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.6.0
 [1.2.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.2.0
 [1.1.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.1.0
