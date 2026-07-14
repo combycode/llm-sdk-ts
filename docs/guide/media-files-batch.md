@@ -17,7 +17,7 @@ batches; and opening a real-time audio/text session.
 
 | Export | What it does |
 |---|---|
-| `createMediaOutput(opts)` | Build a media handle for image/audio/video generation. `.generateImage()`, `.generateAudio()`, `.generateVideo()`. Saves results to a local directory. |
+| `createMediaOutput(opts)` | Build a media handle for image/audio/video generation. `.generateImage()`, `.editImage()`, `.generateAudio()`, `.generateVideo()` (text/image-to-video, plus `sourceVideo` + `params.videoMode` to extend/edit on capable providers). Saves results to a local directory. |
 | `transcribe(opts)` | Speech-to-text (covered in [Tokens + embeddings](./tokens-embeddings.md) as well). |
 | `batch(opts)` | One-shot auto batch: submit + poll + return results. Each request mirrors `complete()` options. Supported providers: openai, anthropic, google. |
 | `submitBatch(opts)` | Submit only -- returns a `BatchJob` handle for manual polling. Supported providers: openai, anthropic, google. |
@@ -65,6 +65,55 @@ const audio = await media.generateAudio({
 });
 console.log(`Audio bytes: ${audio?.meta.size}`);
 ```
+
+### Video generation (+ extend / edit)
+
+`generateVideo()` is async (submit -> poll -> download). Text-to-video by default;
+pass a first-frame `sourceImage` for image-to-video. Providers that support it (xAI
+`grok-imagine-video`) also take a **`sourceVideo`** to continue or modify an existing
+clip, chosen via `params.videoMode`:
+
+- `videoMode: 'extend'` -- continue the clip from its last frame (`/v1/videos/extensions`).
+- `videoMode: 'edit'` -- modify the clip per the prompt (`/v1/videos/edits`).
+
+Gate this on the model's `capabilities.videoExtension` -- only extension-capable
+models accept a `sourceVideo`.
+
+```ts
+const media = createMediaOutput({
+  model: 'xai/grok-imagine-video',
+  apiKey: process.env.XAI_API_KEY,
+  dir: './.media-out',
+});
+
+// image-to-video (first frame)
+const vid = await media.generateVideo({
+  prompt: 'the boat drifts forward',
+  sourceImage: { type: 'path', mimeType: 'image/png', path: './frame.png' },
+  params: { duration: 4 },
+});
+
+// extend an existing clip (continue from its last frame)
+const longer = await media.generateVideo({
+  prompt: 'the camera slowly pulls back',
+  sourceVideo: { type: 'url', url: vid.meta.sourceUrl! }, // URL, file id, or base64
+  params: { videoMode: 'extend', duration: 4 },
+});
+```
+
+Notes:
+
+- **Source input.** The `sourceVideo` (and `sourceImage`) may be a URL, a provider
+  file id, or inline base64 -- whatever the target provider accepts. xAI takes a
+  public URL or a base64 data URL, so its server fetches the clip for you (no local
+  download needed).
+- **`meta.sourceUrl`.** Async video results carry the provider-hosted URL. In the
+  browser a cross-origin bucket blocks a programmatic byte-fetch (CORS), so the
+  adapter returns the URL with empty bytes -- render it with `<video src>`
+  (cross-origin playback needs no CORS) or re-submit it as a `sourceVideo`. In
+  Node/Bun the bytes are downloaded as usual.
+- **Progress.** Subscribe to the `onMediaProgress` hook for a 0-100 progress signal
+  while a video generates -- see [Telemetry + hooks](./telemetry.md).
 
 ### File attachment in a completion
 

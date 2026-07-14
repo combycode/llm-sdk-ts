@@ -38,6 +38,7 @@ interface MediaMeta {
   provider: string; model?: string; prompt?: string; revisedPrompt?: string;
   width?: number; height?: number; durationMs?: number; sampleRate?: number;
   params?: Record<string, unknown>;
+  sourceUrl?: string;   // provider-hosted URL (async video); bytes may live remotely
 }
 
 interface MediaStore {
@@ -51,6 +52,10 @@ interface MediaStore {
 
 interface RawMediaResult {
   data: Uint8Array; mimeType: string;
+  /** Provider-hosted URL (async video). In the browser a cross-origin bucket
+   *  blocks a byte-fetch (CORS), so `data` may be empty and this is the only
+   *  handle — `<video src>` plays it, or re-submit it as a `sourceVideo`. */
+  sourceUrl?: string;
   width?: number; height?: number; durationMs?: number; sampleRate?: number;
   revisedPrompt?: string;
   /** Token usage for token-priced models (gpt-image, gemini-tts). */
@@ -142,11 +147,18 @@ events for a single media generation in telemetry.
 **Video** (async polling):
 
 1. `generateVideo(req)` calls `adapter.submitVideo(req, fetch)` to get an `operationId`.
+   A `req.sourceVideo` routes the adapter to its extend/edit endpoint instead of plain
+   generation, chosen by `req.params.videoMode` (`'extend' | 'edit'`); `MediaOutput`
+   refuses a `sourceVideo` on adapters whose `capabilities().videoExtension` is falsy.
 2. Enters `pollVideoCompletion(adapter, operationId, req, fetch, trace)` (private method).
 3. Polls `adapter.getVideoStatus(operationId, fetch)` every `pollIntervalMs` (default 5 s)
-   within a `while (Date.now() - start < maxPollWaitMs)` loop.
+   within a `while (Date.now() - start < maxPollWaitMs)` loop. Each `processing`/`pending`
+   poll emits `onMediaProgress` (`{ provider, operationId, progress?, model? }`).
 4. On `status === 'completed'`: calls `adapter.downloadVideo(operationId, fetch)` then
-   routes through `saveResults()` same as image/audio.
+   routes through `saveResults()` same as image/audio. The raw result carries `sourceUrl`
+   (the provider-hosted URL); in the browser the adapter returns just that URL with empty
+   bytes (a cross-origin byte-fetch is CORS-blocked), and `saveResults` threads it onto
+   `meta.sourceUrl` so callers can render/re-submit it. Node/Bun download the bytes.
 5. On `status === 'failed'`: emits `onMediaError` and throws.
 6. On timeout: throws with `Video generation timed out after ${maxPollWaitMs}ms`.
 

@@ -6,6 +6,47 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-07-14
+
+### Added
+- **Video extend + edit (xAI grok-imagine-video).** `VideoGenRequest` gains `sourceVideo?: DataSource`
+  and `params.videoMode?: 'extend' | 'edit'`. When a source video is present the xAI adapter routes to
+  the right endpoint instead of plain generation: `extend` (default) → `POST /v1/videos/extensions`
+  (continues from the last frame; takes `duration`, ignores aspect/resolution), `edit` →
+  `POST /v1/videos/edits` (prompt + video only). The clip is passed as a public URL, a Files-API id, or
+  an inline base64 data-URL. `MediaCapabilities` gains `videoExtension`; `MediaOutput.generateVideo`
+  throws if a `sourceVideo` is sent to a provider that doesn't support it (rather than silently
+  generating). `generateVideo(req)` is unchanged — the new fields flow through. Verified live end-to-end
+  on `grok-imagine-video`: generate → extend → edit all return video bytes. (Note: extend/edit require
+  `grok-imagine-video`, not `grok-imagine-video-1.5`, which is generation-only.)
+- **`onMediaProgress` hook.** Long-running async video ops (generate/extend/edit) now emit an
+  `onMediaProgress` event once per poll (`{ type, provider, operationId, progress, model }`), so a UI can
+  render a progress bar. Progress values confirmed live (0→100).
+- **`RawMediaResult.sourceUrl` + `MediaMeta.sourceUrl`.** Async video results now carry the provider's
+  hosted URL, so callers can render or re-submit the asset without holding the bytes.
+
+### Fixed
+- **Browser: xAI video result was unusable (CORS).** The generated clip lives on a cross-origin bucket
+  (`vidgen.x.ai`) that sends no `Access-Control-Allow-Origin`, so `downloadVideo`'s programmatic
+  byte-fetch was blocked in the browser and video generation failed outright. In the browser the adapter
+  now returns the hosted URL (via `sourceUrl`) with empty bytes instead of fetching — `<video src>` plays
+  it cross-origin without CORS, and it can be re-submitted as a `sourceVideo`. Node/Bun still download the
+  bytes. (Node-only tests couldn't surface this; CORS isn't enforced off-browser.)
+- **Google `editImage` aspect ratio / size (same bug, second code path).** The 1.6.1 fix moved
+  `aspectRatio` / `imageSize` to `generationConfig.imageConfig` only in `generateImage`; the sibling
+  `editImage` method still wrote `generationConfig.responseFormat.image` and so 400'd on any edit that
+  passed an aspect ratio or size. Now both image paths use `imageConfig`. Verified live end-to-end:
+  generate → edit round-trip both return an image at `16:9` / `2K`. Locked with a unit regression on the
+  `editImage` request body.
+- **xAI video generation polled forever after the job finished.** `getVideoStatus` only treated
+  `status: "completed"`/`"ready"` (or a `download_url`) as done, but xAI reports terminal success as
+  `status: "done"` with the URL under `video.url` — so a finished job kept polling until the wait cap and
+  never returned. `downloadVideo` likewise read `download_url`/`url` and missed `video.url` (and duration
+  under `video.duration`). Both now read the real `video.*` shape (flat fallbacks kept), and terminal
+  `status: "done"`/`"expired"` are handled. Progress is now carried on the processing status. Verified
+  live end-to-end (grok-imagine-video-1.5 image-to-video: progress 0→75→100 → downloaded 2.5 MB); locked
+  with a unit test replaying the real server payload.
+
 ## [1.6.1] - 2026-07-13
 
 ### Fixed

@@ -81,7 +81,7 @@ module-level declaration merging — all events are declared in one file.
 | Internal tools | `onInternalToolCallStart`, `onInternalToolCallComplete`, `onInternalToolCallError` |
 | Cost | `onCostEntry`, `onBudgetWarning`, `onBudgetExceeded` |
 | Context | `onContextMeasure` |
-| Media | `onMediaGenerated`, `onMediaError` |
+| Media | `onMediaGenerated`, `onMediaError`, `onMediaProgress` |
 | Server | `onServerRequest`, `onServerResponse`, `onAuthFail` |
 | MCP | `onMcpConnect`, `onMcpToolCall`, `onMcpError` |
 

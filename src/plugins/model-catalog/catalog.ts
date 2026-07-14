@@ -59,6 +59,9 @@ export interface ModelCapabilities {
   imageGeneration: boolean;
   audioGeneration: boolean;
   videoGeneration: boolean;
+  /** Model accepts an existing video as input to extend/edit it (xAI
+   *  grok-imagine-video). Undefined/false → generation only. */
+  videoExtension?: boolean;
 }
 
 /** One generation parameter a media model accepts, with its allowed values.

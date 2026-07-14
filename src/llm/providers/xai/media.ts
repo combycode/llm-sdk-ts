@@ -1,8 +1,9 @@
 /** xAI media adapter — images, TTS, video. All HTTP through EngineFetch. */
 
+import { isBrowser } from '../../../runtime/runtime';
 import { base64ToBytes } from '../../../util/base64';
 import { sniffImageMime } from '../../../util/image-mime';
-import { normalizeImageSource, xaiImageRef } from '../../../plugins/media/source-image';
+import { normalizeImageSource, xaiImageRef, xaiVideoRef } from '../../../plugins/media/source-image';
 import type { EngineFetch } from '../../../network/types';
 import type {
   AudioGenRequest,
@@ -37,6 +38,7 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
       audioGeneration: true,
       videoGeneration: true,
       audioStreaming: true,
+      videoExtension: true,
     };
   }
 
@@ -167,15 +169,10 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
 
   async submitVideo(req: VideoGenRequest, fetch: EngineFetch): Promise<string> {
     const model = req.model ?? 'grok-imagine-video';
-    const body: Record<string, unknown> = { model, prompt: req.prompt };
-    if (req.params?.duration) body.duration = req.params.duration;
-    if (req.params?.aspectRatio) body.aspect_ratio = req.params.aspectRatio;
-    if (req.params?.resolution) body.resolution = req.params.resolution;
-    // First-frame image → image-to-video.
-    if (req.sourceImage) body.image = xaiImageRef(normalizeImageSource(req.sourceImage));
+    const { url, body } = this.buildVideoSubmit(req, model);
 
     const res = await fetch({
-      url: `${this.baseURL}/v1/videos/generations`,
+      url,
       method: 'POST',
       headers: this.authHeaders(),
       body,
@@ -185,6 +182,36 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
     });
     const data = res.body as Record<string, unknown>;
     return (data.request_id as string) ?? (data.id as string) ?? '';
+  }
+
+  /** Route a video request to the right xAI endpoint by input + mode:
+   *   - no `sourceVideo` → `/v1/videos/generations` (text/image-to-video)
+   *   - `sourceVideo` + `videoMode:'extend'` (default) → `/v1/videos/extensions`
+   *     — continues from the last frame; takes `duration`, NOT aspect/resolution.
+   *   - `sourceVideo` + `videoMode:'edit'` → `/v1/videos/edits` — prompt + video
+   *     only (no duration/aspect/resolution).
+   *  All three return a `request_id` polled via the same status endpoint. */
+  private buildVideoSubmit(
+    req: VideoGenRequest,
+    model: string,
+  ): { url: string; body: Record<string, unknown> } {
+    if (req.sourceVideo) {
+      const video = xaiVideoRef(req.sourceVideo);
+      if ((req.params?.videoMode ?? 'extend') === 'edit') {
+        return { url: `${this.baseURL}/v1/videos/edits`, body: { model, prompt: req.prompt, video } };
+      }
+      const body: Record<string, unknown> = { model, prompt: req.prompt, video };
+      if (req.params?.duration) body.duration = req.params.duration;
+      return { url: `${this.baseURL}/v1/videos/extensions`, body };
+    }
+
+    const body: Record<string, unknown> = { model, prompt: req.prompt };
+    if (req.params?.duration) body.duration = req.params.duration;
+    if (req.params?.aspectRatio) body.aspect_ratio = req.params.aspectRatio;
+    if (req.params?.resolution) body.resolution = req.params.resolution;
+    // First-frame image → image-to-video.
+    if (req.sourceImage) body.image = xaiImageRef(normalizeImageSource(req.sourceImage));
+    return { url: `${this.baseURL}/v1/videos/generations`, body };
   }
 
   async getVideoStatus(operationId: string, fetch: EngineFetch): Promise<VideoStatus> {
@@ -201,14 +228,19 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
 
     const data = res.body as Record<string, unknown>;
     const state = (data.status as string) ?? '';
+    const video = data.video as { url?: string } | undefined;
+    const progress = data.progress as number | undefined;
 
-    if (state === 'completed' || state === 'ready' || data.download_url) {
-      return { status: 'completed' };
+    // xAI reports terminal success as `status: "done"` with the URL under
+    // `video.url` (NOT `completed`/`download_url` — those never arrive, so the
+    // old check polled until timeout even after the server was finished).
+    if (state === 'done' || state === 'completed' || state === 'ready' || video?.url || data.download_url) {
+      return { status: 'completed', progress };
     }
-    if (state === 'failed' || state === 'error') {
+    if (state === 'failed' || state === 'error' || state === 'expired') {
       return { status: 'failed', error: (data.error as string) ?? 'Unknown error' };
     }
-    return { status: 'processing', progress: data.progress as number | undefined };
+    return { status: 'processing', progress };
   }
 
   async downloadVideo(operationId: string, fetch: EngineFetch): Promise<RawMediaResult> {
@@ -226,8 +258,25 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
     }
 
     const data = statusRes.body as Record<string, unknown>;
-    const downloadUrl = (data.download_url as string) ?? (data.url as string);
+    const video = data.video as { url?: string; duration?: number } | undefined;
+    // Real shape: `video: { url, duration }`. Keep the flat fallbacks for safety.
+    const downloadUrl = video?.url ?? (data.download_url as string) ?? (data.url as string);
     if (!downloadUrl) throw new Error('No download URL in video response');
+    const durationSec = video?.duration ?? (data.duration as number | undefined);
+    const base: RawMediaResult = {
+      data: new Uint8Array(0),
+      mimeType: 'video/mp4',
+      sourceUrl: downloadUrl,
+      durationMs: durationSec ? durationSec * 1000 : undefined,
+      // Provider-reported cost (usage.cost_in_usd_ticks), when present.
+      providerMeta: data.usage ? { usage: data.usage } : undefined,
+    };
+
+    // The video lives on a cross-origin bucket (vidgen.x.ai) that sends no CORS
+    // headers, so a programmatic byte-fetch is blocked in the browser. There we
+    // return the URL only — `<video src>` plays it cross-origin without CORS,
+    // and it can be re-submitted as a `sourceVideo`. Node/Bun fetch the bytes.
+    if (isBrowser()) return base;
 
     const videoRes = await fetch({
       url: downloadUrl,
@@ -239,13 +288,7 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
       responseType: 'arraybuffer',
     });
 
-    return {
-      data: videoRes.body as Uint8Array,
-      mimeType: 'video/mp4',
-      durationMs: (data.duration as number) ? (data.duration as number) * 1000 : undefined,
-      // Provider-reported cost (usage.cost_in_usd_ticks), when present.
-      providerMeta: data.usage ? { usage: data.usage } : undefined,
-    };
+    return { ...base, data: videoRes.body as Uint8Array };
   }
 
   async cancelVideo(operationId: string, fetch: EngineFetch): Promise<void> {

@@ -52,6 +52,7 @@ network required.
 | `capabilities.imageGeneration` | `boolean` | Produces images. |
 | `capabilities.audioGeneration` | `boolean` | Produces audio (TTS). |
 | `capabilities.videoGeneration` | `boolean` | Produces video. |
+| `capabilities.videoExtension` | `boolean?` | Accepts an existing video to extend/edit (`sourceVideo` + `params.videoMode`). xAI `grok-imagine-video`. |
 | `reasoning.supported` | `boolean` | Model has an extended thinking / reasoning mode. |
 | `reasoning.effortControl` | `boolean` | Reasoning effort level is configurable. |
 | `reasoning.automatic` | `boolean` | Reasoning activates automatically (no explicit toggle). |

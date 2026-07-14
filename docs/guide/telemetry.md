@@ -48,6 +48,15 @@ engine.hooks.on('onCompletion', (ctx) => {
 await complete({ model: 'anthropic/claude-haiku-4.5', prompt: 'Hello' });
 ```
 
+Long-running async video (generate / extend / edit) emits `onMediaProgress` once
+per poll, so a UI can show a progress bar:
+
+```ts
+engine.hooks.on('onMediaProgress', ({ provider, operationId, progress }) => {
+  console.log(`[video] ${provider} ${operationId} ${progress ?? '?'}%`);
+});
+```
+
 ### TelemetryAdapter -- OTel-style traces + metrics
 
 ```ts

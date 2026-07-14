@@ -119,6 +119,29 @@ describe('GoogleMediaAdapter — image routing', () => {
       { inline_data: { mime_type: 'image/jpeg', data: B64 } },
     ]);
   });
+
+  it('editImage params → generationConfig.imageConfig.{aspectRatio,imageSize}', async () => {
+    let captured: HttpRequest | undefined;
+    await a.editImage(
+      {
+        provider: 'google',
+        model: 'gemini-3-pro-image',
+        prompt: 'add a hat',
+        sourceImage: { type: 'base64', mimeType: 'image/jpeg', data: B64 },
+        params: { aspectRatio: '16:9', imageSize: '2K' },
+      },
+      fakeFetch(
+        { candidates: [{ content: { parts: [{ inlineData: { mimeType: 'image/png', data: B64 } }] } }] },
+        (r) => {
+          captured = r;
+        },
+      ),
+    );
+    const gc = (captured?.body as { generationConfig: { imageConfig?: Record<string, unknown> } })
+      .generationConfig;
+    // Same imageConfig contract as generateImage — the old responseFormat.image path 400s.
+    expect(gc.imageConfig).toEqual({ aspectRatio: '16:9', imageSize: '2K' });
+  });
 });
 
 describe('GoogleMediaAdapter — TTS', () => {

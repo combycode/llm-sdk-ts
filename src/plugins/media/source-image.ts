@@ -72,6 +72,29 @@ export function xaiImageRef(ref: NormalizedImageRef): Record<string, string> {
   return ref.fileId ? { file_id: ref.fileId } : { url: toDataUrl(ref) };
 }
 
+/** xAI video-ref object (`/v1/videos/extensions` + `/v1/videos/edits` `video`
+ *  field) — `{ url }` (public URL or base64 data-URL) or `{ file_id }`. Kept
+ *  separate from the image path so it doesn't run image mime-sniffing over
+ *  video bytes; the video mime is taken from the DataSource as declared. */
+export function xaiVideoRef(src: DataSource): { url: string } | { file_id: string } {
+  switch (src.type) {
+    case 'url':
+      return { url: src.url };
+    case 'file':
+      return { file_id: src.fileId };
+    case 'provider_ref':
+      return { file_id: src.refId };
+    case 'base64':
+      return { url: `data:${src.mimeType};base64,${src.data}` };
+    case 'buffer':
+      return { url: `data:${src.mimeType};base64,${bytesToBase64(src.data)}` };
+    case 'path':
+      throw new Error(
+        'media source video: `path` DataSource is not supported here — read the file and pass base64/buffer.',
+      );
+  }
+}
+
 /** Google generateContent image part (inline base64 or Files-API file_uri). */
 export function googleImagePart(ref: NormalizedImageRef): Record<string, unknown> {
   const mimeType = ref.mimeType ?? 'image/png';

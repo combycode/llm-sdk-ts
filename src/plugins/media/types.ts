@@ -21,6 +21,9 @@ export interface MediaMeta {
   durationMs?: number;
   sampleRate?: number;
   params?: Record<string, unknown>;
+  /** Provider-hosted URL (async video). Present when the bytes live remotely —
+   *  the browser renders from this since a cross-origin byte-fetch is CORS-blocked. */
+  sourceUrl?: string;
 }
 
 export interface MediaStore {
@@ -80,13 +83,22 @@ export interface VideoGenRequest {
   provider: string;
   model?: string;
   prompt: string;
+  /** First-frame image → image-to-video. */
   sourceImage?: DataSource;
+  /** Input video → extend or edit an existing clip (see `params.videoMode`).
+   *  The adapter routes to the provider's extension/edit endpoint instead of
+   *  plain generation. */
+  sourceVideo?: DataSource;
   params?: {
     duration?: number;
     aspectRatio?: string;
     resolution?: string;
     /** OpenAI Sora literal pixel `size` (e.g. "720x1280"). */
     size?: string;
+    /** When `sourceVideo` is set, which operation to run. `extend` (default)
+     *  continues the clip from its last frame; `edit` modifies it in place per
+     *  the prompt. Ignored without `sourceVideo`. */
+    videoMode?: 'extend' | 'edit';
   };
 }
 
@@ -102,6 +114,12 @@ export interface MediaResult {
 export interface RawMediaResult {
   data: Uint8Array;
   mimeType: string;
+  /** Provider-hosted URL for the asset, when it exists (async video). In the
+   *  browser, cross-origin buckets (e.g. xAI vidgen) block a programmatic
+   *  byte-fetch via CORS, so `data` may be empty and this URL is the only way
+   *  to render (`<video src>` plays cross-origin without CORS) or to re-submit
+   *  as a `sourceVideo`. */
+  sourceUrl?: string;
   width?: number;
   height?: number;
   durationMs?: number;
@@ -129,6 +147,9 @@ export interface MediaCapabilities {
   audioGeneration: boolean;
   videoGeneration: boolean;
   audioStreaming: boolean;
+  /** Provider can extend/edit an existing video (`sourceVideo` on the request).
+   *  Undefined/false → passing `sourceVideo` throws. */
+  videoExtension?: boolean;
 }
 
 /** All MediaProviderAdapter HTTP calls now go through the NetworkEngine

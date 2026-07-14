@@ -445,7 +445,8 @@
       "video": false,
       "imageGeneration": false,
       "audioGeneration": false,
-      "videoGeneration": true
+      "videoGeneration": true,
+      "videoExtension": true
     },
     "reasoning": {
       "supported": false,

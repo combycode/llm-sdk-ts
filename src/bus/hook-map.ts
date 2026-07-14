@@ -534,6 +534,17 @@ export interface MediaErrorContext {
   operationId?: string;
 }
 
+/** Progress ping for a long-running async media op (video generation/extend/
+ *  edit) — emitted once per poll while the job runs, so a UI can show a bar. */
+export interface MediaProgressContext {
+  type: 'video';
+  provider: string;
+  operationId: string;
+  /** 0–100 when the provider reports it; omitted otherwise. */
+  progress?: number;
+  model?: string;
+}
+
 // ─── Server layer (3 hooks) ─────────────────────────────────────────────
 
 export interface ServerRequestContext {
@@ -674,6 +685,7 @@ export interface HookMap {
   // Media layer (plugin)
   onMediaGenerated: MediaGeneratedContext;
   onMediaError: MediaErrorContext;
+  onMediaProgress: MediaProgressContext;
   // Internal tools (plugin)
   onInternalToolCallStart: InternalToolCallStartContext;
   onInternalToolCallComplete: InternalToolCallCompleteContext;

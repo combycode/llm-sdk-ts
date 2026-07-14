@@ -134,8 +134,14 @@ export class MediaOutput {
 
   async generateVideo(req: VideoGenRequest): Promise<MediaResult> {
     const adapter = this.getAdapter(req.provider);
-    if (!adapter.capabilities().videoGeneration || !adapter.submitVideo) {
+    const caps = adapter.capabilities();
+    if (!caps.videoGeneration || !adapter.submitVideo) {
       throw new Error(`Provider ${req.provider} does not support video generation`);
+    }
+    // A source video means extend/edit — refuse it on providers that can't, so
+    // it never silently falls through to plain generation.
+    if (req.sourceVideo && !caps.videoExtension) {
+      throw new Error(`Provider ${req.provider} does not support video extension/editing`);
     }
     const { trace, fetch } = this.tracedOp();
     const operationId = await adapter.submitVideo(req, fetch);
@@ -183,6 +189,7 @@ export class MediaOutput {
         height: raw.height,
         durationMs: raw.durationMs,
         sampleRate: raw.sampleRate,
+        sourceUrl: raw.sourceUrl,
       };
 
       await this.mediaStore.save(id, raw.data, meta);
@@ -229,6 +236,18 @@ export class MediaOutput {
 
     while (Date.now() - start < this.maxPollWaitMs) {
       const status = await adapter.getVideoStatus(operationId, fetch);
+
+      // Surface progress each poll so a UI can render a bar (data confirmed
+      // live: xAI reports 0→100). Fires for pending/processing states.
+      if (status.status === 'processing' || status.status === 'pending') {
+        await this.hooks.emit('onMediaProgress', {
+          type: 'video',
+          provider: req.provider,
+          operationId,
+          progress: status.progress,
+          model: req.model,
+        });
+      }
 
       if (status.status === 'completed') {
         const raw = await adapter.downloadVideo(operationId, fetch);
