@@ -243,8 +243,19 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     if (tier) body.service_tier = tier;
 
     // Inline moderation — native passthrough (skip when the caller forced emulation).
-    if (req.moderation && req.moderation.mode !== 'emulate') {
-      body.moderation = buildNativeModeration(req.moderation);
+    // `providerOptions.moderationPolicy` opts into OpenAI server-side blocking and
+    // can ride even without a unified `moderation` request.
+    const modPolicy = req.providerOptions?.moderationPolicy;
+    if ((req.moderation && req.moderation.mode !== 'emulate') || modPolicy) {
+      body.moderation = buildNativeModeration(req.moderation, modPolicy);
+    }
+
+    // Explicit prompt caching (gpt-5.6+). OpenAI caches IMPLICITLY by default, so
+    // the unified `cache` config already "just works" here — this passthrough is
+    // for manual control (`{ mode:'explicit'|'implicit', ttl:'30m' }` + per-part
+    // breakpoints). True-OpenAI only; xai/openrouter inherit this builder.
+    if (this.name === 'openai' && req.providerOptions?.promptCacheOptions) {
+      body.prompt_cache_options = req.providerOptions.promptCacheOptions;
     }
 
     // Tools — function tools (flat format, strict) + built-in tools (passthrough)
@@ -257,6 +268,9 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
             description: t.description,
             parameters: ensureAdditionalProperties(t.parameters),
             strict: t.strict ?? true,
+            // Programmatic tool calling (Responses): who may call it + return schema.
+            ...(t.allowedCallers ? { allowed_callers: t.allowedCallers } : {}),
+            ...(t.outputSchema ? { output_schema: t.outputSchema } : {}),
           };
         }
         // Built-in tool: pass type + params directly. code_interpreter needs a
@@ -490,9 +504,14 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     }
 
     const status = r.status as string;
-    const finishReason = extractFinishReason(toolCalls.length > 0, status, {
-      incomplete: 'length',
-    });
+    // `status: 'incomplete'` carries a sub-reason: `content_filter` (a moderation/
+    // safety block) or `max_output_tokens` (a token cap). Surface content_filter
+    // distinctly instead of mislabelling a block as a length truncation.
+    const incompleteReason = (r.incomplete_details as { reason?: string } | undefined)?.reason;
+    const finishReason =
+      incompleteReason === 'content_filter'
+        ? 'content_filter'
+        : extractFinishReason(toolCalls.length > 0, status, { incomplete: 'length' });
 
     // Use output_text convenience if available
     if (!text && typeof r.output_text === 'string') {

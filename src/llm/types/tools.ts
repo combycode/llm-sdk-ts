@@ -7,10 +7,25 @@ export interface FunctionTool {
   parameters: JsonSchema;
   strict?: boolean;
   cache?: boolean;
+  /** OpenAI **Responses** programmatic tool calling: which callers may invoke this
+   *  tool — `direct` (the model calls it) and/or `programmatic` (generated
+   *  orchestration code calls it). OpenAI-Responses-only; ignored elsewhere. */
+  allowedCallers?: Array<'direct' | 'programmatic'>;
+  /** OpenAI **Responses** JSON schema for the tool's return value (lets the model
+   *  reason over structured tool output). OpenAI-Responses-only. */
+  outputSchema?: JsonSchema;
 }
 
 export interface BuiltinTool {
-  type: 'image_generation' | 'web_search' | 'web_fetch' | 'code_interpreter' | 'file_search' | 'mcp';
+  type:
+    | 'image_generation'
+    | 'web_search'
+    | 'web_fetch'
+    | 'code_interpreter'
+    | 'file_search'
+    | 'mcp'
+    /** OpenAI Responses: lets the model write JS to orchestrate tool calls. */
+    | 'programmatic_tool_calling';
   params?: Record<string, unknown>;
 }
 

@@ -100,8 +100,17 @@ export class OpenAIAdapter implements ProviderAdapter {
     if (tier) body.service_tier = tier;
 
     // Inline moderation — native passthrough (skip when the caller forced emulation).
-    if (req.moderation && req.moderation.mode !== 'emulate') {
-      body.moderation = buildNativeModeration(req.moderation);
+    // `providerOptions.moderationPolicy` opts into OpenAI server-side blocking.
+    const modPolicy = req.providerOptions?.moderationPolicy;
+    if ((req.moderation && req.moderation.mode !== 'emulate') || modPolicy) {
+      body.moderation = buildNativeModeration(req.moderation, modPolicy);
+    }
+
+    // Explicit prompt caching (gpt-5.6+). OpenAI caches IMPLICITLY by default, so
+    // the unified `cache` config already works here — this is manual control only.
+    // True-OpenAI only; xai/openrouter inherit this builder.
+    if (this.name === 'openai' && req.providerOptions?.promptCacheOptions) {
+      body.prompt_cache_options = req.providerOptions.promptCacheOptions;
     }
 
     // Audio input (gpt-audio): the model only *processes* input audio when audio

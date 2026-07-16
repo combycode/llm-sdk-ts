@@ -39,6 +39,15 @@ describe('XAIAdapter (Chat Completions)', () => {
     expect(r.body.reasoning).toBeUndefined();
   });
 
+  it('does NOT emit prompt_cache_options (OpenAI-only; xAI inherits buildRequest)', () => {
+    const a = new XAIAdapter({ apiKey: 'k' });
+    const r = a.buildRequest({
+      ...baseReq,
+      providerOptions: { promptCacheOptions: { mode: 'explicit', ttl: '30m' } },
+    });
+    expect(r.body.prompt_cache_options).toBeUndefined();
+  });
+
   it('parseResponse surfaces reasoning_content as thinking', () => {
     const a = new XAIAdapter({ apiKey: 'k' });
     const raw = {

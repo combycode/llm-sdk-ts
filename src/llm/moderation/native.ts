@@ -17,9 +17,17 @@ import type {
 import type { ModerationEntry, ModerationReport, ModerationRequest } from './types';
 import { MODERATION_DEFAULT_MODEL } from './types';
 
-/** The `moderation` request field for the OpenAI native path. */
-export function buildNativeModeration(mod: ModerationRequest): { model: string } {
-  return { model: mod.model ?? MODERATION_DEFAULT_MODEL };
+/** The `moderation` request field for the OpenAI native path. `policy` is an
+ *  OpenAI-only opt-in (via `providerOptions.moderationPolicy`) for server-side
+ *  BLOCKING — `{ input?: { mode: 'score'|'block' }, output?: {...} }`; our unified
+ *  moderation stays report-only, so it's a passthrough, not a first-class knob. */
+export function buildNativeModeration(
+  mod?: ModerationRequest,
+  policy?: unknown,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = { model: mod?.model ?? MODERATION_DEFAULT_MODEL };
+  if (policy && typeof policy === 'object') out.policy = policy;
+  return out;
 }
 
 /** Parse OpenAI's returned `moderation` object into a unified report, or undefined

@@ -58,6 +58,23 @@ describe('OpenAIResponsesAdapter — buildRequest basics', () => {
     expect(r.body.frequency_penalty).toBeUndefined();
   });
 
+  it('providerOptions.moderationPolicy → moderation.policy (server-side block passthrough)', () => {
+    const policy = { input: { mode: 'block' }, output: { mode: 'score' } };
+    const r = a.buildRequest({ ...baseReq, providerOptions: { moderationPolicy: policy } });
+    const mod = r.body.moderation as Record<string, unknown>;
+    expect(mod.policy).toEqual(policy);
+    expect(mod.model).toBeDefined();
+    // No policy + no moderation → no moderation field at all.
+    expect(a.buildRequest(baseReq).body.moderation).toBeUndefined();
+  });
+
+  it('providerOptions.promptCacheOptions → prompt_cache_options (explicit caching)', () => {
+    const opts = { mode: 'explicit', ttl: '30m' };
+    const r = a.buildRequest({ ...baseReq, providerOptions: { promptCacheOptions: opts } });
+    expect(r.body.prompt_cache_options).toEqual(opts);
+    expect(a.buildRequest(baseReq).body.prompt_cache_options).toBeUndefined();
+  });
+
   it('temperature and top_p passthrough', () => {
     const r = a.buildRequest({ ...baseReq, temperature: 0.4, topP: 0.8 });
     expect(r.body.temperature).toBe(0.4);
@@ -234,6 +251,29 @@ describe('OpenAIResponsesAdapter — tools', () => {
         strict: true,
       },
     ]);
+  });
+
+  it('function tool: allowedCallers + outputSchema → allowed_callers + output_schema (programmatic)', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      tools: [
+        {
+          name: 'fn',
+          description: 'd',
+          parameters: { type: 'object', properties: {} },
+          allowedCallers: ['direct', 'programmatic'],
+          outputSchema: { type: 'object', properties: { ok: { type: 'boolean' } } },
+        },
+      ],
+    });
+    const tool = (r.body.tools as Array<Record<string, unknown>>)[0];
+    expect(tool.allowed_callers).toEqual(['direct', 'programmatic']);
+    expect(tool.output_schema).toEqual({ type: 'object', properties: { ok: { type: 'boolean' } } });
+  });
+
+  it('programmatic_tool_calling builtin passes through', () => {
+    const r = a.buildRequest({ ...baseReq, tools: [{ type: 'programmatic_tool_calling' }] });
+    expect(r.body.tools).toEqual([{ type: 'programmatic_tool_calling' }]);
   });
 
   it('builtin tool passes type+params', () => {
@@ -606,6 +646,28 @@ describe('OpenAIResponsesAdapter — parseResponse', () => {
 
   it('status incomplete → finishReason length when no toolCalls', () => {
     const raw = { id: 'r', model: 'm', status: 'incomplete', output: [] };
+    expect(a.parseResponse(raw, 0).finishReason).toBe('length');
+  });
+
+  it('incomplete + content_filter reason → finishReason content_filter (not length)', () => {
+    const raw = {
+      id: 'r',
+      model: 'm',
+      status: 'incomplete',
+      incomplete_details: { reason: 'content_filter' },
+      output: [],
+    };
+    expect(a.parseResponse(raw, 0).finishReason).toBe('content_filter');
+  });
+
+  it('incomplete + max_output_tokens reason → finishReason length', () => {
+    const raw = {
+      id: 'r',
+      model: 'm',
+      status: 'incomplete',
+      incomplete_details: { reason: 'max_output_tokens' },
+      output: [],
+    };
     expect(a.parseResponse(raw, 0).finishReason).toBe('length');
   });
 

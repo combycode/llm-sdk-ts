@@ -33,6 +33,22 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   `providerOptions` rather than a first-class knob since only one provider/API honours it.
 - **Google `translationConfig` passthrough.** `providerOptions.translationConfig` forwards to
   `generationConfig.translationConfig` on generateContent (Gemini Developer API; live-verified 200).
+- **OpenAI native moderation blocking.** `providerOptions.moderationPolicy`
+  (`{ input?: { mode: 'score'|'block' }, output?: {…} }`) forwards to OpenAI's `moderation.policy` on
+  Responses + chat for server-side blocking. Unified moderation stays report-only by design (blocking is
+  `moderationGuardrail` at the agent layer); this is an OpenAI-specific opt-in, so it lives in
+  `providerOptions`. Live-verified the field is accepted.
+- **OpenAI explicit prompt caching.** `providerOptions.promptCacheOptions`
+  (`{ mode: 'implicit'|'explicit', ttl: '30m' }`) forwards to `prompt_cache_options` (gpt-5.6+),
+  true-OpenAI only (xai/openrouter inherit the builder and don't emit it). Note: OpenAI caches
+  **implicitly by default**, so the unified `cache` config already works there with no config — this
+  passthrough is for manual control. (`prompt_cache_retention` is deprecated upstream in favour of
+  `prompt_cache_options.ttl`.)
+- **OpenAI programmatic tool calling (Responses).** `BuiltinTool` gains `programmatic_tool_calling`, and
+  `FunctionTool` gains `allowedCallers?: ('direct'|'programmatic')[]` + `outputSchema?` — emitted on the
+  OpenAI Responses path only. Live-verified on gpt-5.6 (tool calls succeed; older models reject the
+  builtin, which is model-gated). (Surfacing the `program`/`program_output` output items is deferred; the
+  parser already tolerates them without error.)
 
 ### Fixed
 - **OpenAI prompt-cache write tokens were dropped.** Both usage parsers hardcoded `cacheWriteTokens: 0`;
@@ -50,10 +66,13 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   keyed tool-call fragments by `id ?? ''`, so parallel calls from backends that omit ids (LiteLLM/Bedrock,
   some OpenRouter routes) merged into one. Fragments are now correlated by `index`, with a stable
   `call_<uuid>` synthesized once per index when the backend omits ids.
-- **`content_filter` finish reason was flattened to `stop`.** The chat-completions stream reason map
-  lacked `content_filter`, and `AgentLoop` derived every normal-completion finish as `stop` — discarding
-  the provider's actual reason. Both now surface `content_filter` (and `length`) to consumers. (Our loop
-  already terminates on non-tool finishes, so it never retry-looped on an empty filtered turn.)
+- **`content_filter` finish reason was flattened to `stop`/`length`.** The chat-completions stream reason
+  map lacked `content_filter`, `AgentLoop` derived every normal-completion finish as `stop`, and the
+  Responses parser mapped `status: 'incomplete'` to `length` regardless of `incomplete_details.reason` —
+  all discarding the provider's actual reason. Now the stream map, the loop, and the Responses parser
+  (reading `incomplete_details.reason`) all surface `content_filter` (and `length`) to consumers — so a
+  moderation/safety block is distinguishable from a token cap. (Our loop already terminates on non-tool
+  finishes, so it never retry-looped on an empty filtered turn.)
 - **Browser: xAI video result was unusable (CORS).** The generated clip lives on a cross-origin bucket
   (`vidgen.x.ai`) that sends no `Access-Control-Allow-Origin`, so `downloadVideo`'s programmatic
   byte-fetch was blocked in the browser and video generation failed outright. In the browser the adapter
