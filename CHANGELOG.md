@@ -6,7 +6,7 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
-## [1.7.0] - 2026-07-14
+## [1.7.0] - 2026-07-16
 
 ### Added
 - **Video extend + edit (xAI grok-imagine-video).** `VideoGenRequest` gains `sourceVideo?: DataSource`
