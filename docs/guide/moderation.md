@@ -189,6 +189,11 @@ Key properties:
 
 - **Report-only.** It *attaches* results to `response.moderation`; it never aborts the call. To
   block on flagged content, use `moderationGuardrail()` (enforcement) -- the two compose.
+- **OpenAI server-side blocking (opt-in).** For OpenAI (Responses + chat) you can have the *provider*
+  block flagged content server-side via `providerOptions.moderationPolicy`
+  (`{ input?: { mode: 'score' | 'block' }, output?: { mode: 'score' | 'block' } }`) -- `score` reports,
+  `block` refuses. A block surfaces as `finishReason: 'content_filter'`. This is OpenAI-specific and
+  separate from the report-only `moderation` option and the cross-provider `moderationGuardrail()`.
 - **Native on OpenAI, emulated elsewhere.** On the OpenAI provider it maps to OpenAI's own
   `moderation` request field (one round-trip). On every other provider the client runs OpenAI's
   moderations endpoint around the call. Force either with `mode: 'native' | 'emulate'`.

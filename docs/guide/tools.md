@@ -134,6 +134,13 @@ Server-side tools the provider runs are passed as plain objects in `tools: [...]
 and `{ type: 'mcp' }`. Provider-specific configuration goes in `params`, forwarded verbatim
 (e.g. `{ type: 'web_fetch', params: { allowed_domains: ['docs.example'], max_content_tokens: 4096 } }`).
 
+**Programmatic tool calling (OpenAI Responses, gpt-5.6+).** Add
+`{ type: 'programmatic_tool_calling' }` to let the model write JS that orchestrates your tool calls.
+Function tools can then declare who may invoke them and the shape they return:
+`allowedCallers?: ('direct' | 'programmatic')[]` and `outputSchema?` on a `FunctionTool`. Both are
+emitted only on the OpenAI Responses path (other providers ignore them). Model-gated — models that
+don't support it reject the builtin.
+
 Files a hosted tool produces (e.g. code-execution charts or data files) are surfaced
 uniformly on `response.files` (`FileOutput[]` — `{ id?, name?, mimeType?, data?, url?, ref?, source? }`),
 independent of generated `media`. You don't fetch per-provider — `retrieveFile(file)` /

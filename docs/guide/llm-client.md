@@ -103,6 +103,25 @@ have no penalty fields, so they ignore them.
 await complete({ model: 'openai/gpt-5.4-nano', apiKey, prompt: '…', presencePenalty: 0.6, frequencyPenalty: 0.3 });
 ```
 
+### Reasoning (`thinking`)
+
+`thinking` turns on a model's reasoning and maps to each provider's own control:
+
+- `mode: 'auto' | 'on' | 'off'` — enable/disable reasoning.
+- `effort: 'low' | 'medium' | 'high' | 'max'` — intensity, mapped per provider (Anthropic
+  `budget_tokens`, OpenAI/xAI `effort`, Google `thinkingBudget` on 2.5 / `thinkingLevel` on 3.x).
+- `visibility: 'full' (default) | 'summary' | 'hidden'` — how much reasoning comes back: Anthropic
+  `enabled.display`, OpenAI Responses `summary`, Google `includeThoughts`. Best-effort — a provider
+  without a middle state degrades `summary` to `full`.
+- `context: 'auto' | 'current_turn' | 'all_turns'` — cross-turn reasoning persistence (OpenAI Responses).
+
+```ts
+await complete({ model: 'anthropic/claude-haiku-4.5', apiKey, prompt: '…',
+  thinking: { mode: 'auto', effort: 'high', visibility: 'hidden' } });
+```
+
+(OpenAI's Responses-only execution mode `standard`/`pro` is `providerOptions.reasoningMode` — see below.)
+
 ### Provider-specific options (`providerOptions`)
 
 `providerOptions` is a passthrough for provider features that have no unified equivalent. Each adapter
@@ -112,6 +131,17 @@ reads the keys it understands and ignores the rest:
   request acts on behalf of; needs the account-level `user-profiles` beta).
 - **Google Interactions** (`api: 'interactions'`) — `cachedContent` → the `cached_content` resource
   (`projects/…/cachedContents/…`).
+- **Google generateContent** — `translationConfig` → `generationConfig.translationConfig`
+  (`{ targetLanguageCode }`; Gemini Developer API).
+- **OpenAI Responses** — `reasoningMode: 'standard' | 'pro'` → `reasoning.mode` (chat-completions rejects
+  it, so it's not a unified `thinking` knob).
+- **OpenAI (Responses + chat)** — `moderationPolicy` → `moderation.policy`
+  (`{ input?: { mode: 'score'|'block' }, output?: {…} }`) for **server-side** moderation blocking. The
+  unified `moderation` option stays report-only; use this (or `moderationGuardrail` at the agent layer)
+  to block.
+- **OpenAI (Responses + chat, gpt-5.6+)** — `promptCacheOptions` → `prompt_cache_options`
+  (`{ mode: 'implicit'|'explicit', ttl: '30m' }`). Note: OpenAI caches **implicitly by default**, so the
+  unified `cache` config already caches on OpenAI with no config — this is for manual control only.
 
 ```ts
 await complete({ model: 'anthropic/claude-haiku-4.5', apiKey, prompt: '…', providerOptions: { userProfileId: 'usr_42' } });
