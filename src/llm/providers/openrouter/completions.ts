@@ -6,7 +6,7 @@ import type { NormalizedRequest } from '../../types/request';
 import type { CompletionResponse } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
 import { isFunctionTool } from '../../types/tools';
-import { OpenAIAdapter } from '../openai/completions';
+import { OpenAIAdapter, type OpenAIStreamState } from '../openai/completions';
 
 export interface OpenRouterAdapterConfig {
   apiKey: string;
@@ -78,8 +78,9 @@ export class OpenRouterAdapter extends OpenAIAdapter {
    *  `url_citation` annotations appear in the stream (the `:online` search signal). */
   override createStreamParser(): (event: SSEEvent) => StreamEvent[] {
     let webSearchEmitted = false;
+    const state: OpenAIStreamState = { toolIdByIndex: new Map() };
     return (event: SSEEvent): StreamEvent[] => {
-      const events = this.parseStreamEvent(event);
+      const events = this.parseStreamEvent(event, state);
       if (!webSearchEmitted) {
         const choice = (JSON.parse(event.data).choices as Array<Record<string, unknown>>)?.[0];
         const annotations =

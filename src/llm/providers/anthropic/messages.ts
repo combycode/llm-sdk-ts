@@ -256,7 +256,11 @@ export class AnthropicAdapter implements ProviderAdapter {
         const budget = req.thinking.effort
           ? (ANTHROPIC_THINKING_BUDGETS[req.thinking.effort] ?? DEFAULT_ANTHROPIC_THINKING_BUDGET)
           : DEFAULT_ANTHROPIC_THINKING_BUDGET;
-        body.thinking = { type: 'enabled', budget_tokens: budget };
+        const thinking: Record<string, unknown> = { type: 'enabled', budget_tokens: budget };
+        // `hidden` redacts thinking from the output (a signature is kept for
+        // multi-turn continuity); full/summary leave it summarized (the default).
+        if (req.thinking.visibility === 'hidden') thinking.display = 'omitted';
+        body.thinking = thinking;
         // Anthropic requires max_tokens > budget_tokens — lift it transparently.
         if ((body.max_tokens as number) <= budget) body.max_tokens = budget + 1024;
       }

@@ -303,6 +303,22 @@ describe('OpenAIResponsesAdapter — text format and reasoning', () => {
     expect(r.body.reasoning).toEqual({ effort: 'low', summary: 'auto' });
   });
 
+  it('visibility summary → summary concise; hidden → summary omitted', () => {
+    const s = a.buildRequest({ ...baseReq, thinking: { mode: 'auto', visibility: 'summary' } });
+    expect((s.body.reasoning as Record<string, unknown>).summary).toBe('concise');
+    const h = a.buildRequest({ ...baseReq, thinking: { mode: 'auto', visibility: 'hidden' } });
+    expect((h.body.reasoning as Record<string, unknown>).summary).toBeUndefined();
+  });
+
+  it('providerOptions.reasoningMode → reasoning.mode (Responses-only)', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      thinking: { mode: 'auto', effort: 'high' },
+      providerOptions: { reasoningMode: 'pro' },
+    });
+    expect((r.body.reasoning as Record<string, unknown>).mode).toBe('pro');
+  });
+
   it('thinking off omits reasoning', () => {
     const r = a.buildRequest({ ...baseReq, thinking: { mode: 'off' } });
     expect(r.body.reasoning).toBeUndefined();
@@ -609,12 +625,13 @@ describe('OpenAIResponsesAdapter — parseResponse', () => {
         input_tokens: 100,
         output_tokens: 50,
         total_tokens: 150,
-        input_tokens_details: { cached_tokens: 70 },
+        input_tokens_details: { cached_tokens: 70, cache_write_tokens: 40 },
         output_tokens_details: { reasoning_tokens: 30 },
       },
     };
     const u = a.parseResponse(raw, 0).usage;
     expect(u.cachedTokens).toBe(70);
+    expect(u.cacheWriteTokens).toBe(40);
     expect(u.reasoningTokens).toBe(30);
     expect(u.totalTokens).toBe(150);
   });

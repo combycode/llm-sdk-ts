@@ -416,7 +416,9 @@ export class AgentLoop {
       content: finalContent,
       finishReason:
         reason === 'done'
-          ? 'stop'
+          ? // Ended because the model requested no tools — surface the provider's
+            // actual reason (stop / content_filter / length), not a flat 'stop'.
+            (lastResponse?.finishReason ?? 'stop')
           : reason === 'stopped'
             ? 'stop'
             : reason === 'guardrail'
@@ -679,7 +681,9 @@ export class AgentLoop {
       content: finalContent,
       finishReason:
         reason === 'done'
-          ? 'stop'
+          ? // Ended because the model requested no tools — surface the provider's
+            // actual reason (stop / content_filter / length), not a flat 'stop'.
+            (lastResponse?.finishReason ?? 'stop')
           : reason === 'stopped'
             ? 'stop'
             : reason === 'guardrail'

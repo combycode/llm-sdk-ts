@@ -58,6 +58,33 @@ describe('ConversationHistory', () => {
     expect(total.outputTokens).toBe(35);
   });
 
+  it('resumed run preserves usage (incl. cacheWriteTokens) — derived from restored entries', () => {
+    const h = new ConversationHistory();
+    h.append(
+      { role: 'assistant', content: 'a' },
+      {
+        usage: {
+          ...emptyUsage(),
+          inputTokens: 12,
+          outputTokens: 8,
+          totalTokens: 20,
+          cachedTokens: 4,
+          cacheWriteTokens: 6,
+          reasoningTokens: 3,
+        },
+      },
+    );
+    // Round-trip through the snapshot (the resume path).
+    const resumed = ConversationHistory.import(h.export());
+    const t = resumed.totalUsage();
+    // Not zeroed (the agents-ts bug) — totals recompute from restored entry usage.
+    expect(t.inputTokens).toBe(12);
+    expect(t.outputTokens).toBe(8);
+    expect(t.cachedTokens).toBe(4);
+    expect(t.cacheWriteTokens).toBe(6);
+    expect(t.reasoningTokens).toBe(3);
+  });
+
   it('estimatedTokens returns rough count', () => {
     const h = new ConversationHistory();
     h.system = 'You are helpful.';

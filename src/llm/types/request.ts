@@ -77,9 +77,26 @@ export interface NormalizedRequest {
  *  Ignored by every other provider. */
 export type ReasoningContext = 'auto' | 'current_turn' | 'all_turns';
 
+/** How much of the model's reasoning is returned. `full` (default) returns it as
+ *  fully as the provider allows; `summary` a condensed form where the provider
+ *  supports one (else full); `hidden` keeps reasoning internal. Best-effort per
+ *  provider — Anthropic `enabled.display`, OpenAI Responses `summary`, Google
+ *  `includeThoughts`; providers without a control ignore it. */
+export type ThinkingVisibility = 'full' | 'summary' | 'hidden';
+
 export type ThinkingConfig =
-  | { mode: 'auto'; effort?: 'low' | 'medium' | 'high' | 'max'; context?: ReasoningContext }
-  | { mode: 'on'; effort?: 'low' | 'medium' | 'high' | 'max'; context?: ReasoningContext }
+  | {
+      mode: 'auto';
+      effort?: 'low' | 'medium' | 'high' | 'max';
+      visibility?: ThinkingVisibility;
+      context?: ReasoningContext;
+    }
+  | {
+      mode: 'on';
+      effort?: 'low' | 'medium' | 'high' | 'max';
+      visibility?: ThinkingVisibility;
+      context?: ReasoningContext;
+    }
   | { mode: 'off' };
 
 export type CacheConfig =

@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'bun:test';
 import { OpenAIAdapter } from '../../../../src/llm/providers/openai/completions';
 import type { NormalizedRequest } from '../../../../src/llm/types/request';
+import type { StreamEvent } from '../../../../src/llm/types/stream';
 import type { SSEEvent } from '../../../../src/network/types';
 
 const baseReq: NormalizedRequest = {
@@ -437,12 +438,13 @@ describe('OpenAIAdapter — parseResponse', () => {
       usage: {
         prompt_tokens: 100,
         completion_tokens: 50,
-        prompt_tokens_details: { cached_tokens: 80 },
+        prompt_tokens_details: { cached_tokens: 80, cache_write_tokens: 25 },
         completion_tokens_details: { reasoning_tokens: 20 },
       },
     };
     const u = a.parseResponse(raw, 0).usage;
     expect(u.cachedTokens).toBe(80);
+    expect(u.cacheWriteTokens).toBe(25);
     expect(u.reasoningTokens).toBe(20);
   });
 });
@@ -488,6 +490,45 @@ describe('OpenAIAdapter — parseStreamEvent', () => {
     ]);
   });
 
+  const chunk = (toolCalls: unknown[]): SSEEvent => ({
+    data: JSON.stringify({ choices: [{ delta: { tool_calls: toolCalls } }] }),
+  });
+  const idOf = (evts: StreamEvent[], pred: (e: Record<string, unknown>) => boolean) =>
+    (evts.find((e) => pred(e as unknown as Record<string, unknown>)) as { id: string }).id;
+
+  it('createStreamParser: real id is kept across chunks (arg fragment omits it), correlated by index', () => {
+    const parse = a.createStreamParser();
+    const c1 = parse(chunk([{ index: 0, id: 'call_real', function: { name: 'lookup' } }]));
+    const c2 = parse(chunk([{ index: 0, function: { arguments: '{"q":1}' } }]));
+    expect(c1).toEqual([{ type: 'tool_call_start', id: 'call_real', name: 'lookup' }]);
+    expect(c2).toEqual([{ type: 'tool_call_delta', id: 'call_real', arguments: '{"q":1}' }]);
+  });
+
+  it('createStreamParser: id-less parallel calls get distinct synthesized ids (no collision)', () => {
+    const parse = a.createStreamParser();
+    // Two parallel calls, BOTH without ids (OpenAI-compatible backend), interleaved.
+    const starts = parse(
+      chunk([
+        { index: 0, function: { name: 'foo' } },
+        { index: 1, function: { name: 'bar' } },
+      ]),
+    );
+    const deltas = parse(
+      chunk([
+        { index: 0, function: { arguments: '{"a":1}' } },
+        { index: 1, function: { arguments: '{"b":2}' } },
+      ]),
+    );
+    const id0 = idOf(starts, (e) => e.name === 'foo');
+    const id1 = idOf(starts, (e) => e.name === 'bar');
+    expect(id0).toMatch(/^call_/);
+    expect(id1).toMatch(/^call_/);
+    expect(id0).not.toBe(id1); // the bug was both colliding on ''
+    // arg fragments carry the SAME synthesized id as their index's start
+    expect(idOf(deltas, (e) => e.arguments === '{"a":1}')).toBe(id0);
+    expect(idOf(deltas, (e) => e.arguments === '{"b":2}')).toBe(id1);
+  });
+
   it('finish_reason tool_calls → done with tool_use', () => {
     const evt: SSEEvent = {
       data: JSON.stringify({
@@ -495,6 +536,13 @@ describe('OpenAIAdapter — parseStreamEvent', () => {
       }),
     };
     expect(a.parseStreamEvent(evt)).toEqual([{ type: 'done', finishReason: 'tool_use' }]);
+  });
+
+  it('finish_reason content_filter → done with content_filter (not collapsed to stop)', () => {
+    const evt: SSEEvent = {
+      data: JSON.stringify({ choices: [{ delta: {}, finish_reason: 'content_filter' }] }),
+    };
+    expect(a.parseStreamEvent(evt)).toEqual([{ type: 'done', finishReason: 'content_filter' }]);
   });
 
   it('usage-only chunk (include_usage)', () => {

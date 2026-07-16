@@ -55,6 +55,18 @@ describe('GoogleInteractionsAdapter — buildRequest basics', () => {
     expect(a.buildRequest(baseReq).body.cached_content).toBeUndefined();
   });
 
+  it('does NOT forward safety_settings / labels (Enterprise/Vertex-only; Gemini API 400s)', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      providerOptions: {
+        safetySettings: [{ category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_ONLY_HIGH' }],
+        labels: { team: 'search' },
+      },
+    });
+    expect(r.body.safety_settings).toBeUndefined();
+    expect(r.body.labels).toBeUndefined();
+  });
+
   it('generation_config with all params (renames to snake_case)', () => {
     const r = a.buildRequest({
       ...baseReq,
@@ -71,11 +83,12 @@ describe('GoogleInteractionsAdapter — buildRequest basics', () => {
     });
   });
 
-  it('maps presence/frequency penalties (snake_case) into generation_config', () => {
+  it('does NOT emit presence/frequency penalties (Interactions API 400s on them)', () => {
     const r = a.buildRequest({ ...baseReq, presencePenalty: 0.3, frequencyPenalty: 0.6 });
-    const gc = r.body.generation_config as Record<string, unknown>;
-    expect(gc.presence_penalty).toBe(0.3);
-    expect(gc.frequency_penalty).toBe(0.6);
+    // generation_config may be omitted entirely when nothing else is set.
+    const gc = (r.body.generation_config as Record<string, unknown> | undefined) ?? {};
+    expect(gc.presence_penalty).toBeUndefined();
+    expect(gc.frequency_penalty).toBeUndefined();
   });
 });
 
@@ -178,11 +191,13 @@ describe('GoogleInteractionsAdapter — tools, thinking, structured', () => {
     ]);
   });
 
-  it('thinking effort → thinking_config.thinking_level', () => {
+  it('thinking effort → generation_config.thinking_level (flat, lowercase)', () => {
     const r = a.buildRequest({ ...baseReq, thinking: { mode: 'auto', effort: 'medium' } });
-    expect((r.body.generation_config as Record<string, unknown>).thinking_config).toEqual({
-      thinking_level: 'MEDIUM',
-    });
+    const gc = r.body.generation_config as Record<string, unknown>;
+    // Interactions takes thinking_level DIRECTLY (not wrapped) and lowercase; the
+    // wrapped/uppercase form 400s ("Unknown parameter 'thinking_config'" / bad value).
+    expect(gc.thinking_level).toBe('medium');
+    expect(gc.thinking_config).toBeUndefined();
   });
 
   it('structured → polymorphic text response_format', () => {

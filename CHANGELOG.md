@@ -24,8 +24,36 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   render a progress bar. Progress values confirmed live (0→100).
 - **`RawMediaResult.sourceUrl` + `MediaMeta.sourceUrl`.** Async video results now carry the provider's
   hosted URL, so callers can render or re-submit the asset without holding the bytes.
+- **Unified reasoning visibility.** `ThinkingConfig` gains `visibility: 'full' (default) | 'summary' |
+  'hidden'`, mapping to Anthropic `enabled.display`, OpenAI Responses `summary`, and Google
+  `includeThoughts` — one knob for "how much reasoning comes back" across providers (best-effort; a
+  provider without a middle state degrades `summary` to full). Default `full` = prior behaviour.
+- **OpenAI reasoning execution mode.** `providerOptions.reasoningMode: 'standard' | 'pro'` maps to
+  `reasoning.mode` on the OpenAI **Responses** path (chat-completions rejects it). Kept in
+  `providerOptions` rather than a first-class knob since only one provider/API honours it.
+- **Google `translationConfig` passthrough.** `providerOptions.translationConfig` forwards to
+  `generationConfig.translationConfig` on generateContent (Gemini Developer API; live-verified 200).
 
 ### Fixed
+- **OpenAI prompt-cache write tokens were dropped.** Both usage parsers hardcoded `cacheWriteTokens: 0`;
+  they now read `input_tokens_details.cache_write_tokens` (Responses) / `prompt_tokens_details.
+  cache_write_tokens` (chat), so cost accounting no longer under-reports explicit prompt caching.
+- **Google reasoning was live-broken (two paths).** generateContent sent `thinkingLevel`, which the
+  Gemini Developer API 400s on **2.5** models (it is 3.x-only) — now routed per series: 2.5 →
+  `thinkingBudget` (token count), 3.x → `thinkingLevel`. The Interactions path wrapped `thinking_config`
+  (rejected outright) and used uppercase values — it takes `thinking_level` **flat** on `generation_config`
+  and **lowercase** (`minimal/low/medium/high`). Both live-verified across gemini-2.5 + 3.5.
+- **Google Interactions rejected sampling penalties.** We emitted `presence_penalty`/`frequency_penalty`
+  on the Interactions path, which the API 400s ("Unknown parameter") — upstream removed them from its
+  Interactions config. No longer emitted there (still valid on generateContent).
+- **Streamed tool-call id collision on OpenAI-compatible backends.** The chat-completions stream parser
+  keyed tool-call fragments by `id ?? ''`, so parallel calls from backends that omit ids (LiteLLM/Bedrock,
+  some OpenRouter routes) merged into one. Fragments are now correlated by `index`, with a stable
+  `call_<uuid>` synthesized once per index when the backend omits ids.
+- **`content_filter` finish reason was flattened to `stop`.** The chat-completions stream reason map
+  lacked `content_filter`, and `AgentLoop` derived every normal-completion finish as `stop` — discarding
+  the provider's actual reason. Both now surface `content_filter` (and `length`) to consumers. (Our loop
+  already terminates on non-tool finishes, so it never retry-looped on an empty filtered turn.)
 - **Browser: xAI video result was unusable (CORS).** The generated clip lives on a cross-origin bucket
   (`vidgen.x.ai`) that sends no `Access-Control-Allow-Origin`, so `downloadVideo`'s programmatic
   byte-fetch was blocked in the browser and video generation failed outright. In the browser the adapter

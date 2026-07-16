@@ -10,7 +10,7 @@ import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider'
 import type { NormalizedRequest } from '../../types/request';
 import type { CompletionResponse } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
-import { OpenAIAdapter } from '../openai/completions';
+import { OpenAIAdapter, type OpenAIStreamState } from '../openai/completions';
 
 export interface XAIAdapterConfig {
   apiKey: string;
@@ -61,8 +61,8 @@ export class XAIAdapter extends OpenAIAdapter {
     return result;
   }
 
-  override parseStreamEvent(event: SSEEvent): StreamEvent[] {
-    const events = super.parseStreamEvent(event);
+  override parseStreamEvent(event: SSEEvent, state?: OpenAIStreamState): StreamEvent[] {
+    const events = super.parseStreamEvent(event, state);
 
     // Check for reasoning_content in streaming delta
     try {

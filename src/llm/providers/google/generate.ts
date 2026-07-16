@@ -25,7 +25,11 @@ import type { StreamEvent } from '../../types/stream';
 import { isFunctionTool } from '../../types/tools';
 import { AUDIO_PCM16_SAMPLE_RATE_HZ } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
-import { GOOGLE_THINKING_LEVELS } from './constants';
+import {
+  GOOGLE_THINKING_BUDGETS,
+  GOOGLE_THINKING_LEVELS,
+  googleUsesThinkingBudget,
+} from './constants';
 
 export interface GoogleAdapterConfig {
   apiKey: string;
@@ -149,9 +153,18 @@ export class GoogleAdapter implements ProviderAdapter {
     }
 
     if (req.thinking && req.thinking.mode !== 'off') {
-      (config as Record<string, unknown>).thinkingConfig = {
-        thinkingLevel: GOOGLE_THINKING_LEVELS[req.thinking.effort ?? 'high'] ?? 'HIGH',
+      const effort = req.thinking.effort ?? 'high';
+      // Gemini 2.5 only accepts a token `thinkingBudget` (it 400s on thinkingLevel);
+      // 3.x+ uses `thinkingLevel`. `hidden` stops thoughts being returned.
+      const thinkingConfig: Record<string, unknown> = {
+        includeThoughts: req.thinking.visibility !== 'hidden',
       };
+      if (googleUsesThinkingBudget(req.model)) {
+        thinkingConfig.thinkingBudget = GOOGLE_THINKING_BUDGETS[effort] ?? GOOGLE_THINKING_BUDGETS.high;
+      } else {
+        thinkingConfig.thinkingLevel = GOOGLE_THINKING_LEVELS[effort] ?? 'HIGH';
+      }
+      (config as Record<string, unknown>).thinkingConfig = thinkingConfig;
     }
 
     if (req.structured) {
@@ -169,6 +182,9 @@ export class GoogleAdapter implements ProviderAdapter {
       }
       if (req.providerOptions.imageConfig) {
         config.imageConfig = req.providerOptions.imageConfig;
+      }
+      if (req.providerOptions.translationConfig) {
+        config.translationConfig = req.providerOptions.translationConfig;
       }
     }
 

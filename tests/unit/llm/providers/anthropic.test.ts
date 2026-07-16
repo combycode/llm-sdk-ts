@@ -374,6 +374,14 @@ describe('AnthropicAdapter — thinking', () => {
     expect(r.body.max_tokens).toBe(8192 + 1024); // lifted above the budget
   });
 
+  it('visibility hidden → enabled with display omitted (budget kept)', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      thinking: { mode: 'auto', effort: 'high', visibility: 'hidden' },
+    });
+    expect(r.body.thinking).toEqual({ type: 'enabled', budget_tokens: 8192, display: 'omitted' });
+  });
+
   it('mode=off omits thinking', () => {
     const r = a.buildRequest({ ...baseReq, thinking: { mode: 'off' } });
     expect(r.body.thinking).toBeUndefined();

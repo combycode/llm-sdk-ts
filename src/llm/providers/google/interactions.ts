@@ -24,7 +24,7 @@ import type { StreamEvent } from '../../types/stream';
 import { isFunctionTool } from '../../types/tools';
 import { AUDIO_PCM16_SAMPLE_RATE_HZ } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
-import { GOOGLE_THINKING_LEVELS } from './constants';
+import { GOOGLE_INTERACTION_THINKING_LEVELS } from './constants';
 
 export interface GoogleInteractionsAdapterConfig {
   apiKey: string;
@@ -89,8 +89,10 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
     if (req.maxTokens) genConfig.max_output_tokens = req.maxTokens;
     if (req.temperature !== undefined) genConfig.temperature = req.temperature;
     if (req.topP !== undefined) genConfig.top_p = req.topP;
-    if (req.presencePenalty !== undefined) genConfig.presence_penalty = req.presencePenalty;
-    if (req.frequencyPenalty !== undefined) genConfig.frequency_penalty = req.frequencyPenalty;
+    // NOTE: the Interactions API does NOT accept presence_penalty / frequency_penalty
+    // (live 2026-07-14: 400 "Unknown parameter 'presence_penalty' at 'generation_config'";
+    // upstream removed them from the Interactions GenerationConfig in google 2.11). They
+    // remain valid on generateContent — do not emit them here.
     if (req.stop) genConfig.stop_sequences = req.stop;
 
     // Tools — only function tools are accepted on this surface.
@@ -103,11 +105,12 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
       }));
     }
 
-    // Thinking
+    // Thinking — the Interactions GenerationConfig takes `thinking_level` DIRECTLY
+    // (not wrapped in a thinking_config; wrapping 400s "Unknown parameter
+    // 'thinking_config'"). It has no token-budget field, so it's thinkingLevel-only.
     if (req.thinking && req.thinking.mode !== 'off') {
-      genConfig.thinking_config = {
-        thinking_level: GOOGLE_THINKING_LEVELS[req.thinking.effort ?? 'high'] ?? 'HIGH',
-      };
+      genConfig.thinking_level =
+        GOOGLE_INTERACTION_THINKING_LEVELS[req.thinking.effort ?? 'high'] ?? 'high';
     }
 
     if (Object.keys(genConfig).length > 0) body.generation_config = genConfig;
@@ -117,6 +120,10 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
     // providerOptions passthrough.
     const cachedContent = req.providerOptions?.cachedContent;
     if (typeof cachedContent === 'string' && cachedContent) body.cached_content = cachedContent;
+    // NOTE: the SDK's interactions create params also list `safety_settings` +
+    // `labels`, but the Gemini Developer API REJECTS both ("not available on the
+    // Gemini API … available on the Gemini Enterprise Agent Platform" — live-verified
+    // 2026-07-14). They are Vertex/Enterprise-only, so we do NOT forward them here.
 
     // Structured output — polymorphic response_format (response_mime_type removed).
     if (req.structured) {

@@ -240,6 +240,19 @@ describe('AgentLoop — complete (single step)', () => {
     expect(loop.lastReport?.reason).toBe('done');
   });
 
+  it('empty content_filter turn ends the run in ONE step (never retry-loops)', async () => {
+    const client = makeMockClient({
+      responses: [{ content: [], text: '', finishReason: 'content_filter' }],
+    });
+    const loop = new AgentLoop({ client });
+    const res = await loop.complete('hi');
+    // The loop only continues on tool_use; a filtered (or any non-tool) finish
+    // terminates — it must not loop on an empty turn like agents-py's bug did.
+    expect(res.finishReason).toBe('content_filter');
+    expect(loop.lastReport?.stepCount).toBe(1);
+    expect(client.calls.length).toBe(1);
+  });
+
   it('totalUsage accumulates from response', async () => {
     const client = makeMockClient({
       responses: [

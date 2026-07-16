@@ -291,9 +291,17 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
 
     // Reasoning
     if (req.thinking && req.thinking.mode !== 'off') {
+      const visibility = req.thinking.visibility ?? 'full';
+      // `summary` controls how much reasoning is surfaced: full -> 'auto' (fullest
+      // the model offers), summary -> 'concise', hidden -> omit it entirely.
+      const summary = visibility === 'hidden' ? null : visibility === 'summary' ? 'concise' : 'auto';
+      // Execution mode (standard | pro) is Responses-only — chat-completions rejects
+      // it — so it's a providerOptions passthrough, not a unified ThinkingConfig knob.
+      const mode = req.providerOptions?.reasoningMode as 'standard' | 'pro' | undefined;
       body.reasoning = {
         effort: req.thinking.effort ?? 'medium',
-        summary: 'auto',
+        ...(summary !== null ? { summary } : {}),
+        ...(mode ? { mode } : {}),
         // Cross-turn reasoning persistence (gpt-5/o-series, Responses only).
         ...(req.thinking.context ? { context: req.thinking.context } : {}),
       };
@@ -627,7 +635,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       outputTokens: output,
       totalTokens: (u.total_tokens as number) ?? input + output,
       cachedTokens: (inputDetails.cached_tokens as number) ?? 0,
-      cacheWriteTokens: 0,
+      cacheWriteTokens: (inputDetails.cache_write_tokens as number) ?? 0,
       reasoningTokens: (outputDetails.reasoning_tokens as number) ?? 0,
     };
   }

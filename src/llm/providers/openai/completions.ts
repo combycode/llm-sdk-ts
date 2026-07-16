@@ -42,6 +42,13 @@ function toOpenAIAudioFormat(format: AudioFormat | undefined): string {
   return format;
 }
 
+/** Per-stream state threaded through `createStreamParser` — maps a streamed
+ *  tool call's `index` to its resolved id (real, or a synthesized `call_<uuid>`
+ *  for backends that omit ids), stable across the stream's chunks. */
+export interface OpenAIStreamState {
+  toolIdByIndex: Map<number, string>;
+}
+
 export class OpenAIAdapter implements ProviderAdapter {
   readonly name: ProviderAdapter['name'] = 'openai';
   protected readonly apiKey: string;
@@ -329,7 +336,7 @@ export class OpenAIAdapter implements ProviderAdapter {
     };
   }
 
-  parseStreamEvent(event: SSEEvent): StreamEvent[] {
+  parseStreamEvent(event: SSEEvent, state?: OpenAIStreamState): StreamEvent[] {
     const data = JSON.parse(event.data) as Record<string, unknown>;
 
     // Native moderation arrives on a dedicated chunk (choices empty/absent).
@@ -364,22 +371,26 @@ export class OpenAIAdapter implements ProviderAdapter {
       events.push({ type: 'text', text: delta.content as string });
     }
 
+    // Correlate streamed tool-call fragments by `index` (the wire id, when present,
+    // only arrives on the first delta; arg fragments omit it). OpenAI-compatible
+    // backends (some OpenRouter routes, LiteLLM/Bedrock) may omit the id entirely —
+    // synthesize a stable `call_<uuid>` ONCE per index so parallel id-less calls
+    // don't collide into one. Assigned on first sighting and never changed.
+    const toolIdByIndex = state?.toolIdByIndex ?? new Map<number, string>();
     const toolCalls = (delta.tool_calls as Array<Record<string, unknown>>) ?? [];
     for (const tc of toolCalls) {
+      const index = (tc.index as number) ?? 0;
+      let id = toolIdByIndex.get(index);
+      if (id === undefined) {
+        id = (tc.id as string) || `call_${crypto.randomUUID()}`;
+        toolIdByIndex.set(index, id);
+      }
       const fn = tc.function as Record<string, unknown> | undefined;
       if (fn?.name) {
-        events.push({
-          type: 'tool_call_start',
-          id: (tc.id as string) ?? '',
-          name: fn.name as string,
-        });
+        events.push({ type: 'tool_call_start', id, name: fn.name as string });
       }
       if (fn?.arguments) {
-        events.push({
-          type: 'tool_call_delta',
-          id: (tc.id as string) ?? '',
-          arguments: fn.arguments as string,
-        });
+        events.push({ type: 'tool_call_delta', id, arguments: fn.arguments as string });
       }
     }
 
@@ -387,7 +398,11 @@ export class OpenAIAdapter implements ProviderAdapter {
     if (fr) {
       events.push({
         type: 'done',
-        finishReason: extractFinishReason(false, fr, { tool_calls: 'tool_use', length: 'length' }),
+        finishReason: extractFinishReason(false, fr, {
+          tool_calls: 'tool_use',
+          length: 'length',
+          content_filter: 'content_filter',
+        }),
       });
     }
 
@@ -398,9 +413,11 @@ export class OpenAIAdapter implements ProviderAdapter {
     return events;
   }
 
-  /** Stateless — Chat Completions has no hosted code-execution file outputs. */
+  /** Per-stream: correlates streamed tool-call fragments by index and synthesizes
+   *  a stable id for backends that omit tool-call ids (see `parseStreamEvent`). */
   createStreamParser(): (event: SSEEvent) => StreamEvent[] {
-    return (event) => this.parseStreamEvent(event);
+    const state: OpenAIStreamState = { toolIdByIndex: new Map() };
+    return (event) => this.parseStreamEvent(event, state);
   }
 
   private parseUsage(u: Record<string, unknown> | undefined): Usage {
@@ -420,7 +437,7 @@ export class OpenAIAdapter implements ProviderAdapter {
       outputTokens: output,
       totalTokens: input + output,
       cachedTokens: (details.cached_tokens as number) ?? 0,
-      cacheWriteTokens: 0,
+      cacheWriteTokens: (details.cache_write_tokens as number) ?? 0,
       reasoningTokens: (outDetails.reasoning_tokens as number) ?? 0,
     };
   }

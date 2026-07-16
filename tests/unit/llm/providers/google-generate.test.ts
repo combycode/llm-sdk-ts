@@ -255,10 +255,34 @@ describe('GoogleAdapter — tools and toolChoice', () => {
 describe('GoogleAdapter — thinking, structured, providerOptions', () => {
   const a = new GoogleAdapter({ apiKey: 'k' });
 
-  it('thinking → thinkingConfig.thinkingLevel mapping', () => {
+  it('gemini-2.5 → thinkingBudget (NOT thinkingLevel, which 2.5 rejects); includeThoughts true', () => {
     const r = a.buildRequest({ ...baseReq, thinking: { mode: 'auto', effort: 'low' } });
     expect((r.body.generationConfig as Record<string, unknown>).thinkingConfig).toEqual({
+      thinkingBudget: 2048,
+      includeThoughts: true,
+    });
+  });
+
+  it('gemini-3.x → thinkingLevel', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      model: 'gemini-3.5-flash',
+      thinking: { mode: 'auto', effort: 'low' },
+    });
+    expect((r.body.generationConfig as Record<string, unknown>).thinkingConfig).toEqual({
       thinkingLevel: 'LOW',
+      includeThoughts: true,
+    });
+  });
+
+  it('visibility hidden → includeThoughts false (2.5 budget path)', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      thinking: { mode: 'auto', effort: 'low', visibility: 'hidden' },
+    });
+    expect((r.body.generationConfig as Record<string, unknown>).thinkingConfig).toEqual({
+      thinkingBudget: 2048,
+      includeThoughts: false,
     });
   });
 
@@ -287,6 +311,16 @@ describe('GoogleAdapter — thinking, structured, providerOptions', () => {
       'IMAGE',
       'TEXT',
     ]);
+  });
+
+  it('providerOptions.translationConfig → generationConfig.translationConfig', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      providerOptions: { translationConfig: { targetLanguage: 'fr' } },
+    });
+    expect((r.body.generationConfig as Record<string, unknown>).translationConfig).toEqual({
+      targetLanguage: 'fr',
+    });
   });
 });
 
