@@ -1854,7 +1854,11 @@
     "family": "gpt-chat",
     "version": "5.3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "deprecation": {
+      "shutdownDate": "2026-08-10",
+      "source": "openrouter"
+    }
   },
   "openrouter/gpt-5-codex": {
     "providerModelName": "openai/gpt-5-codex",
@@ -3014,7 +3018,7 @@
       "openai/gpt-oss-20b:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.029,
+      "inputPerMTok": 0.03,
       "outputPerMTok": 0.14
     },
     "preferredApi": "completions",
@@ -3060,8 +3064,8 @@
       "openai/gpt-oss-120b:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.036,
-      "outputPerMTok": 0.18
+      "inputPerMTok": 0.037,
+      "outputPerMTok": 0.17
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -3760,7 +3764,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 1048756,
+    "contextWindow": 1048576,
     "maxOutput": 65536,
     "capabilities": {
       "toolUse": true,
@@ -4109,10 +4113,10 @@
     }
   },
   "openrouter/gemini-3-pro-image": {
-    "providerModelName": "google/gemini-3-pro-image-preview",
+    "providerModelName": "google/gemini-3-pro-image",
     "aliases": [
-      "google/gemini-3-pro-image-preview",
-      "google/gemini-3-pro-image"
+      "google/gemini-3-pro-image",
+      "google/gemini-3-pro-image-preview"
     ],
     "pricing": {
       "inputPerMTok": 2,
@@ -4182,10 +4186,10 @@
     }
   },
   "openrouter/gemini-3.1-flash-image": {
-    "providerModelName": "google/gemini-3.1-flash-image-preview",
+    "providerModelName": "google/gemini-3.1-flash-image",
     "aliases": [
-      "google/gemini-3.1-flash-image-preview",
-      "google/gemini-3.1-flash-image"
+      "google/gemini-3.1-flash-image",
+      "google/gemini-3.1-flash-image-preview"
     ],
     "pricing": {
       "inputPerMTok": 0.5,
@@ -4195,7 +4199,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 131072,
+    "contextWindow": 65536,
     "maxOutput": 65536,
     "capabilities": {
       "toolUse": false,
@@ -4397,14 +4401,15 @@
     ],
     "pricing": {
       "inputPerMTok": 0.08,
-      "outputPerMTok": 0.16
+      "outputPerMTok": 0.45,
+      "cacheReadPerMTok": 0.04
     },
     "preferredApi": "completions",
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 131072,
-    "maxOutput": 16384,
+    "contextWindow": 262144,
+    "maxOutput": 131072,
     "capabilities": {
       "toolUse": true,
       "streaming": true,
@@ -4487,8 +4492,9 @@
       "google/gemma-4-26b-a4b-it:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.06,
-      "outputPerMTok": 0.33
+      "inputPerMTok": 0.14,
+      "outputPerMTok": 0.42,
+      "cacheReadPerMTok": 0.05
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -4533,8 +4539,8 @@
       "google/gemma-4-31b-it:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.12,
-      "outputPerMTok": 0.35,
+      "inputPerMTok": 0.14,
+      "outputPerMTok": 0.4,
       "cacheReadPerMTok": 0.09
     },
     "preferredApi": "completions",
@@ -4863,7 +4869,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 131072,
+    "contextWindow": 163840,
     "maxOutput": 16000,
     "capabilities": {
       "toolUse": true,
@@ -4901,8 +4907,8 @@
       "deepseek/deepseek-chat-v3-0324"
     ],
     "pricing": {
-      "inputPerMTok": 0.24,
-      "outputPerMTok": 0.9,
+      "inputPerMTok": 0.27,
+      "outputPerMTok": 1.12,
       "cacheReadPerMTok": 0.135
     },
     "preferredApi": "completions",
@@ -4948,8 +4954,8 @@
       "deepseek/deepseek-v3.1-terminus"
     ],
     "pricing": {
-      "inputPerMTok": 0.21,
-      "outputPerMTok": 0.79,
+      "inputPerMTok": 0.25,
+      "outputPerMTok": 0.95,
       "cacheReadPerMTok": 0.13
     },
     "preferredApi": "completions",
@@ -4995,16 +5001,16 @@
       "deepseek/deepseek-v3.2-exp"
     ],
     "pricing": {
-      "inputPerMTok": 0.2145,
-      "outputPerMTok": 0.32175,
-      "cacheReadPerMTok": 0.02145
+      "inputPerMTok": 0.269,
+      "outputPerMTok": 0.4,
+      "cacheReadPerMTok": 0.1345
     },
     "preferredApi": "completions",
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 131072,
-    "maxOutput": 64000,
+    "contextWindow": 163840,
+    "maxOutput": 65536,
     "capabilities": {
       "toolUse": true,
       "streaming": true,
@@ -5041,9 +5047,9 @@
       "deepseek/deepseek-v4-flash"
     ],
     "pricing": {
-      "inputPerMTok": 0.077,
-      "outputPerMTok": 0.154,
-      "cacheReadPerMTok": 0.0154
+      "inputPerMTok": 0.14,
+      "outputPerMTok": 0.28,
+      "cacheReadPerMTok": 0.028
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -5185,7 +5191,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 128000,
+    "contextWindow": 8192,
     "maxOutput": 8192,
     "capabilities": {
       "toolUse": true,
@@ -5275,7 +5281,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 131072,
+    "contextWindow": 32768,
     "maxOutput": 32768,
     "capabilities": {
       "toolUse": true,
@@ -5320,7 +5326,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 131072,
+    "contextWindow": 32768,
     "maxOutput": 16384,
     "capabilities": {
       "toolUse": true,
@@ -5366,7 +5372,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 131072,
+    "contextWindow": 128000,
     "maxOutput": 128000,
     "capabilities": {
       "toolUse": true,
@@ -5451,15 +5457,15 @@
       "qwen/qwen3-14b"
     ],
     "pricing": {
-      "inputPerMTok": 0.1,
-      "outputPerMTok": 0.24
+      "inputPerMTok": 0.2275,
+      "outputPerMTok": 0.91
     },
     "preferredApi": "completions",
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 131702,
-    "maxOutput": 40960,
+    "contextWindow": 131072,
+    "maxOutput": 8192,
     "capabilities": {
       "toolUse": true,
       "streaming": true,
@@ -5637,8 +5643,9 @@
       "qwen/qwen3-next-80b-a3b-thinking"
     ],
     "pricing": {
-      "inputPerMTok": 0.09,
-      "outputPerMTok": 1.1
+      "inputPerMTok": 0.1,
+      "outputPerMTok": 1.1,
+      "cacheReadPerMTok": 0.07
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -5867,15 +5874,15 @@
       "qwen/qwen3.5-397b-a17b"
     ],
     "pricing": {
-      "inputPerMTok": 0.385,
-      "outputPerMTok": 2.45,
+      "inputPerMTok": 0.39,
+      "outputPerMTok": 2.34,
       "cacheReadPerMTok": 0.111
     },
     "preferredApi": "completions",
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 256000,
+    "contextWindow": 262144,
     "maxOutput": 65536,
     "capabilities": {
       "toolUse": true,
@@ -5914,8 +5921,8 @@
       "qwen/qwen3.6-27b"
     ],
     "pricing": {
-      "inputPerMTok": 0.285,
-      "outputPerMTok": 2.4,
+      "inputPerMTok": 0.3,
+      "outputPerMTok": 2,
       "cacheReadPerMTok": 0.15
     },
     "preferredApi": "completions",
@@ -6288,9 +6295,9 @@
       "qwen/qwen3.7-max"
     ],
     "pricing": {
-      "inputPerMTok": 1.25,
-      "outputPerMTok": 3.75,
-      "cacheReadPerMTok": 0.25
+      "inputPerMTok": 1.475,
+      "outputPerMTok": 4.425,
+      "cacheReadPerMTok": 0.295
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -6433,7 +6440,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 128000,
+    "contextWindow": 32768,
     "maxOutput": 32768,
     "capabilities": {
       "toolUse": true,
@@ -6475,14 +6482,15 @@
       "qwen/qwen3-coder-next"
     ],
     "pricing": {
-      "inputPerMTok": 0.22,
-      "outputPerMTok": 1.8
+      "inputPerMTok": 0.3,
+      "outputPerMTok": 1,
+      "cacheReadPerMTok": 0.1
     },
     "preferredApi": "completions",
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 1048576,
+    "contextWindow": 262144,
     "maxOutput": 65536,
     "capabilities": {
       "toolUse": true,
@@ -6527,7 +6535,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 160000,
+    "contextWindow": 262144,
     "maxOutput": 32768,
     "capabilities": {
       "toolUse": true,
@@ -6573,7 +6581,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 256000,
+    "contextWindow": 262144,
     "maxOutput": 32768,
     "capabilities": {
       "toolUse": true,
@@ -6613,8 +6621,8 @@
       "qwen/qwen3-vl-30b-a3b-thinking"
     ],
     "pricing": {
-      "inputPerMTok": 0.13,
-      "outputPerMTok": 0.52
+      "inputPerMTok": 0.15,
+      "outputPerMTok": 0.6
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -6666,7 +6674,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 262144,
+    "contextWindow": 131072,
     "maxOutput": 32768,
     "capabilities": {
       "toolUse": true,
@@ -6706,9 +6714,9 @@
       "qwen/qwen3-vl-235b-a22b-thinking"
     ],
     "pricing": {
-      "inputPerMTok": 0.2,
-      "outputPerMTok": 0.88,
-      "cacheReadPerMTok": 0.11
+      "inputPerMTok": 0.21,
+      "outputPerMTok": 1.9,
+      "cacheReadPerMTok": 0.1
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -6846,8 +6854,9 @@
       "meta-llama/llama-3.1-8b-instruct"
     ],
     "pricing": {
-      "inputPerMTok": 0.02,
-      "outputPerMTok": 0.03
+      "inputPerMTok": 0.05,
+      "outputPerMTok": 0.08,
+      "cacheReadPerMTok": 0.025
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -6943,7 +6952,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 131072,
+    "contextWindow": 60000,
     "maxOutput": 60000,
     "capabilities": {
       "toolUse": true,
@@ -7078,8 +7087,8 @@
       "meta-llama/llama-3.3-70b-instruct:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.1,
-      "outputPerMTok": 0.32
+      "inputPerMTok": 0.13,
+      "outputPerMTok": 0.4
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -7130,7 +7139,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 10000000,
+    "contextWindow": 1310720,
     "maxOutput": 16384,
     "capabilities": {
       "toolUse": true,
@@ -7169,8 +7178,8 @@
       "meta-llama/llama-4-maverick"
     ],
     "pricing": {
-      "inputPerMTok": 0.15,
-      "outputPerMTok": 0.6
+      "inputPerMTok": 0.2,
+      "outputPerMTok": 0.8
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -7263,7 +7272,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 163840,
+    "contextWindow": 1048576,
     "maxOutput": 16384,
     "capabilities": {
       "toolUse": false,
@@ -7587,7 +7596,7 @@
       "mistralai/mistral-nemo"
     ],
     "pricing": {
-      "inputPerMTok": 0.02,
+      "inputPerMTok": 0.019,
       "outputPerMTok": 0.03
     },
     "preferredApi": "completions",
@@ -7906,8 +7915,9 @@
       "moonshotai/kimi-k2.5"
     ],
     "pricing": {
-      "inputPerMTok": 0.375,
-      "outputPerMTok": 2.025
+      "inputPerMTok": 0.57,
+      "outputPerMTok": 2.85,
+      "cacheReadPerMTok": 0.095
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -7952,9 +7962,9 @@
       "moonshotai/kimi-k2.6"
     ],
     "pricing": {
-      "inputPerMTok": 0.66,
-      "outputPerMTok": 3.41,
-      "cacheReadPerMTok": 0.15
+      "inputPerMTok": 0.646,
+      "outputPerMTok": 2.72,
+      "cacheReadPerMTok": 0.1088
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -8052,15 +8062,15 @@
       "z-ai/glm-4.6v"
     ],
     "pricing": {
-      "inputPerMTok": 0.43,
-      "outputPerMTok": 1.74,
-      "cacheReadPerMTok": 0.08
+      "inputPerMTok": 0.5,
+      "outputPerMTok": 2,
+      "cacheReadPerMTok": 0.1
     },
     "preferredApi": "completions",
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 202752,
+    "contextWindow": 204800,
     "maxOutput": 131072,
     "capabilities": {
       "toolUse": true,
@@ -8107,7 +8117,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 202752,
+    "contextWindow": 204800,
     "maxOutput": 131072,
     "capabilities": {
       "toolUse": true,
@@ -8146,16 +8156,16 @@
       "z-ai/glm-5-turbo"
     ],
     "pricing": {
-      "inputPerMTok": 0.6,
-      "outputPerMTok": 1.92,
-      "cacheReadPerMTok": 0.12
+      "inputPerMTok": 0.95,
+      "outputPerMTok": 2.55,
+      "cacheReadPerMTok": 0.2
     },
     "preferredApi": "completions",
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 202752,
-    "maxOutput": 128000,
+    "contextWindow": 204800,
+    "maxOutput": 131072,
     "capabilities": {
       "toolUse": true,
       "streaming": true,
@@ -8200,7 +8210,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 202752,
+    "contextWindow": 204800,
     "capabilities": {
       "toolUse": true,
       "streaming": true,
@@ -8229,7 +8239,8 @@
     "family": "glm",
     "version": "5.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "maxOutput": 128000
   },
   "openrouter/minimax-01": {
     "providerModelName": "minimax/minimax-01",
@@ -8283,7 +8294,7 @@
       "minimax/minimax-m1"
     ],
     "pricing": {
-      "inputPerMTok": 0.4,
+      "inputPerMTok": 0.55,
       "outputPerMTok": 2.2
     },
     "preferredApi": "completions",
@@ -8422,8 +8433,8 @@
       "minimax/minimax-m2.7"
     ],
     "pricing": {
-      "inputPerMTok": 0.24,
-      "outputPerMTok": 0.96,
+      "inputPerMTok": 0.25,
+      "outputPerMTok": 1,
       "cacheReadPerMTok": 0.05
     },
     "preferredApi": "completions",
@@ -8702,8 +8713,8 @@
       "nvidia/nemotron-3-super-120b-a12b:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.08,
-      "outputPerMTok": 0.45
+      "inputPerMTok": 0.085,
+      "outputPerMTok": 0.4
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -8755,7 +8766,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 1000000,
+    "contextWindow": 512288,
     "maxOutput": 16384,
     "capabilities": {
       "toolUse": true,
@@ -9347,7 +9358,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 65536,
+    "contextWindow": 65535,
     "maxOutput": 8000,
     "capabilities": {
       "toolUse": true,
@@ -10116,8 +10127,8 @@
       "arcee-ai/trinity-large-thinking"
     ],
     "pricing": {
-      "inputPerMTok": 0.25,
-      "outputPerMTok": 0.8,
+      "inputPerMTok": 0.22,
+      "outputPerMTok": 0.85,
       "cacheReadPerMTok": 0.06
     },
     "preferredApi": "completions",
@@ -10303,7 +10314,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 131072,
+    "contextWindow": 123000,
     "maxOutput": 16000,
     "capabilities": {
       "toolUse": true,
@@ -11120,7 +11131,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 256000,
+    "contextWindow": 262144,
     "maxOutput": 256000,
     "capabilities": {
       "toolUse": true,
@@ -11199,10 +11210,10 @@
     "active": true
   },
   "openrouter/hunyuan-hy3": {
-    "providerModelName": "tencent/hy3-preview",
+    "providerModelName": "tencent/hy3",
     "aliases": [
-      "tencent/hy3-preview",
       "tencent/hy3",
+      "tencent/hy3-preview",
       "tencent/hy3:free"
     ],
     "pricing": {
@@ -11387,15 +11398,15 @@
       "xiaomi/mimo-v2.5"
     ],
     "pricing": {
-      "inputPerMTok": 0.105,
+      "inputPerMTok": 0.14,
       "outputPerMTok": 0.28,
-      "cacheReadPerMTok": 0.028
+      "cacheReadPerMTok": 0.0028
     },
     "preferredApi": "completions",
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 1048576,
+    "contextWindow": 1050000,
     "maxOutput": 131072,
     "capabilities": {
       "toolUse": true,
@@ -11443,7 +11454,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 1048576,
+    "contextWindow": 1050000,
     "maxOutput": 131072,
     "capabilities": {
       "toolUse": true,
@@ -11537,7 +11548,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 256000,
+    "contextWindow": 262144,
     "maxOutput": 80000,
     "capabilities": {
       "toolUse": true,
@@ -11613,7 +11624,11 @@
     "family": "laguna",
     "version": "1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "deprecation": {
+      "shutdownDate": "2026-07-28",
+      "source": "openrouter"
+    }
   },
   "openrouter/laguna-xs.2": {
     "providerModelName": "poolside/laguna-xs.2:free",
@@ -11718,7 +11733,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 32768,
+    "contextWindow": 16384,
     "maxOutput": 2048,
     "capabilities": {
       "toolUse": true,
@@ -11757,14 +11772,14 @@
       "cognitivecomputations/dolphin-mistral-24b-venice-edition"
     ],
     "pricing": {
-      "inputPerMTok": 0,
-      "outputPerMTok": 0
+      "inputPerMTok": 0.2,
+      "outputPerMTok": 0.9
     },
     "preferredApi": "completions",
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 32768,
+    "contextWindow": 128000,
     "capabilities": {
       "toolUse": true,
       "streaming": true,
@@ -11797,7 +11812,8 @@
     "deprecation": {
       "shutdownDate": "2026-07-19",
       "source": "openrouter"
-    }
+    },
+    "maxOutput": 8192
   },
   "openrouter/mythomax-l2-13b": {
     "providerModelName": "gryphe/mythomax-l2-13b",
@@ -11812,7 +11828,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 4096,
+    "contextWindow": 8192,
     "maxOutput": 4096,
     "capabilities": {
       "toolUse": true,
@@ -11850,8 +11866,8 @@
       "mancer/weaver"
     ],
     "pricing": {
-      "inputPerMTok": 0.75,
-      "outputPerMTok": 1
+      "inputPerMTok": 0.5,
+      "outputPerMTok": 0.75
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -12660,9 +12676,9 @@
       "z-ai/glm-5.2"
     ],
     "pricing": {
-      "inputPerMTok": 0.35,
-      "outputPerMTok": 1.1,
-      "cacheReadPerMTok": 0.065
+      "inputPerMTok": 0.7756,
+      "outputPerMTok": 2.4376,
+      "cacheReadPerMTok": 0.14404
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -13036,9 +13052,9 @@
       "moonshotai/kimi-k2.7-code"
     ],
     "pricing": {
-      "inputPerMTok": 0.72,
-      "outputPerMTok": 3.49,
-      "cacheReadPerMTok": 0.159
+      "inputPerMTok": 0.73,
+      "outputPerMTok": 3.5,
+      "cacheReadPerMTok": 0.15
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -13076,5 +13092,635 @@
     "version": "2.7",
     "status": "stable",
     "active": true
+  },
+  "openrouter/auto-beta": {
+    "providerModelName": "openrouter/auto-beta",
+    "aliases": [
+      "openrouter/auto-beta"
+    ],
+    "pricing": {},
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 2000000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false,
+      "webSearch": true
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "router",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "router",
+    "version": "1",
+    "status": "preview",
+    "active": true
+  },
+  "openrouter/claude-opus-5-fast": {
+    "providerModelName": "anthropic/claude-opus-5-fast",
+    "aliases": [
+      "anthropic/claude-opus-5-fast"
+    ],
+    "pricing": {
+      "inputPerMTok": 10,
+      "outputPerMTok": 50,
+      "cacheReadPerMTok": 1
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1000000,
+    "maxOutput": 128000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "claude-opus",
+    "version": "5",
+    "status": "stable",
+    "active": true
+  },
+  "openrouter/claude-opus-5": {
+    "providerModelName": "anthropic/claude-opus-5",
+    "aliases": [
+      "anthropic/claude-opus-5"
+    ],
+    "pricing": {
+      "inputPerMTok": 5,
+      "outputPerMTok": 25,
+      "cacheReadPerMTok": 0.5
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1000000,
+    "maxOutput": 128000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "claude-opus",
+    "version": "5",
+    "status": "stable",
+    "active": true
+  },
+  "openrouter/gemini-3.6-flash": {
+    "providerModelName": "google/gemini-3.6-flash",
+    "aliases": [
+      "google/gemini-3.6-flash"
+    ],
+    "pricing": {
+      "inputPerMTok": 1.5,
+      "outputPerMTok": 7.5,
+      "cacheReadPerMTok": 0.15
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 65536,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "gemini-flash",
+    "version": "3.6",
+    "status": "stable",
+    "active": true
+  },
+  "openrouter/gemini-3.5-flash-lite": {
+    "providerModelName": "google/gemini-3.5-flash-lite",
+    "aliases": [
+      "google/gemini-3.5-flash-lite"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.3,
+      "outputPerMTok": 2.5,
+      "cacheReadPerMTok": 0.03
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 65536,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "gemini-flash-lite",
+    "version": "3.5",
+    "status": "stable",
+    "active": true
+  },
+  "openrouter/kimi-k3": {
+    "providerModelName": "moonshotai/kimi-k3",
+    "aliases": [
+      "moonshotai/kimi-k3"
+    ],
+    "pricing": {
+      "inputPerMTok": 3,
+      "outputPerMTok": 15,
+      "cacheReadPerMTok": 0.3
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "kimi",
+    "version": "3",
+    "status": "stable",
+    "active": true
+  },
+  "openrouter/ling-3.0-flash": {
+    "providerModelName": "inclusionai/ling-3.0-flash:free",
+    "aliases": [
+      "inclusionai/ling-3.0-flash:free"
+    ],
+    "pricing": {
+      "inputPerMTok": 0,
+      "outputPerMTok": 0
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 262144,
+    "maxOutput": 32768,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "ling",
+    "version": "3.0",
+    "status": "stable",
+    "active": true
+  },
+  "openrouter/kat-coder-air-v2.5": {
+    "providerModelName": "kwaipilot/kat-coder-air-v2.5",
+    "aliases": [
+      "kwaipilot/kat-coder-air-v2.5"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.15,
+      "outputPerMTok": 0.6,
+      "cacheReadPerMTok": 0.03
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 256000,
+    "maxOutput": 80000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "code",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "kat-coder",
+    "version": "2.5",
+    "status": "stable",
+    "active": true
+  },
+  "openrouter/kat-coder-pro-v2.5": {
+    "providerModelName": "kwaipilot/kat-coder-pro-v2.5",
+    "aliases": [
+      "kwaipilot/kat-coder-pro-v2.5"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.74,
+      "outputPerMTok": 2.96,
+      "cacheReadPerMTok": 0.15
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 256000,
+    "maxOutput": 80000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "code",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "kat-coder",
+    "version": "2.5",
+    "status": "stable",
+    "active": true
+  },
+  "openrouter/laguna-s.2.1": {
+    "providerModelName": "poolside/laguna-s-2.1",
+    "aliases": [
+      "poolside/laguna-s-2.1",
+      "poolside/laguna-s-2.1:free"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.1,
+      "outputPerMTok": 0.2,
+      "cacheReadPerMTok": 0.01
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "code",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "laguna",
+    "version": "2.1",
+    "status": "preview",
+    "active": true
+  },
+  "openrouter/longcat-2.0": {
+    "providerModelName": "meituan/longcat-2.0",
+    "aliases": [
+      "meituan/longcat-2.0"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.3,
+      "outputPerMTok": 1.2,
+      "cacheReadPerMTok": 0.006
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048756,
+    "maxOutput": 262144,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "longcat",
+    "version": "2.0",
+    "status": "stable",
+    "active": true
+  },
+  "openrouter/inkling": {
+    "providerModelName": "thinkingmachines/inkling",
+    "aliases": [
+      "thinkingmachines/inkling"
+    ],
+    "pricing": {
+      "inputPerMTok": 1,
+      "outputPerMTok": 4.05,
+      "cacheReadPerMTok": 0.17
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "inkling",
+    "version": "1",
+    "status": "stable",
+    "active": true
+  },
+  "openrouter/muse-spark-1.1": {
+    "providerModelName": "meta/muse-spark-1.1",
+    "aliases": [
+      "meta/muse-spark-1.1"
+    ],
+    "pricing": {
+      "inputPerMTok": 1.25,
+      "outputPerMTok": 4.25,
+      "cacheReadPerMTok": 0.15
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": true,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "image",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "image"
+    ],
+    "family": "muse",
+    "version": "1.1",
+    "status": "stable",
+    "active": true,
+    "mediaParams": {
+      "aspectRatio": {
+        "values": [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ]
+      },
+      "imageSize": {
+        "values": [
+          "0.5K",
+          "1K",
+          "2K",
+          "4K"
+        ],
+        "default": "1K"
+      }
+    }
   }
 }

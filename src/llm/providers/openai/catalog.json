@@ -566,7 +566,7 @@
     "family": "gpt-chat",
     "version": "5",
     "status": "legacy",
-    "active": true
+    "active": false
   },
   "openai/gpt-5.1-chat": {
     "providerModelName": "gpt-5.1-chat-latest",
@@ -614,7 +614,7 @@
     "family": "gpt-chat",
     "version": "5.1",
     "status": "legacy",
-    "active": true
+    "active": false
   },
   "openai/gpt-5.2-chat": {
     "providerModelName": "gpt-5.2-chat-latest",
@@ -714,7 +714,11 @@
     "family": "gpt-chat",
     "version": "5.3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "deprecation": {
+      "shutdownDate": "2026-08-10",
+      "source": "openrouter"
+    }
   },
   "openai/gpt-5-codex": {
     "providerModelName": "gpt-5-codex",
@@ -761,7 +765,7 @@
     "family": "gpt-codex",
     "version": "5",
     "status": "legacy",
-    "active": true
+    "active": false
   },
   "openai/gpt-5.1-codex": {
     "providerModelName": "gpt-5.1-codex",
@@ -808,7 +812,7 @@
     "family": "gpt-codex",
     "version": "5.1",
     "status": "stable",
-    "active": true
+    "active": false
   },
   "openai/gpt-5.1-codex-max": {
     "providerModelName": "gpt-5.1-codex-max",
@@ -855,7 +859,7 @@
     "family": "gpt-codex",
     "version": "5.1",
     "status": "stable",
-    "active": true
+    "active": false
   },
   "openai/gpt-5.1-codex-mini": {
     "providerModelName": "gpt-5.1-codex-mini",
@@ -902,7 +906,7 @@
     "family": "gpt-codex",
     "version": "5.1",
     "status": "stable",
-    "active": true
+    "active": false
   },
   "openai/gpt-5.2-codex": {
     "providerModelName": "gpt-5.2-codex",
@@ -949,7 +953,7 @@
     "family": "gpt-codex",
     "version": "5.2",
     "status": "stable",
-    "active": true
+    "active": false
   },
   "openai/gpt-5.3-codex": {
     "providerModelName": "gpt-5.3-codex",

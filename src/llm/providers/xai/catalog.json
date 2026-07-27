@@ -424,12 +424,12 @@
       "grok-imagine-video"
     ],
     "pricing": {
-      "perSecond": 0.01,
+      "perSecond": 0.002,
       "perUnit": {
         "480p": 0.05,
         "720p": 0.07
       },
-      "perImage": 0.002
+      "perImage": 0.01
     },
     "preferredApi": "responses",
     "supportedApis": [
@@ -494,10 +494,10 @@
     }
   },
   "xai/grok-imagine-video-1.5": {
-    "providerModelName": "grok-imagine-video-1.5-preview",
+    "providerModelName": "grok-imagine-video-1.5",
     "aliases": [
-      "grok-imagine-video-1.5-preview",
-      "grok-imagine-video-1.5"
+      "grok-imagine-video-1.5",
+      "grok-imagine-video-1.5-preview"
     ],
     "pricing": {
       "perSecond": 0.01,

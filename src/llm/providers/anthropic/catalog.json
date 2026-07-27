@@ -719,7 +719,65 @@
     "family": "claude-mythos",
     "version": "5",
     "status": "stable",
-    "active": true,
+    "active": false,
     "availability": "limited"
+  },
+  "anthropic/claude-opus-5": {
+    "providerModelName": "claude-opus-5",
+    "aliases": [
+      "claude-opus-5"
+    ],
+    "pricing": {
+      "inputPerMTok": 5,
+      "outputPerMTok": 25,
+      "cacheReadPerMTok": 0.5,
+      "tiers": {
+        "priority": {
+          "inputPerMTok": 10,
+          "outputPerMTok": 50
+        },
+        "batch": {
+          "inputPerMTok": 2.5,
+          "outputPerMTok": 12.5
+        }
+      }
+    },
+    "preferredApi": "messages",
+    "supportedApis": [
+      "messages"
+    ],
+    "contextWindow": 1000000,
+    "maxOutput": 128000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image",
+      "pdf"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "claude-opus",
+    "version": "5",
+    "status": "stable",
+    "active": true
   }
 }
