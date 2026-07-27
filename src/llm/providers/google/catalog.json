@@ -67,7 +67,8 @@
   "google/gemini-3.1-pro": {
     "providerModelName": "gemini-3.1-pro-preview",
     "aliases": [
-      "gemini-3.1-pro-preview"
+      "gemini-3.1-pro-preview",
+      "gemini-pro-latest"
     ],
     "pricing": {
       "inputPerMTok": 2,
@@ -2462,7 +2463,8 @@
   "google/gemini-3.6-flash": {
     "providerModelName": "gemini-3.6-flash",
     "aliases": [
-      "gemini-3.6-flash"
+      "gemini-3.6-flash",
+      "gemini-flash-latest"
     ],
     "pricing": {
       "inputPerMTok": 1.5,
@@ -2527,7 +2529,8 @@
   "google/gemini-3.5-flash-lite": {
     "providerModelName": "gemini-3.5-flash-lite",
     "aliases": [
-      "gemini-3.5-flash-lite"
+      "gemini-3.5-flash-lite",
+      "gemini-flash-lite-latest"
     ],
     "pricing": {
       "inputPerMTok": 0.3,
