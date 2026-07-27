@@ -74,7 +74,8 @@ export interface NormalizedRequest {
  *  rendered back to it on later turns of a stateful conversation (chained via
  *  `previousResponseId` / server-state). `all_turns` keeps continuity at higher
  *  token cost; `current_turn` drops earlier reasoning; `auto` lets OpenAI decide.
- *  Ignored by every other provider. */
+ *  Omitted, the model picks: the gpt-5.6 family defaults to `all_turns`, earlier
+ *  models to `current_turn`. Ignored by every other provider. */
 export type ReasoningContext = 'auto' | 'current_turn' | 'all_turns';
 
 /** How much of the model's reasoning is returned. `full` (default) returns it as

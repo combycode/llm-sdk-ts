@@ -186,6 +186,14 @@ export class GoogleAdapter implements ProviderAdapter {
       if (req.providerOptions.translationConfig) {
         config.translationConfig = req.providerOptions.translationConfig;
       }
+      // Explicit context cache (`cachedContents/…`). Top-level on the request body, NOT
+      // inside generationConfig. This passthrough used to live on the Interactions adapter,
+      // but google 2.13 removed `cached_content` from the Interactions request model and the
+      // endpoint now 400s "Unknown parameter" — while generateContent still accepts and
+      // validates it (live 2026-07-27: a bogus name returns 403 "CachedContent not found",
+      // i.e. the field is recognised). See interactions.ts for the removal note.
+      const cachedContent = req.providerOptions.cachedContent;
+      if (typeof cachedContent === 'string' && cachedContent) body.cachedContent = cachedContent;
     }
 
     return {

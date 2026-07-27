@@ -508,10 +508,29 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     // safety block) or `max_output_tokens` (a token cap). Surface content_filter
     // distinctly instead of mislabelling a block as a length truncation.
     const incompleteReason = (r.incomplete_details as { reason?: string } | undefined)?.reason;
+    // A Responses call can FAIL inside a 200 (`status:'failed'` + `response.error`) — there
+    // is no transport error to catch, so mapping it to 'stop' silently returned an empty
+    // success. `queued`/`in_progress` are non-terminal (background mode) and `cancelled`
+    // ended without a result; none of them is a clean finish.
     const finishReason =
       incompleteReason === 'content_filter'
         ? 'content_filter'
-        : extractFinishReason(toolCalls.length > 0, status, { incomplete: 'length' });
+        : extractFinishReason(toolCalls.length > 0, status, {
+            incomplete: 'length',
+            failed: 'error',
+            cancelled: 'error',
+            queued: 'pending',
+            in_progress: 'pending',
+          });
+    // `error.code` gained `data_residency_mismatch` in openai 6.49 (GA + beta).
+    const rawError = r.error as { code?: unknown; message?: unknown } | null | undefined;
+    const error =
+      rawError && (rawError.code !== undefined || rawError.message !== undefined)
+        ? {
+            ...(typeof rawError.code === 'string' ? { code: rawError.code } : {}),
+            ...(typeof rawError.message === 'string' ? { message: rawError.message } : {}),
+          }
+        : undefined;
 
     // Use output_text convenience if available
     if (!text && typeof r.output_text === 'string') {
@@ -534,6 +553,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       ...(files.length ? { files } : {}),
       ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
       ...(moderation ? { moderation } : {}),
+      ...(error ? { error } : {}),
       latencyMs,
       raw,
     };

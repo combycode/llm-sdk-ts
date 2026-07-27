@@ -93,6 +93,32 @@ try {
 }
 ```
 
+### Finish reasons — and the two non-obvious ones
+
+`response.finishReason` is unified across providers: `'stop' | 'tool_use' | 'length' |
+'content_filter' | 'error' | 'pending'`.
+
+- **`'pending'`** — *not terminal*. The provider accepted the request but has not produced a
+  completion, so the response carries no content. It comes from Google Interactions `queued` and
+  OpenAI Responses `queued`/`in_progress` (background mode). Treat it as "poll/retry", never as a
+  result. Before 1.8.0 these fell through to `'stop'`, which reported a clean finish for an empty
+  response.
+- **`'error'`** — the provider reported a failure *inside a 200 response* (OpenAI Responses
+  `status: 'failed'`, Google Interactions `status: 'failed'`), so there is no exception to catch.
+  When set, `response.error` carries `{ code?, message? }` — e.g. OpenAI's `data_residency_mismatch`.
+
+```ts
+const { response } = await complete({ model: 'openai/gpt-5.4-nano', apiKey, prompt: '…' });
+if (response.finishReason === 'pending') {
+  // nothing ran yet — poll again, do not treat response.text as an answer
+} else if (response.finishReason === 'error') {
+  console.error(response.error?.code, response.error?.message);
+}
+```
+
+> Anthropic's `refusal` stop reason maps to `'content_filter'` (a safety decline is a block, not a
+> clean finish), and `model_context_window_exceeded` maps to `'length'`.
+
 ### Sampling penalties
 
 `presencePenalty` / `frequencyPenalty` (`[-2, 2]`) are honoured by OpenAI/xAI **chat-completions**,
@@ -114,6 +140,7 @@ await complete({ model: 'openai/gpt-5.4-nano', apiKey, prompt: '…', presencePe
   `enabled.display`, OpenAI Responses `summary`, Google `includeThoughts`. Best-effort — a provider
   without a middle state degrades `summary` to `full`.
 - `context: 'auto' | 'current_turn' | 'all_turns'` — cross-turn reasoning persistence (OpenAI Responses).
+  Omitted, the model decides: the `gpt-5.6` family defaults to `all_turns`, earlier models to `current_turn`.
 
 ```ts
 await complete({ model: 'anthropic/claude-haiku-4.5', apiKey, prompt: '…',
@@ -129,10 +156,13 @@ reads the keys it understands and ignores the rest:
 
 - **Anthropic** — `userProfileId` → the `anthropic-user-profile-id` header (identifies the end user a
   request acts on behalf of; needs the account-level `user-profiles` beta).
-- **Google Interactions** (`api: 'interactions'`) — `cachedContent` → the `cached_content` resource
-  (`projects/…/cachedContents/…`).
 - **Google generateContent** — `translationConfig` → `generationConfig.translationConfig`
   (`{ targetLanguageCode }`; Gemini Developer API).
+- **Google generateContent** — `cachedContent` → top-level `cachedContent`, an explicit context-cache
+  resource (`cachedContents/…`). **Moved off Interactions in 1.8.0:** google 2.13 removed
+  `cached_content` from the Interactions request model and that endpoint now rejects it outright
+  (`400 Unknown parameter 'cached_content'`), so sending it there was a hard failure. It remains
+  valid on `generateContent`, which is where the passthrough now lives.
 - **OpenAI Responses** — `reasoningMode: 'standard' | 'pro'` → `reasoning.mode` (chat-completions rejects
   it, so it's not a unified `thinking` knob).
 - **OpenAI (Responses + chat)** — `moderationPolicy` → `moderation.policy`

@@ -115,11 +115,13 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
 
     if (Object.keys(genConfig).length > 0) body.generation_config = genConfig;
 
-    // Explicit cached content: the Interactions API takes a cached-content resource
-    // name (`projects/…/cachedContents/…`), not our ephemeral `cache` block, so it's a
-    // providerOptions passthrough.
-    const cachedContent = req.providerOptions?.cachedContent;
-    if (typeof cachedContent === 'string' && cachedContent) body.cached_content = cachedContent;
+    // NOTE: `cached_content` was REMOVED from the Interactions request model in google
+    // 2.13 (both `CreateModelInteraction` and `Interaction`). We used to forward
+    // `providerOptions.cachedContent` here; the endpoint now hard-rejects it — live
+    // 2026-07-27: 400 "Unknown parameter 'cached_content'". Explicit cached content
+    // remains valid on generateContent, so the passthrough lives there only. Do NOT
+    // re-add it here from a stale SDK reference (this is the same trap as the
+    // Interactions penalties removed on 2026-07-14).
     // NOTE: the SDK's interactions create params also list `safety_settings` +
     // `labels`, but the Gemini Developer API REJECTS both ("not available on the
     // Gemini API … available on the Gemini Enterprise Agent Platform" — live-verified
@@ -298,7 +300,14 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
     }
 
     const status = r.status as string;
-    const finishReason = extractFinishReason(toolCalls.length > 0, status, { failed: 'error' });
+    // `queued` joined InteractionStatus in google 2.13 (interaction-api): the
+    // interaction was accepted but has not run, so it carries no completion —
+    // reporting 'stop' would claim a clean finish that never happened.
+    const finishReason = extractFinishReason(toolCalls.length > 0, status, {
+      failed: 'error',
+      queued: 'pending',
+      in_progress: 'pending',
+    });
 
     return {
       id: (r.id as string) ?? crypto.randomUUID(),
@@ -379,12 +388,15 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
         (interaction.usage as Record<string, unknown>) ??
         ((data.metadata as Record<string, unknown>)?.total_usage as Record<string, unknown>);
       if (usage) events.push({ type: 'usage', usage: this.parseUsage(usage) });
-      events.push({
-        type: 'done',
-        finishReason: extractFinishReason(state.sawToolCall, interaction.status as string, {
-          failed: 'error',
-        }),
-      });
+      // `queued` is NOT terminal (google 2.13) — the interaction is still to run,
+      // so it must never close the stream with a `done`.
+      const status = interaction.status as string;
+      if (status !== 'queued') {
+        events.push({
+          type: 'done',
+          finishReason: extractFinishReason(state.sawToolCall, status, { failed: 'error' }),
+        });
+      }
       return events;
     }
 

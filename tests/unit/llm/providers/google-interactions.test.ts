@@ -49,10 +49,16 @@ describe('GoogleInteractionsAdapter — buildRequest basics', () => {
     expect(r.body.generation_config).toBeUndefined();
   });
 
-  it('providerOptions.cachedContent → cached_content passthrough', () => {
-    const r = a.buildRequest({ ...baseReq, providerOptions: { cachedContent: 'projects/p/locations/l/cachedContents/c' } });
-    expect(r.body.cached_content).toBe('projects/p/locations/l/cachedContents/c');
-    expect(a.buildRequest(baseReq).body.cached_content).toBeUndefined();
+  // REVERSED 2026-07-27: google 2.13 removed `cached_content` from the Interactions
+  // request model and the endpoint now 400s "Unknown parameter 'cached_content'"
+  // (live-probed). The passthrough moved to the generateContent adapter, which still
+  // accepts it. This test locks the removal so a stale SDK reference can't re-add it.
+  it('never emits cached_content (removed from the Interactions model in google 2.13)', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      providerOptions: { cachedContent: 'projects/p/locations/l/cachedContents/c' },
+    });
+    expect(r.body.cached_content).toBeUndefined();
   });
 
   it('does NOT forward safety_settings / labels (Enterprise/Vertex-only; Gemini API 400s)', () => {
@@ -256,6 +262,16 @@ describe('GoogleInteractionsAdapter — parseResponse', () => {
     expect(a.parseResponse(raw, 0).finishReason).toBe('error');
   });
 
+  it('status:queued (non-terminal) reports pending, not a clean stop', () => {
+    const raw = { id: 'int_4b', outputs: [], status: 'queued' };
+    expect(a.parseResponse(raw, 0).finishReason).toBe('pending');
+  });
+
+  it('status:in_progress (non-terminal) reports pending', () => {
+    const raw = { id: 'int_4c', outputs: [], status: 'in_progress' };
+    expect(a.parseResponse(raw, 0).finishReason).toBe('pending');
+  });
+
   it('cached and thought tokens surface in usage', () => {
     const raw = {
       id: 'int_5',
@@ -293,6 +309,13 @@ describe('GoogleInteractionsAdapter — stream (2.10 step-machine wire)', () => 
     expect(a.parseStreamEvent(sse({ event_type: 'step.delta', delta: { type: 'thought_signature', signature: 'x' } }))).toEqual([]);
     expect(a.parseStreamEvent(sse({ event_type: 'interaction.created', interaction: { id: 'i' } }))).toEqual([]);
     expect(a.parseStreamEvent(sse({ event_type: 'interaction.status_update', status: 'in_progress' }))).toEqual([]);
+    expect(a.parseStreamEvent(sse({ event_type: 'interaction.status_update', status: 'queued' }))).toEqual([]);
+  });
+
+  it('queued status never closes the stream with a done', () => {
+    expect(
+      a.parseStreamEvent(sse({ event_type: 'interaction.completed', interaction: { status: 'queued' } })),
+    ).toEqual([]);
   });
 
   it('createStreamParser correlates a function call: step.start → arguments_delta → step.stop', () => {

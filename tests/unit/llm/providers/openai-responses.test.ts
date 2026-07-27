@@ -649,6 +649,36 @@ describe('OpenAIResponsesAdapter — parseResponse', () => {
     expect(a.parseResponse(raw, 0).finishReason).toBe('length');
   });
 
+  it('status failed → finishReason error + surfaces error.code/message', () => {
+    const raw = {
+      id: 'r',
+      model: 'm',
+      status: 'failed',
+      error: { code: 'data_residency_mismatch', message: 'Region mismatch.' },
+      output: [],
+    };
+    const res = a.parseResponse(raw, 0);
+    expect(res.finishReason).toBe('error');
+    expect(res.error).toEqual({ code: 'data_residency_mismatch', message: 'Region mismatch.' });
+  });
+
+  it('status queued / in_progress → finishReason pending (non-terminal, background mode)', () => {
+    for (const status of ['queued', 'in_progress']) {
+      const raw = { id: 'r', model: 'm', status, output: [] };
+      expect(a.parseResponse(raw, 0).finishReason).toBe('pending');
+    }
+  });
+
+  it('status cancelled → finishReason error', () => {
+    const raw = { id: 'r', model: 'm', status: 'cancelled', output: [] };
+    expect(a.parseResponse(raw, 0).finishReason).toBe('error');
+  });
+
+  it('no error field → response.error stays absent', () => {
+    const raw = { id: 'r', model: 'm', status: 'completed', output: [] };
+    expect(a.parseResponse(raw, 0).error).toBeUndefined();
+  });
+
   it('incomplete + content_filter reason → finishReason content_filter (not length)', () => {
     const raw = {
       id: 'r',

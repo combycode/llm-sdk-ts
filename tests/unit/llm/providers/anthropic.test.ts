@@ -682,6 +682,29 @@ describe('AnthropicAdapter — parseResponse', () => {
     expect(a.parseResponse(raw, 0).finishReason).toBe('length');
   });
 
+  it('model_context_window_exceeded stop_reason → finishReason "length"', () => {
+    const raw = {
+      id: 'm',
+      model: 'm',
+      content: [{ type: 'text', text: 't' }],
+      stop_reason: 'model_context_window_exceeded',
+      usage: { input_tokens: 1, output_tokens: 1 },
+    };
+    expect(a.parseResponse(raw, 0).finishReason).toBe('length');
+  });
+
+  it('refusal stop_reason → finishReason "content_filter" (not a clean stop)', () => {
+    const raw = {
+      id: 'm',
+      model: 'm',
+      content: [],
+      stop_reason: 'refusal',
+      stop_details: { type: 'refusal', category: 'general_harms' },
+      usage: { input_tokens: 1, output_tokens: 1 },
+    };
+    expect(a.parseResponse(raw, 0).finishReason).toBe('content_filter');
+  });
+
   it('parses cache_read and cache_creation tokens', () => {
     const raw = {
       id: 'm',
@@ -837,6 +860,17 @@ describe('AnthropicAdapter — parseStreamEvent', () => {
       }),
     };
     expect(a.parseStreamEvent(evt)).toEqual([{ type: 'done', finishReason: 'tool_use' }]);
+  });
+
+  it('message_delta model_context_window_exceeded → done with length', () => {
+    const evt: SSEEvent = {
+      event: 'message_delta',
+      data: JSON.stringify({
+        type: 'message_delta',
+        delta: { stop_reason: 'model_context_window_exceeded' },
+      }),
+    };
+    expect(a.parseStreamEvent(evt)).toEqual([{ type: 'done', finishReason: 'length' }]);
   });
 
   it('message_delta with usage and stop emits usage + done', () => {

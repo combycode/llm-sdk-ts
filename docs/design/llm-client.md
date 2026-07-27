@@ -88,7 +88,8 @@ type ThinkingConfig =
 `context` is **OpenAI Responses-only** (gpt-5 / o-series). It controls which of the model's
 prior-turn reasoning items are rendered back to it on later turns of a stateful conversation
 (chained via `previousResponseId` / server-state): `all_turns` keeps continuity at higher token
-cost, `current_turn` drops earlier reasoning, `auto` lets OpenAI decide. It maps to the
+cost, `current_turn` drops earlier reasoning, `auto` lets OpenAI decide. Omit it and the model
+decides: the `gpt-5.6` family defaults to `all_turns`, earlier models to `current_turn`. It maps to the
 `reasoning.context` request field on the Responses API and is ignored by every other provider
 (xAI strips the whole reasoning block; Anthropic/Google never read it). On a one-shot call it
 has no effect.

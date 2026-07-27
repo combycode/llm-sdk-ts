@@ -6,6 +6,39 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+Upstream reconciliation for the 2026-07-27 clone refresh (10 SDKs). This batch is dominated by
+**terminal-state correctness**: three providers widened response enums that our adapters silently
+flattened to `'stop'`, so a caller could not distinguish a refusal, a context overflow, a queued
+interaction or an outright failure from a clean finish.
+
+### Fixed
+- **Google Interactions no longer sends `cached_content`.** google 2.13 removed it from the
+  Interactions request model and the endpoint now hard-rejects it — live-probed:
+  `400 Unknown parameter 'cached_content'`. Any call passing `providerOptions.cachedContent` on
+  Interactions failed outright. The passthrough **moved to `generateContent`**, which still accepts
+  and validates it (top-level `cachedContent`), so the capability is preserved rather than dropped.
+- **Anthropic `refusal` → `finishReason: 'content_filter'`** (was `'stop'`). A safety decline is a
+  block, not a clean finish; it now lines up with every other provider's block signal. The refusal
+  category enum also gained `general_harms` (anthropic 0.115).
+- **Anthropic `model_context_window_exceeded` → `finishReason: 'length'`** (was `'stop'`), on both
+  the buffered and streamed reason maps.
+- **OpenAI Responses `status: 'failed'` → `finishReason: 'error'`** (was `'stop'`), and `cancelled`
+  → `'error'`. A Responses call can fail *inside a 200*, so there was no exception to catch and the
+  caller silently received an empty success.
+- **Google Interactions `queued` no longer ends a stream.** The status is non-terminal, but the
+  stream parser emitted a terminal `done` for it, truncating the run.
+
+### Added
+- **`FinishReason` gains `'pending'`** — non-terminal: the provider accepted the request but has not
+  produced a completion (Google Interactions `queued`, OpenAI Responses `queued`/`in_progress` in
+  background mode). Treat as "poll/retry", never as a result. *Additive union member: exhaustive
+  `switch` statements over `FinishReason` should add a case.*
+- **`CompletionResponse.error?: { code?, message? }`** — populated when `finishReason === 'error'`,
+  carrying the provider's own failure detail (e.g. OpenAI's new `data_residency_mismatch` code,
+  openai 6.49). Optional field; absent unless the provider reported a failure.
+- Documented the OpenAI `reasoning.context` default (the `gpt-5.6` family defaults to `all_turns`,
+  earlier models to `current_turn`).
+
 ## [1.7.0] - 2026-07-16
 
 ### Added

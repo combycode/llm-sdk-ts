@@ -425,8 +425,16 @@ export class AnthropicAdapter implements ProviderAdapter {
       }
     }
 
+    // `model_context_window_exceeded` (anthropic-ts 0.115, GA + beta StopReason):
+    // the prompt itself overflowed the context window — a truncation, not a clean
+    // finish, so it maps to 'length' like max_tokens.
+    // `refusal`: the model declined on safety grounds. It is a content block, not a
+    // clean finish — report it as `content_filter` so it lines up with every other
+    // provider's block signal (OpenAI `incomplete_details.reason`, Google SAFETY).
     const finishReason = extractFinishReason(toolCalls.length > 0, r.stop_reason as string, {
       max_tokens: 'length',
+      model_context_window_exceeded: 'length',
+      refusal: 'content_filter',
     });
 
     return {
@@ -549,7 +557,11 @@ export class AnthropicAdapter implements ProviderAdapter {
       if (sr)
         events.push({
           type: 'done',
-          finishReason: extractFinishReason(sr === 'tool_use', sr, { max_tokens: 'length' }),
+          finishReason: extractFinishReason(sr === 'tool_use', sr, {
+            max_tokens: 'length',
+            model_context_window_exceeded: 'length',
+            refusal: 'content_filter',
+          }),
         });
       return events;
     }

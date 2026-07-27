@@ -322,6 +322,23 @@ describe('GoogleAdapter — thinking, structured, providerOptions', () => {
       targetLanguage: 'fr',
     });
   });
+
+  // Moved here from the Interactions adapter: google 2.13 removed `cached_content` from
+  // the Interactions request model (live: 400 "Unknown parameter"), while generateContent
+  // still accepts it. Top-level on the body, NOT inside generationConfig.
+  it('providerOptions.cachedContent → top-level body.cachedContent', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      providerOptions: { cachedContent: 'cachedContents/abc123' },
+    });
+    expect(r.body.cachedContent).toBe('cachedContents/abc123');
+    expect((r.body.generationConfig as Record<string, unknown>).cachedContent).toBeUndefined();
+  });
+
+  it('omits cachedContent when not requested', () => {
+    const r = a.buildRequest({ ...baseReq });
+    expect(r.body.cachedContent).toBeUndefined();
+  });
 });
 
 describe('GoogleAdapter — enableStreaming', () => {
