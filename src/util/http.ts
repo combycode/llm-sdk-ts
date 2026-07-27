@@ -9,6 +9,22 @@ export function headersToRecord(headers: Headers): Record<string, string> {
   return out;
 }
 
+/** Case-insensitive header lookup. HTTP header names are case-insensitive
+ *  (RFC 9110 §5.1) but a plain record is not, and the casing a server or fetch
+ *  implementation actually sends varies — so read response headers through here
+ *  instead of guessing casings at the call site. */
+export function header(headers: Record<string, string>, name: string): string | undefined {
+  const lower = name.toLowerCase();
+  for (const k in headers) if (k.toLowerCase() === lower) return headers[k];
+  return undefined;
+}
+
+/** True when a request body cannot be replayed for a retry (the first attempt
+ *  consumes it). FormData, strings and byte views are replayable; a stream is not. */
+export function isStreamBody(body: unknown): boolean {
+  return typeof ReadableStream !== 'undefined' && body instanceof ReadableStream;
+}
+
 /** Parse an integer header value, or null if absent / not a number. */
 export function parseIntHeader(headers: Record<string, string>, key: string): number | null {
   const val = headers[key];

@@ -28,6 +28,27 @@ interaction or an outright failure from a clean finish.
 - **Google Interactions `queued` no longer ends a stream.** The status is non-terminal, but the
   stream parser emitted a terminal `done` for it, truncating the run.
 
+### Security
+- **`TelemetryAdapter` can redact provider error text.** New option
+  `includeSensitiveData` (default `true` — unchanged behaviour, and the same default as the OpenAI
+  Agents SDK's `trace_include_sensitive_data`). A provider's `error.message`/`error.raw` can echo
+  request content back (a refusal quotes the prompt, a validation error names the field and value),
+  and we stored it verbatim. With `includeSensitiveData: false` the message becomes `***REDACTED***`
+  and `raw` is dropped, while `name`/`code`/`status` are kept so traces stay triageable. URLs and
+  headers were, and remain, always redacted.
+
+### Fixed (hardening)
+- **SSE streams are now cancelled, not just unlocked.** `parseSSEStream` released the reader lock in
+  its `finally` but never cancelled the body, so a consumer that broke out early (abort, error, or a
+  `break` after the first token) left the HTTP response open until GC. Verified live on Anthropic,
+  OpenAI and Google: full streams unchanged, early `break` tears down cleanly.
+- **Non-replayable request bodies are never retried.** A streamed body is consumed by the first
+  attempt, so a retry would send an empty/partial body. Our own `rawBody` callers all pass FormData
+  or bytes (replayable), so this is a guard against a caller-supplied stream rather than a live bug.
+- **Case-insensitive response-header lookup.** `google/files.ts` guessed three casings of
+  `x-goog-upload-url` and would have missed any fourth. Header reads now go through one shared
+  `header()` helper in `util/http` (de-duplicated with the private copy in `llm/files/retrieve.ts`).
+
 ### Added
 - **`FinishReason` gains `'pending'`** — non-terminal: the provider accepted the request but has not
   produced a completion (Google Interactions `queued`, OpenAI Responses `queued`/`in_progress` in

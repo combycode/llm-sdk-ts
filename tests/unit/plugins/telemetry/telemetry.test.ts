@@ -220,6 +220,42 @@ describe('TelemetryAdapter', () => {
     expect(ev.ctx.error.code).toBe('ENOSPC');
   });
 
+  it('includeSensitiveData:false redacts error message + raw, keeps triage fields', async () => {
+    const bus = new HookBus();
+    const tel = new TelemetryAdapter(bus, { includeSensitiveData: false });
+    const error = Object.assign(new Error('Blocked: "my secret prompt text"'), {
+      code: 'content_policy',
+      status: 400,
+      raw: '{"prompt":"my secret prompt text"}',
+    });
+    await bus.emit('onModelError', {
+      provider: 'p', model: 'm', queueName: 'q',
+      error, headers: {}, attempt: 0, willRetry: false, trace,
+    } as never);
+    const ev = JSON.parse(tel.serialize()).events.find(
+      (e: { name: string }) => e.name === 'onModelError',
+    );
+    expect(ev.ctx.error.message).toBe('***REDACTED***');
+    expect(ev.ctx.error.raw).toBeUndefined();
+    // still triageable without the free text
+    expect(ev.ctx.error.name).toBe('Error');
+    expect(ev.ctx.error.code).toBe('content_policy');
+    expect(ev.ctx.error.status).toBe(400);
+  });
+
+  it('defaults to including error text (unchanged behaviour)', async () => {
+    const bus = new HookBus();
+    const tel = new TelemetryAdapter(bus);
+    await bus.emit('onModelError', {
+      provider: 'p', model: 'm', queueName: 'q',
+      error: new Error('boom'), headers: {}, attempt: 0, willRetry: false, trace,
+    } as never);
+    const ev = JSON.parse(tel.serialize()).events.find(
+      (e: { name: string }) => e.name === 'onModelError',
+    );
+    expect(ev.ctx.error.message).toBe('boom');
+  });
+
   it('destroy() detaches the tap', async () => {
     const bus = new HookBus();
     const tel = new TelemetryAdapter(bus);

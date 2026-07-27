@@ -2,6 +2,7 @@
  *  All HTTP flows through the injected EngineFetch (NetworkEngine queue). */
 
 import type { EngineFetch } from '../../../network/types';
+import { header } from '../../../util/http';
 import type { FileAttachment } from '../../../plugins/files/attachment';
 import type {
   FileProviderAdapter,
@@ -55,9 +56,9 @@ export class GoogleFileAdapter implements FileProviderAdapter {
       );
     }
 
-    const headers = startRes.headers ?? {};
-    const uploadUrl =
-      headers['x-goog-upload-url'] ?? headers['X-Goog-Upload-URL'] ?? headers['X-Goog-Upload-Url'];
+    // Header names are case-insensitive; guessing three casings still missed any
+    // fourth one the server or runtime might send (e.g. `X-GOOG-UPLOAD-URL`).
+    const uploadUrl = header(startRes.headers ?? {}, 'x-goog-upload-url');
     if (!uploadUrl) throw new Error('No upload URL returned from Google');
 
     const uploadRes = await fetch({

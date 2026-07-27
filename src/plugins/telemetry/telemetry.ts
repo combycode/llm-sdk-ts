@@ -168,6 +168,17 @@ export interface TelemetryAdapterOptions {
   maxEvents?: number;
   /** Service identity stamped on all exported telemetry. */
   resource?: TelemetryResource;
+  /** Whether provider error TEXT may be stored in telemetry. Default `true`
+   *  (unchanged behaviour, and the same default as the OpenAI Agents SDK's
+   *  `trace_include_sensitive_data`).
+   *
+   *  A provider's `error.message` / `error.raw` can echo request content back —
+   *  a moderation refusal quotes the prompt, a validation error names the offending
+   *  field and value. URLs and headers are always redacted regardless; this switch
+   *  governs the free-text payload. Set `false` when telemetry leaves your trust
+   *  boundary (a shared collector, a vendor APM) and the message is replaced by a
+   *  fixed `[redacted]` string while name/code/status are kept for triage. */
+  includeSensitiveData?: boolean;
 }
 
 export class TelemetryAdapter {
@@ -195,10 +206,12 @@ export class TelemetryAdapter {
   private latSum = 0;
   private readonly open = new Map<string, Span>();
   private readonly maxEvents: number;
+  private readonly includeSensitiveData: boolean;
   private readonly unsub: () => void;
 
   constructor(hooks: HookBus, opts: TelemetryAdapterOptions = {}) {
     this.maxEvents = opts.maxEvents ?? 2000;
+    this.includeSensitiveData = opts.includeSensitiveData ?? true;
     this.resource = opts.resource ?? { serviceName: 'unknown_service' };
     this.unsub = hooks.onAny((name, ctx) => this.handle(name, ctx));
   }
@@ -218,7 +231,7 @@ export class TelemetryAdapter {
       name,
       category: CATEGORY[name] ?? 'other',
       traceId,
-      ctx: sanitizeEventCtx(name, ctx),
+      ctx: sanitizeEventCtx(name, ctx, this.includeSensitiveData),
     });
     if (this.events.length > this.maxEvents) this.events.shift();
 
@@ -548,15 +561,24 @@ function clean(o: Record<string, unknown>): Record<string, unknown> {
  *  MAX_ERROR_RAW_CHARS. Exported fields: name, message, code, status, raw.
  *  Arbitrary attached properties (provider, kind, custom data) are NOT spread,
  *  so they never leak into telemetry. Does NOT mutate the original error. */
-function sanitizeErrorForTelemetry(error: unknown): Record<string, unknown> {
-  if (!(error instanceof Error)) return { value: String(error) };
+function sanitizeErrorForTelemetry(
+  error: unknown,
+  includeSensitiveData: boolean,
+): Record<string, unknown> {
+  if (!(error instanceof Error)) {
+    return { value: includeSensitiveData ? String(error) : REDACTED };
+  }
   const e = error as Error & { code?: unknown; status?: unknown; raw?: unknown };
+  // `name`, `code` and `status` are provider-defined identifiers, never request
+  // content — they stay so a redacted trace is still triageable. `message`/`raw`
+  // can echo the prompt back, so they are the parts that get dropped.
   const out: Record<string, unknown> = {
     name: e.name,
-    message: e.message,
+    message: includeSensitiveData ? e.message : REDACTED,
   };
   if (e.code !== undefined) out.code = e.code;
   if (e.status !== undefined) out.status = e.status;
+  if (!includeSensitiveData) return out;
   if (e.raw !== undefined) {
     const rawStr = typeof e.raw === 'string' ? e.raw : JSON.stringify(e.raw);
     const capped =
@@ -570,7 +592,7 @@ function sanitizeErrorForTelemetry(error: unknown): Record<string, unknown> {
 
 /** Sanitize event ctx before storing: redact URL query params and headers
  *  in event types that carry them, so secrets never reach telemetry storage. */
-function sanitizeEventCtx(name: HookName, ctx: unknown): unknown {
+function sanitizeEventCtx(name: HookName, ctx: unknown, includeSensitiveData = true): unknown {
   if (name !== 'onRequestStart' && name !== 'onRequestComplete' && name !== 'onModelError') {
     return ctx;
   }
@@ -581,7 +603,7 @@ function sanitizeEventCtx(name: HookName, ctx: unknown): unknown {
     out.headers = sanitizeHeaders(out.headers as Record<string, string>);
   }
   if (name === 'onModelError' && out.error !== undefined) {
-    out.error = sanitizeErrorForTelemetry(out.error);
+    out.error = sanitizeErrorForTelemetry(out.error, includeSensitiveData);
   }
   return out;
 }

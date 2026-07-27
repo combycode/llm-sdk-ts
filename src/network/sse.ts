@@ -26,7 +26,20 @@ export async function* parseSSEStream(body: ReadableStream<Uint8Array>): AsyncIt
       if (event) yield event;
     }
   } finally {
-    reader.releaseLock();
+    // Cancel the underlying body, don't just drop the lock. A consumer that breaks out
+    // of the `for await` early (abort, error, or `break` after the first token) would
+    // otherwise leave the HTTP response open until GC. `cancel()` tears the connection
+    // down and is a no-op on an already-closed stream, so the happy path is unaffected.
+    try {
+      await reader.cancel();
+    } catch {
+      // already errored/closed — nothing to cancel
+    }
+    try {
+      reader.releaseLock();
+    } catch {
+      // cancel() may have released it already
+    }
   }
 }
 

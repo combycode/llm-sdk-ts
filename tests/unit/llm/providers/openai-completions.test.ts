@@ -459,6 +459,26 @@ describe('OpenAIAdapter — parseStreamEvent', () => {
     expect(a.parseStreamEvent(evt)).toEqual([{ type: 'text', text: 'hi' }]);
   });
 
+  // Upstream (openai-agents 0.13.5) fixed a bug where a trailing usage-LESS chunk from a
+  // gateway/LiteLLM clobbered the accumulated usage. We never had it: a `usage` event is
+  // emitted ONLY when the chunk actually carries usage, so the client's
+  // `usage = event.usage` can never be handed an empty one. Locked here so it stays n/a.
+  it('a usage-less chunk after the usage chunk emits no usage event', () => {
+    const emitted = a.parseStreamEvent({
+      data: JSON.stringify({ choices: [], usage: { prompt_tokens: 5, completion_tokens: 3 } }),
+    });
+    expect(emitted).toHaveLength(1);
+    expect(emitted[0]).toMatchObject({ type: 'usage' });
+
+    // trailing chunks carrying no usage must not emit a usage event at all
+    expect(a.parseStreamEvent({ data: JSON.stringify({ choices: [] }) })).toEqual([]);
+    expect(
+      a
+        .parseStreamEvent({ data: JSON.stringify({ choices: [{ delta: { content: 'x' } }] }) })
+        .filter((e) => e.type === 'usage'),
+    ).toEqual([]);
+  });
+
   it('reasoning_content delta emits thinking event', () => {
     const evt: SSEEvent = {
       data: JSON.stringify({

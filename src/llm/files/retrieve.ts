@@ -10,6 +10,7 @@
 
 import { isBrowser } from '../../runtime/runtime';
 import { base64ToBytes } from '../../util/base64';
+import { header } from '../../util/http';
 import type { EngineFetch } from '../../network/types';
 import type { ProviderName } from '../types/provider';
 import type { FileOutput } from '../types/response';
@@ -169,13 +170,6 @@ const EXT_MIME: Record<string, string> = {
 function mimeFromName(name?: string): string | undefined {
   const ext = name?.includes('.') ? name.split('.').pop()?.toLowerCase() : undefined;
   return ext ? EXT_MIME[ext] : undefined;
-}
-
-/** Case-insensitive header lookup (record keys may be any case). */
-function header(headers: Record<string, string>, name: string): string | undefined {
-  const lower = name.toLowerCase();
-  for (const k in headers) if (k.toLowerCase() === lower) return headers[k];
-  return undefined;
 }
 
 /** Filename from a Content-Disposition header. Prefers the RFC 5987

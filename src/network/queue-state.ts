@@ -8,7 +8,13 @@
 
 import type { HookBus } from '../bus/hook-bus';
 import { sleep } from '../util/async';
-import { anySignal, headersToRecord, parseIntHeader, parseResponseBody } from '../util/http';
+import {
+  anySignal,
+  headersToRecord,
+  isStreamBody,
+  parseIntHeader,
+  parseResponseBody,
+} from '../util/http';
 import { LLMError, classifyError } from './errors';
 import { Priority, mergeRetry } from './queue-state-config';
 import type { ErrorRetryConfig, QueueStateConfig, RetryConfig } from './queue-state-config';
@@ -374,7 +380,12 @@ export class QueueState {
     const maxRetries = kindConfig?.maxRetries ?? this.retry.maxRetries;
     const elapsed = performance.now() - startTime;
     const withinBudget = elapsed < this.retry.totalTimeoutMs;
-    const willRetry = isRetryable && entry.attempt < maxRetries && withinBudget;
+    // A streamed request body is consumed by the first attempt and cannot be replayed,
+    // so retrying it would send an empty/partial body. Our own `rawBody` callers all
+    // pass FormData or bytes (both replayable), but a caller supplying a stream must
+    // not be silently corrupted. Same hardening OpenAI's client shipped in 6.49.
+    const replayableBody = !isStreamBody(entry.request.body);
+    const willRetry = isRetryable && entry.attempt < maxRetries && withinBudget && replayableBody;
 
     void this.hooks.emit('onModelError', {
       provider: entry.request.provider,

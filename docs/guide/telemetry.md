@@ -81,6 +81,22 @@ const otlp = telemetry.toOtlpTraces();
 console.log(JSON.stringify(otlp).slice(0, 200));
 ```
 
+### Redacting error text (`includeSensitiveData`)
+
+URLs and headers are **always** redacted before anything reaches telemetry storage. Provider error
+*text* is not: `error.message` and `error.raw` can echo request content back at you — a moderation
+refusal quotes the prompt, a validation error names the offending field and its value.
+
+That is fine for local debugging and is the default (`includeSensitiveData: true`, matching the
+OpenAI Agents SDK's `trace_include_sensitive_data`). When telemetry leaves your trust boundary — a
+shared collector, a vendor APM — turn it off:
+
+```ts
+const telemetry = new TelemetryAdapter(engine.hooks, { includeSensitiveData: false });
+// error.message -> '***REDACTED***', error.raw dropped
+// error.name / error.code / error.status are KEPT, so traces stay triageable
+```
+
 ### Observer -- react to agent events
 
 ```ts
