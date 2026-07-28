@@ -6,8 +6,14 @@ import type { FileOutput, Usage } from './response';
 export type MediaStreamType = 'image' | 'audio' | 'video';
 
 export type StreamEvent =
-  | { type: 'text'; text: string }
-  | { type: 'thinking'; text: string }
+  /** `itemId` identifies WHICH output item a delta belongs to, when the provider reports
+   *  one (OpenAI Responses forwards `item_id`; chat-completions has no per-item concept,
+   *  so it is absent there). A single turn can interleave deltas from several output
+   *  items, so a consumer that reassembles them per item — rather than just concatenating
+   *  into one string — needs this to keep them apart. Optional and additive: ignoring it
+   *  gives exactly the previous behaviour. */
+  | { type: 'text'; text: string; itemId?: string }
+  | { type: 'thinking'; text: string; itemId?: string }
   | { type: 'tool_call_start'; id: string; name: string; _meta?: Record<string, unknown> }
   | { type: 'tool_call_delta'; id: string; arguments: string }
   | { type: 'tool_call_end'; id: string }

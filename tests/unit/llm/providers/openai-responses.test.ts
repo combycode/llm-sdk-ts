@@ -732,11 +732,46 @@ describe('OpenAIResponsesAdapter — parseResponse', () => {
 describe('OpenAIResponsesAdapter — parseStreamEvent', () => {
   const a = new OpenAIResponsesAdapter({ apiKey: 'k' });
 
-  it('output_text.delta → text', () => {
+  it('output_text.delta → text (no item_id → no itemId, unchanged shape)', () => {
     const evt: SSEEvent = {
       data: JSON.stringify({ type: 'response.output_text.delta', delta: 'hi' }),
     };
     expect(a.parseStreamEvent(evt)).toEqual([{ type: 'text', text: 'hi' }]);
+  });
+
+  it('output_text.delta forwards item_id → itemId', () => {
+    const evt: SSEEvent = {
+      data: JSON.stringify({ type: 'response.output_text.delta', delta: 'hi', item_id: 'msg_1' }),
+    };
+    expect(a.parseStreamEvent(evt)).toEqual([{ type: 'text', text: 'hi', itemId: 'msg_1' }]);
+  });
+
+  it('interleaved deltas keep their own itemId (the point of the field)', () => {
+    const d = (delta: string, item_id: string): SSEEvent => ({
+      data: JSON.stringify({ type: 'response.output_text.delta', delta, item_id }),
+    });
+    const got = [
+      ...a.parseStreamEvent(d('a', 'msg_1')),
+      ...a.parseStreamEvent(d('b', 'msg_2')),
+      ...a.parseStreamEvent(d('c', 'msg_1')),
+    ];
+    expect(got).toEqual([
+      { type: 'text', text: 'a', itemId: 'msg_1' },
+      { type: 'text', text: 'b', itemId: 'msg_2' },
+      { type: 'text', text: 'c', itemId: 'msg_1' },
+    ]);
+  });
+
+  it('reasoning item → thinking carries its itemId', () => {
+    const evt: SSEEvent = {
+      data: JSON.stringify({
+        type: 'response.output_item.done',
+        item: { type: 'reasoning', id: 'rs_1', summary: [{ type: 'summary_text', text: 'because' }] },
+      }),
+    };
+    expect(a.parseStreamEvent(evt)).toEqual([
+      { type: 'thinking', text: 'because', itemId: 'rs_1' },
+    ]);
   });
 
   it('function_call_arguments.delta → tool_call_delta', () => {

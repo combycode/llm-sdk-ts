@@ -59,6 +59,11 @@ interaction or an outright failure from a clean finish.
   openai 6.49). Optional field; absent unless the provider reported a failure.
 - Documented the OpenAI `reasoning.context` default (the `gpt-5.6` family defaults to `all_turns`,
   earlier models to `current_turn`).
+- **`itemId` on `text` / `thinking` stream events.** OpenAI Responses reports which output item a
+  delta belongs to (`item_id`); a turn can interleave deltas from several items, so consumers that
+  reassemble per item — rather than concatenating into one string — now can. Optional and additive:
+  ignoring it gives exactly the previous behaviour, and providers that report no item id (chat
+  completions) simply omit it. Live-confirmed present on every delta from the Responses API.
 
 ## [1.7.0] - 2026-07-16
 

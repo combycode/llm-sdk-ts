@@ -565,7 +565,11 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     const events: StreamEvent[] = [];
 
     if (type === 'response.output_text.delta') {
-      events.push({ type: 'text', text: data.delta as string });
+      // `item_id` says WHICH output item this delta belongs to — a turn can interleave
+      // deltas from several items, so pass it through for consumers that reassemble
+      // per item instead of concatenating (openai-agents 0.13.5 surfaces the same).
+      const itemId = data.item_id as string | undefined;
+      events.push({ type: 'text', text: data.delta as string, ...(itemId ? { itemId } : {}) });
     }
 
     if (type === 'response.function_call_arguments.delta') {
@@ -624,7 +628,13 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
           .filter((s) => s.type === 'summary_text')
           .map((s) => s.text as string)
           .join('\n');
-        if (text) events.push({ type: 'thinking', text });
+        const reasoningItemId = (item.id as string) ?? (data.item_id as string | undefined);
+        if (text)
+          events.push({
+            type: 'thinking',
+            text,
+            ...(reasoningItemId ? { itemId: reasoningItemId } : {}),
+          });
       }
     }
 
