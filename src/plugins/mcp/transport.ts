@@ -27,6 +27,9 @@ export interface McpTransport {
    *  `Mcp-Session-Id`, and every request carries `Mcp-Method` / `Mcp-Name` routing headers so an
    *  intermediary can route without parsing the body. Optional — stdio has no headers to set. */
   setEra?(era: 'handshake' | 'modern'): void;
+  /** Send a long-lived request (subscriptions/listen) and return its id, without arming the
+   *  normal response timeout. Absent on transports that cannot stream a response body. */
+  sendLongLivedRequest?(method: string, params?: unknown): Promise<string | number>;
   /** Open the server->client channel (HTTP GET SSE stream). Stdio is already
    *  duplex, so this is a no-op there. Call after the initialize handshake. */
   listen?(): Promise<void> | void;

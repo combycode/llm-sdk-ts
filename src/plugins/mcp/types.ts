@@ -49,6 +49,19 @@ export interface McpInputRequest {
   params?: unknown;
 }
 
+/** Client-side caching directives carried by 2026-07-28 list/read results (`CacheableResult`).
+ *
+ *  Optional here because every pre-2026 server omits them, and a server that sends no hints must
+ *  behave exactly as before (CONSTITUTION.md R3). */
+export interface McpCacheHints {
+  /** How long (ms) the client MAY reuse this result. **`0` means immediately stale** — re-fetch
+   *  every time — so it is NOT the same as "absent" and must not be coerced to a default. */
+  ttlMs?: number;
+  /** `'public'`: no user-specific data, any cache may serve it across authorization contexts.
+   *  `'private'`: reusable only within the same authorization context. */
+  cacheScope?: 'private' | 'public';
+}
+
 /** The 2026-07-28 multi-round-trip fields (SEP-2322).
  *
  *  Upstream models this as a separate `InputRequiredResult` type, making every result a union. We

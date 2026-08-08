@@ -83,6 +83,9 @@ export const MCP_CLIENT_INFO_META_KEY = 'io.modelcontextprotocol/clientInfo';
 /** Server identity stamped on modern results, display-only (absent and malformed both read as
  *  "unknown" rather than failing the connection). */
 export const MCP_SERVER_INFO_META_KEY = 'io.modelcontextprotocol/serverInfo';
+/** Stamped on every `subscriptions/listen` stream frame; the value is that request's JSON-RPC id,
+ *  which is how a frame is attributed to one subscription. */
+export const MCP_SUBSCRIPTION_ID_META_KEY = 'io.modelcontextprotocol/subscriptionId';
 
 // ─── Routing headers (modern era, HTTP only) ─────────────────────────────────
 

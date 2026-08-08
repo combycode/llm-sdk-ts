@@ -25,7 +25,14 @@ import {
   mcpEraOf,
   newestMutualModernVersion,
 } from './protocol-version';
+import { McpResultCache } from './result-cache';
+import {
+  McpSubscription,
+  type McpServerEvent,
+  type McpSubscriptionFilter,
+} from './subscriptions';
 import type {
+  McpCacheHints,
   McpCallResult,
   McpCompletionRef,
   McpCompletionResult,
@@ -77,6 +84,13 @@ export interface McpClientOptions {
   /** Cap on `input_required` retry rounds before giving up (default 10, matching every other SDK).
    *  A handler that never satisfies the server would otherwise loop forever. */
   inputRequiredMaxRounds?: number;
+  /** Honour the server's `ttlMs` / `cacheScope` hints on list and read results (2026-07-28).
+   *
+   *  **Off by default.** Caching changes when a caller observes a server-side change, which is the
+   *  caller's call to make. A server that sends no hints caches nothing either way, so this is a
+   *  no-op against every pre-2026 server. Cache entries are dropped automatically on the matching
+   *  `*_changed` notification. */
+  cacheResults?: boolean;
 }
 
 /** Pull `data.supported` off a `-32022`, or undefined when it is not actionable. A malformed
@@ -94,11 +108,22 @@ export class McpClient {
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private negotiatedVersion: string = MCP_PROTOCOL_VERSION;
   private discovery: McpDiscoverResult | null = null;
+  private readonly cache: McpResultCache | null;
+  private readonly subscriptions = new Map<string | number, McpSubscription>();
 
   constructor(
     private readonly transport: McpTransport,
     private readonly opts: McpClientOptions = {},
-  ) {}
+  ) {
+    this.cache = opts.cacheResults ? new McpResultCache() : null;
+  }
+
+  /** Drop cached list/read results. Called automatically on the matching `*_changed`
+   *  notification; exposed because a caller may know the server moved before it says so. */
+  invalidateCache(method?: string): void {
+    if (method) this.cache?.clearMethod(method);
+    else this.cache?.clear();
+  }
 
   /** The server's `initialize` result, or null before `connect()`.
    *
@@ -132,7 +157,18 @@ export class McpClient {
   async connect(): Promise<McpInitializeResult> {
     this.transport.setHandlers({
       onRequest: (method, params) => this.handleServerRequest(method, params),
-      onNotification: (method, params) => this.opts.onNotification?.(method, params),
+      onNotification: (method, params) => {
+        // A listen-stream frame belongs to its subscription; anything else is a plain notification.
+        // Frames are still forwarded to `onNotification` so an existing handler keeps seeing them.
+        for (const sub of this.subscriptions.values()) {
+          if (sub.handleFrame(method, params)) break;
+        }
+        // A cached list that outlives the server's own "this changed" notice is worse than no
+        // cache at all, so invalidate BEFORE handing the event to the caller — a handler that
+        // re-lists synchronously must not read a stale entry.
+        this.invalidateOnChange(method, params);
+        this.opts.onNotification?.(method, params);
+      },
     });
     await this.transport.start();
 
@@ -280,16 +316,34 @@ export class McpClient {
     return this.paginate<McpToolDef>('tools/list', 'tools');
   }
 
-  /** Follow cursor pagination for a list method, collecting `field` from each page. */
+  /** Follow cursor pagination for a list method, collecting `field` from each page.
+   *
+   *  When result caching is enabled and the server sent a `ttlMs`, the assembled list is reused
+   *  until it expires. A paginated list is only as fresh as its shortest-lived page, so the
+   *  effective TTL is the MINIMUM across pages — taking the last page's value would let an early,
+   *  more volatile page go stale unnoticed. */
   private async paginate<T>(method: string, field: string): Promise<T[]> {
+    const cacheKey = McpResultCache.key(method);
+    const cached = this.cache?.get(cacheKey) as T[] | undefined;
+    if (cached) return cached;
+
     const out: T[] = [];
     let cursor: string | undefined;
+    let ttlMs: number | undefined;
+    let cacheScope: 'private' | 'public' | undefined;
     do {
       const res = (await this.transport.request(method, cursor ? { cursor } : {})) as Record<string, unknown>;
       const page = res?.[field] as T[] | undefined;
       if (page) out.push(...page);
+      const hints = res as McpCacheHints;
+      if (typeof hints?.ttlMs === 'number') {
+        ttlMs = ttlMs === undefined ? hints.ttlMs : Math.min(ttlMs, hints.ttlMs);
+      }
+      cacheScope ??= hints?.cacheScope;
       cursor = res?.nextCursor as string | undefined;
     } while (cursor);
+
+    this.cache?.set(cacheKey, out, { ttlMs, cacheScope });
     return out;
   }
 
@@ -335,6 +389,10 @@ export class McpClient {
 
   /** Read a resource's contents by URI. */
   async readResource(uri: string): Promise<McpResourceContent[]> {
+    const cacheKey = McpResultCache.key('resources/read', { uri });
+    const cached = this.cache?.get(cacheKey) as McpResourceContent[] | undefined;
+    if (cached) return cached;
+
     const first = (await this.transport.request('resources/read', { uri })) as {
       contents?: McpResourceContent[];
     };
@@ -345,7 +403,9 @@ export class McpClient {
         ...(requestState !== undefined ? { requestState } : {}),
       }) as Promise<{ contents?: McpResourceContent[] }>,
     );
-    return res?.contents ?? [];
+    const contents = res?.contents ?? [];
+    this.cache?.set(cacheKey, contents, res as McpCacheHints);
+    return contents;
   }
 
   /** Subscribe to updates for a resource (server sends `notifications/resources/updated`).
@@ -360,6 +420,54 @@ export class McpClient {
   async unsubscribeResource(uri: string): Promise<void> {
     this.requireHandshakeEra('resources/unsubscribe');
     await this.transport.request('resources/unsubscribe', { uri });
+  }
+
+  /** Open a `subscriptions/listen` stream (2026-07-28) — the single channel that replaces
+   *  `resources/subscribe` and the standalone notification stream.
+   *
+   *  Every kind is **opt-in**: the server may not send what was not requested, and it acknowledges
+   *  with the subset it actually honoured — which can be narrower than what was asked for. Check
+   *  `subscription.honored` / `isHonored(kind)` rather than assuming the request was granted.
+   *
+   *  Events are level triggers ("this changed, re-fetch if you care"), so they carry no payload
+   *  beyond the change itself. When result caching is on, the matching entries are dropped before
+   *  `onEvent` runs, so a handler that immediately re-lists sees fresh data.
+   *
+   *  Requires a modern session and a duplex transport (stdio / WebSocket) — see
+   *  `sendLongLivedRequest` on the HTTP transport for why. */
+  async listen(
+    filter: McpSubscriptionFilter,
+    onEvent: (event: McpServerEvent) => void,
+  ): Promise<McpSubscription> {
+    if (this.era !== 'modern') {
+      throw new McpError({
+        code: McpErrorCode.MethodNotFound,
+        message:
+          `MCP 'subscriptions/listen' requires protocol version 2026-07-28; this session negotiated ` +
+          `${this.negotiatedVersion}. Use subscribeResource() plus the change notifications on this wire.`,
+      });
+    }
+    if (!this.transport.sendLongLivedRequest) {
+      throw new McpError({
+        code: McpErrorCode.MethodNotFound,
+        message: `MCP 'subscriptions/listen' is not supported by this transport.`,
+      });
+    }
+
+    const id = await this.transport.sendLongLivedRequest('subscriptions/listen', {
+      notifications: filter,
+    });
+    const subscription = new McpSubscription(
+      id,
+      filter,
+      (event) => {
+        this.invalidateForEvent(event);
+        onEvent(event);
+      },
+      () => this.subscriptions.delete(id),
+    );
+    this.subscriptions.set(id, subscription);
+    return subscription;
   }
 
   // ─── Prompts (P2) ─────────────────────────────────────────────────────
@@ -487,6 +595,55 @@ export class McpClient {
         `Connect with protocolMode: 'legacy' to use the pre-2026 wire, or use the 2026 replacement ` +
         `(subscriptions/listen for resource updates; per-request _meta for log level).`,
     });
+  }
+
+  /** Map a change notification onto the cache entries it invalidates. Same vocabulary on both
+   *  eras — these methods ride the `subscriptions/listen` stream at 2026-07-28 and the
+   *  back-channel before it, but the meaning ("refetch if you care") is identical. */
+  private invalidateOnChange(method: string, params: unknown): void {
+    if (!this.cache) return;
+    switch (method) {
+      case 'notifications/tools/list_changed':
+        this.cache.clearMethod('tools/list');
+        return;
+      case 'notifications/prompts/list_changed':
+        this.cache.clearMethod('prompts/list');
+        return;
+      case 'notifications/resources/list_changed':
+        this.cache.clearMethod('resources/list');
+        this.cache.clearMethod('resources/templates/list');
+        return;
+      case 'notifications/resources/updated': {
+        const uri = (params as { uri?: unknown } | undefined)?.uri;
+        // Only the named resource went stale; dropping every read would throw away good entries.
+        if (typeof uri === 'string') {
+          this.cache.clearMethod(McpResultCache.key('resources/read', { uri }));
+        }
+        return;
+      }
+      default:
+        return;
+    }
+  }
+
+  /** Same invalidation as `invalidateOnChange`, driven from a typed listen-stream event. */
+  private invalidateForEvent(event: McpServerEvent): void {
+    if (!this.cache) return;
+    switch (event.type) {
+      case 'tools_list_changed':
+        this.cache.clearMethod('tools/list');
+        break;
+      case 'prompts_list_changed':
+        this.cache.clearMethod('prompts/list');
+        break;
+      case 'resources_list_changed':
+        this.cache.clearMethod('resources/list');
+        this.cache.clearMethod('resources/templates/list');
+        break;
+      case 'resource_updated':
+        this.cache.clearMethod(McpResultCache.key('resources/read', { uri: event.uri }));
+        break;
+    }
   }
 
   private clientInfo(): { name: string; version: string } {

@@ -52,6 +52,22 @@ export abstract class BaseJsonRpcTransport {
     return this.nextId++;
   }
 
+  /** Send a request that is NOT expected to answer promptly, and return its id.
+   *
+   *  `subscriptions/listen` (2026-07-28) is long-lived by design: the response arrives only when
+   *  the server tears the subscription down, while notifications flow in the meantime. Routing it
+   *  through `request()` would arm the normal timeout and kill a perfectly healthy subscription, so
+   *  no pending entry is registered — the eventual response is dropped, its only meaning being
+   *  "the stream ended".
+   *
+   *  The caller correlates frames itself via the returned id. Duplex transports (stdio, WebSocket)
+   *  support this; a request/response transport must override and reject. */
+  async sendLongLivedRequest(method: string, params?: unknown): Promise<number> {
+    const id = this.allocateId();
+    await this.sendMessage({ jsonrpc: '2.0', id, method, ...(params !== undefined ? { params } : {}) });
+    return id;
+  }
+
   /** Register a pending request and arm its timeout. */
   protected registerPending(
     id: number,

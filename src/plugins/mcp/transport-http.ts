@@ -185,6 +185,23 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
     return this.post(obj).then(() => undefined);
   }
 
+  /** Not available on Streamable HTTP yet.
+   *
+   *  A `subscriptions/listen` on this transport is a POST whose RESPONSE BODY is the long-lived
+   *  event stream. Our POST path reads the body to completion and returns it, so the frames would
+   *  only surface after the stream closed — i.e. never, for a healthy subscription. Making this
+   *  work needs streaming-response support in the POST path, which is a transport change, not a
+   *  protocol one. Failing loudly beats silently accepting a subscription that delivers nothing. */
+  override async sendLongLivedRequest(method: string): Promise<number> {
+    throw new McpError({
+      code: McpErrorCode.MethodNotFound,
+      message:
+        `MCP '${method}' needs a long-lived response stream, which the Streamable HTTP transport ` +
+        `does not implement yet. Use the stdio or WebSocket transport for subscriptions, or poll ` +
+        `listTools()/listResources() instead.`,
+    });
+  }
+
   private headers(): Record<string, string> {
     const h: Record<string, string> = {
       'content-type': 'application/json',

@@ -85,6 +85,38 @@ re-issues the same call carrying the answers plus the server's opaque `requestSt
 - `inputRequiredMaxRounds` (default **10**, matching the other SDKs) bounds the loop, because a
   handler that never satisfies the server would otherwise retry forever.
 
+**`subscriptions/listen` (SEP-2575)** — the single change-notification stream that replaces
+`resources/subscribe` and the standalone notification channel at 2026-07-28.
+
+- `McpClient.listen(filter, onEvent)` returns an `McpSubscription`. Every kind is **opt-in**
+  (`toolsListChanged`, `promptsListChanged`, `resourcesListChanged`, `resourceSubscriptions[]`) and
+  the server acknowledges with the subset it actually honoured — which **can be narrower than what
+  was requested**, so `subscription.honored` / `isHonored(kind)` is worth checking rather than
+  assuming. Frames are attributed by the `io.modelcontextprotocol/subscriptionId` stamp, so frames
+  for another subscription are ignored.
+- Refused with a clear error on a handshake session, which keeps `subscribeResource()` the right
+  answer there instead of silently returning a subscription that never fires.
+- **Streamable HTTP is not supported yet** and says so: on that transport a listen is a POST whose
+  *response body* is the long-lived stream, and our POST path reads the body to completion — so the
+  frames would only surface once the stream closed. That needs streaming-response support in the
+  transport, which is a transport change rather than a protocol one. **stdio and WebSocket work
+  today.** Failing loudly beats accepting a subscription that delivers nothing.
+
+**Result cache hints (`ttlMs` / `cacheScope`)** — opt-in via `cacheResults`, off by default.
+
+- Honours the server's freshness hint on `tools/list`, `prompts/list`, `resources/list`,
+  `resources/templates/list` and `resources/read`. **A server that sends no hints caches nothing**,
+  so this is a no-op against every pre-2026 server.
+- **`ttlMs: 0` means "immediately stale"** — a real instruction, not a missing value to be replaced
+  with a default.
+- A paginated list is only as fresh as its shortest-lived page, so the effective TTL is the
+  **minimum** across pages.
+- Entries are dropped on the matching `*_changed` notification **before** the caller's handler
+  runs, so a handler that re-lists synchronously never reads a stale entry. A
+  `notifications/resources/updated` drops only the named resource.
+- `cacheScope` is recorded but never used to widen sharing: this cache lives inside one client with
+  one credential, where `public` buys nothing.
+
 ### Fixed — correctness
 
 - **`serviceTier: 'fast'` is actually sent to OpenAI.** The value shipped in openai-ts 7.x but was

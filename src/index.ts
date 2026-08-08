@@ -296,7 +296,7 @@ export type {
 } from './plugins/mcp/types';
 export type { IncomingMcpHandlers } from './plugins/mcp/transport';
 export { MCP_PROTOCOL_VERSION, isHttpConfig } from './plugins/mcp/types';
-export type { McpCallResult, McpCompletionRef, McpCompletionResult, McpContentBlock, McpDiscoverResult, McpGetPromptResult, McpInputRequest, McpInputRequiredFields, McpHttpConfig, McpInitializeResult, McpLogLevel, McpPrompt, McpPromptArg, McpPromptMessage, McpResource, McpResourceContent, McpResourceTemplate, McpServerConfig, McpStdioConfig, McpToolDef } from './plugins/mcp/types';
+export type { McpCallResult, McpCompletionRef, McpCompletionResult, McpContentBlock, McpDiscoverResult, McpGetPromptResult, McpCacheHints, McpInputRequest, McpInputRequiredFields, McpHttpConfig, McpInitializeResult, McpLogLevel, McpPrompt, McpPromptArg, McpPromptMessage, McpResource, McpResourceContent, McpResourceTemplate, McpServerConfig, McpStdioConfig, McpToolDef } from './plugins/mcp/types';
 export {
   MCP_HANDSHAKE_PROTOCOL_VERSIONS,
   MCP_KNOWN_PROTOCOL_VERSIONS,
@@ -308,6 +308,9 @@ export {
   mcpEraOf,
 } from './plugins/mcp/protocol-version';
 export type { McpEra } from './plugins/mcp/protocol-version';
+export { McpResultCache } from './plugins/mcp/result-cache';
+export { MCP_LISTEN_STREAM_METHODS, McpSubscription, eventFromWire } from './plugins/mcp/subscriptions';
+export type { McpServerEvent, McpSubscriptionFilter } from './plugins/mcp/subscriptions';
 export { loadContent, loadImageContent } from './helpers/content';
 export type { LoadImageOptions } from './helpers/content';
 export { createMediaOutput } from './helpers/media';
