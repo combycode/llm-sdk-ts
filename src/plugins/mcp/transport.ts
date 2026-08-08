@@ -23,6 +23,10 @@ export interface McpTransport {
   setHandlers(handlers: IncomingMcpHandlers): void;
   /** Record the negotiated protocol version (HTTP sets a header; stdio ignores). */
   setProtocolVersion?(version: string): void;
+  /** Record the negotiated ERA. At `'modern'` (2026-07-28+) the wire is stateless: no
+   *  `Mcp-Session-Id`, and every request carries `Mcp-Method` / `Mcp-Name` routing headers so an
+   *  intermediary can route without parsing the body. Optional — stdio has no headers to set. */
+  setEra?(era: 'handshake' | 'modern'): void;
   /** Open the server->client channel (HTTP GET SSE stream). Stdio is already
    *  duplex, so this is a no-op there. Call after the initialize handshake. */
   listen?(): Promise<void> | void;

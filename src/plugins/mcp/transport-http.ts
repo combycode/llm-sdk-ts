@@ -8,6 +8,13 @@
 
 import type { EngineFetch, EngineFetchStream } from '../../network/types';
 import { McpError, McpErrorCode } from './jsonrpc';
+import {
+  MCP_METHOD_HEADER,
+  MCP_NAME_BEARING_METHODS,
+  MCP_NAME_HEADER,
+  MCP_PROTOCOL_VERSION_HEADER,
+  encodeMcpHeaderValue,
+} from './protocol-version';
 import type { McpTransport } from './transport';
 import type { JsonRpcResponse, McpHttpConfig } from './types';
 import { BaseJsonRpcTransport } from './base-transport';
@@ -28,6 +35,9 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
   private nextHttpId = 0;
   private sessionId: string | null = null;
   private protocolVersion: string | null = null;
+  /** Handshake until negotiation says otherwise — an un-negotiated connection must behave exactly
+   *  as it did before 2026 support existed. */
+  private era: 'handshake' | 'modern' = 'handshake';
   private eventAbort: AbortController | null = null;
   private lastEventId: string | null = null;
 
@@ -44,6 +54,10 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
 
   setProtocolVersion(version: string): void {
     this.protocolVersion = version;
+  }
+
+  setEra(era: 'handshake' | 'modern'): void {
+    this.era = era;
   }
 
   /** Open the server->client GET SSE stream (best-effort: a 405 means the server
@@ -111,16 +125,22 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
   async request(method: string, params?: unknown): Promise<unknown> {
     const id = this.nextHttpId++;
     const message = { jsonrpc: '2.0', id, method, ...(params !== undefined ? { params } : {}) };
-    let res = await this.post(message);
+    const routing = this.routingHeaders(method, params);
+    let res = await this.post(message, routing);
     if (res.headers['mcp-session-id']) this.sessionId = res.headers['mcp-session-id'];
 
     // 401 -> re-auth and retry once.
     if (res.status === 401 && this.deps.onUnauthorized && (await this.deps.onUnauthorized())) {
-      res = await this.post(message);
+      res = await this.post(message, routing);
       if (res.headers['mcp-session-id']) this.sessionId = res.headers['mcp-session-id'];
     }
 
     if (res.status >= 400) {
+      // A 4xx MAY still carry a JSON-RPC error body, and for negotiation that body is the whole
+      // point: -32022 is what tells us which versions the server speaks. Collapsing every 4xx into
+      // ConnectionClosed threw that away, so a modern-only server looked like a dead connection.
+      const errBody = pickResponse(res.headers['content-type'] ?? '', res.text, id);
+      if (errBody?.error) throw new McpError(errBody.error);
       throw new McpError({ code: McpErrorCode.ConnectionClosed, message: `MCP HTTP ${res.status} for '${method}'` });
     }
     const msg = pickResponse(res.headers['content-type'] ?? '', res.text, id);
@@ -171,8 +191,24 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
       accept: 'application/json, text/event-stream',
       ...this.config.headers,
     };
-    if (this.sessionId) h['mcp-session-id'] = this.sessionId;
-    if (this.protocolVersion) h['mcp-protocol-version'] = this.protocolVersion;
+    // The 2026-07-28 wire is stateless: there is no session to identify, and sending a stale
+    // `Mcp-Session-Id` invites a header/body mismatch (-32020).
+    if (this.sessionId && this.era === 'handshake') h['mcp-session-id'] = this.sessionId;
+    if (this.protocolVersion) h[MCP_PROTOCOL_VERSION_HEADER] = this.protocolVersion;
+    return h;
+  }
+
+  /** Modern-era routing headers: `Mcp-Method` on every request, plus `Mcp-Name` carrying the
+   *  method's subject (tool name / prompt name / resource URI) so a gateway can route and
+   *  authorize without parsing the body. No-op on the handshake wire. */
+  private routingHeaders(method: string, params?: unknown): Record<string, string> {
+    if (this.era !== 'modern') return {};
+    const h: Record<string, string> = { [MCP_METHOD_HEADER]: method };
+    const key = MCP_NAME_BEARING_METHODS[method];
+    if (key && params && typeof params === 'object') {
+      const value = (params as Record<string, unknown>)[key];
+      if (typeof value === 'string') h[MCP_NAME_HEADER] = encodeMcpHeaderValue(value);
+    }
     return h;
   }
 
@@ -182,12 +218,15 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
     return { ...this.headers(), ...auth, ...extra };
   }
 
-  private async post(body: unknown): Promise<{ status: number; headers: Record<string, string>; text: string }> {
+  private async post(
+    body: unknown,
+    extraHeaders?: Record<string, string>,
+  ): Promise<{ status: number; headers: Record<string, string>; text: string }> {
     const res = await this.deps.fetch(
       {
         url: this.config.url,
         method: 'POST',
-        headers: await this.authedHeaders(),
+        headers: await this.authedHeaders(extraHeaders),
         body,
         provider: 'mcp',
         model: this.config.name ?? 'server',

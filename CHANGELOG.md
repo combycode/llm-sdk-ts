@@ -31,6 +31,40 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   `dependencies` genuinely is empty, but a consumer reading only that field concluded there were no
   runtime packages at all.
 
+### Added — MCP speaks both protocol eras
+
+`mcp` 2.0.0 shipped the **2026-07-28 revision**, which is not additive: it deletes the `initialize`
+handshake, the session id, and the whole server→client back-channel. Real servers are still almost
+entirely on 2025-11-25, so this is **dual-era or it is a regression** — both wires are supported and
+neither is preferred.
+
+- **`server/discover` negotiation with handshake fallback.** `ConnectMcpOptions.protocolMode`:
+  `'auto'` (default) probes the modern wire and falls back to `initialize`; `'legacy'` skips the
+  probe entirely (byte-identical to 1.x); a version string adopts that revision directly.
+- **The fallback is a denylist, not an allowlist.** *Every* JSON-RPC error falls back to the
+  handshake, except a `-32022` whose `supported` list is modern-only and shares nothing with us —
+  a genuine incompatibility that must surface rather than be papered over. **Transport and network
+  errors are never treated as an era verdict**: silently downgrading the wire because a socket
+  blipped would be the worst available failure mode.
+- **`McpClient.info` is unchanged on both wires.** A modern server has no `initialize` result, so
+  one is synthesised from the discover result and its `_meta` server-info stamp. Callers never
+  branch on the era (CONSTITUTION.md R2 — absorb the difference, never expose a union). The stamp is
+  display-only per spec, so absent *or* malformed degrades to a placeholder instead of failing the
+  connection.
+- **New (additive):** `McpClient.protocolVersion`, `.era`, `.discoverResult`, the
+  `McpDiscoverResult` type, and the version registry (`MCP_KNOWN_PROTOCOL_VERSIONS`,
+  `mcpEraOf`, …). Versions are treated as an **enumerated set, not an ordered scalar** — comparing
+  `'zzz' > '2025-11-25'` is true and meaningless, so era questions go through the registry.
+- **Methods the revision removed are gated by era.** `logging/setLevel` and `resources/subscribe`
+  throw on a modern session with a message naming the negotiated version and the replacement,
+  instead of letting the server answer a bare `-32601`. The `ping` keep-alive is not started on a
+  modern session. All of them are untouched on a handshake session.
+- **A 4xx carrying a JSON-RPC error body no longer loses it.** The HTTP transport collapsed every
+  4xx into `ConnectionClosed`, which discarded exactly the `-32022` that negotiation depends on — a
+  modern-only server looked like a dead connection.
+- New error codes: `HeaderMismatch` (-32020), `MissingRequiredClientCapability` (-32021),
+  `UnsupportedProtocolVersion` (-32022).
+
 ### Fixed — correctness
 
 - **`serviceTier: 'fast'` is actually sent to OpenAI.** The value shipped in openai-ts 7.x but was

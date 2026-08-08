@@ -199,6 +199,26 @@ export interface McpInitializeResult {
   instructions?: string;
 }
 
+/** Result of the 2026-07-28 `server/discover` probe — the modern replacement for the `initialize`
+ *  handshake. Shape verified against mcp-py 2.0.0 (`_v2026_07_28.DiscoverResult`).
+ *
+ *  `McpClient.info` synthesises an `McpInitializeResult` from this, so a caller never has to branch
+ *  on the era (CONSTITUTION.md R2). This type exposes the fields that have no handshake equivalent. */
+export interface McpDiscoverResult {
+  capabilities: Record<string, unknown>;
+  /** Revisions the server speaks; the client picks one from this list. */
+  supportedVersions: string[];
+  /** How long (ms) the client MAY cache this result. `0` = treat as immediately stale. */
+  ttlMs?: number;
+  /** `public` = cacheable across authorization contexts; `private` = same context only. */
+  cacheScope?: 'private' | 'public';
+  instructions?: string;
+  /** Absent on servers implementing an earlier revision, which MUST be read as `'complete'`. */
+  resultType?: string;
+  /** Carries the display-only `io.modelcontextprotocol/serverInfo` stamp. */
+  _meta?: Record<string, unknown>;
+}
+
 // ─── Client config (url variant = HTTP, command variant = stdio) ──────────
 
 export interface McpHttpConfig {

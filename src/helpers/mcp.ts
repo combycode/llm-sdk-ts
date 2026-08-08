@@ -55,8 +55,17 @@ export interface ConnectMcpOptions {
   roots?: McpRoot[] | (() => McpRoot[] | Promise<McpRoot[]>);
   /** Validate tool `structuredContent` against the tool's `outputSchema`. */
   validateOutput?: boolean;
-  /** Send a `ping` every N ms to keep the connection alive (0 = off). */
+  /** Send a `ping` every N ms to keep the connection alive (0 = off).
+   *  Ignored on a 2026-07-28 session, where `ping` no longer exists. */
   keepAliveMs?: number;
+  /** How to negotiate the MCP protocol revision.
+   *
+   *  - `'auto'` (default) — probe `server/discover` first; fall back to the `initialize` handshake
+   *    on anything that is not positive evidence of a 2026-07-28 server.
+   *  - `'legacy'` — skip the probe entirely. Use for a server that mishandles unknown methods
+   *    (the spec says answer with an error; not every implementation does).
+   *  - a version string such as `'2026-07-28'` — adopt it directly, no probe. */
+  protocolMode?: 'auto' | 'legacy' | (string & {});
   /** OAuth provider for servers that require authorization (HTTP only). On a
    *  required interactive grant, `connectMcp` throws `McpUnauthorizedError`
    *  after the provider redirects; finish with `finishMcpAuth`, then reconnect. */
@@ -164,6 +173,7 @@ export async function connectMcp(
     hooks: engineHooks,
     server: ns,
     keepAliveMs: opts.keepAliveMs,
+    protocolMode: opts.protocolMode,
     onServerRequest: hasServerHandlers ? onServerRequest : undefined,
     onNotification: (method, params) => {
       opts.onNotification?.(method, params);

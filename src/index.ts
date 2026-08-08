@@ -296,7 +296,18 @@ export type {
 } from './plugins/mcp/types';
 export type { IncomingMcpHandlers } from './plugins/mcp/transport';
 export { MCP_PROTOCOL_VERSION, isHttpConfig } from './plugins/mcp/types';
-export type { McpCallResult, McpCompletionRef, McpCompletionResult, McpContentBlock, McpGetPromptResult, McpHttpConfig, McpInitializeResult, McpLogLevel, McpPrompt, McpPromptArg, McpPromptMessage, McpResource, McpResourceContent, McpResourceTemplate, McpServerConfig, McpStdioConfig, McpToolDef } from './plugins/mcp/types';
+export type { McpCallResult, McpCompletionRef, McpCompletionResult, McpContentBlock, McpDiscoverResult, McpGetPromptResult, McpHttpConfig, McpInitializeResult, McpLogLevel, McpPrompt, McpPromptArg, McpPromptMessage, McpResource, McpResourceContent, McpResourceTemplate, McpServerConfig, McpStdioConfig, McpToolDef } from './plugins/mcp/types';
+export {
+  MCP_HANDSHAKE_PROTOCOL_VERSIONS,
+  MCP_KNOWN_PROTOCOL_VERSIONS,
+  MCP_LATEST_HANDSHAKE_VERSION,
+  MCP_LATEST_MODERN_VERSION,
+  MCP_MODERN_PROTOCOL_VERSIONS,
+  isHandshakeMcpVersion,
+  isModernMcpVersion,
+  mcpEraOf,
+} from './plugins/mcp/protocol-version';
+export type { McpEra } from './plugins/mcp/protocol-version';
 export { loadContent, loadImageContent } from './helpers/content';
 export type { LoadImageOptions } from './helpers/content';
 export { createMediaOutput } from './helpers/media';
