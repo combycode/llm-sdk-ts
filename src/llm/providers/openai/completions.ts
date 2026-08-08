@@ -93,6 +93,12 @@ export class OpenAIAdapter implements ProviderAdapter {
 
     if (req.temperature !== undefined) body.temperature = req.temperature;
     if (req.topP !== undefined) body.top_p = req.topP;
+    // `seed` is accepted by chat-completions on all three backends that share this builder
+    // (openai / xai / openrouter — live-verified 2026-07-28).
+    if (req.seed !== undefined) body.seed = req.seed;
+    // `top_k` is NOT an OpenAI field, but xAI and OpenRouter accept it on this surface.
+    // Gate by provider so OpenAI never receives a parameter it does not define.
+    if (this.name !== 'openai' && req.topK !== undefined) body.top_k = req.topK;
     if (req.presencePenalty !== undefined) body.presence_penalty = req.presencePenalty;
     if (req.frequencyPenalty !== undefined) body.frequency_penalty = req.frequencyPenalty;
     if (req.stop) body.stop = req.stop;

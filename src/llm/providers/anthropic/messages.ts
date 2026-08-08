@@ -28,6 +28,7 @@ import {
   ANTHROPIC_API_VERSION,
   ANTHROPIC_THINKING_BUDGETS,
   DEFAULT_ANTHROPIC_THINKING_BUDGET,
+  anthropicAcceptsTopK,
 } from './constants';
 
 export interface AnthropicAdapterConfig {
@@ -180,6 +181,10 @@ export class AnthropicAdapter implements ProviderAdapter {
 
     if (req.temperature !== undefined) body.temperature = req.temperature;
     if (req.topP !== undefined) body.top_p = req.topP;
+    // `top_k` is DEPRECATED on Anthropic: models released after Claude Opus 4.6 reject it
+    // outright (400 "`top_k` is deprecated for this model"), so sending it breaks the call.
+    if (req.topK !== undefined && anthropicAcceptsTopK(req.model)) body.top_k = req.topK;
+    // No `seed` — Anthropic rejects it (live 2026-07-28: 400 "seed: Extra inputs are not permitted").
     if (req.stop) body.stop_sequences = req.stop;
     const tier = anthropicRequestTier(req.serviceTier);
     if (tier) body.service_tier = tier;

@@ -119,11 +119,29 @@ if (response.finishReason === 'pending') {
 > Anthropic's `refusal` stop reason maps to `'content_filter'` (a safety decline is a block, not a
 > clean finish), and `model_context_window_exceeded` maps to `'length'`.
 
-### Sampling penalties
+### Sampling parameters
 
-`presencePenalty` / `frequencyPenalty` (`[-2, 2]`) are honoured by OpenAI/xAI **chat-completions**,
-OpenRouter, and Google (**generateContent** + Interactions). OpenAI/xAI **Responses** and Anthropic
-have no penalty fields, so they ignore them.
+`temperature` / `topP` are honoured everywhere. The rest are **not universal**, so the SDK emits each
+one only where the provider actually accepts it — sending them blindly is a hard 400, not a no-op:
+
+| Option | Honoured by | Dropped for |
+|---|---|---|
+| `topK` | **Anthropic**, on models up to Opus 4.6 — behaviourally verified. Also *sent* to Google + xAI, which accept it but showed no effect when measured | OpenAI (no top-k); **Anthropic models after Opus 4.6**, which reject it (400 `top_k` is deprecated) |
+| `seed` | OpenAI **chat-completions**, Google (both surfaces), xAI (chat + responses), OpenRouter chat | Anthropic, OpenAI **Responses** (both reject it) |
+| `presencePenalty` / `frequencyPenalty` (`[-2, 2]`) | OpenAI/xAI **chat-completions**, OpenRouter, Google (**generateContent** + Interactions) | OpenAI/xAI **Responses**, Anthropic |
+| `stop` | Anthropic, Google, xAI, OpenAI chat | OpenAI **Responses** |
+
+You pass them the same way regardless; where a provider can't take one it is left out of the request
+rather than forwarded and rejected.
+
+> **Accepted is not the same as honoured.** A `200` only proves the field was not rejected. We
+> tested `topK` behaviourally (`top_k: 1` must force greedy decoding): only Anthropic actually
+> applies it — Google and xAI accept it and ignore it on the models we measured. `seed` is
+> best-effort everywhere that takes it; determinism is never guaranteed.
+
+```ts
+await complete({ model: 'google/gemini-2.5-flash', apiKey, prompt: '…', topK: 40, seed: 42 });
+```
 
 ```ts
 await complete({ model: 'openai/gpt-5.4-nano', apiKey, prompt: '…', presencePenalty: 0.6, frequencyPenalty: 0.3 });

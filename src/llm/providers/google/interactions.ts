@@ -89,6 +89,11 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
     if (req.maxTokens) genConfig.max_output_tokens = req.maxTokens;
     if (req.temperature !== undefined) genConfig.temperature = req.temperature;
     if (req.topP !== undefined) genConfig.top_p = req.topP;
+    // Unlike the penalties above, Interactions DOES accept top_k and seed
+    // (live-verified 2026-07-28: both 200). Do not assume this surface mirrors the
+    // penalties' rejection — it was probed field by field.
+    if (req.topK !== undefined) genConfig.top_k = req.topK;
+    if (req.seed !== undefined) genConfig.seed = req.seed;
     // NOTE: the Interactions API does NOT accept presence_penalty / frequency_penalty
     // (live 2026-07-14: 400 "Unknown parameter 'presence_penalty' at 'generation_config'";
     // upstream removed them from the Interactions GenerationConfig in google 2.11). They

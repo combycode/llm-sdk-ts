@@ -22,6 +22,17 @@ export interface NormalizedRequest {
   maxTokens?: number;
   temperature?: number;
   topP?: number;
+  /** Restrict sampling to the k most likely tokens. Emitted only where the wire accepts it
+   *  (live-verified 2026-07-28): Anthropic, Google generateContent AND Interactions, xAI chat,
+   *  OpenRouter chat. OpenAI has no top-k on either surface, so it is dropped there rather
+   *  than sent and rejected. */
+  topK?: number;
+  /** Best-effort deterministic sampling. Emitted only where the wire accepts it
+   *  (live-verified 2026-07-28): OpenAI **chat-completions** — the Responses API rejects it
+   *  (400 "Unknown parameter: 'seed'") — Google generateContent + Interactions, xAI chat AND
+   *  responses, OpenRouter chat. Anthropic has no seed (400 "Extra inputs are not permitted"),
+   *  so it is dropped there. */
+  seed?: number;
   /** Penalise tokens by prior presence (OpenAI/xAI chat-completions, OpenRouter, Google). */
   presencePenalty?: number;
   /** Penalise tokens by prior frequency (OpenAI/xAI chat-completions, OpenRouter, Google). */

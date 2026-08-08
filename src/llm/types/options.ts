@@ -25,6 +25,21 @@ export interface ExecuteOptions {
   maxTokens?: number;
   temperature?: number;
   topP?: number;
+  /** Restrict sampling to the k most likely tokens. Sent to Anthropic, Google
+   *  (generateContent + Interactions), xAI chat and OpenRouter chat; dropped for OpenAI,
+   *  which defines no top-k.
+   *
+   *  ACCEPTED IS NOT HONOURED. A behavioural test on 2026-07-29 (top_k=1 must force greedy
+   *  decoding) found only **Anthropic** actually applies it: six samples collapsed to a
+   *  single output. Google (gemini-2.5-flash, 3.6-flash) and xAI (grok-4.20) returned 200
+   *  but showed no greedy effect — accepted and inert on those models. It is still sent
+   *  (harmless, and may apply elsewhere) but do not rely on it outside Anthropic. */
+  topK?: number;
+  /** Best-effort deterministic sampling: the same seed + params should return the same
+   *  result. Honoured by OpenAI **chat-completions** (the Responses API rejects it), Google
+   *  (generateContent + Interactions), xAI (chat + responses) and OpenRouter chat.
+   *  Anthropic has no seed, so it is dropped there. Determinism is never guaranteed. */
+  seed?: number;
   /** Penalise tokens by prior presence ([-2, 2]). Honoured by OpenAI/xAI chat-completions,
    *  OpenRouter, and Google (generateContent + Interactions); ignored by OpenAI/xAI Responses
    *  and Anthropic, which don't accept it. */

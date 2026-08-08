@@ -1,0 +1,3875 @@
+{
+  "_doc": {
+    "what": "The feature-parity matrix: every capability an official SDK exposes, how each provider spells it, and where we stand. Source of truth for the site's comparison page AND the audit the upstream-update cycle maintains.",
+    "why_here": "It lives in the LIBRARY (not the site) because it is a library artifact: the update pipeline maps each upstream change to a featureId and updates the affected cells in the same pass, so the matrix can never silently rot.",
+    "evidence_rule": "Every non-trivial cell carries `refs` into the version-pinned clones under official-skds/. NOTHING is asserted from memory. A cell we have not audited is `unverified` -- an honest gap is allowed, a guess is not.",
+    "relevance_caveat": "The validator proves a ref RESOLVES (file exists, line in range); it CANNOT prove the cited line supports the claim. Before citing, confirm which declaration owns the line -- e.g. google-ts types.ts has `inlineData` at BOTH 1946 (inside FunctionCall) and 2036 (inside Part); only 2036 is evidence for image input. A resolving-but-irrelevant ref is worse than none, because it looks audited.",
+    "refs": "A ref is { sdk, path, line? } where `sdk` is a clone-manifest folder (anthropic-ts, openai-py, ...) or \"lib\" for our own source. The site generator resolves sdk -> repo + commitSha from official-skds/clone-manifest.json at build time, so it can (a) extract the cited snippet from the local clone and render it inline, and (b) emit an immutable GitHub permalink. NOTE: github.com sends `X-Frame-Options: deny` + `frame-ancestors 'none'` (verified 2026-07-28), so it CANNOT be iframed -- inline extraction + a new-tab permalink is the only workable design.",
+    "support": {
+      "full": "the capability is exposed and usable",
+      "partial": "exposed but narrower than a peer (note MUST say how)",
+      "none": "the provider/SDK genuinely does not offer it",
+      "n/a": "the concept does not apply to this provider",
+      "beta": "usable but behind a beta header / preview gate (note MUST name the gate)",
+      "by-design": "deliberately NOT exposed, and the note says why. Distinct from `none` (the provider lacks it) and from `unverified` (we have not looked). Mostly used in the `ours` column so a considered decision is not mistaken for a gap.",
+      "unverified": "not yet audited -- rendered as a visible gap on the site, never as a claim"
+    },
+    "granularity": "One ROW per user-meaningful capability (readable page). Fine knobs live in `aspects[]`, each with its own stable id, so an upstream diff can be mapped to a precise aspect without exploding the row count.",
+    "ids": "featureId is `<category>.<feature>`; aspectId is `<category>.<feature>.<aspect>`. IDs ARE STABLE -- the update cycle references them. Rename the `name`, never the `id`.",
+    "example": "`example` is a slug in official-samples/ (also the key in the site's examples.generated.json). Absent = no runnable example yet; the modal falls back to description + cited source.",
+    "openrouter": "DELIBERATELY NOT A COLUMN. OpenRouter is a GATEWAY, not a provider: it ships no SDK, is consumed through an OpenAI-compatible client, and its capabilities are whatever the proxied model supports MINUS whatever the gateway drops. Scoring it beside first-party providers would mislead in both directions - `full` overstates (it depends entirely on the target model) and `none` understates (much of it is a plain OpenAI passthrough). We still SUPPORT OpenRouter as a target; it simply is not comparable on this axis and belongs in its own page section.",
+    "languages": "WHY THERE ARE NO PER-LANGUAGE COLUMNS (verified 2026-07-29, row level - not assumed).\nChecked every cited symbol against the sibling-language clone (anthropic-ts<->py, openai-ts<->py, google-ts<->py, agents, adk), matching camelCase<->snake_case: 136 symbols across 53 features, 132 present in BOTH. All 4 one-sided hits were manually confirmed as NON-divergences:\n  - openai `ClientOptions` / google `GoogleGenAIOptions`: TS uses an options interface, Python uses constructor kwargs (api_key, base_url, timeout, max_retries / vertexai, project, location, http_options). Same capability, different idiom.\n  - `dangerouslyAllowBrowser` (anthropic, openai): browser execution is a JS-only concern; Python has no equivalent notion, so it is language-inherent rather than a gap.\nStructural reason this holds: each provider generates its TS and Python SDKs from ONE spec, so the API surface cannot drift. Divergence is only possible in the hand-written lib/ helper layer (e.g. anthropic TS has SessionToolRunner/CompactionControl, Python has lib/environments/).\nLIMITS OF THIS CHECK, stated honestly: it verifies presence of CITED symbols, not behaviour, and not every field of every feature. Cells with no refs (mostly `none`/`n-a`) are not covered. It says \"no capability divergence was found among the symbols this matrix relies on\" - not \"the SDKs are identical\".\nCONSEQUENCE: provider x language would double the columns while ~97% of rows stayed identical. Instead, rows with a genuine language-inherent difference carry `languageNotes`.\nNOTE: xAI is Python-ONLY (no JS/TS SDK exists at all), and our library is TS-only today - so for those two the question does not arise.",
+    "two_axes": "TWO AXES PER CELL — they are not the same question, and conflating them produced a false \"none\".\n  `support`    = what the official SDK EXPOSES. This is the PRIMARY axis: the page compares SDKs, and it is what a developer can actually call.\n  `apiSupport` = what the provider API/product offers, recorded ONLY when it DIFFERS from `support`. Absent means \"identical to support\" (the normal case).\nA cell where apiSupport is stronger than support means: the capability EXISTS, you just cannot reach it through the official SDK — you must call the API directly (which our library can do).\nEvidence rule: an apiSupport claim needs its own ref, usually a `doc` URL, because by definition the SDK source cannot prove it.\nThe case that forced this: xAI ships a Grok Voice API (TTS, STT, realtime audio, all with published pricing) while xai-py 1.17.0 exposes no audio module at all. Recorded as one value it read as \"xAI has no audio\", which is false about the provider and true only about the SDK.\nNOT the same as accepted-vs-honoured: a provider can ACCEPT a parameter and silently ignore it (topK on Google/xAI). That is a behavioural fact recorded in the note, since it is per-model rather than per-SDK."
+  },
+  "version": 1,
+  "generated": "2026-07-28",
+  "status": "TAXONOMY COMPLETE (29 categories) - remaining work: audit the xai + openrouter columns (93 unverified cells)",
+  "providers": [
+    {
+      "id": "ours",
+      "label": "ORXA llm-sdk",
+      "sdks": [
+        "lib"
+      ]
+    },
+    {
+      "id": "anthropic",
+      "label": "Anthropic",
+      "sdks": [
+        "anthropic-ts",
+        "anthropic-py"
+      ]
+    },
+    {
+      "id": "openai",
+      "label": "OpenAI",
+      "sdks": [
+        "openai-ts",
+        "openai-py"
+      ]
+    },
+    {
+      "id": "google",
+      "label": "Google",
+      "sdks": [
+        "google-ts",
+        "google-py"
+      ]
+    },
+    {
+      "id": "xai",
+      "label": "xAI",
+      "sdks": [
+        "xai-py"
+      ]
+    }
+  ],
+  "categories": [
+    {
+      "id": "core",
+      "title": "Core completion",
+      "blurb": "The shape of a single request/response: what you send, how the turn is framed, and what comes back.",
+      "features": [
+        {
+          "id": "core.prompt",
+          "name": "Single-prompt completion",
+          "summary": "Send one prompt, get text back, without assembling a message array by hand.",
+          "example": "01-basic-completion",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`complete({ model, prompt })` — a one-shot helper that also runs the tool loop when tools are supplied.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/helpers/one-shot.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "partial",
+              "note": "No prompt shorthand — `messages: [{ role, content }]` is required, and `max_tokens` is MANDATORY (no default).",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3151
+                },
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3081
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "Responses accepts `input` as a plain string; chat-completions requires a `messages` array.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 8560
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`contents` accepts a bare string, expanded to a single user turn by the SDK.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 3081
+                }
+              ]
+            },
+            "xai": {
+              "support": "partial",
+              "note": "`chat.create(...)` builds a message list; no single-prompt shorthand.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 43
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "core.system",
+          "name": "System prompt",
+          "summary": "Out-of-band instructions that frame the whole conversation.",
+          "example": "02-system-prompt",
+          "aspects": [
+            {
+              "id": "core.system.blocks",
+              "name": "Multiple system blocks (per-block cache control)"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`system` option, normalised to each provider's own slot.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/request.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "Top-level `system`, as a string OR an array of text blocks (which is what makes per-block cache_control possible).",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3228
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "Responses: `instructions`. Chat-completions: a `system`/`developer` role message.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 1027
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`systemInstruction` on the config (a Content, not a plain role message).",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2929
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "A `system` role message in the chat message list.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 43
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "core.multi-turn",
+          "name": "Multi-turn conversation",
+          "summary": "Carry prior turns so the model has conversational context.",
+          "example": "03-multi-turn",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`Message[]` plus `assistantMessage(res)`, which stamps the server response id when the provider has one.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/client.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`messages[]` of alternating user/assistant turns.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3151
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`input[]` items, or server-side state via `previous_response_id` instead of resending.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 8560
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`contents[]`, or the `chats` helper which keeps history for you.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 3081
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "Message list passed to `chat.create`.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 43
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "core.max-tokens",
+          "name": "Output length cap",
+          "summary": "Bound how many tokens the model may generate.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`maxTokens` — optional everywhere; we supply a provider-appropriate default when a provider demands one.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/request.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`max_tokens` is REQUIRED — a request without it is rejected.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3081
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`max_output_tokens` (Responses) / `max_completion_tokens` (chat); optional.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 1148
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`maxOutputTokens`; optional.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2953
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`max_tokens`; optional.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 50
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "sampling",
+      "title": "Sampling parameters",
+      "blurb": "The knobs that shape token selection. The interesting part is not who has them, but who SILENTLY IGNORES them.",
+      "features": [
+        {
+          "id": "sampling.temperature",
+          "name": "Temperature / top-p",
+          "summary": "Randomness and nucleus sampling.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`temperature` / `topP`, passed through to every provider that accepts them.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/request.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`temperature` + `top_p`.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3235
+                },
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3348
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`temperature` + `top_p`. NOTE: reasoning models reject or ignore them.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 1075
+                },
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 1123
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`temperature` + `topP` (and `topK`, which OpenAI has no equivalent for).",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2935
+                },
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2940
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`temperature` + `top_p`.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 53
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "sampling.top-k",
+          "name": "Top-k",
+          "summary": "Restrict sampling to the k most likely tokens. Accepting the field and HONOURING it are different things - tested behaviourally, not by status code.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`topK` - emitted only where it is both accepted AND useful. Anthropic: gated to the models that still accept it (an ALLOW-list, so unknown/future models are omitted rather than 400ing). Google and xAI accept it but were measured INERT (top_k=1 did not force greedy decoding). OpenAI defines no top-k. Sending it to a deprecated Anthropic model is a hard request failure, which is why the default fails safe.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/options.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "partial",
+              "note": "`top_k` WORKS where it is still accepted (behavioural test 2026-07-29: top_k=1 collapsed six samples to one output vs four distinct at baseline) - but Anthropic has DEPRECATED it. Models released after Opus 4.6 reject it with 400 \"`top_k` is deprecated for this model\": live-verified ACCEPT on opus-4.1/4.5/4.6, sonnet-4.5/4.6, haiku-4.5 and REJECT on opus-4.7/4.8, sonnet-5, opus-5, fable-5.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3341
+                }
+              ]
+            },
+            "openai": {
+              "support": "none",
+              "note": "No top-k on either Responses or chat-completions."
+            },
+            "google": {
+              "support": "full",
+              "note": "`topK` is accepted (HTTP 200) but showed NO greedy effect on gemini-2.5-flash or gemini-3.6-flash: with topK=1, 7/10 and 6/10 distinct outputs respectively vs 9/10 and 4/10 baseline. Accepted-and-inert on the models tested, not honoured.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2494
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "apiSupport": "partial",
+              "note": "The SDK does not expose top_k at all (`chat.create` has no such parameter). The raw wire ACCEPTS it (HTTP 200) but does not honour it: with top_k=1, grok-4.20 still produced 5/10 distinct outputs vs 7/10 baseline, where greedy decoding would force 1. So: absent from the SDK, and inert on the API.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 43
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "sampling.penalties",
+          "name": "Presence / frequency penalties",
+          "summary": "Discourage repetition. The classic example of a knob that exists on some surfaces of a provider and not others.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`presencePenalty` / `frequencyPenalty`, emitted ONLY where accepted — notably NOT on Google Interactions, which 400s on them (live-verified 2026-07-14).",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/providers/google/interactions.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No penalty fields at all."
+            },
+            "openai": {
+              "support": "partial",
+              "note": "chat-completions only. The Responses API has no penalty fields.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 8560
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "`presencePenalty`/`frequencyPenalty` on generateContent, but REMOVED from the Interactions surface in google 2.11 (live: 400 \"Unknown parameter\").",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2970
+                },
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2975
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`presence_penalty` + `frequency_penalty`.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 61
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "sampling.stop",
+          "name": "Stop sequences",
+          "summary": "Halt generation when a string appears.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`stop: string[]`.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/request.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`stop_sequences`.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3210
+                }
+              ]
+            },
+            "openai": {
+              "support": "partial",
+              "note": "chat-completions has `stop`; the Responses API does not.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 8560
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`stopSequences`.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2957
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`stop`, up to 4 sequences.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 52
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "sampling.seed",
+          "name": "Deterministic seed",
+          "summary": "Best-effort reproducible sampling.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`seed` — emitted to OpenAI chat-completions, Google (generateContent + Interactions), xAI (chat + responses) and OpenRouter chat; DROPPED for Anthropic and OpenAI Responses, which both reject it. (Gap found by this audit on 2026-07-28 and closed the same day.)",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/options.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No `seed` parameter on the request (whole-clone search); the API rejects it (live 400 \"Extra inputs are not permitted\")."
+            },
+            "openai": {
+              "support": "partial",
+              "note": "chat-completions only.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 8560
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`seed`.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2980
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`seed`, best-effort determinism.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 51
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "streaming",
+      "title": "Streaming",
+      "blurb": "Incremental delivery of a turn. Every provider streams text; they diverge sharply on what ELSE is streamable and how events are shaped.",
+      "features": [
+        {
+          "id": "streaming.text",
+          "name": "Streaming text",
+          "summary": "Receive the reply incrementally instead of waiting for the full turn.",
+          "example": "04-streaming",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`llm.stream(prompt)` yields one normalised `StreamEvent` union across every provider.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/stream.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`stream: true`, or the `.stream()` helper which accumulates a final message for you.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3219
+                },
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 1438
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`stream: true` on both surfaces; Responses emits a much richer event union than chat-completions.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 6876
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "A separate method, `generateContentStream`, rather than a flag.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/models.ts",
+                  "line": 243
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`chat.stream()`, a sibling of `chat.sample()`.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 1255
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "streaming.events",
+          "name": "Rich stream events",
+          "summary": "Structured events beyond raw text: tool calls, reasoning, usage, lifecycle.",
+          "aspects": [
+            {
+              "id": "streaming.events.usage",
+              "name": "Usage delivered mid/end-stream"
+            },
+            {
+              "id": "streaming.events.item-id",
+              "name": "Per-item id on deltas"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "One `StreamEvent` union covers text, thinking, tool_call_*, usage, done, media, files, builtin tools and moderation — identical across providers. `itemId` is carried where the provider reports one.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/stream.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`message_start` / `content_block_delta` / `message_delta` / `message_stop`; usage arrives on message_delta.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 1438
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "The largest event union of any provider; deltas carry `item_id` so multi-item turns can be reassembled.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 6876
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "Streams `GenerateContentResponse` chunks rather than typed lifecycle events — the caller diffs the chunks themselves.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/models.ts",
+                  "line": 243
+                }
+              ]
+            },
+            "xai": {
+              "support": "partial",
+              "note": "`chat.stream()` yields response chunks rather than a typed lifecycle-event union; the caller diffs successive chunks.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 1255
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "tools",
+      "title": "Tools / function calling",
+      "blurb": "Letting the model call your code. Universally supported, and universally spelled differently.",
+      "features": [
+        {
+          "id": "tools.define",
+          "name": "Function tool definition",
+          "summary": "Declare a callable function with a JSON-Schema parameter contract.",
+          "example": "06-tool-call",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`defineTool({ name, description, parameters, execute })` — the executor lives WITH the schema, so the loop can run it; the official SDKs mostly separate the two.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/helpers/define-tool.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`tools[]` with `input_schema`.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3335
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`tools[]`; Responses also has non-function (hosted) tool types in the same array.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 7641
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`tools[].functionDeclarations[]` — nested one level deeper than the others.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2683
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`tools` on `chat.create`.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 57
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "tools.choice",
+          "name": "Tool choice control",
+          "summary": "Force, forbid, or free the model's decision to call a tool (auto / any / none / a specific tool).",
+          "example": "06-tool-call",
+          "aspects": [
+            {
+              "id": "tools.choice.specific",
+              "name": "Force one named tool"
+            },
+            {
+              "id": "tools.choice.none",
+              "name": "Forbid tool use"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`toolChoice: 'auto' | 'required' | 'none' | { name }`, mapped to each provider's own enum.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/tools.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`tool_choice`: auto | any | tool | none — all four states.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 1960
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`tool_choice`: auto | required | none | a named function.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 7641
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`toolConfig.functionCallingConfig.mode`: AUTO | ANY | NONE, with `allowedFunctionNames` to pin specific tools.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2898
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`tool_choice` (auto/required/none/named) on `chat.create`.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 58
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "tools.parallel",
+          "name": "Parallel tool calls",
+          "summary": "Several tool calls issued in one assistant turn.",
+          "example": "07-parallel-tools",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "Parallel calls are executed concurrently by the loop; stream fragments are correlated by index so id-less backends can't collide.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/providers/openai/completions.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "Multiple `tool_use` blocks in one turn; `disable_parallel_tool_use` on tool_choice turns it off.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 1960
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`parallel_tool_calls` (default true).",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 1067
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "Multiple `functionCall` parts in one candidate.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2683
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`parallel_tool_calls` on `chat.create`.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 59
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "tools.loop",
+          "name": "Automatic tool-execution loop",
+          "summary": "The SDK runs the call/result round-trip until the model stops asking for tools.",
+          "example": "09-tool-runner",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`complete()` runs the loop when tools are supplied; the agent layer adds steps, guardrails and approvals on top.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/agent/loop.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "beta",
+              "note": "`BetaToolRunner` — in the beta namespace, not the GA client.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/lib/tools/BetaToolRunner.ts"
+                }
+              ]
+            },
+            "openai": {
+              "support": "partial",
+              "note": "The core SDK runs no tool loop; you hand-roll it or adopt @openai/agents. The API does expose `max_tool_calls` to bound server-side tool invocations, but that is a limit, not a loop the SDK drives.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 7443
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "Automatic function calling is built into the SDK for plain generateContent - the client loop runs for you, bounded by `automaticFunctionCalling.maximumRemoteCalls`. Corrected 2026-07-29: previously understated as chat-helper-only.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/_afc.ts",
+                  "line": 30
+                },
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2779
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`max_turns` makes the SERVER run the agentic loop - the model keeps calling tools for up to N turns without a client round-trip. (OpenAI bounds server-side tool calls with `max_tool_calls`, and Google’s SDK auto-runs a CLIENT-side loop via automaticFunctionCalling; xAI’s is the loop running server-side.)",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 68
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "structured",
+      "title": "Structured output",
+      "blurb": "Getting a typed object instead of prose. The gap here is less about support and more about what happens when the model gets it wrong.",
+      "features": [
+        {
+          "id": "structured.schema",
+          "name": "JSON-Schema constrained output",
+          "summary": "Constrain the reply to a caller-supplied schema.",
+          "example": "11-structured-json",
+          "aspects": [
+            {
+              "id": "structured.schema.strict",
+              "name": "Strict mode (schema is enforced, not suggested)"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`structured: { schema }` — one shape, mapped to each provider's native mechanism (and to a tool-call for providers with none).",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/request.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No native JSON-schema mode — the documented approach is to define a tool and read its input, which is what we emulate.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3335
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`text.format` / `response_format` with `json_schema` + `strict: true` (constrained decoding).",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 2988
+                },
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/shared.ts",
+                  "line": 230
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`responseMimeType: 'application/json'` + `responseJsonSchema` (or the older `responseSchema`).",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2988
+                },
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2605
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`response_format`, which also accepts a pydantic model directly.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 60
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "structured.parse",
+          "name": "Typed parse + failure handling",
+          "summary": "Turn the reply into a typed object, and behave sanely when it cannot be parsed.",
+          "example": "12-structured-parse",
+          "aspects": [
+            {
+              "id": "structured.parse.repair",
+              "name": "Re-prompt on a parse failure"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`structuredComplete<T>()` returns typed `T`, throws a typed `InvalidFinalOutputError` (carrying `rawText`) instead of a bare SyntaxError, and `repairAttempts` re-prompts with the parse error before giving up.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/client.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No parse helper — with no native schema mode there is nothing to parse against.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3335
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`.parse()` helpers with zod/pydantic; strict mode makes a parse failure rare rather than handled.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/shared.ts",
+                  "line": 230
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "`response.parsed` is populated, but there is no repair path when the model returns unparseable output.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2605
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`parse()` returns a pydantic instance.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 198
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "vision",
+      "title": "Vision & documents",
+      "blurb": "Non-text INPUT. Everyone takes images; they diverge on PDFs, on whether a URL can be passed directly, and on how big an input may be.",
+      "features": [
+        {
+          "id": "vision.image",
+          "name": "Image input",
+          "summary": "Attach an image to a turn and ask about it.",
+          "example": "13-vision",
+          "aspects": [
+            {
+              "id": "vision.image.url",
+              "name": "Pass a URL instead of bytes"
+            },
+            {
+              "id": "vision.image.base64",
+              "name": "Inline base64 bytes"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`attachments` accepts a path, bytes, a data URL or an https URL; we upload or inline per provider, so the same call works everywhere.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/messages.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`image` content block — base64 or a URL source.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 961
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`input_image` with `image_url` (an https URL or a data: URL) plus a `detail` hint.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 3952
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`Part.inlineData` (bytes) or `Part.fileData` (a Files-API URI). A bare public URL is NOT accepted — it must be uploaded first.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2036
+                },
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2030
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`image(image_url, detail)` content helper; URL or base64, PNG/JPG.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 810
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "vision.document",
+          "name": "PDF / document input",
+          "summary": "Send a document and have the model read it natively, without you extracting text first.",
+          "example": "14-document-pdf",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "Same `attachments` path — a PDF routes to each provider's document mechanism.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/messages.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`document` block: base64 PDF, plain text, nested content blocks, or a URL PDF source.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 914
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`input_file` — a `file_id` from the Files API or inline `file_data`.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 3831
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "PDFs go through the same `inlineData`/`fileData` part as images.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2030
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "note": "No document/PDF content part — the only non-text input helper is `image()`. PDFs must be converted by the caller.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 810
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "audio",
+      "title": "Audio",
+      "blurb": "Speech in and speech out. The widest capability spread of any category — one provider has none of it.",
+      "features": [
+        {
+          "id": "audio.stt",
+          "name": "Speech-to-text",
+          "summary": "Transcribe an audio file to text.",
+          "example": "18-stt",
+          "aspects": [
+            {
+              "id": "audio.stt.diarization",
+              "name": "Speaker diarization"
+            },
+            {
+              "id": "audio.stt.word-timestamps",
+              "name": "Word-level timestamps"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "partial",
+              "note": "`transcribe()` unifies both shapes — OpenAI's dedicated endpoint and the generateContent-style providers. Returns `{ text }` only: diarization and word timestamps are NOT yet surfaced (OpenAI supports them; Google's equivalent is not usable on the Developer API — see DEFERRED D-6).",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/helpers/transcribe.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No audio input anywhere in the SDK — whole-clone search for audio/speech/transcription resources found none."
+            },
+            "openai": {
+              "support": "full",
+              "note": "Dedicated `/v1/audio/transcriptions` with `timestamp_granularities`, `diarize` and `known_speaker_names`.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/audio/transcriptions.ts",
+                  "line": 15
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "Audio input is a normal `Part` on generateContent, so basic transcription works without a separate endpoint. Diarization and word timestamps are NOT usable: the SDK types an audioTranscriptionConfig but the Developer API rejects its inner fields (`languageHints` -> 400 \"Unknown name\" on v1beta/v1alpha/v1) while gemini-3.x simultaneously demands one. SDK ahead of the deployed API - see DEFERRED D-6.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2036
+                },
+                {
+                  "sdk": "google-py",
+                  "path": "google/genai/models.py",
+                  "line": 68
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "apiSupport": "full",
+              "note": "The PROVIDER ships speech-to-text via the Grok Voice API (published pricing), but the pinned xai-py 1.17.0 SDK exposes NO audio or realtime module — verified recursively across sync/, aio/ and types/. Reachable only by calling the API directly, which our library can do.",
+              "refs": [
+                {
+                  "doc": "https://docs.x.ai/docs/models",
+                  "title": "xAI docs — Grok Voice API: TTS $15/1M chars, STT $0.10/hr, Realtime Audio $0.05/min, Realtime Text Input $0.004/msg"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "audio.tts",
+          "name": "Text-to-speech",
+          "summary": "Synthesise speech from text.",
+          "example": "17-tts",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`generateAudio()` plus `audio: { voice, format }` on a normal completion; voice aliases are resolved per provider.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/audio.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No speech synthesis — whole-clone search found no audio or speech resource."
+            },
+            "openai": {
+              "support": "full",
+              "note": "`/v1/audio/speech` with voice + response_format.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/audio/speech.ts",
+                  "line": 42
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`speechConfig` on generateContent with `responseModalities` including AUDIO — no separate endpoint.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 3048
+                },
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 3042
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "apiSupport": "full",
+              "note": "The PROVIDER ships text-to-speech via the Grok Voice API (published pricing), but the pinned xai-py 1.17.0 SDK exposes NO audio or realtime module — verified recursively across sync/, aio/ and types/. Reachable only by calling the API directly, which our library can do.",
+              "refs": [
+                {
+                  "doc": "https://docs.x.ai/docs/models",
+                  "title": "xAI docs — Grok Voice API: TTS $15/1M chars, STT $0.10/hr, Realtime Audio $0.05/min, Realtime Text Input $0.004/msg"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "imagegen",
+      "title": "Image generation",
+      "blurb": "Producing images rather than reading them. Note how differently the three providers model it: a dedicated endpoint, a normal completion, or both.",
+      "features": [
+        {
+          "id": "imagegen.generate",
+          "name": "Generate an image",
+          "summary": "Create an image from a prompt.",
+          "example": "16-image-gen",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`createMediaOutput().generateImage()` — one call across providers, routing to whichever mechanism the chosen model needs.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/helpers/media.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No image generation — Anthropic models are text/vision only."
+            },
+            "openai": {
+              "support": "full",
+              "note": "`/v1/images/generate`, and an `image_generation` hosted tool inside Responses.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/images.ts",
+                  "line": 75
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "TWO paths: Imagen models via `:predict`, and gemini-*-image models inline via generateContent + `responseModalities: ['IMAGE']`. The SDK's `generateImages` helper is deprecated in favour of the latter.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/models.ts",
+                  "line": 466
+                },
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 3042
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "A dedicated image client (grok-imagine-image).",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/image.py",
+                  "line": 41
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "imagegen.edit",
+          "name": "Edit an existing image",
+          "summary": "Transform a supplied image with a prompt.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`editImage()` with a `sourceImage`.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/plugins/media/output.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No image generation, so no editing."
+            },
+            "openai": {
+              "support": "full",
+              "note": "`/v1/images/edit`.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/images.ts",
+                  "line": 45
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "Send the source image as a Part alongside the prompt on a gemini-*-image model; the standalone `edit_image` helper is deprecated.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2036
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "note": "The image client generates only — no edit entry point.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/image.py",
+                  "line": 33
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "files",
+      "title": "Files API",
+      "blurb": "Uploading content once and referencing it by id. Same idea everywhere, but the lifetime and the beta status differ sharply.",
+      "features": [
+        {
+          "id": "files.upload",
+          "name": "Upload & reference by id",
+          "summary": "Upload a file once, then attach it to many requests by id instead of re-sending bytes.",
+          "example": "21-files-upload",
+          "aspects": [
+            {
+              "id": "files.upload.lifetime",
+              "name": "Retention / auto-expiry"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "One files layer over all providers; large attachments are uploaded and referenced automatically rather than inlined.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/plugins/files/provider-adapter.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "beta",
+              "note": "Behind the `files-api-2025-04-14` beta header — the resource lives in the beta namespace, not the GA client.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/beta/files.ts",
+                  "line": 14
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "GA `client.files`, shared with batch and fine-tuning (`purpose` selects the use).",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/files.ts",
+                  "line": 17
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`client.files` with a resumable upload; files AUTO-DELETE after 48h, unlike OpenAI's indefinite retention.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/files.ts",
+                  "line": 16
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "A files module with public-URL options.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/files.py",
+                  "line": 28
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "batch",
+      "title": "Batch / async jobs",
+      "blurb": "Submit many requests for offline processing at a discount. Universally ~50% cheaper, and universally shaped differently.",
+      "features": [
+        {
+          "id": "batch.submit",
+          "name": "Batch submission & polling",
+          "summary": "Queue a set of requests, poll the job, collect results.",
+          "example": "22-batch",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "One batch helper across providers, including per-request cost attribution when the job completes.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/helpers/batch.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`messages.batches` — batch is a sub-resource of messages, not a top-level one.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/batches.ts",
+                  "line": 14
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "Top-level `client.batches`, driven by an uploaded JSONL file rather than an inline request array.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/batches.ts",
+                  "line": 14
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`client.batches`.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/batches.ts",
+                  "line": 16
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "A batch client module.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/batch.py",
+                  "line": 12
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "caching",
+      "title": "Prompt caching",
+      "blurb": "Reusing computation across requests. The single most divergent category in the matrix: explicit markers, an opaque key, or a first-class resource.",
+      "features": [
+        {
+          "id": "caching.prompt",
+          "name": "Prompt / context caching",
+          "summary": "Avoid re-processing a large shared prefix on every call.",
+          "example": "20-prompt-caching",
+          "aspects": [
+            {
+              "id": "caching.prompt.explicit",
+              "name": "Explicit cache markers"
+            },
+            {
+              "id": "caching.prompt.implicit",
+              "name": "Automatic caching, no config"
+            },
+            {
+              "id": "caching.prompt.ttl",
+              "name": "Caller-controlled TTL"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "One `cache` config: on Anthropic it places `cache_control` breakpoints, on OpenAI it is already implicit (verified: cached=1792/2299 on a repeat call with zero config), on Google it maps to explicit cached content.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/request.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "EXPLICIT: you mark breakpoints with `cache_control: { type: 'ephemeral', ttl }` on individual blocks. Nothing is cached unless you ask.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 271
+                },
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 293
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "IMPLICIT by default — long prefixes are cached with no configuration at all. `prompt_cache_key` groups requests; `prompt_cache_options` (gpt-5.6+) is manual control on top.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 1175
+                },
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 1181
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "A first-class RESOURCE: create a `cachedContents` object, then reference it per request — the only provider where the cache is an object you manage and pay rent on.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/caches.ts",
+                  "line": 16
+                }
+              ]
+            },
+            "xai": {
+              "support": "partial",
+              "note": "Caching happens server-side and is REPORTED (`cached_prompt_text_tokens` in usage) but there is no control surface — no breakpoints, no cache key, no TTL.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 549
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "state",
+      "title": "Server-side conversation state",
+      "blurb": "Letting the provider hold the transcript so each turn sends only what is new.",
+      "features": [
+        {
+          "id": "state.previous-response",
+          "name": "Server-held conversation state",
+          "summary": "Continue a conversation by id instead of resending the full history.",
+          "example": "24-response-state",
+          "aspects": [
+            {
+              "id": "state.previous-response.store",
+              "name": "Opt out of retention"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`previousResponseId` plus `assistantMessage()`, which stamps the server id; the client trims the history to just the new turn when a provider supports state.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/request.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "Stateless — the full message array is sent every turn. (Managed Agents/Sessions are a separate hosted product, not this.)",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3151
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`previous_response_id` on Responses, `store` to control retention, plus a Conversations resource. Chat-completions is stateless.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 1162
+                },
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/conversations/conversations.ts",
+                  "line": 24
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "Only on the Interactions surface (`previous_interaction_id`); plain generateContent is stateless, so which Google API you pick decides whether state exists at all.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/gaos/models/interactions/create-model-interaction.ts",
+                  "line": 77
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`previous_response_id` + `store_messages` on `chat.create`.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 66
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "hosted-tools",
+      "title": "Hosted (provider-run) tools",
+      "blurb": "Tools the PROVIDER executes server-side — you never run any code. The least converged area in the matrix: OpenAI, Google and xAI all offer hosted retrieval over your own corpus (vector stores / File Search Stores / Collections); Anthropic offers none. Tool NAMES and shapes differ everywhere.",
+      "features": [
+        {
+          "id": "hosted-tools.web-search",
+          "name": "Web search",
+          "summary": "The model searches the web server-side and cites what it read.",
+          "example": "27-web-search",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`'web_search'` in the unified `BuiltinTool` union; results surface on `response.builtinToolCalls` with the query and any opened URLs.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/tools.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "A DATED tool type (`web_search_20250305`) — the version is part of the name, so a new revision is a new tool id to adopt.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 1160
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`web_search` tool on Responses, with location/context-size options.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 8488
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`googleSearch` tool (grounding), plus `urlContext` for reading specific URLs — a capability neither other provider exposes.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2674
+                },
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2689
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "A `web_search` tool AND a distinct `x_search` (X/Twitter) tool, with `SearchParameters` controlling sources (web, news, X, RSS), mode and date ranges — the richest source control of any provider.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/tools.py",
+                  "line": 10
+                },
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/tools.py",
+                  "line": 85
+                },
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 64
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "hosted-tools.code-execution",
+          "name": "Code execution",
+          "summary": "The model writes and runs code in a provider-hosted sandbox, and may return files it produced.",
+          "example": "10b-code-exec-files",
+          "aspects": [
+            {
+              "id": "hosted-tools.code-execution.files",
+              "name": "Retrieve produced files"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`'code_interpreter'` unified across providers; artifacts land on `response.files` with `retrieveFile`/`streamFile` to fetch bytes — one shape regardless of provider.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/files/retrieve.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "beta",
+              "note": "Beta namespace, and DATED (`code_execution_20250825` … `_20260521`) — three live revisions in the union.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/beta/messages/messages.ts",
+                  "line": 392
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`code_interpreter` tool with container management; produced files come back as container-file citations.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 8064
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`codeExecution` tool; artifacts arrive as inline data parts rather than file ids.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2679
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "A `code_execution()` server-side tool.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/tools.py",
+                  "line": 153
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "hosted-tools.file-search",
+          "name": "Hosted retrieval / file search",
+          "summary": "Provider-side RAG over documents you uploaded.",
+          "cells": {
+            "ours": {
+              "support": "partial",
+              "note": "The `file_search` builtin passes through to OpenAI, but we deliberately do NOT model corpora (vector stores, File Search Stores, Collections) — each provider models them incompatibly, so unifying them is a design task, not a passthrough.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/tools.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No hosted retrieval: no file-search, vector-store or retrieval resource exists in the SDK (whole-clone search). You supply context yourself or run your own search tool."
+            },
+            "openai": {
+              "support": "full",
+              "note": "`file_search` over vector stores, with filters and ranking options.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 729
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "A full File Search Stores resource (create/import/query) plus a `fileSearch` tool on the request — provider-hosted RAG over your own corpus. CORRECTED 2026-07-29: previously recorded as \"none\", which was an unchecked negative.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/filesearchstores.ts",
+                  "line": 17
+                },
+                {
+                  "sdk": "google-py",
+                  "path": "google/genai/file_search_stores.py",
+                  "line": 325
+                },
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2672
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "A full Collections API (chunking config, contextual retrieval) plus a `collections_search()` tool — provider-hosted RAG over your own corpus.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/tools.py",
+                  "line": 173
+                },
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/collections.py",
+                  "line": 120
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "mcp",
+      "title": "MCP (Model Context Protocol)",
+      "blurb": "Connecting external tool servers. Two postures: the provider connects (hosted), or your client connects (local). Anthropic and Google both integrate the external `mcp` package for the local case; OpenAI ships hosted MCP only.",
+      "features": [
+        {
+          "id": "mcp.client",
+          "name": "MCP client (you connect)",
+          "summary": "Your process connects to an MCP server and exposes its tools to the model.",
+          "example": "29-mcp-tools",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "A built-in MCP client — connect to a server and its tools join the normal tool loop on ANY provider. Distinction vs Anthropic/Google: theirs ADAPT an externally-installed `mcp` package into their own tool format; ours is part of the library with no extra dependency, and works against providers that have no MCP concept.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/plugins/mcp"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "partial",
+              "note": "The SDK integrates the EXTERNAL `mcp` package: it imports `mcp.client.session.ClientSession` and adapts a connected session into tools. Not a client of its own (you install `mcp` too), but the integration is first-class. CORRECTED 2026-07-29 from \"n/a\".",
+              "refs": [
+                {
+                  "sdk": "anthropic-py",
+                  "path": "src/anthropic/lib/tools/mcp.py",
+                  "line": 34
+                }
+              ]
+            },
+            "openai": {
+              "support": "n/a",
+              "note": "Same — the official SDK ships no MCP client; the reference client is the separate @modelcontextprotocol/sdk."
+            },
+            "google": {
+              "support": "partial",
+              "note": "Same pattern: `_mcp_utils` imports `ClientSession` + `streamable_http_client` and converts MCP tools to Gemini tools; the Live API accepts an MCP session directly. Requires the external `mcp` package. CORRECTED 2026-07-29 from \"n/a\".",
+              "refs": [
+                {
+                  "sdk": "google-py",
+                  "path": "google/genai/_mcp_utils.py",
+                  "line": 7
+                },
+                {
+                  "sdk": "google-py",
+                  "path": "google/genai/live.py",
+                  "line": 63
+                }
+              ]
+            },
+            "xai": {
+              "support": "n/a",
+              "note": "Same."
+            }
+          }
+        },
+        {
+          "id": "mcp.hosted",
+          "name": "Hosted MCP (the provider connects)",
+          "summary": "You hand the provider a server URL and it calls the tools server-side.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "Hosted-MCP targets are emitted on OpenAI Responses (incl. `tunnel_id`); elsewhere the same tools are reachable via our own MCP client instead.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/plugins/mcp"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "beta",
+              "note": "`mcp_servers[]` on the beta Messages API (URL definitions).",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/beta/messages/messages.ts",
+                  "line": 4901
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "An `mcp` tool on Responses — server URL, connector id, or a tunnel id.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 7898
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`mcpServers[]` on the request — the provider connects to your MCP server. CORRECTED 2026-07-29 from \"none\".",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2691
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "An `mcp()` tool — the provider connects to your MCP server.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/tools.py",
+                  "line": 259
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "realtime",
+      "title": "Realtime / live",
+      "blurb": "Bidirectional low-latency sessions over a socket, usually voice. Only two providers have it, and they share almost no vocabulary.",
+      "features": [
+        {
+          "id": "realtime.session",
+          "name": "Realtime session",
+          "summary": "A persistent duplex connection streaming audio/text both ways.",
+          "example": "25-realtime-live",
+          "cells": {
+            "ours": {
+              "support": "partial",
+              "note": "`createRealtime()` covers sessions, instructions, voice and output modalities across OpenAI Realtime and Google Live. Tools over the socket are NOT yet supported (deferred D-3), so a realtime session cannot call functions.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/realtime/types.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No realtime/streaming-socket API — request/response only."
+            },
+            "openai": {
+              "support": "full",
+              "note": "A full Realtime API with its own event protocol, tools and MCP support.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/realtime/realtime.ts",
+                  "line": 19
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "The Live API — a different vocabulary (setup/turn-complete/go-away) from OpenAI's event protocol.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/live.ts",
+                  "line": 73
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "apiSupport": "full",
+              "note": "The PROVIDER ships realtime audio sessions via the Grok Voice API (published pricing), but the pinned xai-py 1.17.0 SDK exposes NO audio or realtime module — verified recursively across sync/, aio/ and types/. Reachable only by calling the API directly, which our library can do.",
+              "refs": [
+                {
+                  "doc": "https://docs.x.ai/docs/models",
+                  "title": "xAI docs — Grok Voice API: TTS $15/1M chars, STT $0.10/hr, Realtime Audio $0.05/min, Realtime Text Input $0.004/msg"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "embeddings",
+      "title": "Embeddings",
+      "blurb": "Vector representations. Notable mainly for who does NOT have them.",
+      "features": [
+        {
+          "id": "embeddings.embed",
+          "name": "Text embeddings",
+          "summary": "Turn text into vectors for search or clustering.",
+          "example": "23-embeddings",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`embed()` across the providers that offer it, with the same batching and usage/cost accounting as completions.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/helpers/embed.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No embeddings endpoint at all — the SDK has no embeddings resource. Anthropic points users at third parties."
+            },
+            "openai": {
+              "support": "full",
+              "note": "`client.embeddings` with configurable dimensions.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/embeddings.ts",
+                  "line": 11
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`models.embedContent`, with task-type hints (retrieval vs similarity) the others don't expose.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/models.ts",
+                  "line": 33
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "apiSupport": "unverified",
+              "note": "No public embeddings client — no embed method on the sync or async client. An `embed_pb2` proto exists internally and Collections stores document embeddings server-side, so the platform embeds; whether a callable embeddings ENDPOINT is exposed has not been verified, so the API axis stays unverified rather than assumed.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/collections.py",
+                  "line": 48
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "agent",
+      "title": "Agent loop & orchestration",
+      "blurb": "Multi-step autonomous runs. IMPORTANT: for OpenAI and Google these live in a SEPARATE package (@openai/agents, google-adk) — not the SDK you install to call the model. Cells cite whichever package actually provides it.",
+      "features": [
+        {
+          "id": "agent.loop",
+          "name": "Multi-step agent loop",
+          "summary": "Run tool-call/observe/continue cycles until the task is done or a limit is hit.",
+          "example": "08-multistep-loop",
+          "aspects": [
+            {
+              "id": "agent.loop.max-steps",
+              "name": "Step bound"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "In the CORE package — `createAgent()` / `run()` with steps, tool execution, guardrails and checkpoints. No second dependency, and it works on every provider.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/agent/loop.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "beta",
+              "note": "`BetaToolRunner` in the SDK's beta namespace — a tool loop, but not a full agent runtime.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/lib/tools/BetaToolRunner.ts"
+                }
+              ]
+            },
+            "openai": {
+              "support": "partial",
+              "note": "NOT in the core `openai` package — you add `@openai/agents` (`Agent` + `run()`), a separate dependency with its own model abstraction.",
+              "refs": [
+                {
+                  "sdk": "openai-agents-ts",
+                  "path": "packages/agents-core/src/agent.ts",
+                  "line": 483
+                },
+                {
+                  "sdk": "openai-agents-ts",
+                  "path": "packages/agents-core/src/run.ts",
+                  "line": 384
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "NOT in `@google/genai` — the agent runtime is the separate ADK package (`LlmAgent`).",
+              "refs": [
+                {
+                  "sdk": "google-adk-py",
+                  "path": "src/google/adk/agents/llm_agent.py",
+                  "line": 223
+                }
+              ]
+            },
+            "xai": {
+              "support": "partial",
+              "note": "Server-side only: `max_turns` runs the loop inside the API. There is no client-side agent runtime, so no step inspection, handoffs or checkpoints.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 68
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "agent.guardrails",
+          "name": "Guardrails",
+          "summary": "Inspect or block a run's input, output, or an individual tool call before it executes.",
+          "aspects": [
+            {
+              "id": "agent.guardrails.input",
+              "name": "Input guardrail"
+            },
+            {
+              "id": "agent.guardrails.tool-input",
+              "name": "Per-tool-call argument guardrail"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "Input/output guardrails plus `toolInputGuardrails` — deny a specific call by its ARGUMENTS before the permission/approval stage, which neither agent framework exposes.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/agent/guardrail-types.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No guardrail concept in the SDK; the tool runner executes what the model asks for."
+            },
+            "openai": {
+              "support": "partial",
+              "note": "`InputGuardrail`/`OutputGuardrail` — again only in the separate @openai/agents package.",
+              "refs": [
+                {
+                  "sdk": "openai-agents-ts",
+                  "path": "packages/agents-core/src/guardrail.ts",
+                  "line": 63
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "ADK's callback hooks (`before_tool_callback` etc.) can veto a call — a callback pattern rather than a declared guardrail.",
+              "refs": [
+                {
+                  "sdk": "google-adk-py",
+                  "path": "src/google/adk/agents/llm_agent.py",
+                  "line": 472
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "note": "No guardrail hooks."
+            }
+          }
+        },
+        {
+          "id": "agent.approval",
+          "name": "Human-in-the-loop approval",
+          "summary": "Pause before a sensitive tool call, surface it for a human decision, resume afterwards.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "Approval gates that CHECKPOINT the run — the loop can be serialized, persisted and resumed later, not merely paused in memory.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/agent/approval-types.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "beta",
+              "note": "Managed Agents sessions emit a user-tool-confirmation event, so a human can approve a tool call mid-run. Only within the hosted Managed Agents product, not plain Messages. CORRECTED 2026-07-29 from \"none\".",
+              "refs": [
+                {
+                  "sdk": "anthropic-py",
+                  "path": "src/anthropic/types/beta/sessions/__init__.py",
+                  "line": 200
+                }
+              ]
+            },
+            "openai": {
+              "support": "partial",
+              "note": "`needsApproval` on a tool, in @openai/agents.",
+              "refs": [
+                {
+                  "sdk": "openai-agents-ts",
+                  "path": "packages/agents-core/src/tool.ts",
+                  "line": 324
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "Achievable via ADK callbacks, but there is no first-class approve/resume primitive.",
+              "refs": [
+                {
+                  "sdk": "google-adk-py",
+                  "path": "src/google/adk/agents/llm_agent.py",
+                  "line": 472
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "note": "No approval/human-in-the-loop mechanism."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "context",
+      "title": "Context management",
+      "blurb": "Keeping a long conversation inside the window: measuring it, and compacting it when it grows.",
+      "features": [
+        {
+          "id": "context.compaction",
+          "name": "Automatic context compaction",
+          "summary": "Summarise or trim history as it approaches the model's window.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "ContextGuard with a trigger ladder and pluggable strategies (truncate / layered summarisation + fact extraction), driven by a CALIBRATED measurer that learns from real `usage.inputTokens` rather than a character estimate.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/plugins/context-guard/guard.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "beta",
+              "note": "BOTH a client helper (`CompactionControl` with a token threshold + summary prompt) and a server-side `clear_tool_uses_20250919` context-management strategy whose result comes back on `context_management`. Beta namespace. CORRECTED 2026-07-29 from \"none\".",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/lib/tools/CompactionControl.ts",
+                  "line": 34
+                },
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/beta/messages/messages.ts",
+                  "line": 945
+                }
+              ]
+            },
+            "openai": {
+              "support": "partial",
+              "note": "`context_management` exists on the beta multi-agent Responses surface only; the core SDK has no compaction.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 7376
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "ADK ships compaction (separate package), including an agent-callable 'compact now' tool we do not yet have.",
+              "refs": [
+                {
+                  "sdk": "google-adk-py",
+                  "path": "src/google/adk/apps/compaction.py"
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "SERVER-SIDE compaction: `client.chat.compact_context()` sends a CompactContextRequest and the client swaps the transcript for the compacted context. Unlike ours (local strategies) or ADK (client-side), the provider does the summarising. CORRECTED 2026-07-29 from \"none\".",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 626
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "usage",
+      "title": "Usage, tokens & cost",
+      "blurb": "Knowing what a call consumed and what it cost. Every provider reports tokens; TWO turn them into money by opposite routes - xAI’s API returns the ACTUAL billed cost, while we price a bundled catalog locally (and can therefore also estimate BEFORE sending).",
+      "features": [
+        {
+          "id": "usage.tokens",
+          "name": "Token usage reporting",
+          "summary": "Input/output token counts, and the cache/reasoning breakdowns behind them.",
+          "aspects": [
+            {
+              "id": "usage.tokens.cache",
+              "name": "Cache read / write token split"
+            },
+            {
+              "id": "usage.tokens.reasoning",
+              "name": "Reasoning tokens"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "One `Usage` shape across providers — input/output/total plus cached, cacheWrite, reasoning and audio splits, normalised from each provider's own naming.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/response.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`usage` with `cache_creation_input_tokens` / `cache_read_input_tokens` — the write/read split is explicit.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 2356
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`ResponseUsage` with input/output token details, including reasoning and cached tokens.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 7231
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`UsageMetadata` — prompt/candidates/total, plus cached-content and thoughts token counts.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 7593
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`SamplingUsage` with prompt/completion plus `cached_prompt_text_tokens` and reasoning tokens.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/cost.py"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "usage.cost",
+          "name": "Cost calculation",
+          "summary": "Turn usage into money, at the right per-model and per-tier rates.",
+          "example": "05-token-count",
+          "aspects": [
+            {
+              "id": "usage.cost.estimate",
+              "name": "Pre-flight estimate / budget guard"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "Built-in cost tracking against a bundled priced catalog, at the tier the provider actually billed, plus estimate() and a maxCostUsd guard that throws BEFORE sending. Works across ALL providers; xAI additionally returns authoritative actuals, which is more precise for xAI but only after the call.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/plugins/cost-collector/collector.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "The SDK reports tokens only — no cost helper, no pricing table (whole-clone search for cost/price helpers found none)."
+            },
+            "openai": {
+              "support": "partial",
+              "note": "The core SDK has no pricing. @openai/agents aggregates a `Usage` object across a run, but still no money.",
+              "refs": [
+                {
+                  "sdk": "openai-agents-ts",
+                  "path": "packages/agents-core/src/usage.ts",
+                  "line": 98
+                }
+              ]
+            },
+            "google": {
+              "support": "none",
+              "note": "Tokens only; no pricing in the SDK."
+            },
+            "xai": {
+              "support": "full",
+              "note": "UNIQUE: the API RETURNS the actual cost (`cost_in_usd_ticks`, 1 tick = 1e-10 USD) and `cost_usd_from_usage()` converts it — authoritative server-side billing rather than a catalog estimate. Only works for xAI, and only AFTER the call (no pre-flight estimate or budget guard).",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/cost.py"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "observability",
+      "title": "Observability",
+      "blurb": "Seeing what happened: traces, spans, metrics and events.",
+      "features": [
+        {
+          "id": "observability.tracing",
+          "name": "Tracing / spans",
+          "summary": "Structured spans for requests, tool calls and agent steps.",
+          "aspects": [
+            {
+              "id": "observability.tracing.redaction",
+              "name": "Redact sensitive span data"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "OTel-style spans + metrics in the CORE package, exportable via toOtlpTraces(), with ZERO dependencies (xAI also ships core-package tracing, but via an opentelemetry-sdk dependency). Covers plain calls AND agent runs, across every provider. includeSensitiveData:false redacts provider error text while keeping name/code/status for triage.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/plugins/telemetry/telemetry.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No tracing or OpenTelemetry integration in the SDK (whole-clone search across TS and Python found none) — you instrument it yourself."
+            },
+            "openai": {
+              "support": "partial",
+              "note": "A full tracing system, but only in the separate @openai/agents package, and it traces AGENT runs rather than plain SDK calls. Has the same `traceIncludeSensitiveData` switch.",
+              "refs": [
+                {
+                  "sdk": "openai-agents-ts",
+                  "path": "packages/agents-core/src/tracing/provider.ts",
+                  "line": 396
+                },
+                {
+                  "sdk": "openai-agents-ts",
+                  "path": "packages/agents-core/src/run.ts",
+                  "line": 226
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "OpenTelemetry instrumentation exists in the separate ADK package, not in `@google/genai`.",
+              "refs": [
+                {
+                  "sdk": "google-adk-py",
+                  "path": "src/google/adk/agents/context.py"
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "OpenTelemetry tracing built into the CORE SDK, with an OTLP exporter and span attributes for tokens/cost — the only official SDK with tracing in the base package rather than a separate agents library.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/telemetry/config.py",
+                  "line": 12
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "networking",
+      "title": "Networking & reliability",
+      "blurb": "What happens between your process and the API: retries, timeouts, and whether anything protects you from your own concurrency.",
+      "features": [
+        {
+          "id": "networking.retry",
+          "name": "Retries & timeouts",
+          "summary": "Automatic retry of transient failures, with a request deadline.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "Per-error-kind retry policy with a total time budget, and a non-replayable body is never retried (a streamed body would be sent empty on attempt two).",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/network/queue-state-config.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`maxRetries` + `timeout` on the client, retried with backoff.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/client.ts",
+                  "line": 418
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`maxRetries` + `timeout`; 6.49 also stopped retrying requests with a streaming body.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/client.ts",
+                  "line": 324
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "`httpOptions` carries timeout and headers; retry behaviour is far less configurable than the other two.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2917
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "A gRPC service config retry policy (retryable status codes, backoff) plus keepalive tuning.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/client.py",
+                  "line": 18
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "networking.queue",
+          "name": "Client-side rate limiting & queueing",
+          "summary": "Bound concurrency and pace requests so YOU don't cause the 429s you then retry.",
+          "aspects": [
+            {
+              "id": "networking.queue.priority",
+              "name": "Priority scheduling"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "A NetworkEngine with per-queue rate limiting, a concurrency semaphore and priority scheduling (interactive vs background), shared across every client. All provider HTTP flows through it.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/network/queue-state.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No client-side queue or rate limiter — verified by searching the whole clone for a limiter/semaphore/queue: none exists. The SDK reacts to a 429 by retrying; nothing paces requests."
+            },
+            "openai": {
+              "support": "none",
+              "note": "No client-side rate limiter or request queue: retries fire on a 429, nothing prevents causing one. The only concurrency control anywhere is a `maxConcurrency` (default 5) on vector-store file-batch UPLOADS — narrow file fan-out, not request pacing.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/vector-stores/file-batches.ts",
+                  "line": 169
+                }
+              ]
+            },
+            "google": {
+              "support": "none",
+              "note": "No client-side queue or rate limiter (whole-clone search found none). `p-retry` handles backoff after the fact."
+            },
+            "xai": {
+              "support": "none",
+              "note": "No request queue or rate limiter. As with OpenAI the only concurrency bound is on batch file UPLOADS (`batch_size`, default 50).",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/aio/files.py",
+                  "line": 159
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "errors",
+      "title": "Errors & typing",
+      "blurb": "How failures are surfaced, and whether they mean the same thing across providers.",
+      "features": [
+        {
+          "id": "errors.typed",
+          "name": "Typed error hierarchy",
+          "summary": "Distinguish rate limits, auth failures, bad requests and overloads programmatically.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "One `LLMError` with a normalised `kind` across ALL providers, so `kind === 'rate_limit'` means the same thing whichever backend produced it — that normalisation is the part no single-provider SDK can offer.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/network/errors.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`APIError` subclasses (RateLimit, Authentication, BadRequest, …) — Anthropic-shaped.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/core/error.ts",
+                  "line": 8
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "The same generated hierarchy, OpenAI-shaped.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/core/error.ts",
+                  "line": 8
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "A single `ApiError` carrying a status — no per-condition subclasses, so callers branch on numbers.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/errors.ts",
+                  "line": 20
+                }
+              ]
+            },
+            "xai": {
+              "support": "partial",
+              "note": "Errors surface as gRPC status codes; the only dedicated exception class is `VideoGenerationError`. There is no per-condition hierarchy like Anthropic’s or OpenAI’s.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/video.py",
+                  "line": 18
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "auth",
+      "title": "Auth & configuration",
+      "blurb": "Keys, endpoints and per-request overrides.",
+      "features": [
+        {
+          "id": "auth.keys",
+          "name": "API key & endpoint configuration",
+          "summary": "Supply credentials and point the client at an endpoint.",
+          "aspects": [
+            {
+              "id": "auth.keys.multi-provider",
+              "name": "Several providers from one place"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "One engine holds keys for EVERY provider (`apiKeys: { anthropic, openai, … }`) and routes by the `provider/model` id, so switching provider is a string change, not a new client. Per-call `apiKey`/`baseURL` overrides still work.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/client-config.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`apiKey` + `baseURL` on the client (one provider per client, by nature).",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/client.ts",
+                  "line": 312
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`apiKey`, `baseURL`, plus organization/project headers.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/client.ts",
+                  "line": 252
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`apiKey`, or Vertex mode with project/location instead.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/client.ts",
+                  "line": 48
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`api_key` on the client, with gRPC channel credentials.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/client.py",
+                  "line": 56
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "videogen",
+      "title": "Video generation",
+      "blurb": "Long-running video jobs. All three that offer it are async (submit → poll → download), and all three shape it differently.",
+      "features": [
+        {
+          "id": "videogen.generate",
+          "name": "Generate video",
+          "summary": "Create a video from a prompt, polling an async job to completion.",
+          "aspects": [
+            {
+              "id": "videogen.generate.image-to-video",
+              "name": "Start from an image"
+            },
+            {
+              "id": "videogen.generate.extend",
+              "name": "Extend / edit an existing clip"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`generateVideo()` hides the submit/poll/download cycle behind one call, with `onMediaProgress` events; `sourceImage` gives image-to-video and `sourceVideo` + `videoMode` gives extend/edit where the provider supports it.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/plugins/media/output.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No video generation."
+            },
+            "openai": {
+              "support": "full",
+              "note": "A `videos` resource (Sora).",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/videos.ts",
+                  "line": 12
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`models.generateVideos` (Veo) returning a long-running operation you poll.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/models.ts",
+                  "line": 637
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "grok-imagine-video, with dedicated extend and edit endpoints — the only provider exposing clip extension as a first-class operation.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/image.py"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "moderation",
+      "title": "Moderation & safety",
+      "blurb": "Screening content. One provider has a dedicated classifier, one has request-level safety controls, one has neither.",
+      "features": [
+        {
+          "id": "moderation.screen",
+          "name": "Content moderation",
+          "summary": "Score or block content before or after the model sees it.",
+          "aspects": [
+            {
+              "id": "moderation.screen.block",
+              "name": "Block, not just score"
+            },
+            {
+              "id": "moderation.screen.crossprovider",
+              "name": "Works on providers with no moderation API"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "A unified `moderation` option: native on OpenAI, EMULATED elsewhere by routing content through a classifier, so moderation works even on providers that have none. Report-only by default; `providerOptions.moderationPolicy` or an agent guardrail blocks.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/moderation/native.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "No moderation endpoint and no request-level safety knobs; the model refuses on its own and reports `stop_reason: refusal`."
+            },
+            "openai": {
+              "support": "full",
+              "note": "A standalone `moderations` classifier, plus inline `moderation` on a request with a score/block policy.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/moderations.ts",
+                  "line": 10
+                },
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/responses/responses.ts",
+                  "line": 1154
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "`safetySettings` tune per-category thresholds on the REQUEST, but there is no standalone classifier to score arbitrary text. (Not available on the Interactions surface — see D-5.)",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 3025
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "note": "No moderation endpoint and no request-level safety settings — you cannot submit content for scoring. The only related signal is `respect_moderation` on an image RESULT, i.e. a verdict about generated output, not a screening capability.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/image.py",
+                  "line": 91
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "catalog",
+      "title": "Model catalog & discovery",
+      "blurb": "Finding out which models exist, what they cost, and what they can do. Every SDK lists ids; none of them tells you anything else.",
+      "features": [
+        {
+          "id": "catalog.list",
+          "name": "List available models",
+          "summary": "Enumerate the model ids the account can call.",
+          "example": "28-models-list",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`listModels()` from a bundled catalog (offline, no request) and `listModelsLive()` against the provider — the offline path is what makes pricing and capability data usable before a call.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/helpers/models.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`client.models.list()` — ids and display names only.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/models.ts",
+                  "line": 11
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`client.models.list()` — ids only; the listing includes deprecated models that 404 when called (verified: `gpt-5-chat-latest` is listed AND deprecated).",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/models.ts",
+                  "line": 12
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`models.list()`, with context-window limits included — more metadata than the other two.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/models.ts",
+                  "line": 20
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "A models client for listing available models.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/models.py",
+                  "line": 13
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "catalog.capabilities",
+          "name": "Pricing & capability metadata",
+          "summary": "Know a model's price, context window and capabilities without calling it.",
+          "aspects": [
+            {
+              "id": "catalog.capabilities.select",
+              "name": "Pick a model by capability query"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "A curated catalog with per-model pricing (incl. batch/priority tiers), context window and capability flags, plus `select('type:chat; vision; cheap')` to choose by requirement instead of hardcoding an id. Refreshed by a probing pipeline against official pricing pages.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/plugins/model-catalog/catalog.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "none",
+              "note": "The Model object carries `id`, `display_name` and `created_at` only — no pricing, no context window, no capability flags.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/models.ts",
+                  "line": 192
+                }
+              ]
+            },
+            "openai": {
+              "support": "none",
+              "note": "Same — ids only; pricing lives on a web page, not in the API."
+            },
+            "google": {
+              "support": "partial",
+              "note": "The listing returns context-window limits, but no pricing and no capability flags.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/models.ts",
+                  "line": 20
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "note": "The models client returns ids; no pricing or capability metadata in the listing.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/models.py",
+                  "line": 13
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "routing",
+      "title": "Routing & fallback",
+      "blurb": "Sending a call somewhere else when the first choice fails or costs too much.",
+      "features": [
+        {
+          "id": "routing.fallback",
+          "name": "Fallback to another model",
+          "summary": "Retry a failed call on a different model — ideally a different provider.",
+          "example": "26-provider-routing",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`route()` with a client-side chain that can cross PROVIDERS (Anthropic → OpenAI → Google), and uses OpenRouter's native routing when that is the target.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/helpers/route.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "beta",
+              "note": "Server-side `fallbacks` behind the `server-side-fallback-2026-07-01` beta and model-gated (live: the API recognises the parameter under that beta, then rejects it per-model). Anthropic models only — it cannot fall back to another provider.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 3066
+                }
+              ]
+            },
+            "openai": {
+              "support": "none",
+              "note": "No fallback mechanism — a failed call is yours to retry."
+            },
+            "google": {
+              "support": "none",
+              "note": "No fallback mechanism."
+            },
+            "xai": {
+              "support": "none",
+              "note": "No fallback or routing mechanism."
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "runtime",
+      "title": "Runtime & environment",
+      "blurb": "Where the library can actually run, and what it drags in.",
+      "features": [
+        {
+          "id": "runtime.browser",
+          "name": "Browser support",
+          "summary": "Run in a browser without a bundler shim or an escape-hatch flag.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "A dedicated browser build with no static `node:` imports and an async-context swap; blob attachments and a memory media store work client-side. No 'dangerously' flag — the security question is the caller's key handling, not a library opt-in.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/runtime/runtime.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "partial",
+              "note": "Requires `dangerouslyAllowBrowser: true`, an explicit opt-out of the SDK's own guard against exposing keys.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/client.ts",
+                  "line": 440
+                }
+              ]
+            },
+            "openai": {
+              "support": "partial",
+              "note": "Same `dangerouslyAllowBrowser` opt-out.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/client.ts",
+                  "line": 346
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "Ships a dedicated `browser` build entry in package.json.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "package.json",
+                  "line": 8
+                }
+              ]
+            },
+            "xai": {
+              "support": "n/a",
+              "note": "There is NO JavaScript/TypeScript xAI SDK at all — the official SDK is Python-only, so a browser build is not a meaningful question. (Our library still talks to xAI from the browser.)"
+            }
+          },
+          "languageNotes": "LANGUAGE-INHERENT: this row is meaningful only for JavaScript/TypeScript SDKs. The Python SDKs have no browser concept at all, so their absence of a browser flag is not a gap. xAI has no JS SDK whatsoever, which is why its cell is n/a."
+        },
+        {
+          "id": "runtime.dependencies",
+          "name": "Runtime dependencies",
+          "summary": "What the library installs alongside itself.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "ZERO runtime dependencies — nothing is pulled into your tree, which is why the browser build stays small and the supply-chain surface is just this package.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "package.json"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "partial",
+              "note": "TWO runtime deps: `standardwebhooks` and `json-schema-to-ts` (verified in package.json, not assumed).",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "package.json",
+                  "line": 29
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "Zero runtime dependencies — the only official SDK that matches us here.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "package.json"
+                }
+              ]
+            },
+            "google": {
+              "support": "partial",
+              "note": "FOUR runtime deps — `google-auth-library`, `p-retry`, `protobufjs`, `ws` — carried whether or not you use Vertex or Live.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "package.json",
+                  "line": 153
+                }
+              ]
+            },
+            "xai": {
+              "support": "partial",
+              "note": "EIGHT runtime deps: the SDK is gRPC-based (grpcio, protobuf, googleapis-common-protos, pydantic, requests, aiohttp, packaging, opentelemetry-sdk).",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "pyproject.toml",
+                  "line": 11
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "reasoning",
+      "title": "Reasoning / thinking",
+      "blurb": "Controls over a model's internal reasoning: whether it runs, how hard, how much comes back, and whether it persists across turns.",
+      "features": [
+        {
+          "id": "reasoning.enable",
+          "name": "Enable reasoning",
+          "summary": "Turn a model's internal reasoning on or off for a request.",
+          "example": "19-reasoning",
+          "aspects": [
+            {
+              "id": "reasoning.enable.auto",
+              "name": "Let the model decide (auto)"
+            },
+            {
+              "id": "reasoning.enable.off",
+              "name": "Explicitly disable"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`thinking: { mode: 'auto' | 'on' | 'off' }` — one knob, mapped to each provider's own control.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/request.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`thinking: { type: 'enabled', budget_tokens }` — enabling and intensity are the SAME field; there is no effort enum.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 1801
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`reasoning: { effort }` on Responses; reasoning models only (gpt-5 / o-series).",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/shared.ts",
+                  "line": 262
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`generationConfig.thinkingConfig` — but the FIELD DIFFERS BY SERIES: `thinkingBudget` on gemini-2.5, `thinkingLevel` on 3.x (live-verified 2026-07-14: sending thinkingLevel to a 2.5 model 400s).",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2796
+                },
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2798
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`reasoning_effort` on `chat.create` both enables and sets intensity.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 63
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "reasoning.effort",
+          "name": "Reasoning effort",
+          "summary": "How much thinking the model should spend, as a portable intensity rather than a raw token budget.",
+          "example": "19-reasoning",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`thinking.effort: 'low' | 'medium' | 'high' | 'max'`, mapped per provider — Anthropic budget_tokens, OpenAI/xAI effort enum, Google budget (2.5) or level (3.x).",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/providers/google/constants.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "partial",
+              "note": "No effort enum — you must choose a raw `budget_tokens` integer (≥1024 and < max_tokens), so portability is the caller's problem.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 1801
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`reasoning.effort` — `none | minimal | low | medium | high | xhigh | max`.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/shared.ts",
+                  "line": 262
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`thinkingLevel` (3.x, UPPERCASE on generateContent) or a `thinkingBudget` token count (2.5). Interactions wants `thinking_level` FLAT and lowercase — three spellings of one concept.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2798
+                }
+              ]
+            },
+            "xai": {
+              "support": "full",
+              "note": "`reasoning_effort` enum.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 63
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "reasoning.visibility",
+          "name": "Reasoning visibility",
+          "summary": "How much of the reasoning is returned to the caller — full trace, a summary, or nothing.",
+          "example": "19-reasoning",
+          "aspects": [
+            {
+              "id": "reasoning.visibility.summary",
+              "name": "Summarised reasoning"
+            },
+            {
+              "id": "reasoning.visibility.hidden",
+              "name": "Suppress reasoning output"
+            }
+          ],
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`thinking.visibility: 'full' | 'summary' | 'hidden'`. Best-effort: a provider with no middle state degrades `summary` to `full`.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/request.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "full",
+              "note": "`thinking.enabled.display`.",
+              "refs": [
+                {
+                  "sdk": "anthropic-ts",
+                  "path": "src/resources/messages/messages.ts",
+                  "line": 1801
+                }
+              ]
+            },
+            "openai": {
+              "support": "full",
+              "note": "`reasoning.summary: 'auto' | 'concise' | 'detailed'` (the older `generate_summary` is deprecated).",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/shared.ts",
+                  "line": 307
+                },
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/shared.ts",
+                  "line": 290
+                }
+              ]
+            },
+            "google": {
+              "support": "full",
+              "note": "`thinkingConfig.includeThoughts`.",
+              "refs": [
+                {
+                  "sdk": "google-ts",
+                  "path": "src/types.ts",
+                  "line": 2793
+                }
+              ]
+            },
+            "xai": {
+              "support": "none",
+              "note": "No visibility control — `reasoning_effort` sets intensity only; how much reasoning is returned is the model default.",
+              "refs": [
+                {
+                  "sdk": "xai-py",
+                  "path": "src/xai_sdk/chat.py",
+                  "line": 63
+                }
+              ]
+            }
+          }
+        },
+        {
+          "id": "reasoning.context",
+          "name": "Cross-turn reasoning persistence",
+          "summary": "Whether earlier turns' reasoning is rendered back to the model on later turns.",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`thinking.context: 'auto' | 'current_turn' | 'all_turns'` — emitted on OpenAI Responses, ignored elsewhere.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/types/request.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "n/a",
+              "note": "No equivalent knob; reasoning blocks are carried in the message history you send."
+            },
+            "openai": {
+              "support": "full",
+              "note": "`reasoning.context`. Omitted, the model decides: the gpt-5.6 family defaults to `all_turns`, earlier models to `current_turn`.",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/shared.ts",
+                  "line": 264
+                }
+              ]
+            },
+            "google": {
+              "support": "n/a",
+              "note": "No equivalent knob."
+            },
+            "xai": {
+              "support": "n/a",
+              "note": "No cross-turn reasoning-persistence knob."
+            }
+          }
+        },
+        {
+          "id": "reasoning.mode",
+          "name": "Reasoning execution mode",
+          "summary": "Provider-specific execution tier for the reasoning pass (not a portable concept).",
+          "cells": {
+            "ours": {
+              "support": "full",
+              "note": "`providerOptions.reasoningMode: 'standard' | 'pro'` — deliberately NOT a unified `thinking` knob, because chat-completions rejects it and no other provider has the concept.",
+              "refs": [
+                {
+                  "sdk": "lib",
+                  "path": "src/llm/providers/openai/responses.ts"
+                }
+              ]
+            },
+            "anthropic": {
+              "support": "n/a",
+              "note": "No equivalent."
+            },
+            "openai": {
+              "support": "full",
+              "note": "`reasoning.mode` — Responses API only, and model-gated (the API validates per model).",
+              "refs": [
+                {
+                  "sdk": "openai-ts",
+                  "path": "src/resources/shared.ts",
+                  "line": 262
+                }
+              ]
+            },
+            "google": {
+              "support": "n/a",
+              "note": "No equivalent."
+            },
+            "xai": {
+              "support": "n/a",
+              "note": "No equivalent."
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

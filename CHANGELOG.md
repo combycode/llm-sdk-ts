@@ -50,6 +50,19 @@ interaction or an outright failure from a clean finish.
   `header()` helper in `util/http` (de-duplicated with the private copy in `llm/files/retrieve.ts`).
 
 ### Added
+- **`topK` and `seed` sampling options.** Both were reachable on several providers and exposed by
+  none of our surface — parity gaps found by the new feature-matrix audit and closed the same day.
+  Each is emitted **only where the wire accepts it**, verified by live probe rather than inferred:
+  `topK` → Anthropic, Google (generateContent *and* Interactions), xAI chat, OpenRouter chat;
+  dropped for OpenAI, which defines no top-k. `seed` → OpenAI **chat-completions**, Google (both
+  surfaces), xAI (chat *and* responses), OpenRouter chat; dropped for Anthropic and OpenAI
+  **Responses**, which both reject it (400). Sending either to a surface that refuses it is a hard
+  error, so the gating is locked by unit tests and was live-verified end to end.
+- **`docs/feature-matrix.json` — the parity matrix.** Every capability an official SDK exposes, how
+  each provider spells it, and where we stand, with citations into the version-pinned clones.
+  `scripts/validate-feature-matrix.mjs` runs as part of `bun run lint` and fails the build on a
+  broken citation, an unexplained `partial`/`beta`/`by-design`, or a duplicate id. It backs the
+  site's comparison page and is maintained by the upstream-update cycle.
 - **`FinishReason` gains `'pending'`** — non-terminal: the provider accepted the request but has not
   produced a completion (Google Interactions `queued`, OpenAI Responses `queued`/`in_progress` in
   background mode). Treat as "poll/retry", never as a result. *Additive union member: exhaustive

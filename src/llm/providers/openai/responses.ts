@@ -239,6 +239,11 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     if (req.maxTokens) body.max_output_tokens = req.maxTokens;
     if (req.temperature !== undefined) body.temperature = req.temperature;
     if (req.topP !== undefined) body.top_p = req.topP;
+    // The Responses API has NO seed on OpenAI (live 2026-07-28: 400 "Unknown parameter:
+    // 'seed'") but xAI's Responses surface accepts it. Gate to xAI only — OpenRouter's
+    // Responses surface is unverified, so it is left out rather than guessed at.
+    if (this.name === 'xai' && req.seed !== undefined) body.seed = req.seed;
+    // No top_k on any Responses surface.
     const tier = openaiRequestTier(req.serviceTier);
     if (tier) body.service_tier = tier;
 
