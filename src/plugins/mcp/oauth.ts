@@ -35,6 +35,9 @@ export interface McpOAuthClientMetadata {
   grant_types?: string[];
   response_types?: string[];
   token_endpoint_auth_method?: string;
+  /** OIDC Registration §2 application type (SEP-837). Defaults to `'native'` at registration, since
+   *  an MCP client is normally a local process with a loopback redirect. Set explicitly to override. */
+  application_type?: 'web' | 'native';
 }
 
 /** Consumer-implemented storage + interactive redirect. */
@@ -61,6 +64,44 @@ export interface AuthServerMetadata {
   authorization_endpoint: string;
   token_endpoint: string;
   registration_endpoint?: string;
+  /** The authorization server's issuer identifier (RFC 8414), used to validate the RFC 9207 `iss`
+   *  returned with the authorization code. */
+  issuer?: string;
+  /** RFC 9207: the server states it returns `iss` on authorization responses. When true, a response
+   *  WITHOUT `iss` is rejected — otherwise an attacker could simply strip the parameter to dodge
+   *  the check. */
+  authorization_response_iss_parameter_supported?: boolean;
+}
+
+/** Validate the RFC 9207 authorization-response issuer.
+ *
+ *  This is the mix-up-attack defence: without it a malicious authorization server can hand back a
+ *  code minted by a DIFFERENT server, and the client will dutifully redeem it — replaying the
+ *  user's credentials against a party they never intended to authorize.
+ *
+ *  Comparison is **exact string equality** per RFC 9207 §2.4 (RFC 3986 §6.2.1) — deliberately NOT
+ *  URL-normalised. Normalising would make `https://as.example.com` and `https://as.example.com/`
+ *  compare equal, and that leniency is precisely what an attacker looks for. */
+export function validateAuthorizationResponseIss(
+  iss: string | undefined,
+  meta: Pick<AuthServerMetadata, 'issuer' | 'authorization_response_iss_parameter_supported'>,
+): void {
+  if (iss !== undefined) {
+    if (iss !== meta.issuer) {
+      throw new Error(
+        `MCP OAuth: authorization response iss mismatch — got "${iss}", expected ` +
+          `"${meta.issuer ?? '(unknown)'}". Refusing to exchange a code that may have been minted ` +
+          `by a different authorization server.`,
+      );
+    }
+    return;
+  }
+  if (meta.authorization_response_iss_parameter_supported) {
+    throw new Error(
+      'MCP OAuth: authorization response is missing the iss parameter, which this authorization ' +
+        'server advertises that it sends. Refusing to exchange the code.',
+    );
+  }
 }
 
 /** Security options for the OAuth flow.  All fields default to the most
@@ -157,13 +198,21 @@ export async function discoverMetadata(
   const authorizationEndpoint = String(doc.authorization_endpoint);
   const tokenEndpoint = String(doc.token_endpoint);
   const registrationEndpoint = doc.registration_endpoint ? String(doc.registration_endpoint) : undefined;
+  const issuer = typeof doc.issuer === 'string' ? doc.issuer : undefined;
+  const issSupported = doc.authorization_response_iss_parameter_supported === true;
 
   // Guard every endpoint URL returned by the server against SSRF.
   assertSafeAuthUrl(authorizationEndpoint, serverUrl, security);
   assertSafeAuthUrl(tokenEndpoint, serverUrl, security);
   if (registrationEndpoint) assertSafeAuthUrl(registrationEndpoint, serverUrl, security);
 
-  return { authorization_endpoint: authorizationEndpoint, token_endpoint: tokenEndpoint, registration_endpoint: registrationEndpoint };
+  return {
+    authorization_endpoint: authorizationEndpoint,
+    token_endpoint: tokenEndpoint,
+    registration_endpoint: registrationEndpoint,
+    issuer,
+    authorization_response_iss_parameter_supported: issSupported,
+  };
 }
 
 /** Dynamic Client Registration (RFC 7591).
@@ -176,8 +225,13 @@ export async function registerClient(
   security: SsrfGuardOptions = {},
 ): Promise<McpOAuthClientInfo> {
   assertSafeAuthUrl(registrationEndpoint, serverUrl, security);
+  // SEP-837: declare the OIDC `application_type`. MCP clients are overwhelmingly native (a local
+  // process or desktop app with a loopback redirect), and some authorization servers apply
+  // stricter redirect-URI rules to `web` clients — omitting it lets the server guess, and the
+  // guess is usually `web`. An explicit value from the caller always wins.
+  const body: McpOAuthClientMetadata = { application_type: 'native', ...metadata };
   const res = await fetch(
-    { url: registrationEndpoint, method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: metadata, provider: 'mcp', model: 'oauth', responseType: 'json' },
+    { url: registrationEndpoint, method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body, provider: 'mcp', model: 'oauth', responseType: 'json' },
     { queueName: 'mcp/oauth' },
   );
   if (res.status >= 400) throw new Error(`MCP OAuth: client registration returned ${res.status}`);
@@ -289,7 +343,7 @@ export class McpOAuth {
 
   /** Finish the interactive flow: exchange the callback code for tokens.
    *  The `returnedState` MUST match the state persisted during redirect (CSRF guard). */
-  async finish(code: string, returnedState: string): Promise<void> {
+  async finish(code: string, returnedState: string, iss?: string): Promise<void> {
     const expectedState = await this.provider.state();
     if (!expectedState) {
       throw new Error('MCP OAuth: no state found — authorization was not started via this client');
@@ -298,6 +352,9 @@ export class McpOAuth {
       throw new Error('MCP OAuth: state mismatch — possible CSRF attack');
     }
     const meta = await this.ensureMetadata();
+    // RFC 9207 — run BEFORE the code reaches the token endpoint. Validating afterwards would mean
+    // the credentials have already been replayed, which is the attack this prevents.
+    validateAuthorizationResponseIss(iss, meta);
     const client = await this.ensureClient(meta);
     const verifier = await this.provider.codeVerifier();
     const tokens = await exchangeCode(this.fetch, meta.token_endpoint, {

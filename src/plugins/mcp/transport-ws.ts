@@ -1,6 +1,16 @@
 /** WebSocket MCP transport — JSON-RPC messages as text frames over a duplex
  *  socket (naturally bidirectional). Uses the engine's `connect` so it shares
- *  the engine's WebSocket factory + hooks. Cross-env (browser + Node/Bun). */
+ *  the engine's WebSocket factory + hooks. Cross-env (browser + Node/Bun).
+ *
+ *  **NON-STANDARD, and deliberately kept.** The MCP SDK removed its own WebSocket transport in
+ *  `mcp` 2.0.0, reasoning that it "was never part of the MCP specification". Ours stays: it is
+ *  public API we shipped, and deleting an exported transport on an upstream style call would break
+ *  consumers for no protocol reason (CONSTITUTION.md R7 — an upstream deletion is not our
+ *  deletion). Treat it as a supported extra rather than a spec transport: the server has to opt
+ *  into JSON-RPC over a socket, and the standard transports remain stdio and Streamable HTTP.
+ *
+ *  Practical upside of keeping it: being duplex, it supports `subscriptions/listen` today —
+ *  which Streamable HTTP does not yet. */
 
 import type { EngineConnect, RealtimeConnection, RealtimeFrame } from '../../network/types';
 import { McpError, McpErrorCode } from './jsonrpc';

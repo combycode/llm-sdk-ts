@@ -27,17 +27,27 @@ function safeEnv(): Record<string, string> {
   return out;
 }
 
+/** Largest single line we will buffer from a server's stdout before giving up (10 MB, matching
+ *  mcp-ts 1.30's `StdioServerParameters.maxBufferSize`).
+ *
+ *  JSON-RPC over stdio is newline-delimited, so a server that never emits `\n` — a crash dump, a
+ *  binary blob written to the wrong stream, a runaway log line — grows this buffer without limit
+ *  until the process dies. Bounding it turns an eventual OOM into a clear, attributable error. */
+const DEFAULT_MAX_BUFFER_BYTES = 10 * 1024 * 1024;
+
 export class StdioTransport extends BaseJsonRpcTransport implements McpTransport {
   private proc: import('node:child_process').ChildProcess | null = null;
   private buffer = '';
   private readonly timeoutMs: number;
+  private readonly maxBufferSize: number;
 
   constructor(
     private readonly config: McpStdioConfig,
-    opts: { timeoutMs?: number } = {},
+    opts: { timeoutMs?: number; maxBufferSize?: number } = {},
   ) {
     super();
     this.timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+    this.maxBufferSize = opts.maxBufferSize ?? DEFAULT_MAX_BUFFER_BYTES;
   }
 
   async start(): Promise<void> {
@@ -156,6 +166,21 @@ export class StdioTransport extends BaseJsonRpcTransport implements McpTransport
       this.buffer = this.buffer.slice(nl + 1);
       if (line.trim()) this.parseAndRoute(line);
       nl = this.buffer.indexOf('\n');
+    }
+    // Checked only AFTER draining complete lines, so a large but legitimate burst of many messages
+    // is fine — the limit applies to a single unterminated line, which is the unbounded case.
+    if (this.buffer.length > this.maxBufferSize) {
+      const overflow = new McpError({
+        code: McpErrorCode.ConnectionClosed,
+        message:
+          `MCP stdio server sent ${this.buffer.length} bytes with no newline, exceeding the ` +
+          `${this.maxBufferSize}-byte limit. The server is not speaking newline-delimited JSON-RPC ` +
+          `on stdout (a crash dump or log line written to the wrong stream is the usual cause). ` +
+          `Raise maxBufferSize if the server legitimately sends larger messages.`,
+      });
+      this.buffer = ''; // drop it: keeping it would re-trigger on the next chunk
+      this.failAll(overflow);
+      void this.close();
     }
   }
 

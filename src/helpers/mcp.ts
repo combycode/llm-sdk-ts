@@ -219,15 +219,22 @@ export async function connectMcp(
 /** Finish an interactive OAuth grant: exchange the callback `code` for tokens
  *  (saved via the provider). The `state` from the authorization callback MUST
  *  be provided and is validated against the persisted value (CSRF guard).
- *  Call after catching `McpUnauthorizedError`, then `connectMcp` again. */
+ *  Call after catching `McpUnauthorizedError`, then `connectMcp` again.
+ *
+ *  **Pass `opts.iss` if the callback URL carried one** (RFC 9207). It is validated against the
+ *  authorization server's issuer before the code is redeemed, which is what stops a malicious
+ *  server handing you a code minted elsewhere and having you replay the user's credentials against
+ *  it. Optional so existing callers keep working, but a server that advertises
+ *  `authorization_response_iss_parameter_supported` will make a missing `iss` an error — as it
+ *  should, since an attacker could otherwise strip the parameter to skip the check. */
 export async function finishMcpAuth(
   serverUrl: string,
   code: string,
   state: string,
-  opts: { auth: McpAuthProvider; engine?: EngineHandle; security?: SsrfGuardOptions },
+  opts: { auth: McpAuthProvider; engine?: EngineHandle; security?: SsrfGuardOptions; iss?: string },
 ): Promise<void> {
   const fetch = (opts.engine ?? coreRegistry.get()).fetch;
-  await new McpOAuth(serverUrl, opts.auth, fetch, opts.security).finish(code, state);
+  await new McpOAuth(serverUrl, opts.auth, fetch, opts.security).finish(code, state, opts.iss);
 }
 
 export async function mcpToolset(

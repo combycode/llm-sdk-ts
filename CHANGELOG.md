@@ -102,6 +102,32 @@ re-issues the same call carrying the answers plus the server's opaque `requestSt
   transport, which is a transport change rather than a protocol one. **stdio and WebSocket work
   today.** Failing loudly beats accepting a subscription that delivers nothing.
 
+**Hardening**
+
+- **The stdio read buffer is bounded** (`maxBufferSize`, default **10 MB**, matching mcp-ts 1.30).
+  JSON-RPC over stdio is newline-delimited, so a server that never emits `\n` — a crash dump, a
+  binary blob on the wrong stream, a runaway log line — grew the buffer until the process died.
+  The limit applies to a single *unterminated* line, so a large burst of complete messages is
+  unaffected; on overflow the pending requests fail with a message naming the likely cause.
+- **`Content-Type` is compared by media-type essence, not substring.** `contentType.includes(...)`
+  routed anything merely *containing* `text/event-stream` — e.g. `application/json;
+  profile="text/event-stream"` — into the SSE parser.
+- **RFC 9207 `iss` validation** on the OAuth authorization response, checked **before** the code is
+  redeemed. This is the mix-up-attack defence: without it a malicious authorization server can hand
+  back a code minted by a different server and have the client replay the user's credentials
+  against it. Comparison is exact string equality per §2.4 — deliberately *not* URL-normalised,
+  since that leniency is what an attacker looks for. A **missing** `iss` is rejected when the server
+  advertises `authorization_response_iss_parameter_supported`, otherwise stripping the parameter
+  would skip the check. Pass it via `finishMcpAuth(..., { iss })`; optional, so existing callers
+  keep working.
+- **`application_type: 'native'` is sent at dynamic client registration** (SEP-837). MCP clients are
+  normally local processes with a loopback redirect, and some authorization servers apply stricter
+  redirect-URI rules when the type is left to be guessed as `web`. An explicit value from the caller
+  still wins.
+- **The WebSocket transport is kept** and now documents itself as non-standard. Upstream removed
+  theirs as "never part of the MCP specification"; ours is public API we shipped, and an upstream
+  deletion is not our deletion (R7). It is also duplex, so it supports `subscriptions/listen` today.
+
 **Result cache hints (`ttlMs` / `cacheScope`)** — opt-in via `cacheResults`, off by default.
 
 - Honours the server's freshness hint on `tools/list`, `prompts/list`, `resources/list`,

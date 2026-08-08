@@ -261,9 +261,19 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
 }
 
 /** Extract the JSON-RPC response matching `id` from a JSON or SSE body. */
+/** The media-type ESSENCE of a Content-Type: type/subtype, lowercased, parameters stripped.
+ *
+ *  A substring test misroutes anything that merely *contains* the token — `application/json` with a
+ *  vendor parameter mentioning it, or a hypothetical `application/vnd.text/event-stream+json` —
+ *  while still needing to cope with the ordinary `text/event-stream; charset=utf-8`. Comparing the
+ *  essence handles both. Matches the fix upstream shipped in mcp-ts 1.30. */
+export function mediaTypeEssence(contentType: string): string {
+  return (contentType.split(';')[0] ?? '').trim().toLowerCase();
+}
+
 function pickResponse(contentType: string, text: string, id: number): JsonRpcResponse | null {
   const messages: JsonRpcResponse[] = [];
-  if (contentType.toLowerCase().includes('text/event-stream')) {
+  if (mediaTypeEssence(contentType) === 'text/event-stream') {
     for (const frame of text.split(/\r?\n\r?\n/)) {
       const data = frame
         .split(/\r?\n/)
