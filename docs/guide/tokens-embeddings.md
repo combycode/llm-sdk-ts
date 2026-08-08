@@ -22,6 +22,29 @@ transcribing speech to text.
 | `HybridTokenCounter` | Low-level token counter that tries tiktoken, falls back to count-API, then heuristic. Used by `countTokens` and `estimate()` internally. |
 | `HeuristicCounter` / `TiktokenCounter` / `CountApiCounter` | Individual counters for custom wiring. |
 
+## Exact OpenAI counting needs `tiktoken` (optional peer dependency)
+
+The SDK has **zero required runtime dependencies**. Exact OpenAI tokenization is the one feature
+that needs an extra package, and it is an **optional peer dependency** -- not installed unless you
+ask for it:
+
+```bash
+npm i tiktoken     # only if you want exact OpenAI token counts locally
+```
+
+Without it everything still works: `countTokens` uses the count-API strategy for Anthropic/Google
+and the calibrated heuristic elsewhere. Only the `tiktoken` strategy needs the package, and if it is
+reached without being installed the error says so and names the alternatives.
+
+**Why a peer and not an optional dependency.** `optionalDependencies` means *"do not fail the
+install if this package fails to build"* -- npm installs it anyway. So every consumer received
+tiktoken's ~5.6 MB wasm file, and bundlers emitted it into production builds even when local
+counting was never used; one consumer found it was 88% of their shipped output. As an optional peer,
+nobody pays for a feature they did not ask for.
+
+It works in the **browser** too when you do install it -- tiktoken ships a wasm/ESM build that
+bundlers resolve for browser targets. Nothing here is Node-only.
+
 ## Minimal examples
 
 ### Count tokens

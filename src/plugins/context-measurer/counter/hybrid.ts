@@ -25,14 +25,16 @@ export interface HybridCounterConfig {
  */
 export class HybridTokenCounter implements TokenCounter {
   private heuristic: HeuristicCounter;
-  private tiktoken: TiktokenCounter;
+  /** Built on first use, not in the constructor — most consumers never route to the tiktoken
+   *  strategy, and the optional peer dependency should not be reached for merely constructing a
+   *  counter. See CONSTITUTION.md standing decisions (2026-08-08). */
+  private _tiktoken?: TiktokenCounter;
   private countApi: CountApiCounter;
   private readonly _config: HybridCounterConfig;
 
   constructor(config: HybridCounterConfig) {
     this._config = config;
     this.heuristic = new HeuristicCounter(config.catalog ?? null, config.calibrationStore ?? null);
-    this.tiktoken = new TiktokenCounter();
 
     const countApis: { anthropic?: AnthropicCountApi; google?: GoogleCountApi } = {};
     if (config.countApiKeys?.anthropic) {
@@ -76,7 +78,7 @@ export class HybridTokenCounter implements TokenCounter {
 
     switch (strategy) {
       case 'tiktoken':
-        return this.tiktoken;
+        return (this._tiktoken ??= new TiktokenCounter());
       case 'count_api':
         return this.countApi;
       case 'heuristic':

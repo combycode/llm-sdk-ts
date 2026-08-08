@@ -43,25 +43,27 @@
     "check": "biome check src tests",
     "check:fix": "biome check --write src tests"
   },
-  "optionalDependencies": {
-    "tiktoken": "^1.0.22"
-  },
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",
     "@types/bun": "latest",
     "esbuild": "0.28.1",
+    "tiktoken": "^1.0.22",
     "typescript": "^5.6.0"
   },
   "peerDependencies": {
-    "typescript": ">=5.0"
+    "typescript": ">=5.0",
+    "tiktoken": "^1.0.22"
   },
   "peerDependenciesMeta": {
     "typescript": {
       "optional": true
+    },
+    "tiktoken": {
+      "optional": true
     }
   },
   "engines": {
-    "node": ">=18",
+    "node": ">=22",
     "bun": ">=1.1.0"
   },
   "repository": {

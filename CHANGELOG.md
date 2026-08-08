@@ -6,6 +6,33 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+### Changed — packaging (install/runtime level; no source change for consumers)
+
+- **Node floor raised to `>=22`** (was `>=18`). Node 18 and 20 are both end-of-life; 22 is also the
+  floor `openai-node` 7 adopted.
+- **`tiktoken` is now an OPTIONAL PEER dependency**, not an `optionalDependency`.
+  `optionalDependencies` means *"do not fail the install if this package fails to build"* — npm
+  installs it regardless, so every consumer received its ~5.6 MB wasm file. **If you use exact
+  OpenAI token counting, run `npm i tiktoken`**; the error thrown when it is missing names the
+  package and the alternatives (count-API and heuristic counters need no extra packages).
+- **The wasm no longer lands in consumer bundles.** The dynamic import used a string literal, which
+  every bundler resolves during module-graph construction — so the blob was emitted even for code
+  paths that were never reached (one consumer reported it as **88% of their production output**).
+  `sideEffects: false` cannot prevent this: emitting a dynamic-import chunk is a graph-resolution
+  outcome, not dead-code elimination. The specifier now lives in a variable, opaque to bundlers and
+  resolved identically at runtime. Verified with a control — a literal import emits a 5.3 MB
+  `.wasm`; the shipped build emits none, even when the consumer imports `ContextMeasurer` directly
+  and has `tiktoken` installed.
+- **`tiktoken` still works in the browser.** It ships a wasm/ESM build that bundlers resolve for
+  browser targets, so it is deliberately *not* stubbed out of `index.browser.js`.
+- **`HybridTokenCounter` builds its tiktoken counter lazily**, on first route to that strategy,
+  rather than in the constructor.
+- **The "zero dependencies" claim is now qualified** as *zero **required** runtime dependencies*.
+  `dependencies` genuinely is empty, but a consumer reading only that field concluded there were no
+  runtime packages at all.
+
+---
+
 Upstream reconciliation for the 2026-07-27 clone refresh (10 SDKs). This batch is dominated by
 **terminal-state correctness**: three providers widened response enums that our adapters silently
 flattened to `'stop'`, so a caller could not distinguish a refusal, a context overflow, a queued

@@ -8,15 +8,15 @@
         "@biomejs/biome": "^2.4.13",
         "@types/bun": "latest",
         "esbuild": "0.28.1",
+        "tiktoken": "^1.0.22",
         "typescript": "^5.6.0",
       },
-      "optionalDependencies": {
-        "tiktoken": "^1.0.22",
-      },
       "peerDependencies": {
+        "tiktoken": "^1.0.22",
         "typescript": ">=5.0",
       },
       "optionalPeers": [
+        "tiktoken",
         "typescript",
       ],
     },

@@ -1,7 +1,44 @@
-/** Tiktoken adapter — exact tokenization for OpenAI models. */
+/** Tiktoken adapter — exact tokenization for OpenAI models.
+ *
+ *  `tiktoken` is an OPTIONAL PEER dependency: it is not installed unless the consumer asks for it,
+ *  and nothing here runs until local token counting is actually used. See the standing decisions in
+ *  CONSTITUTION.md (2026-08-08).
+ */
 
 import type { Message } from '../../../llm/types/messages';
 import type { TokenCountContext, TokenCounter, LearnInput } from '../../../agent/types';
+
+/** The module specifier lives in a VARIABLE on purpose — do not inline it back into `import()`.
+ *
+ *  A string-literal `import('tiktoken')` is statically resolvable, so every bundler (rolldown,
+ *  rollup, esbuild, webpack) walks it while building the module graph and emits tiktoken's ~5.6 MB
+ *  wasm asset into the consumer's output — even when the code path is never reached. A consumer
+ *  reported exactly this on 2026-08-08: the wasm was 88% of their production bundle for a feature
+ *  their app never invokes. `sideEffects: false` cannot help, because emitting a dynamic-import
+ *  chunk is a graph-resolution outcome, not a dead-code-elimination one.
+ *
+ *  Since tiktoken is now an optional PEER dependency, a literal is worse than wasteful: it makes
+ *  bundlers fail the build outright for everyone who chose not to install it.
+ *
+ *  A variable specifier is opaque to bundlers and resolves identically at runtime. */
+const TIKTOKEN_SPECIFIER = 'tiktoken';
+
+/** Minimal structural shape of the bits of `tiktoken` we use. Declared locally because a variable
+ *  specifier is deliberately unresolvable at type level — and because the package must remain
+ *  uninstalled without breaking our typecheck. */
+interface TiktokenModule {
+  get_encoding(name: string): { encode(text: string): Iterable<number> };
+}
+
+/** Build the error thrown when the optional peer is missing. Exported for tests; not public API. */
+export function tiktokenUnavailableError(cause: unknown): Error {
+  return new Error(
+    `Local token counting needs the optional peer dependency "tiktoken", which is not installed. ` +
+      `Install it (npm i tiktoken) to use exact OpenAI tokenization, or use a counter that does ` +
+      `not require it — the heuristic and count-API strategies need no extra packages.`,
+    { cause },
+  );
+}
 
 const MODEL_TO_ENCODING: Record<string, string> = {
   'gpt-5': 'o200k_base',
@@ -89,8 +126,13 @@ export class TiktokenCounter implements TokenCounter {
     const cached = this.encodings.get(name);
     if (cached) return cached;
 
-    const tiktoken = await import('tiktoken');
-    const enc = tiktoken.get_encoding(name as Parameters<typeof tiktoken.get_encoding>[0]);
+    let tiktoken: TiktokenModule;
+    try {
+      tiktoken = (await import(/* @vite-ignore */ /* webpackIgnore: true */ TIKTOKEN_SPECIFIER)) as TiktokenModule;
+    } catch (cause) {
+      throw tiktokenUnavailableError(cause);
+    }
+    const enc = tiktoken.get_encoding(name);
     const wrapper = {
       encode: (text: string) => Array.from(enc.encode(text)),
     };
