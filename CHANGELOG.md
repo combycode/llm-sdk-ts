@@ -31,6 +31,32 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   `dependencies` genuinely is empty, but a consumer reading only that field concluded there were no
   runtime packages at all.
 
+### Fixed — correctness
+
+- **`serviceTier: 'fast'` is actually sent to OpenAI.** The value shipped in openai-ts 7.x but was
+  missing from our known-tier set, so `openaiRequestTier('fast')` fell through to `'auto'` — a
+  caller asking for Fast mode silently got the project default, with no error and no warning.
+  Probe-verified on `gpt-5.5`: `fast` accepted, `hyperfast` rejected, so the value is validated
+  rather than merely tolerated. Applies to Responses and chat-completions.
+- **A `Retry-After` longer than we will honour now fails fast instead of parking the request.** New
+  config `RetryConfig.maxRetryAfterMs` (default **120s**). Previously an un-capped value was obeyed
+  verbatim: `Retry-After: 86400` held the request for a day, which from the caller's side is
+  indistinguishable from a hang. Worse, on the rate-limit path it also paused the **entire**
+  limiter — every request on that queue, not just the one that was throttled. Both paths are now
+  clamped, and an over-cap value is treated as a refusal rather than a delay.
+- **`Retry-After` parsing hardened.** The HTTP-date form (RFC 9110) is now parsed instead of being
+  silently ignored, and malformed values (`NaN`, negative, non-finite, a past date) are discarded
+  rather than propagated — `setTimeout(fn, NaN)` fires immediately, which turned one bad header
+  into an instant retry storm.
+
+### Unchanged, deliberately
+
+- **Google Interactions keeps sending `temperature` and `top_p`.** google 2.15 deleted both from its
+  Interactions `GenerationConfig` type, which resembles the pattern behind two earlier live
+  breakages — but the wire disagrees: probed 2026-08-06 on `gemini-3.6-flash`, both are accepted
+  (200) and *validated* (`"warm"` / `-7` → 400). The removal is SDK-typing-only; stripping them
+  would have been the regression. Recorded at the call site so a later cycle does not "fix" it.
+
 ---
 
 Upstream reconciliation for the 2026-07-27 clone refresh (10 SDKs). This batch is dominated by

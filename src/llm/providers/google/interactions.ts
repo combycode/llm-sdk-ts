@@ -87,6 +87,12 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
     // Generation config
     const genConfig: Record<string, unknown> = {};
     if (req.maxTokens) genConfig.max_output_tokens = req.maxTokens;
+    // KEEP temperature/top_p. google 2.15 DELETED both from the Interactions `GenerationConfig`
+    // type, which looks exactly like the pattern that made us strip penalties (07-14) and
+    // cached_content (07-27) — but the wire says otherwise: probed 2026-08-06 on gemini-3.6-flash,
+    // `temperature: 0.5` + `top_p: 0.9` returned 200, and the invalid twin (`"warm"` / `-7`) was
+    // rejected 400, so the fields are read AND validated. The removal is SDK-typing-only.
+    // Stripping them here would be the regression. Re-probe before ever changing this.
     if (req.temperature !== undefined) genConfig.temperature = req.temperature;
     if (req.topP !== undefined) genConfig.top_p = req.topP;
     // Unlike the penalties above, Interactions DOES accept top_k and seed

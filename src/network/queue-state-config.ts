@@ -11,6 +11,11 @@ export interface RetryConfig {
   totalTimeoutMs: number;
   attemptTimeoutMs: number;
   backoff: BackoffConfig;
+  /** Longest `Retry-After` we are willing to honour. A server asking us to wait longer than this
+   *  does not get waited for: the request fails fast instead of parking in the queue, and the rate
+   *  limiter is not paused for that long either. Without a cap, a single `Retry-After: 86400`
+   *  silently holds a request — and the whole limiter — for a day. */
+  maxRetryAfterMs: number;
   perKind?: Partial<Record<ErrorKind, ErrorRetryConfig>>;
 }
 
@@ -32,6 +37,7 @@ export const DEFAULT_RETRY: RetryConfig = {
   totalTimeoutMs: 120_000,
   attemptTimeoutMs: 600_000,
   backoff: { initialMs: 500, maxMs: 8_000, multiplier: 2, jitter: 0.25 },
+  maxRetryAfterMs: 120_000,
   perKind: {
     rate_limit: { retryable: true, maxRetries: 5 },
     server_error: { retryable: true, maxRetries: 2 },

@@ -39,6 +39,14 @@ describe('serviceTier → provider request param', () => {
     expect(completions.buildRequest(req({ serviceTier: 'priority' })).body.service_tier).toBe('priority');
   });
 
+  it('openai sends fast on both surfaces (regression: silently downgraded to auto)', () => {
+    // `fast` shipped in openai-ts 7.x and was missing from our KNOWN set, so a caller asking for
+    // Fast mode silently received the project default. Probe-verified accepted on gpt-5.5, with an
+    // invalid value rejected — the field is validated, not merely tolerated.
+    expect(openai.buildRequest(req({ serviceTier: 'fast' })).body.service_tier).toBe('fast');
+    expect(completions.buildRequest(req({ serviceTier: 'fast' })).body.service_tier).toBe('fast');
+  });
+
   it('openai passes an unknown-but-allowed tier through, else falls back to auto', () => {
     // 'auto' is allowed
     expect(openai.buildRequest(req({ serviceTier: 'auto' })).body.service_tier).toBe('auto');

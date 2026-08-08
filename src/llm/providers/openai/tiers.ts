@@ -11,8 +11,15 @@ const REQUEST: Record<string, string> = {
   priority: 'priority',
   flex: 'flex',
   scale: 'scale',
+  fast: 'fast',
 };
-const KNOWN = new Set(['auto', 'default', 'flex', 'scale', 'priority']);
+/** `fast` arrived 2026-08 (openai-ts 7.x) on Responses (GA + beta), chat-completions and
+ *  `responses.compact`. Probe-verified on `gpt-5.5`: accepted, and `"hyperfast"` rejected — so the
+ *  value is genuinely validated, not tolerated. Until it was listed here `openaiRequestTier('fast')`
+ *  fell through to `'auto'`, so a caller asking for Fast mode silently got the project default.
+ *  Response side needs no change: OpenAI echoes `service_tier: 'priority'` for both `fast` and
+ *  `priority`, which `openaiBilledTier` already passes through. */
+const KNOWN = new Set(['auto', 'default', 'flex', 'scale', 'priority', 'fast']);
 
 /** Map a unified tier to OpenAI's `service_tier`. Unknown values pass through if
  *  OpenAI accepts them, otherwise fall back to `auto`. Undefined → omit. */

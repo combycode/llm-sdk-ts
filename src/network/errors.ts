@@ -83,14 +83,30 @@ function extractErrorMessage(body: unknown): string {
   return JSON.stringify(body).slice(0, 500);
 }
 
+/** A delay is usable only if it is a finite, non-negative number of milliseconds. Anything else —
+ *  NaN from a malformed header, Infinity, a negative value — is discarded rather than propagated:
+ *  `setTimeout(fn, NaN)` fires immediately, turning one bad header into a retry storm. */
+function usableDelay(ms: number): number | undefined {
+  return Number.isFinite(ms) && ms >= 0 ? ms : undefined;
+}
+
+/** `Retry-After` per RFC 9110: delay-seconds OR an HTTP-date. Both forms are parsed now; the date
+ *  form used to return `undefined`, which was safe but silently ignored the server's instruction.
+ *  A skewed client clock can only yield a value the caller's cap rejects, never a negative wait. */
 function parseRetryAfter(headers: Record<string, string>): number | undefined {
   const ms = headers['retry-after-ms'];
-  if (ms) return Number.parseInt(ms, 10);
-
-  const sec = headers['retry-after'];
-  if (sec) {
-    const n = Number.parseInt(sec, 10);
-    if (!Number.isNaN(n)) return n * 1000;
+  if (ms) {
+    const parsed = usableDelay(Number.parseInt(ms, 10));
+    if (parsed !== undefined) return parsed;
   }
-  return undefined;
+
+  const value = headers['retry-after'];
+  if (!value) return undefined;
+
+  const seconds = Number.parseInt(value, 10);
+  if (!Number.isNaN(seconds)) return usableDelay(seconds * 1000);
+
+  const at = Date.parse(value);
+  if (Number.isNaN(at)) return undefined;
+  return usableDelay(at - Date.now());
 }

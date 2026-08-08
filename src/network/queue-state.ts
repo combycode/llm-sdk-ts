@@ -329,7 +329,10 @@ export class QueueState {
       const error = classifyError(entry.request.provider, response.status, errorBody, resHeaders);
 
       if (error.kind === 'rate_limit') {
-        if (error.retryAfterMs) this.rateLimiter.pause(error.retryAfterMs);
+        // Clamp before pausing: an un-capped `Retry-After: 86400` would freeze the ENTIRE limiter
+        // (every request on this queue, not just this one) for a day.
+        const pauseMs = this.honoredRetryAfterMs(error);
+        if (pauseMs) this.rateLimiter.pause(pauseMs);
         this.emitRateLimitUpdate(entry.request, resHeaders, 'rate_limit_error');
 
         await this.hooks.emit('onRateLimitHit', {
@@ -385,7 +388,15 @@ export class QueueState {
     // pass FormData or bytes (both replayable), but a caller supplying a stream must
     // not be silently corrupted. Same hardening OpenAI's client shipped in 6.49.
     const replayableBody = !isStreamBody(entry.request.body);
-    const willRetry = isRetryable && entry.attempt < maxRetries && withinBudget && replayableBody;
+    // A `Retry-After` longer than we are willing to honour is a refusal, not a delay: parking the
+    // request for hours looks identical to a hang from the caller's side. Fail fast and let them
+    // decide. Same rule OpenAI's client adopted (cap, then stop retrying above it).
+    const retryAfterTooLong =
+      error.retryAfterMs !== undefined &&
+      error.retryAfterMs !== null &&
+      error.retryAfterMs > this.retry.maxRetryAfterMs;
+    const willRetry =
+      isRetryable && entry.attempt < maxRetries && withinBudget && replayableBody && !retryAfterTooLong;
 
     void this.hooks.emit('onModelError', {
       provider: entry.request.provider,
@@ -423,12 +434,22 @@ export class QueueState {
     }
   }
 
+  /** The `Retry-After` we will actually honour: the server's value clamped to `maxRetryAfterMs`.
+   *  Anything above the cap never reaches here as a retry (see `retryAfterTooLong`), so the clamp
+   *  is a floor-level guard for the limiter-pause path and any future consumer. */
+  private honoredRetryAfterMs(error: LLMError): number | undefined {
+    const raw = error.retryAfterMs;
+    if (raw === undefined || raw === null || !Number.isFinite(raw) || raw <= 0) return undefined;
+    return Math.min(raw, this.retry.maxRetryAfterMs);
+  }
+
   private calculateBackoff(
     attempt: number,
     error: LLMError,
     kindConfig?: ErrorRetryConfig,
   ): number {
-    if (error.retryAfterMs) return error.retryAfterMs;
+    const honored = this.honoredRetryAfterMs(error);
+    if (honored !== undefined) return honored;
     if (kindConfig?.fixedBackoffMs) return kindConfig.fixedBackoffMs;
 
     const { initialMs, maxMs, multiplier, jitter } = this.retry.backoff;
