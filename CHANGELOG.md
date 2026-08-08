@@ -65,6 +65,26 @@ neither is preferred.
 - New error codes: `HeaderMismatch` (-32020), `MissingRequiredClientCapability` (-32021),
   `UnsupportedProtocolVersion` (-32022).
 
+**Multi-round-trip requests (MRTR, SEP-2322)** — the modern replacement for the back-channel. Where
+a handshake-era server *pushes* a `sampling/createMessage` at us mid-call, a 2026-07-28 server
+*returns* `resultType: 'input_required'` with the questions it needs answered, and the client
+re-issues the same call carrying the answers plus the server's opaque `requestState`.
+
+- **One handler serves both wires.** MRTR is dispatched through the same `onServerRequest` path as
+  a pushed request, so a caller who wired up sampling/elicitation/roots once gets it on either wire
+  without knowing which is in play.
+- **`McpCallResult` did not become a union.** Upstream models this as a separate
+  `InputRequiredResult`, which would break every consumer reading `.content`. We attach
+  `resultType` / `inputRequests` / `requestState` as optional fields instead (CONSTITUTION.md R2).
+  An **absent `resultType` reads as `'complete'`**, so every pre-2026 result behaves exactly as
+  before and costs no extra round-trip.
+- Applied to `tools/call`, `prompts/get` and `resources/read`. `requestState` is echoed back
+  byte-exact and never inspected.
+- A leg carrying state but no questions backs off (50 ms doubling to a 250 ms cap, reset by any leg
+  with real questions) rather than spinning against the server.
+- `inputRequiredMaxRounds` (default **10**, matching the other SDKs) bounds the loop, because a
+  handler that never satisfies the server would otherwise retry forever.
+
 ### Fixed — correctness
 
 - **`serviceTier: 'fast'` is actually sent to OpenAI.** The value shipped in openai-ts 7.x but was

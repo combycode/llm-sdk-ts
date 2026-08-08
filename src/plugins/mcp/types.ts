@@ -41,7 +41,30 @@ export type McpContentBlock =
   | { type: 'resource_link'; uri: string; mimeType?: string; title?: string }
   | { type: string; [k: string]: unknown };
 
-export interface McpCallResult {
+/** One server→client request embedded in an `input_required` result: a `sampling/createMessage`,
+ *  `elicitation/create` or `roots/list`, in JSON-RPC request shape. Identical in content to what a
+ *  handshake-era server pushes over the back-channel — only the delivery differs. */
+export interface McpInputRequest {
+  method: string;
+  params?: unknown;
+}
+
+/** The 2026-07-28 multi-round-trip fields (SEP-2322).
+ *
+ *  Upstream models this as a separate `InputRequiredResult` type, making every result a union. We
+ *  attach it as OPTIONAL fields on the existing results instead (CONSTITUTION.md R2): code reading
+ *  `result.content` keeps compiling, and callers who never meet a modern server never see them. */
+export interface McpInputRequiredFields {
+  /** `'complete'` | `'input_required'`. **Absent MUST be read as `'complete'`** — earlier revisions
+   *  never send it. Open by R1: a future revision may add a third kind. */
+  resultType?: 'complete' | 'input_required' | (string & {});
+  /** Server-assigned key → the request to answer. Present when the server has questions. */
+  inputRequests?: Record<string, McpInputRequest>;
+  /** Opaque continuation token. Echoed back byte-exact and never inspected. */
+  requestState?: string;
+}
+
+export interface McpCallResult extends McpInputRequiredFields {
   content: McpContentBlock[];
   isError?: boolean;
   structuredContent?: Record<string, unknown>;
@@ -90,7 +113,7 @@ export interface McpPromptMessage {
   content: McpContentBlock;
 }
 
-export interface McpGetPromptResult {
+export interface McpGetPromptResult extends McpInputRequiredFields {
   description?: string;
   messages: McpPromptMessage[];
 }

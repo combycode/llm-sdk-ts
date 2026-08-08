@@ -9,6 +9,11 @@ import type { McpTransport } from './transport';
 import type { TraceContext } from '../../network/types';
 import { MCP_PROTOCOL_VERSION } from './types';
 import {
+  type InputRequiredRetry,
+  isInputRequired,
+  runInputRequiredDriver,
+} from './input-required';
+import {
   MCP_CLIENT_CAPABILITIES_META_KEY,
   MCP_CLIENT_INFO_META_KEY,
   MCP_LATEST_MODERN_VERSION,
@@ -69,6 +74,9 @@ export interface McpClientOptions {
    *  `-32022` naming only modern versions we do not share. Transport/network errors are never
    *  treated as an era verdict — an outage must not silently downgrade the wire. */
   protocolMode?: 'auto' | 'legacy' | (string & {});
+  /** Cap on `input_required` retry rounds before giving up (default 10, matching every other SDK).
+   *  A handler that never satisfies the server would otherwise loop forever. */
+  inputRequiredMaxRounds?: number;
 }
 
 /** Pull `data.supported` off a `-32022`, or undefined when it is not actionable. A malformed
@@ -293,7 +301,18 @@ export class McpClient {
     const server = this.opts.server ?? this.opts.telemetry?.server ?? 'mcp';
     const t0 = performance.now();
     try {
-      const res = (await this.transport.request('tools/call', { name, arguments: args })) as McpCallResult;
+      const first = (await this.transport.request('tools/call', { name, arguments: args })) as McpCallResult;
+      // A 2026-07-28 server can answer "I need input first" instead of a result; drive that to a
+      // terminal result so the caller only ever sees a finished call. Legacy servers never set
+      // `resultType`, so this is a no-op there.
+      const res = await this.driveInputRequired(first, (responses, requestState) =>
+        this.transport.request('tools/call', {
+          name,
+          arguments: args,
+          ...(responses ? { inputResponses: responses } : {}),
+          ...(requestState !== undefined ? { requestState } : {}),
+        }) as Promise<McpCallResult>,
+      );
       hooks?.emitSync('onMcpToolCall', { server, tool: name, latencyMs: performance.now() - t0, isError: res.isError ?? false, trace });
       return res;
     } catch (e) {
@@ -316,7 +335,16 @@ export class McpClient {
 
   /** Read a resource's contents by URI. */
   async readResource(uri: string): Promise<McpResourceContent[]> {
-    const res = (await this.transport.request('resources/read', { uri })) as { contents?: McpResourceContent[] };
+    const first = (await this.transport.request('resources/read', { uri })) as {
+      contents?: McpResourceContent[];
+    };
+    const res = await this.driveInputRequired(first, (responses, requestState) =>
+      this.transport.request('resources/read', {
+        uri,
+        ...(responses ? { inputResponses: responses } : {}),
+        ...(requestState !== undefined ? { requestState } : {}),
+      }) as Promise<{ contents?: McpResourceContent[] }>,
+    );
     return res?.contents ?? [];
   }
 
@@ -343,7 +371,15 @@ export class McpClient {
 
   /** Render a prompt by name with arguments → its messages. */
   async getPrompt(name: string, args: Record<string, string> = {}): Promise<McpGetPromptResult> {
-    return (await this.transport.request('prompts/get', { name, arguments: args })) as McpGetPromptResult;
+    const first = (await this.transport.request('prompts/get', { name, arguments: args })) as McpGetPromptResult;
+    return this.driveInputRequired(first, (responses, requestState) =>
+      this.transport.request('prompts/get', {
+        name,
+        arguments: args,
+        ...(responses ? { inputResponses: responses } : {}),
+        ...(requestState !== undefined ? { requestState } : {}),
+      }) as Promise<McpGetPromptResult>,
+    );
   }
 
   // ─── Logging (P2) ─────────────────────────────────────────────────────
@@ -421,6 +457,23 @@ export class McpClient {
   }
 
   // ─── internal ───────────────────────────────────────────────────────────
+
+  /** Resolve an `input_required` result to a terminal one.
+   *
+   *  The dispatcher is `handleServerRequest` — the SAME path that serves a handshake-era server
+   *  pushing `sampling/createMessage` at us. That is the whole point of routing MRTR through here:
+   *  a caller wires up sampling once and it works on either wire, without knowing which is in play.
+   *
+   *  Skips instantly when `resultType` is absent or `'complete'`, so the handshake path pays
+   *  nothing. */
+  private async driveInputRequired<T>(first: T, retry: InputRequiredRetry<T>): Promise<T> {
+    if (!isInputRequired(first)) return first;
+    return runInputRequiredDriver(first, {
+      dispatch: (_key, request) => this.handleServerRequest(request.method, request.params),
+      retry,
+      maxRounds: this.opts.inputRequiredMaxRounds,
+    });
+  }
 
   /** Guard a method the 2026-07-28 revision removed. Naming the negotiated version and the
    *  replacement matters: without it the caller sees a bare -32601 from the server and has no way
