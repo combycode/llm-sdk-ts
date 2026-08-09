@@ -1,0 +1,12 @@
+{
+  "_doc": "Config for CombyCode/quality-gate/*. Lives HERE, not with the engine: the receiver map describes this library's API and must change when the API does.",
+  "docs": ["docs", "README.md"],
+  "dist": "dist",
+  "receivers": {
+    "agent": ["agent/loop.d.ts"],
+    "loop": ["agent/loop.d.ts"],
+    "client": ["llm/client.d.ts", "plugins/mcp/client.d.ts"],
+    "llm": ["llm/client.d.ts"],
+    "mcp.client": ["plugins/mcp/client.d.ts"]
+  }
+}
