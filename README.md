@@ -10,7 +10,7 @@ A unified, pluggable AI SDK for accessing the LLMs of every major provider —
   `model:tier` selectors, capability-based `select()`, tiered pricing, and cost
   tracking.
 - **Cross-environment.** The same code runs on Node, Bun, and the browser. Zero
-  runtime dependencies, ESM.
+  **required** runtime dependencies, ESM.
 
 ## Install
 
@@ -18,7 +18,19 @@ A unified, pluggable AI SDK for accessing the LLMs of every major provider —
 npm install @combycode/llm-sdk      # or: bun add @combycode/llm-sdk
 ```
 
-Requires Node ≥ 18 or Bun ≥ 1.1.
+Requires **Node ≥ 22** or Bun ≥ 1.1. (Node 18 and 20 are end-of-life; 22 is also the floor
+`openai-node` 7 adopted.)
+
+`dependencies` is empty. The one optional extra is `tiktoken`, an **optional peer** for exact local
+OpenAI token counting — install it only if you want that:
+
+```sh
+npm install tiktoken
+```
+
+Without it everything still works: token counting falls back to the provider count-API
+(Anthropic/Google) or a calibrated heuristic. It is a peer rather than an `optionalDependency` so
+its ~5.6 MB wasm is not installed — or bundled — for people who never use it.
 
 ## Quickstart
 

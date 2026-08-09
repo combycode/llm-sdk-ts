@@ -195,6 +195,31 @@ reads the keys it understands and ignores the rest:
 await complete({ model: 'anthropic/claude-haiku-4.5', apiKey, prompt: '…', providerOptions: { userProfileId: 'usr_42' } });
 ```
 
+### What `cache: 'auto'` actually does per provider
+
+`cache: 'auto'` is one option over three quite different mechanisms, and `usage.cachedTokens`
+reports what the provider says it reused. What you should expect differs sharply:
+
+| Provider | Mechanism | Do you get a hit? |
+|---|---|---|
+| Anthropic | **explicit** `cache_control` breakpoints we set for you | Deterministic above the model's minimum (~1024 tokens) |
+| OpenAI | **implicit**, always on | Reliable on a repeated long prefix; `promptCacheOptions` for manual control |
+| Google | **implicit**, best-effort | Only on a large prefix, and **not guaranteed even then** |
+
+Google deserves the warning. Measured on 2026-08-09 with an identical repeated request:
+
+- A **~5,000-token** prefix produced **no cache hit at all** on `gemini-3.6-flash` or
+  `gemini-2.5-flash` — neither as `systemInstruction` nor as leading content. Placement is not the
+  issue; size is.
+- At **~15,000–40,000 tokens** `gemini-3.6-flash` reported hits every time (e.g. 40,010 prompt
+  tokens → 32,737 cached).
+- `gemini-2.5-flash` hit at 10k and 20k but **missed at 15k and 30k in the same run**.
+
+So Google implicit caching is genuinely best-effort: a miss is not a bug, and **no
+cost model should assume the hit**. Treat `usage.cachedTokens` as an observation after the fact.
+When you need a guaranteed, billable cache on Google, create a `cachedContents` resource and pass
+its name through `providerOptions.cachedContent` — that is explicit and deterministic.
+
 ### Multi-turn with server-state
 
 ```ts
