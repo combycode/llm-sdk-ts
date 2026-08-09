@@ -147,6 +147,28 @@ re-issues the same call carrying the answers plus the server's opaque `requestSt
 - `cacheScope` is recorded but never used to widen sharing: this cache lives inside one client with
   one credential, where `public` buys nothing.
 
+### Added — OpenAI Responses parity
+
+- **Assistant `phase` (`commentary` | `final_answer`)** on `TextPart` and on streamed text events.
+  Codex-family models narrate before answering; `response.text` concatenates both, so **an agent's
+  final output used to include its own thinking-out-loud**. `AgentLoop` now derives its answer with
+  the new `finalAnswerText()` helper, which drops commentary. `response.text` and `contentText()`
+  are unchanged — callers who want everything still get everything.
+  - Open union (R1), and `finalAnswerText` excludes only what is explicitly `'commentary'` rather
+    than keeping only `'final_answer'`: the day a provider adds a third phase, an allow-list would
+    silently drop the answer.
+  - Streaming carries it too. `phase` is announced once on `response.output_item.added` and belongs
+    on every delta of that item, so the parser keeps per-stream item→phase state; concurrent streams
+    cannot leak phases into each other. Commentary is still yielded to the consumer (a UI may well
+    want to render it live) and is preserved in the assembled content as its own phase-tagged part.
+  - Nothing is inferred: a model that reports no phase produces parts with no phase, exactly as
+    before.
+- **`name` + `namespace` on `function_call_output`.** The tool name is taken from the matching
+  call — tracked across messages while building the input, never invented, so a result with no
+  matching call simply omits it. `ToolResultPart.namespace` round-trips the namespace of a
+  namespaced tool. Probe-verified 2026-08-06: accepted, and a non-string `namespace` is rejected,
+  so the fields are validated rather than tolerated.
+
 ### Fixed — correctness
 
 - **`serviceTier: 'fast'` is actually sent to OpenAI.** The value shipped in openai-ts 7.x but was

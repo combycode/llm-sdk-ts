@@ -15,6 +15,7 @@ import type { StepState, ToolCallAccumEntry } from './loop-step-state';
 export function makeStepState(): StepState {
   return {
     stepText: '',
+    stepCommentary: '',
     stepThinking: '',
     stepToolCalls: [],
     toolCallAccum: new Map<string, ToolCallAccumEntry>(),
@@ -31,7 +32,11 @@ export function accumulateStreamEvent(
 ): AgentStreamEvent | null {
   switch (event.type) {
     case 'text':
-      state.stepText += event.text;
+      // `stepText` becomes the step's answer, so commentary is kept out of it — the same rule the
+      // buffered path applies through `finalAnswerText`. The delta is still yielded to the consumer,
+      // who may well want to render the narration live; it simply is not the answer.
+      if (event.phase === 'commentary') state.stepCommentary += event.text;
+      else state.stepText += event.text;
       return { type: 'text', text: event.text };
 
     case 'thinking':
@@ -114,7 +119,19 @@ export function buildStepResponse(
 ): { response: CompletionResponse; content: ContentPart[]; stepLatency: number } {
   const stepLatency = performance.now() - stepStart;
   const content: ContentPart[] = [];
-  if (state.stepText) content.push({ type: 'text', text: state.stepText });
+  // Commentary is kept as its own phase-tagged part rather than discarded, so a streamed step
+  // carries the same shape as a buffered one. Phases are only stamped when the provider actually
+  // reported them — inferring `final_answer` for a model that reports nothing would be a guess.
+  if (state.stepCommentary) {
+    content.push({ type: 'text', text: state.stepCommentary, phase: 'commentary' });
+  }
+  if (state.stepText) {
+    content.push({
+      type: 'text',
+      text: state.stepText,
+      ...(state.stepCommentary ? { phase: 'final_answer' as const } : {}),
+    });
+  }
   content.push(...state.stepToolCalls);
 
   const hasToolCalls = state.stepToolCalls.length > 0;

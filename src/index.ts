@@ -78,8 +78,8 @@ export type { FetchOptions, NetworkEngineConfig, QueueSettings } from './network
 
 // LLM — types + client + provider adapters
 export type { AudioFormat, AudioOptions, AudioInput } from './llm/types/audio';
-export { contentParts, contentText } from './llm/types/messages';
-export type { Role, MessageOrigin, ContentPart, TextPart, ImagePart, DocumentPart, AudioPart, VideoPart, ToolCallPart, ToolResultPart, ImageOutputPart, AudioOutputPart, VideoOutputPart, MediaOutputPart, DataSource, Content, Message } from './llm/types/messages';
+export { contentParts, contentText, finalAnswerText } from './llm/types/messages';
+export type { AssistantPhase, Role, MessageOrigin, ContentPart, TextPart, ImagePart, DocumentPart, AudioPart, VideoPart, ToolCallPart, ToolResultPart, ImageOutputPart, AudioOutputPart, VideoOutputPart, MediaOutputPart, DataSource, Content, Message } from './llm/types/messages';
 export { isFunctionTool, isBuiltinTool } from './llm/types/tools';
 export type { FunctionTool, BuiltinTool, McpToolParams, Tool, ToolChoice, JsonSchema } from './llm/types/tools';
 export { emptyUsage } from './llm/types/response';

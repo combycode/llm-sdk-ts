@@ -15,6 +15,8 @@ export interface ToolCallAccumEntry {
 /** All mutable state for one streaming step inside AgentLoop.stream(). */
 export interface StepState {
   stepText: string;
+  /** Commentary deltas, kept apart from stepText so the step's answer excludes narration. */
+  stepCommentary: string;
   stepThinking: string;
   stepToolCalls: ToolCallPart[];
   toolCallAccum: Map<string, ToolCallAccumEntry>;

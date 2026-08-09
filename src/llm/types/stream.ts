@@ -1,6 +1,7 @@
 /** Universal streaming event types. */
 
 import type { ModerationEntry } from '../moderation/types';
+import type { AssistantPhase } from './messages';
 import type { FileOutput, Usage } from './response';
 
 export type MediaStreamType = 'image' | 'audio' | 'video';
@@ -12,7 +13,9 @@ export type StreamEvent =
    *  items, so a consumer that reassembles them per item — rather than just concatenating
    *  into one string — needs this to keep them apart. Optional and additive: ignoring it
    *  gives exactly the previous behaviour. */
-  | { type: 'text'; text: string; itemId?: string }
+  /** `phase` mirrors the buffered `TextPart.phase`: whether this delta is commentary or the answer
+   *  proper. Reported only by models that distinguish them (codex family); absent elsewhere. */
+  | { type: 'text'; text: string; itemId?: string; phase?: AssistantPhase }
   | { type: 'thinking'; text: string; itemId?: string }
   | { type: 'tool_call_start'; id: string; name: string; _meta?: Record<string, unknown> }
   | { type: 'tool_call_delta'; id: string; arguments: string }

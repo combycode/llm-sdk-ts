@@ -5,6 +5,7 @@
 
 import type { SSEEvent } from '../../../network/types';
 import type {
+  AssistantPhase,
   ContentPart,
   ImageOutputPart,
   MediaOutputPart,
@@ -216,9 +217,12 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
   buildRequest(req: NormalizedRequest): ProviderHttpRequest {
     const input: unknown[] = [];
 
-    // Build input array from messages
+    // Build input array from messages. `toolNames` accumulates call_id → tool name as assistant
+    // turns go past, so a later tool result can name the tool that produced it: the API wants
+    // `name` on `function_call_output`, and only the matching call knows what it was.
+    const toolNames = new Map<string, string>();
     for (const msg of req.messages) {
-      input.push(...this.buildInputItems(msg));
+      input.push(...this.buildInputItems(msg, toolNames));
     }
 
     const body: Record<string, unknown> = {
@@ -329,8 +333,9 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     return { body };
   }
 
-  /** Convert a universal Message to Responses API input items */
-  private buildInputItems(msg: Message): unknown[] {
+  /** Convert a universal Message to Responses API input items.
+   *  `toolNames` is threaded across messages so a tool result can name its originating call. */
+  private buildInputItems(msg: Message, toolNames = new Map<string, string>()): unknown[] {
     const items: unknown[] = [];
 
     if (msg.role === 'user' || msg.role === 'system') {
@@ -376,22 +381,32 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
           ? [{ type: 'text' as const, text: msg.content }]
           : msg.content;
 
-      // Text content as message output item
-      const textParts = parts.filter((p) => p.type === 'text');
-      if (textParts.length > 0) {
+      // Text content as message output items. `phase` lives on the MESSAGE, so consecutive text
+      // parts sharing a phase become one item and a change of phase starts a new one — grouping by
+      // phase globally would reorder commentary against the answer it precedes.
+      const textParts = parts.filter((p): p is TextPart => p.type === 'text');
+      let run: TextPart[] = [];
+      const flush = () => {
+        if (run.length === 0) return;
+        const phase = run[0]?.phase;
         items.push({
           type: 'message',
           role: 'assistant',
-          content: textParts.map((p) => ({
-            type: 'output_text',
-            text: (p as TextPart).text,
-          })),
+          content: run.map((p) => ({ type: 'output_text', text: p.text })),
+          ...(phase !== undefined ? { phase } : {}),
         });
+        run = [];
+      };
+      for (const p of textParts) {
+        if (run.length > 0 && run[0]?.phase !== p.phase) flush();
+        run.push(p);
       }
+      flush();
 
       // Tool calls as function_call items
       for (const p of parts) {
         if (p.type === 'tool_call') {
+          toolNames.set(p.id, p.name);
           items.push({
             type: 'function_call',
             id: `fc_${p.id}`,
@@ -411,10 +426,17 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
 
       for (const p of parts) {
         if (p.type === 'tool_result') {
+          // `name`/`namespace` identify the tool that produced the output (openai-ts 7.x).
+          // Probe-verified 2026-08-06: accepted, and a non-string `namespace` is rejected, so the
+          // fields are validated rather than ignored. The name comes from the matching call — we
+          // never invent one, so a result with no matching call simply omits it.
+          const name = toolNames.get(p.id);
           items.push({
             type: 'function_call_output',
             call_id: p.id,
             output: typeof p.content === 'string' ? p.content : JSON.stringify(p.content),
+            ...(name !== undefined ? { name } : {}),
+            ...(p.namespace !== undefined ? { namespace: p.namespace } : {}),
           });
         }
       }
@@ -454,11 +476,18 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
 
       if (type === 'message') {
         const itemContent = (item.content as Array<Record<string, unknown>>) ?? [];
+        // `phase` distinguishes narration from the answer on codex-family models. Carried onto the
+        // text part so a caller (and our agent loop) can tell them apart; absent on every other
+        // model, where the text is simply the answer.
+        const phase = typeof item.phase === 'string' ? (item.phase as AssistantPhase) : undefined;
         for (const c of itemContent) {
           if (c.type === 'output_text') {
             const t = c.text as string;
+            // `text` stays the full concatenation: narrowing it to final_answer here would silently
+            // change what every existing caller reads. Consumers that want only the answer can
+            // filter the parts by phase.
             text += t;
-            content.push({ type: 'text', text: t });
+            content.push({ type: 'text', text: t, ...(phase !== undefined ? { phase } : {}) });
           }
         }
       }
@@ -564,7 +593,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     };
   }
 
-  parseStreamEvent(event: SSEEvent): StreamEvent[] {
+  parseStreamEvent(event: SSEEvent, phaseByItem?: Map<string, AssistantPhase>): StreamEvent[] {
     const data = JSON.parse(event.data) as Record<string, unknown>;
     const type = data.type as string;
     const events: StreamEvent[] = [];
@@ -574,7 +603,13 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       // deltas from several items, so pass it through for consumers that reassemble
       // per item instead of concatenating (openai-agents 0.13.5 surfaces the same).
       const itemId = data.item_id as string | undefined;
-      events.push({ type: 'text', text: data.delta as string, ...(itemId ? { itemId } : {}) });
+      const phase = itemId ? phaseByItem?.get(itemId) : undefined;
+      events.push({
+        type: 'text',
+        text: data.delta as string,
+        ...(itemId ? { itemId } : {}),
+        ...(phase !== undefined ? { phase } : {}),
+      });
     }
 
     if (type === 'response.function_call_arguments.delta') {
@@ -587,6 +622,12 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
 
     if (type === 'response.output_item.added') {
       const item = data.item as Record<string, unknown>;
+      // Remember this item's phase so its text deltas can carry it (the deltas themselves
+      // carry only `item_id`).
+      if (item?.type === 'message' && typeof item.phase === 'string') {
+        const itemId = (data.item_id as string) ?? (item.id as string);
+        if (itemId) phaseByItem?.set(itemId, item.phase as AssistantPhase);
+      }
       if (item?.type === 'function_call') {
         events.push({
           type: 'tool_call_start',
@@ -668,7 +709,11 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
   /** Stateless — each output item finalizes with all its file annotations in a
    *  single response.output_item.done event. */
   createStreamParser(): (event: SSEEvent) => StreamEvent[] {
-    return (event) => this.parseStreamEvent(event);
+    // `phase` is announced once, on `response.output_item.added`, but belongs on every text delta
+    // of that item — so it has to be remembered per stream. Scoped to this parser instance so
+    // concurrent streams cannot leak phases into each other.
+    const phaseByItem = new Map<string, AssistantPhase>();
+    return (event) => this.parseStreamEvent(event, phaseByItem);
   }
 
   /** Hosted code-execution output files from one output item. Overridable so

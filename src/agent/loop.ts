@@ -14,6 +14,7 @@
 import { HookBus } from '../bus/hook-bus';
 import {
   contentText,
+  finalAnswerText,
   type ContentPart,
   type Message,
   type ToolCallPart,
@@ -403,12 +404,19 @@ export class AgentLoop {
     }
 
     // Compose final CompletionResponse — total usage, last step's content/text.
+    //
+    // `finalAnswerText` strips `phase: 'commentary'` parts: a codex-family model narrates before it
+    // answers, and `response.text` concatenates both — so an agent's final output used to include
+    // its own thinking-out-loud. Falls back to `.text` when the content carries no text parts, and
+    // is identical to `.text` for every model that reports no phase.
     const finalText =
       reason === 'guardrail'
         ? (guardrailTripReason ?? '')
         : reason === 'max_steps'
           ? `stopped: reached maxSteps (${this._maxSteps})`
-          : (lastResponse?.text ?? '');
+          : lastResponse
+            ? finalAnswerText(lastResponse.content ?? []) || (lastResponse.text ?? '')
+            : '';
     const finalContent = lastResponse?.content ?? [];
     const finalResponse: CompletionResponse = {
       id: lastResponse?.id ?? `agent-${runId}`,
