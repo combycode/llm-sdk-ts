@@ -18,6 +18,9 @@ A unified, pluggable AI SDK for accessing the LLMs of every major provider —
 npm install @combycode/llm-sdk      # or: bun add @combycode/llm-sdk
 ```
 
+Upgrading from 1.x? See [MIGRATION.md](./MIGRATION.md) — three things can
+require action, and none of them is a provider change.
+
 Requires **Node ≥ 22** or Bun ≥ 1.1. (Node 18 and 20 are end-of-life; 22 is also the floor
 `openai-node` 7 adopted.)
 

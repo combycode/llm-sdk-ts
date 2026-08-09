@@ -4,7 +4,7 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.0.0] - 2026-08-09
 
 **Upgrading:** three things can require action, and none of them is a provider change — that is the
 point of the facade. (1) Node **22+** is now required. (2) `tiktoken` is an optional **peer**: run
@@ -12,7 +12,7 @@ point of the facade. (1) Node **22+** is now required. (2) `tiktoken` is an opti
 over `FinishReason` or `ContentPart` without a `default` branch, add one — both are open by design
 (CONSTITUTION R1) so future provider values arrive additively instead of breaking your build. The
 only changed signature is `OpenAITranscriptionAdapter.transcribe()`, which now returns an object;
-read `.text`. The `transcribe()` helper is unaffected.
+read `.text`. The `transcribe()` helper is unaffected. Full detail: [MIGRATION.md](./MIGRATION.md).
 
 ### Changed — packaging (install/runtime level; no source change for consumers)
 
