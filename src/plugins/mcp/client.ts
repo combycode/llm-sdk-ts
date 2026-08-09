@@ -637,7 +637,9 @@ export class McpClient {
         [MCP_PROTOCOL_VERSION_META_KEY]: this.negotiatedVersion,
         [MCP_CLIENT_CAPABILITIES_META_KEY]: this.opts.capabilities ?? {},
         [MCP_CLIENT_INFO_META_KEY]: this.clientInfo(),
-        // A caller-supplied key wins — subscriptions/listen stamps its own id.
+        // Nothing supplies its own `_meta` today; the spread keeps it that way by choice
+        // rather than by accident, so a future caller can add a key without it being
+        // silently overwritten by the envelope.
         ...callerMeta,
       },
     };
