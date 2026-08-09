@@ -331,7 +331,7 @@ export class QueueState {
       if (error.kind === 'rate_limit') {
         // Clamp before pausing: an un-capped `Retry-After: 86400` would freeze the ENTIRE limiter
         // (every request on this queue, not just this one) for a day.
-        const pauseMs = this.honoredRetryAfterMs(error);
+        const pauseMs = this.honoredRetryAfterMs(error, this.retryFor(entry.request));
         if (pauseMs) this.rateLimiter.pause(pauseMs);
         this.emitRateLimitUpdate(entry.request, resHeaders, 'rate_limit_error');
 
@@ -378,11 +378,14 @@ export class QueueState {
     startTime: number,
     idempotencyKey: string,
   ): void {
-    const kindConfig = this.retry.perKind?.[error.kind];
+    const retry = this.retryFor(entry.request);
+    const kindConfig = retry.perKind?.[error.kind];
     const isRetryable = kindConfig?.retryable ?? error.retryable;
-    const maxRetries = kindConfig?.maxRetries ?? this.retry.maxRetries;
+    // Precedence: a per-request override beats the per-kind rule, which beats the queue default.
+    // The override is the most specific statement of intent, so it wins.
+    const maxRetries = entry.request.retry?.maxRetries ?? kindConfig?.maxRetries ?? retry.maxRetries;
     const elapsed = performance.now() - startTime;
-    const withinBudget = elapsed < this.retry.totalTimeoutMs;
+    const withinBudget = elapsed < retry.totalTimeoutMs;
     // A streamed request body is consumed by the first attempt and cannot be replayed,
     // so retrying it would send an empty/partial body. Our own `rawBody` callers all
     // pass FormData or bytes (both replayable), but a caller supplying a stream must
@@ -394,7 +397,7 @@ export class QueueState {
     const retryAfterTooLong =
       error.retryAfterMs !== undefined &&
       error.retryAfterMs !== null &&
-      error.retryAfterMs > this.retry.maxRetryAfterMs;
+      error.retryAfterMs > retry.maxRetryAfterMs;
     const willRetry =
       isRetryable && entry.attempt < maxRetries && withinBudget && replayableBody && !retryAfterTooLong;
 
@@ -410,7 +413,7 @@ export class QueueState {
     });
 
     if (willRetry) {
-      const backoffMs = this.calculateBackoff(entry.attempt, error, kindConfig);
+      const backoffMs = this.calculateBackoff(entry.attempt, error, kindConfig, retry);
 
       this.hooks.emitSync('onRetry', {
         provider: entry.request.provider,
@@ -437,22 +440,38 @@ export class QueueState {
   /** The `Retry-After` we will actually honour: the server's value clamped to `maxRetryAfterMs`.
    *  Anything above the cap never reaches here as a retry (see `retryAfterTooLong`), so the clamp
    *  is a floor-level guard for the limiter-pause path and any future consumer. */
-  private honoredRetryAfterMs(error: LLMError): number | undefined {
+  /** The effective retry policy for one request: the queue's, with any per-request override
+   *  applied on top. `perKind` is never overridden — see `RequestRetryOverride`. */
+  private retryFor(req: HttpRequest): RetryConfig {
+    const o = req.retry;
+    if (!o) return this.retry;
+    return {
+      ...this.retry,
+      ...(o.maxRetries !== undefined ? { maxRetries: o.maxRetries } : {}),
+      ...(o.totalTimeoutMs !== undefined ? { totalTimeoutMs: o.totalTimeoutMs } : {}),
+      ...(o.attemptTimeoutMs !== undefined ? { attemptTimeoutMs: o.attemptTimeoutMs } : {}),
+      ...(o.maxRetryAfterMs !== undefined ? { maxRetryAfterMs: o.maxRetryAfterMs } : {}),
+      ...(o.backoff ? { backoff: { ...this.retry.backoff, ...o.backoff } } : {}),
+    };
+  }
+
+  private honoredRetryAfterMs(error: LLMError, retry: RetryConfig = this.retry): number | undefined {
     const raw = error.retryAfterMs;
     if (raw === undefined || raw === null || !Number.isFinite(raw) || raw <= 0) return undefined;
-    return Math.min(raw, this.retry.maxRetryAfterMs);
+    return Math.min(raw, retry.maxRetryAfterMs);
   }
 
   private calculateBackoff(
     attempt: number,
     error: LLMError,
     kindConfig?: ErrorRetryConfig,
+    retry: RetryConfig = this.retry,
   ): number {
-    const honored = this.honoredRetryAfterMs(error);
+    const honored = this.honoredRetryAfterMs(error, retry);
     if (honored !== undefined) return honored;
     if (kindConfig?.fixedBackoffMs) return kindConfig.fixedBackoffMs;
 
-    const { initialMs, maxMs, multiplier, jitter } = this.retry.backoff;
+    const { initialMs, maxMs, multiplier, jitter } = retry.backoff;
     const base = Math.min(initialMs * multiplier ** attempt, maxMs);
     const j = 1 - (Math.random() * jitter * 2 - jitter);
     return Math.round(base * j);
@@ -460,7 +479,8 @@ export class QueueState {
 
   private async executeOnce(req: HttpRequest): Promise<Response> {
     const controller = new AbortController();
-    const timeout = req.timeout ?? this.retry.attemptTimeoutMs;
+    // Explicit `timeout` still wins; otherwise the per-request override, then the queue default.
+    const timeout = req.timeout ?? this.retryFor(req).attemptTimeoutMs;
     const timeoutId = setTimeout(() => controller.abort(), timeout);
     const signal = req.signal ? anySignal(req.signal, controller.signal) : controller.signal;
 

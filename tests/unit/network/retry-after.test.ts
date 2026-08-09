@@ -93,6 +93,83 @@ const request = (): HttpRequest => ({
   model: 'claude-3-5',
 });
 
+// ─── per-request retry override (google-ts 2.15 moved retryOptions per-request) ───
+
+describe('per-request retry override', () => {
+  it('a request can be less patient than the queue it shares', async () => {
+    const hooks = new HookBus();
+    let retries = 0;
+    hooks.on('onRetry', () => {
+      retries++;
+    });
+
+    const engine = new NetworkEngine({
+      hooks,
+      fetch: stubFetch(500, {}),
+      queues: {
+        'anthropic/claude-3-5': {
+          retry: { maxRetries: 3, perKind: { server_error: { retryable: true, maxRetries: 3 } } },
+        },
+      },
+    });
+
+    // The queue would retry three times; this one request asks for none.
+    await expect(engine.fetch({ ...request(), retry: { maxRetries: 0 } })).rejects.toBeDefined();
+    expect(retries).toBe(0);
+  });
+
+  it('leaves the queue policy untouched for other requests', async () => {
+    const hooks = new HookBus();
+    let retries = 0;
+    hooks.on('onRetry', () => {
+      retries++;
+    });
+
+    const engine = new NetworkEngine({
+      hooks,
+      fetch: stubFetch(500, {}),
+      queues: {
+        'anthropic/claude-3-5': {
+          retry: { maxRetries: 1, perKind: { server_error: { retryable: true, maxRetries: 1 } } },
+        },
+      },
+    });
+
+    await expect(engine.fetch({ ...request(), retry: { maxRetries: 0 } })).rejects.toBeDefined();
+    expect(retries).toBe(0);
+
+    // Same queue, no override → the queue's own policy still applies.
+    await expect(engine.fetch(request())).rejects.toBeDefined();
+    expect(retries).toBe(1);
+  });
+
+  it('overrides the Retry-After cap per request, in both directions', async () => {
+    const run = async (maxRetryAfterMs: number): Promise<number> => {
+      const hooks = new HookBus();
+      let retries = 0;
+      hooks.on('onRetry', () => {
+        retries++;
+      });
+      const engine = new NetworkEngine({
+        hooks,
+        fetch: stubFetch(429, { 'retry-after-ms': '50' }),
+        queues: {
+          'anthropic/claude-3-5': {
+            retry: { maxRetries: 1, perKind: { rate_limit: { retryable: true, maxRetries: 1 } } },
+          },
+        },
+      });
+      await expect(engine.fetch({ ...request(), retry: { maxRetryAfterMs } })).rejects.toBeDefined();
+      return retries;
+    };
+
+    // Identical server response, identical queue: only the per-request cap differs. A 50 ms
+    // Retry-After is a refusal under a 10 ms cap and an ordinary delay under a 1 s one.
+    expect(await run(10)).toBe(0);
+    expect(await run(1_000)).toBe(1);
+  });
+});
+
 describe('an over-cap Retry-After fails fast instead of parking', () => {
   it('rejects promptly and never schedules a retry', async () => {
     const hooks = new HookBus();

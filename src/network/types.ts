@@ -28,6 +28,25 @@ export interface HttpRequest {
   /** Trace correlation — set by the caller (LLM client / media op) from the
    *  RequestContext so every network event can echo `sessionId:requestId`. */
   trace?: TraceContext;
+  /** Per-request retry overrides, applied over the queue's policy for THIS request only.
+   *
+   *  The queue's policy is shared by every call on it, so a one-off needing to be more (or less)
+   *  patient — a long batch submit, a health check that should fail fast — previously had to accept
+   *  the shared policy or get its own queue. Mirrors Google moving `retryOptions` from client-level
+   *  to per-request `HttpOptions` (google-ts 2.15). */
+  retry?: RequestRetryOverride;
+}
+
+/** The retry knobs a single request may override.
+ *
+ *  Deliberately a subset: `perKind` stays queue-level, because one request cannot sensibly redefine
+ *  which error classes are retryable for the queue it shares with everyone else. */
+export interface RequestRetryOverride {
+  maxRetries?: number;
+  totalTimeoutMs?: number;
+  attemptTimeoutMs?: number;
+  maxRetryAfterMs?: number;
+  backoff?: Partial<{ initialMs: number; maxMs: number; multiplier: number; jitter: number }>;
 }
 
 /** Raw HTTP response (post-fetch, pre-provider-parse). */

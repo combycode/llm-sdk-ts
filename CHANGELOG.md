@@ -147,6 +147,24 @@ re-issues the same call carrying the answers plus the server's opaque `requestSt
 - `cacheScope` is recorded but never used to widen sharing: this cache lives inside one client with
   one credential, where `public` buys nothing.
 
+### Added — agent + network
+
+- **`toolNameCollisionPolicy`** on `AgentLoop` (`'warn'` default, `'error'`). Tools are registered
+  in a map keyed by function name / builtin type, so two tools sharing a key meant one **silently
+  replaced** the other and the model never saw it — surfacing much later as "the model called the
+  wrong tool", with nothing in the logs pointing at the cause. `'warn'` keeps last-write-wins (an
+  app relying on a deliberate override still works — R4) but emits an `onWarning`
+  (`code: 'tool_name_collision'`) naming the key and which tool lost; `'error'` throws at
+  construction or `addTool()`, before the model is called. Re-registering the *same* tool object is
+  not a collision.
+- **Per-request retry overrides** — `HttpRequest.retry` (`maxRetries`, `totalTimeoutMs`,
+  `attemptTimeoutMs`, `maxRetryAfterMs`, `backoff`). A queue's retry policy is shared by every call
+  on it, so a one-off that needs to be more or less patient — a long batch submit, a health check
+  that should fail fast — previously had to accept the shared policy or get its own queue. Mirrors
+  Google moving `retryOptions` from client-level to per-request `HttpOptions` (google-ts 2.15).
+  `perKind` deliberately stays queue-level: one request cannot redefine which error classes are
+  retryable for everyone sharing the queue. Precedence is per-request → per-kind → queue default.
+
 ### Added — OpenAI Responses parity
 
 - **Assistant `phase` (`commentary` | `final_answer`)** on `TextPart` and on streamed text events.

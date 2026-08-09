@@ -29,6 +29,20 @@ export interface AgentLoopConfig {
   /** Executable tools. Indexed by function name (FunctionTool) or type (BuiltinTool). */
   tools?: AgentTool[];
 
+  /** What to do when two tools claim the same registry key.
+   *
+   *  Registration is a map keyed by function name / builtin type, so a collision means one tool
+   *  SILENTLY replaces another and the model never sees it. The failure then surfaces much later
+   *  as "the model called the wrong tool", with nothing in the logs pointing at the cause.
+   *
+   *  - `'warn'` (default) — keep last-write-wins, but emit an `onWarning`
+   *    (`code: 'tool_name_collision'`) naming the key and which tool lost.
+   *  - `'error'` — throw at construction / `addTool()`, before the model is ever called.
+   *
+   *  Defaults to `'warn'` so an app that unknowingly has a collision keeps working
+   *  (CONSTITUTION.md R4) — the collision just stops being invisible. */
+  toolNameCollisionPolicy?: 'warn' | 'error';
+
   /** Reuse an existing history (or rehydrate from a snapshot). New history
    *  is created when omitted. */
   history?: ConversationHistory | HistorySnapshot;

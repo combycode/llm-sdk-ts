@@ -37,7 +37,7 @@ import type {
   ToolExecutionContext,
 } from './types';
 import type { Guardrail, GuardrailDecision, ToolInputGuardrail } from './guardrail-types';
-import { toolKey } from './tool-key';
+import { describeTool, toolKey } from './tool-key';
 import type { AgentLoopConfig } from './loop-config';
 import type { PermissionPolicy } from '../plugins/permissions/policy';
 import type { ApprovalRequest, ApprovalDecision, PendingToolCall } from './approval-types';
@@ -71,6 +71,7 @@ export class AgentLoop {
   private _thinking?: ThinkingConfig;
   private _cache?: CacheConfig;
 
+  private _collisionPolicy: 'warn' | 'error';
   private _parallelToolCalls: boolean;
   private _toolTimeout: number;
   private _maxSteps: number;
@@ -115,9 +116,10 @@ export class AgentLoop {
     this._approve = config.approve ?? null;
     this._checkpoint = config.checkpoint ?? null;
 
+    this._collisionPolicy = config.toolNameCollisionPolicy ?? 'warn';
     this._tools = new Map();
     for (const t of config.tools ?? []) {
-      this._tools.set(toolKey(t), t);
+      this.registerTool(t);
     }
 
     if (config.history instanceof ConversationHistory) {
@@ -213,7 +215,35 @@ export class AgentLoop {
   }
 
   addTool(tool: AgentTool): void {
-    this._tools.set(toolKey(tool), tool);
+    this.registerTool(tool);
+  }
+
+  /** Register a tool, surfacing a name collision instead of letting the last write win silently.
+   *
+   *  The `warn` path still overwrites — that is the pre-existing behaviour and changing it would
+   *  break apps that depend on a deliberate override — but it now says which tool lost. */
+  private registerTool(tool: AgentTool): void {
+    const key = toolKey(tool);
+    const existing = this._tools.get(key);
+    if (existing && existing !== tool) {
+      if (this._collisionPolicy === 'error') {
+        throw new Error(
+          `AgentLoop: two tools registered under "${key}". Tools are indexed by function name ` +
+            `(or builtin type), so one would silently shadow the other and the model would only ` +
+            `ever see the last one. Rename one, or set toolNameCollisionPolicy: 'warn' to keep ` +
+            `last-write-wins.`,
+        );
+      }
+      void this.hooks.emit('onWarning', {
+        source: 'agent',
+        code: 'tool_name_collision',
+        message:
+          `Tool "${key}" was registered twice; the later registration wins and the earlier tool ` +
+          `is unreachable by the model.`,
+        details: { key, shadowed: describeTool(existing), winner: describeTool(tool) },
+      });
+    }
+    this._tools.set(key, tool);
   }
 
   removeTool(name: string): void {

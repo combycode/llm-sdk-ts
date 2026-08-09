@@ -59,7 +59,7 @@ export type { FileCacheStoreConfig } from './plugins/cache/file-store';
 export type { CacheEntry, CacheStore } from './plugins/cache/types';
 
 // Network
-export type { FetchFn, HttpRequest, HttpResponse, SSEEvent, QueueSnapshot, TraceContext, ConnectFn, EngineConnect, EngineFetch, EngineFetchStream, RealtimeConnection, RealtimeFrame, RealtimeSocket, WsRequest } from './network/types';
+export type { FetchFn, HttpRequest, HttpResponse, SSEEvent, QueueSnapshot, RequestRetryOverride, TraceContext, ConnectFn, EngineConnect, EngineFetch, EngineFetchStream, RealtimeConnection, RealtimeFrame, RealtimeSocket, WsRequest } from './network/types';
 export { RealtimeConnectionImpl } from './network/realtime-connection';
 export { LLMError, classifyError } from './network/errors';
 export type { ErrorKind } from './network/errors';
