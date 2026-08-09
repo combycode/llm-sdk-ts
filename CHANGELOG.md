@@ -149,6 +149,27 @@ re-issues the same call carrying the answers plus the server's opaque `requestSt
 
 ### Added — agent + network
 
+- **`checkProvenance()`** — detect provider provenance signals in a file (C2PA manifest, SynthID
+  watermark) via OpenAI's new `POST /v1/content_provenance_checks`. Bytes in, structured verdict
+  out, same shape as `moderate()`, with an honest-zero cost entry so the ledger records the call.
+  It is the only "was this AI-generated" primitive any tracked SDK ships.
+  - The result separates **`detected`** from **`trusted`**, and the docs say why: signals are
+    strippable — a re-encode, crop or screenshot usually removes them — so `detected: false` is
+    absence of evidence, not evidence a human made the file. Only a detected manifest that
+    *validated* is a positive statement.
+  - `detected` is true if ANY signal fired: audio carries SynthID only, so requiring both schemes
+    would report every audio file as clean.
+- **`AnchoredStrategy`** for ContextGuard — one growing scratchpad instead of a chain of summaries
+  (ported from google-adk 1.5 `AnchoredContextCompactor`). `LayeredStrategy` emits a new summary
+  per compaction, so old facts get summarised repeatedly and drift; anchored merges each compaction
+  into a single head entry, so every fact is summarised from raw text exactly once. The trade is
+  stated in the file: one anchor means one blast radius.
+  - **Never splits a tool call from its result.** The retain boundary walks backwards past a
+    `tool_result` whose `tool_call` would be cut away — several providers reject an orphaned
+    result outright and the rest silently misread it.
+  - **A summariser returning nothing declines rather than dropping entries**: trading a context
+    overflow for silent data loss is strictly worse.
+
 - **`toolNameCollisionPolicy`** on `AgentLoop` (`'warn'` default, `'error'`). Tools are registered
   in a map keyed by function name / builtin type, so two tools sharing a key meant one **silently
   replaced** the other and the model never saw it — surfacing much later as "the model called the
