@@ -34,11 +34,14 @@ export function accumulateStreamEvent(
   switch (event.type) {
     case 'text':
       // `stepText` becomes the step's answer, so commentary is kept out of it — the same rule the
-      // buffered path applies through `finalAnswerText`. The delta is still yielded to the consumer,
-      // who may well want to render the narration live; it simply is not the answer.
+      // buffered path applies through `finalAnswerText`.
       if (event.phase === 'commentary') state.stepCommentary += event.text;
       else state.stepText += event.text;
-      return { type: 'text', text: event.text };
+      // The phase is FORWARDED, not just used internally. Dropping it left the agent layer
+      // unable to tell narration from the answer, so a UI streaming these straight through
+      // put the model's thinking-aloud in the transcript as if it were the reply —
+      // and `finalAnswerText()` cannot help, because it operates on a finished message.
+      return { type: 'text', text: event.text, ...(event.phase ? { phase: event.phase } : {}) };
 
     case 'thinking':
       state.stepThinking += event.text;

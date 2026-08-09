@@ -178,9 +178,19 @@ The same `reason` is delivered in the `onRunComplete` hook payload.
 
 A **failed LLM call** during a run (auth, rate limit, context overflow, provider error) **throws** out
 of `agent.complete()` / `agent.stream()` — the original `LLMError` (with `kind`/`status`) — matching a
-no-tools `complete()`. It never silently returns empty text. If you want partial results + a status
-instead of a throw, use `agent.run()`, which returns an `AgentRunReport` with `reason: 'error'` and the
-`error` message. **Bounded stops** are not errors: `max_steps` returns `finishReason: 'length'` (see
+no-tools `complete()`. It never silently returns empty text. For partial results + a status, catch the
+error and read `agent.lastReport` — an `AgentRunReport` carrying `reason`, the per-step and per-tool
+reports, and usage:
+
+```ts
+try {
+  await agent.complete('…');
+} catch (err) {
+  const report = agent.lastReport;   // reason, steps, toolCalls, usage
+}
+```
+
+**Bounded stops** are not errors: `max_steps` returns `finishReason: 'length'` (see
 above) and a model refusal returns normally — both are inspectable via `finishReason` / `report.reason`.
 
 ## Recovering from a model failure (`reflectAndRetry`)
@@ -221,7 +231,7 @@ Codex-family models narrate before answering. Those parts are tagged
 `phase: 'commentary'` versus `'final_answer'`, and `response.text` concatenates **everything** — so
 an agent's output used to include its own thinking-out-loud.
 
-`AgentLoop` now derives its answer with `finalAnswerText()`, which drops commentary. `response.text`
+`AgentLoop` derives its answer with `finalAnswerText()`, which drops commentary. `response.text`
 and `contentText()` are unchanged, so callers who want the narration still get it:
 
 ```ts
@@ -230,6 +240,20 @@ import { finalAnswerText } from '@combycode/llm-sdk';
 const answer = finalAnswerText(res.content);   // commentary excluded
 console.log(res.text);                          // everything, as before
 ```
+
+**Streaming carries the phase too**, on the agent event itself — so you can separate narration
+from the answer *live*, which is when it matters for a UI:
+
+```ts
+for await (const ev of agent.stream('…')) {
+  if (ev.type !== 'text') continue;
+  if (ev.phase === 'commentary') renderThinking(ev.text);
+  else appendToReply(ev.text);
+}
+```
+
+`finalAnswerText()` cannot do this job: it takes a finished message's `content`, not deltas. Use it
+on the assembled message; use `ev.phase` on the stream.
 
 `AssistantPhase` is an open union, and `finalAnswerText` excludes only what is explicitly
 `'commentary'` rather than keeping only `'final_answer'` — the day a provider adds a third phase, an

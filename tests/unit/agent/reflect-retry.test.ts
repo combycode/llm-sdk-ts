@@ -195,3 +195,63 @@ describe('AgentLoop reflect-and-retry', () => {
     expect(res.finishReason).toBe('malformed_tool_call');
   });
 });
+
+// ─── the agent boundary must not lose the phase ──────────────────────────────
+
+/** Shipped in 2.0.0 without this: the mapper split commentary internally and then yielded
+ *  BOTH deltas through one `{type:'text', text}` event with no phase. A UI streaming those
+ *  straight through put the model's thinking-aloud into the transcript as the reply, and
+ *  `finalAnswerText()` could not help — it takes finished message content, not deltas.
+ *  Reported by a consumer, not by us. */
+describe('agent stream preserves phase', () => {
+  function streamingClient(events: Array<{ type: 'text'; text: string; phase?: string }>) {
+    return {
+      id: 'c1',
+      provider: 'openai',
+      model: 'gpt-5.3-codex',
+      api: 'responses',
+      mode: 'stream',
+      batchable: false,
+      complete: async (): Promise<CompletionResponse> => {
+        throw new Error('not used');
+      },
+      stream: async function* () {
+        for (const e of events) yield e;
+        yield { type: 'done', finishReason: 'stop', usage: emptyUsage() };
+      },
+    };
+  }
+
+  it('forwards commentary and answer distinguishably', async () => {
+    const loop = new AgentLoop({
+      client: streamingClient([
+        { type: 'text', text: 'let me think…', phase: 'commentary' },
+        { type: 'text', text: 'the answer', phase: 'final_answer' },
+      ]) as never,
+    });
+
+    const seen: Array<{ text: string; phase?: string }> = [];
+    for await (const ev of loop.stream('go')) {
+      if (ev.type === 'text') seen.push({ text: ev.text, phase: (ev as { phase?: string }).phase });
+    }
+
+    expect(seen).toEqual([
+      { text: 'let me think…', phase: 'commentary' },
+      { text: 'the answer', phase: 'final_answer' },
+    ]);
+    // The consumer can now filter live — the whole point.
+    expect(seen.filter((e) => e.phase !== 'commentary').map((e) => e.text).join('')).toBe('the answer');
+  });
+
+  it('omits phase entirely when the provider reports none', async () => {
+    const loop = new AgentLoop({
+      client: streamingClient([{ type: 'text', text: 'plain' }]) as never,
+    });
+    const seen: Array<Record<string, unknown>> = [];
+    for await (const ev of loop.stream('go')) {
+      if (ev.type === 'text') seen.push(ev as unknown as Record<string, unknown>);
+    }
+    // Absent, not `undefined`-valued: unchanged shape for every non-codex provider.
+    expect(seen).toEqual([{ type: 'text', text: 'plain' }]);
+  });
+});

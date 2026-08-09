@@ -2,7 +2,7 @@
  *  ConversationHistory, and the ContextMeasurer plugin.
  *  Also defines AgentTool (executable tool) and run-report types. */
 
-import type { ContentPart, Message } from '../llm/types/messages';
+import type { AssistantPhase, ContentPart, Message } from '../llm/types/messages';
 import type { Tool } from '../llm/types/tools';
 import type { Usage } from '../llm/types/response';
 import type { HistorySnapshot } from './history-types';
@@ -124,7 +124,11 @@ export interface AgentRunReport {
 
 export type AgentStreamEvent =
   | { type: 'step_start'; step: number }
-  | { type: 'text'; text: string }
+  /** `phase` mirrors the raw stream event: `'commentary'` is the model narrating, anything
+   *  else (usually absent) is the answer. Passed through so a consumer can tell them apart
+   *  LIVE — `finalAnswerText()` only cleans a finished message and cannot touch deltas.
+   *  Absent on every provider that reports no phase, exactly as before. */
+  | { type: 'text'; text: string; phase?: AssistantPhase }
   | { type: 'thinking'; text: string }
   | {
       type: 'tool_call_start';

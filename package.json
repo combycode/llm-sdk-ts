@@ -1,6 +1,6 @@
 {
   "name": "@combycode/llm-sdk",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Unified, pluggable AI SDK for accessing the LLMs of every major provider (Anthropic, OpenAI, Google, xAI, OpenRouter) through one API. Cross-environment: Node, Bun, and the browser.",
   "type": "module",
   "main": "./dist/index.js",

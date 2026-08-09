@@ -4,6 +4,37 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [2.0.1] - 2026-08-10
+
+Three defects reported by a consumer within a day of 2.0.0 — all reachable by reading the shipped
+`.d.ts`, none caught by our gate. See the note at the end.
+
+### Fixed
+
+- **`agent.stream()` now carries `phase` on text events.** The raw stream event had it, and the
+  agent mapper *used* it internally to keep commentary out of the answer — then yielded both deltas
+  through one `{ type: 'text', text }` with the phase stripped. A UI streaming those straight
+  through put the model's thinking-aloud into the transcript **as if it were the reply**, with no
+  way to tell them apart. `finalAnswerText()` could not help: it takes a finished message's
+  `content`, not deltas.
+  - Additive: `phase` is **absent** (not `undefined`) when the provider reports none, so every
+    non-codex provider is byte-identical to before.
+- **Docs: `agent.run()` does not exist.** The agent-loop guide recommended it for a non-throwing
+  report. The class exposes `stop` / `complete` / `structuredComplete` / `stream`; the report is
+  reached with `try/catch` + `agent.lastReport`. The guide now shows that.
+- **Docs: the 2.0.0 changelog overstated live commentary.** It said commentary "is still yielded to
+  the consumer (a UI may well want to render it live)" — true only in the sense that the bytes
+  arrived; they were unlabelled, so a UI could not act on them. The 2.0.0 entry now says so and
+  points here.
+
+### Why this got out
+
+The feature was verified end-to-end on the **buffered** path (`finalAnswerText`, `response.text`,
+live-tested against real models) and never once from the **layer most consumers actually call**.
+1778 tests, four MCP transports and two live corpora, and no check that a shipped type was usable
+from `agent.stream()`. The gate was deep where it was pointed and blind where it was not — so the
+release checklist now includes a consumer-surface pass over the published `.d.ts`.
+
 ## [2.0.0] - 2026-08-09
 
 **Upgrading:** three things can require action, and none of them is a provider change — that is the
@@ -250,8 +281,9 @@ with `inputRequiredMaxRounds`.
     silently drop the answer.
   - Streaming carries it too. `phase` is announced once on `response.output_item.added` and belongs
     on every delta of that item, so the parser keeps per-stream item→phase state; concurrent streams
-    cannot leak phases into each other. Commentary is still yielded to the consumer (a UI may well
-    want to render it live) and is preserved in the assembled content as its own phase-tagged part.
+    cannot leak phases into each other. Commentary is yielded to the consumer and preserved in the
+    assembled content as its own phase-tagged part. (In 2.0.0 the agent-layer event dropped the
+    phase, so a UI could not act on it — corrected in 2.0.1.)
   - Nothing is inferred: a model that reports no phase produces parts with no phase, exactly as
     before.
 - **`name` + `namespace` on `function_call_output`.** The tool name is taken from the matching
