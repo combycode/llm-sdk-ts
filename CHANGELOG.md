@@ -6,6 +6,14 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+**Upgrading:** three things can require action, and none of them is a provider change — that is the
+point of the facade. (1) Node **22+** is now required. (2) `tiktoken` is an optional **peer**: run
+`npm i tiktoken` only if you use exact local OpenAI token counting. (3) If you switch exhaustively
+over `FinishReason` or `ContentPart` without a `default` branch, add one — both are open by design
+(CONSTITUTION R1) so future provider values arrive additively instead of breaking your build. The
+only changed signature is `OpenAITranscriptionAdapter.transcribe()`, which now returns an object;
+read `.text`. The `transcribe()` helper is unaffected.
+
 ### Changed — packaging (install/runtime level; no source change for consumers)
 
 - **Node floor raised to `>=22`** (was `>=18`). Node 18 and 20 are both end-of-life; 22 is also the
@@ -37,6 +45,21 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 handshake, the session id, and the whole server→client back-channel. Real servers are still almost
 entirely on 2025-11-25, so this is **dual-era or it is a regression** — both wires are supported and
 neither is preferred.
+
+**Verified against a real server, on every transport.** The modern wire was developed against our
+own test doubles, which is not evidence: a shape that satisfies a fake can still be rejected by a
+real implementation. Before release the whole surface was run against the official
+`mcp` 2.0.0 Python server — negotiation, tools, resources, prompts, MRTR, `subscriptions/listen`
+with live change events, result caching and era gating — over **stdio, Streamable HTTP and
+WebSocket**, plus a real 2025-11-25 server (DeepWiki) to prove the fallback. That exercise found
+six defects that no unit test could have caught, four of which failed *silently*: the per-request
+`_meta` identity envelope was missing (on ordinary requests, and separately on the long-lived
+`subscriptions/listen` POST, where the rejection surfaced as the stream simply ending — so `listen()`
+returned a subscription that looked alive and delivered nothing); `connectMcp` never forwarded
+`cacheResults`, making the opt-in cache a no-op; the discover probe omitted the
+`MCP-Protocol-Version` header that modern servers route on; the routing headers keyed off an era
+that is not yet set during the probe; and the long-lived POST accepted only `text/event-stream`,
+which a modern server answers with `406`. All are fixed and pinned by regression tests.
 
 - **`server/discover` negotiation with handshake fallback.** `ConnectMcpOptions.protocolMode`:
   `'auto'` (default) probes the modern wire and falls back to `initialize`; `'legacy'` skips the
@@ -133,6 +156,8 @@ re-issues the same call carrying the answers plus the server's opaque `requestSt
   deletion is not our deletion (R7). It is also duplex, so it supports `subscriptions/listen` today.
 
 **Result cache hints (`ttlMs` / `cacheScope`)** — opt-in via `cacheResults`, off by default.
+Settable on `connectMcp(config, { cacheResults: true })` as well as on `McpClient` directly, along
+with `inputRequiredMaxRounds`.
 
 - Honours the server's freshness hint on `tools/list`, `prompts/list`, `resources/list`,
   `resources/templates/list` and `resources/read`. **A server that sends no hints caches nothing**,

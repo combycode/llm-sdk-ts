@@ -199,6 +199,10 @@ export class McpClient {
 
   /** The pre-2026 path, unchanged: `initialize` + `notifications/initialized`. */
   private async handshake(): Promise<void> {
+    // A failed probe leaves the modern version stamped on the transport, and on HTTP that
+    // header is what routes the request — an `initialize` carrying `2026-07-28` would be
+    // sent to the very handler that just refused us. Restore the handshake version first.
+    this.transport.setProtocolVersion?.(MCP_PROTOCOL_VERSION);
     const result = (await this.transport.request('initialize', {
       protocolVersion: MCP_PROTOCOL_VERSION,
       capabilities: this.opts.capabilities ?? {},
@@ -210,8 +214,15 @@ export class McpClient {
     await this.transport.notify('notifications/initialized');
   }
 
-  /** One `server/discover` at `version`. No retry, no adoption — the caller decides. */
+  /** One `server/discover` at `version`. No retry, no adoption — the caller decides.
+   *
+   *  The transport is told the version FIRST because on HTTP it is not just bookkeeping:
+   *  a modern server routes by the `MCP-Protocol-Version` header, so a probe sent without
+   *  it lands on the legacy handler and is rejected with `400 Missing session ID` — the
+   *  connection fails outright instead of negotiating. Invisible over stdio, which has no
+   *  headers; found against mcp-py 2.0.0 Streamable HTTP (2026-08-09). */
   private async sendDiscover(version: string): Promise<McpDiscoverResult> {
+    this.transport.setProtocolVersion?.(version);
     return (await this.transport.request('server/discover', {
       _meta: {
         [MCP_PROTOCOL_VERSION_META_KEY]: version,
@@ -263,7 +274,23 @@ export class McpClient {
       try {
         result = await this.sendDiscover(version);
       } catch (e) {
-        if (!(e instanceof McpError)) throw e; // network/transport → never an era verdict
+        if (!(e instanceof McpError)) {
+          // A 4xx to the PROBE is the server refusing the modern wire outright, and on HTTP
+          // that is the ONLY way a 2025-era server can say so: the probe must carry
+          // `MCP-Protocol-Version: 2026-07-28` for a modern server to route it at all, and a
+          // legacy server answers that header with `400 Unsupported protocol version:
+          // 2026-07-28. Supported versions: …2025-11-25` before any JSON-RPC is parsed.
+          // That is a definitive statement about the wire, not an outage, so fall back.
+          //
+          // 5xx and network failures still rethrow: an outage must never silently downgrade
+          // the protocol (E4 — a transient is not a verdict).
+          const status = (e as { status?: number }).status;
+          if (typeof status === 'number' && status >= 400 && status < 500) {
+            await this.handshake();
+            return;
+          }
+          throw e;
+        }
 
         if (e.code === McpErrorCode.UnsupportedProtocolVersion) {
           const supported = supportedVersionsFrom(e.data);
@@ -332,7 +359,7 @@ export class McpClient {
     let ttlMs: number | undefined;
     let cacheScope: 'private' | 'public' | undefined;
     do {
-      const res = (await this.transport.request(method, cursor ? { cursor } : {})) as Record<string, unknown>;
+      const res = (await this.send(method, cursor ? { cursor } : {})) as Record<string, unknown>;
       const page = res?.[field] as T[] | undefined;
       if (page) out.push(...page);
       const hints = res as McpCacheHints;
@@ -355,12 +382,12 @@ export class McpClient {
     const server = this.opts.server ?? this.opts.telemetry?.server ?? 'mcp';
     const t0 = performance.now();
     try {
-      const first = (await this.transport.request('tools/call', { name, arguments: args })) as McpCallResult;
+      const first = (await this.send('tools/call', { name, arguments: args })) as McpCallResult;
       // A 2026-07-28 server can answer "I need input first" instead of a result; drive that to a
       // terminal result so the caller only ever sees a finished call. Legacy servers never set
       // `resultType`, so this is a no-op there.
       const res = await this.driveInputRequired(first, (responses, requestState) =>
-        this.transport.request('tools/call', {
+        this.send('tools/call', {
           name,
           arguments: args,
           ...(responses ? { inputResponses: responses } : {}),
@@ -393,11 +420,11 @@ export class McpClient {
     const cached = this.cache?.get(cacheKey) as McpResourceContent[] | undefined;
     if (cached) return cached;
 
-    const first = (await this.transport.request('resources/read', { uri })) as {
+    const first = (await this.send('resources/read', { uri })) as {
       contents?: McpResourceContent[];
     };
     const res = await this.driveInputRequired(first, (responses, requestState) =>
-      this.transport.request('resources/read', {
+      this.send('resources/read', {
         uri,
         ...(responses ? { inputResponses: responses } : {}),
         ...(requestState !== undefined ? { requestState } : {}),
@@ -414,12 +441,12 @@ export class McpClient {
    *  `subscriptions/listen` stream. */
   async subscribeResource(uri: string): Promise<void> {
     this.requireHandshakeEra('resources/subscribe');
-    await this.transport.request('resources/subscribe', { uri });
+    await this.send('resources/subscribe', { uri });
   }
 
   async unsubscribeResource(uri: string): Promise<void> {
     this.requireHandshakeEra('resources/unsubscribe');
-    await this.transport.request('resources/unsubscribe', { uri });
+    await this.send('resources/unsubscribe', { uri });
   }
 
   /** Open a `subscriptions/listen` stream (2026-07-28) — the single channel that replaces
@@ -458,7 +485,7 @@ export class McpClient {
     let subscription: McpSubscription | undefined;
     const id = await this.transport.sendLongLivedRequest(
       'subscriptions/listen',
-      { notifications: filter },
+      this.withEnvelope({ notifications: filter }),
       (error) => {
         // The stream ended — cleanly, or because it was rejected/dropped. Either way the
         // subscription is dead; leaving it "open" would let a caller wait forever on events that
@@ -496,9 +523,9 @@ export class McpClient {
 
   /** Render a prompt by name with arguments → its messages. */
   async getPrompt(name: string, args: Record<string, string> = {}): Promise<McpGetPromptResult> {
-    const first = (await this.transport.request('prompts/get', { name, arguments: args })) as McpGetPromptResult;
+    const first = (await this.send('prompts/get', { name, arguments: args })) as McpGetPromptResult;
     return this.driveInputRequired(first, (responses, requestState) =>
-      this.transport.request('prompts/get', {
+      this.send('prompts/get', {
         name,
         arguments: args,
         ...(responses ? { inputResponses: responses } : {}),
@@ -516,12 +543,12 @@ export class McpClient {
    *  debug logging and got none would have no way to tell. */
   async setLogLevel(level: McpLogLevel): Promise<void> {
     this.requireHandshakeEra('logging/setLevel');
-    await this.transport.request('logging/setLevel', { level });
+    await this.send('logging/setLevel', { level });
   }
 
   /** Argument autocompletion for a prompt or resource template. */
   async completeArgument(ref: McpCompletionRef, argument: { name: string; value: string }): Promise<McpCompletionResult> {
-    const res = (await this.transport.request('completion/complete', { ref, argument })) as {
+    const res = (await this.send('completion/complete', { ref, argument })) as {
       completion?: McpCompletionResult;
     };
     return res?.completion ?? { values: [] };
@@ -531,18 +558,18 @@ export class McpClient {
 
   /** Call a tool as a long-running task; returns the created task immediately. */
   async callToolTask(name: string, args: Record<string, unknown> = {}, meta: McpTaskMetadata = {}): Promise<McpTask> {
-    const res = (await this.transport.request('tools/call', { name, arguments: args, task: meta })) as { task: McpTask };
+    const res = (await this.send('tools/call', { name, arguments: args, task: meta })) as { task: McpTask };
     return res.task;
   }
 
   /** Current status of a task. */
   async getTask(taskId: string): Promise<McpTask> {
-    return (await this.transport.request('tasks/get', { taskId })) as McpTask;
+    return (await this.send('tasks/get', { taskId })) as McpTask;
   }
 
   /** The final result of a completed task. */
   async getTaskResult(taskId: string): Promise<McpCallResult> {
-    return (await this.transport.request('tasks/result', { taskId })) as McpCallResult;
+    return (await this.send('tasks/result', { taskId })) as McpCallResult;
   }
 
   /** List the server's tasks. */
@@ -551,7 +578,7 @@ export class McpClient {
   }
 
   async cancelTask(taskId: string): Promise<void> {
-    await this.transport.request('tasks/cancel', { taskId });
+    await this.send('tasks/cancel', { taskId });
   }
 
   /** Poll `tasks/get` until the task reaches a terminal status. */
@@ -568,9 +595,52 @@ export class McpClient {
     }
   }
 
-  /** Low-level escape hatch: send any request method. */
+  /** Low-level escape hatch: send any request method. Carries the modern-era identity
+   *  envelope like every other request. */
   async request(method: string, params?: unknown): Promise<unknown> {
-    return this.transport.request(method, params);
+    return this.send(method, params);
+  }
+
+  /** Every request goes through here.
+   *
+   *  At 2026-07-28 there is no handshake and no session id, so each request states its
+   *  own identity: `_meta` MUST carry the protocol version and the client capabilities
+   *  (client info is optional). Only `server/discover` used to build that envelope, so
+   *  every later call on a modern session was rejected:
+   *
+   *    -32602 params._meta must be an object carrying the required
+   *           'io.modelcontextprotocol/protocolVersion' and
+   *           'io.modelcontextprotocol/clientCapabilities' envelope keys
+   *
+   *  Unreachable without a real 2026-07-28 server — no public one exists yet; found by
+   *  running mcp-py 2.0.0 over stdio (2026-08-09).
+   *
+   *  Handshake-era sessions are untouched: identity lives in `initialize` there, and an
+   *  unexpected `_meta` is exactly the sort of thing an older server can reject. */
+  private async send(method: string, params?: unknown): Promise<unknown> {
+    if (this.era !== 'modern') return this.transport.request(method, params);
+    return this.transport.request(method, this.withEnvelope(params));
+  }
+
+  /** Stamp the modern identity envelope onto a request's params.
+   *
+   *  Shared by `send()` and the long-lived `subscriptions/listen`, because EVERY request
+   *  needs it — and the long-lived path is the one where a missing envelope hides: the
+   *  rejection arrives as the stream's end rather than a thrown error, so `listen()`
+   *  returned a subscription that looked alive and delivered nothing. */
+  private withEnvelope(params?: unknown): Record<string, unknown> {
+    const base = (params ?? {}) as Record<string, unknown>;
+    const callerMeta = (base._meta ?? {}) as Record<string, unknown>;
+    return {
+      ...base,
+      _meta: {
+        [MCP_PROTOCOL_VERSION_META_KEY]: this.negotiatedVersion,
+        [MCP_CLIENT_CAPABILITIES_META_KEY]: this.opts.capabilities ?? {},
+        [MCP_CLIENT_INFO_META_KEY]: this.clientInfo(),
+        // A caller-supplied key wins — subscriptions/listen stamps its own id.
+        ...callerMeta,
+      },
+    };
   }
 
   async close(): Promise<void> {

@@ -35,6 +35,10 @@ MCP `2026-07-28` is not an additive revision. It **removes** the `initialize` ha
 id, and the entire server-to-client back-channel, replacing them with a single `server/discover`
 probe and per-request `_meta` identity. Almost every server in the wild still speaks `2025-11-25`.
 
+> **Tested against the real thing.** Everything below was run end to end against the official
+> `mcp` 2.0.0 Python server over **stdio, Streamable HTTP and WebSocket**, and against a real
+> `2025-11-25` server for the fallback — not only against our own test doubles.
+
 So this client speaks **both**, and prefers neither:
 
 - On connect it probes `server/discover`. If that succeeds the session is **modern**
@@ -78,6 +82,19 @@ The result type did not become a union (that would break every caller). `CallToo
 optional `status` / `inputRequests` / `requestState` fields instead, so code that reads `.content`
 is untouched.
 
+Declare the handler you already use and the capability goes out with it:
+
+```ts
+const mcp = await connectMcp(config, {
+  elicit: async ({ message }) => ({ action: 'accept', content: { name: 'Alex' } }),
+});
+await mcp.client.callTool('greet', {});   // -> "hello Alex", one terminal result
+```
+
+Verified end to end on all three transports: the server returns `input_required`, the client answers
+from `elicit`, retries with the sealed `requestState`, and the caller only ever sees the finished
+result.
+
 ### Change notifications: `subscriptions/listen`
 
 At `2026-07-28`, `resources/subscribe` and the standalone SSE GET stream are replaced by one
@@ -85,18 +102,28 @@ At `2026-07-28`, `resources/subscribe` and the standalone SSE GET stream are rep
 answers with the subset it will actually deliver:
 
 ```ts
-const sub = await mcp.client.listen(['resources/updated', 'tools/list_changed']);
-console.log(sub.honored);   // what the server AGREED to send — may be narrower than you asked
-for await (const ev of sub.events) console.log(ev.method, ev.params);
+const sub = await mcp.client.listen(
+  { toolsListChanged: true, resourceSubscriptions: ['mem://note'] },
+  (event) => console.log(event.type, event),   // 'tools_list_changed' | 'resource_updated' | …
+);
+
+// The acknowledgement arrives as a notification, so `honored` fills in a moment later.
+console.log(sub.honored);            // what the server AGREED to send
+console.log(sub.isHonored('toolsListChanged'));
 await sub.close();
 ```
 
 `honored` matters: a server may accept the call and quietly deliver only some kinds. Reading it is
-the difference between "no events yet" and "this event is never coming".
+the difference between "no events yet" and "this event is never coming". It stays `null` until the
+server's `notifications/subscriptions/acknowledged` arrives.
+
+The filter is **camelCase on the wire** (`toolsListChanged`, `resourceSubscriptions`) — that is the
+spec's own serialisation, confirmed against the reference server, even though the Python attribute
+names are snake_case.
 
 `listen()` works on **every** transport — stdio and WebSocket (naturally duplex), and Streamable
-HTTP (via a long-lived streaming POST). On a handshake-era session, `resources/subscribe` keeps
-working exactly as before.
+HTTP (via a long-lived streaming POST). All three are verified against the reference server. On a
+handshake-era session, `resources/subscribe` keeps working exactly as before.
 
 ### Result caching from server hints
 
@@ -109,7 +136,15 @@ await mcp.client.listTools();   // second call inside ttlMs is served from cache
 ```
 
 Entries are invalidated automatically by the matching `*_changed` notification, so a cached tool
-list cannot go stale behind your back.
+list cannot go stale behind your back. `mcp.client.invalidateCache()` drops them by hand when you
+know the server moved before it says so.
+
+Measured against the reference server by counting wire frames (timing is not a reliable oracle over
+a local pipe): with hints and `cacheResults`, three `listTools()` calls produce **one** request;
+without hints, or with caching off, all three reach the wire.
+
+`connectMcp` also takes `inputRequiredMaxRounds` — the cap on MRTR retry rounds before it gives up
+(default 10).
 
 ### stdio buffer bound
 

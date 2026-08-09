@@ -130,13 +130,25 @@ describe('callTool drives input_required to a terminal result', () => {
     expect(seen).toEqual(['sampling/createMessage']);
 
     const [first, second] = t.toolCalls() as Array<Record<string, unknown>>;
-    expect(first).toEqual({ name: 'do_thing', arguments: { a: 1 } });
-    expect(second).toEqual({
+    // This is a MODERN session, so every request also carries the `_meta` identity
+    // envelope; assert the call-specific fields and check the envelope separately rather
+    // than pinning the whole object.
+    const { _meta: firstMeta, ...firstRest } = first;
+    expect(firstRest).toEqual({ name: 'do_thing', arguments: { a: 1 } });
+    expect((firstMeta as Record<string, unknown>)['io.modelcontextprotocol/protocolVersion']).toBe(
+      '2026-07-28',
+    );
+
+    const { _meta: secondMeta, ...secondRest } = second;
+    expect(secondRest).toEqual({
       name: 'do_thing',
       arguments: { a: 1 },
       inputResponses: { q1: { role: 'assistant', content: { type: 'text', text: 'sampled' } } },
       requestState: 'opaque-token', // echoed byte-exact, never inspected
     });
+    expect((secondMeta as Record<string, unknown>)['io.modelcontextprotocol/protocolVersion']).toBe(
+      '2026-07-28',
+    );
   });
 
   it('leaves a plain (legacy) result completely untouched', async () => {

@@ -85,7 +85,8 @@ describe('subscriptions/listen over Streamable HTTP', () => {
     // The request went out as a streaming POST carrying the JSON-RPC body...
     expect(seen).toHaveLength(1);
     expect(seen[0]?.method).toBe('POST');
-    expect(seen[0]?.headers.accept).toBe('text/event-stream');
+    // BOTH media types: `text/event-stream` alone is 406 Not Acceptable on a modern server.
+    expect(seen[0]?.headers.accept).toBe('application/json, text/event-stream');
     expect((seen[0]?.body as { method: string }).method).toBe('subscriptions/listen');
     // ...and the modern routing header rides along.
     expect(seen[0]?.headers['mcp-method']).toBe('subscriptions/listen');
@@ -202,5 +203,77 @@ describe('subscriptions/listen over Streamable HTTP', () => {
 
     // Without this the POST would hang until the server gave up on it.
     expect(ended).toBe(true);
+  });
+});
+
+// ─── what the modern HTTP wire requires of us ─────────────────────────────────
+
+import { MCP_METHOD_HEADER, MCP_PROTOCOL_VERSION_HEADER } from '../../../../src/plugins/mcp/protocol-version';
+
+/** Three HTTP-only rules, each found against a real mcp-py 2.0.0 Streamable HTTP server
+ *  (2026-08-09) and each invisible over stdio, which has no headers and a duplex pipe. */
+describe('modern Streamable HTTP request shape', () => {
+  function transportWithCapture() {
+    const posts: Array<{ headers: Record<string, string>; body: unknown }> = [];
+    const streams: Array<{ headers: Record<string, string>; body: unknown }> = [];
+    const transport = new HttpTransport(
+      { url: 'https://example.test/mcp', name: 's' },
+      {
+        fetch: async (req: { headers: Record<string, string>; body: unknown }) => {
+          posts.push({ headers: req.headers, body: req.body });
+          const msg = req.body as { id: number; method: string };
+          return {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: msg.id,
+              result: { capabilities: {}, supportedVersions: ['2026-07-28'], resultType: 'complete' },
+            }),
+          };
+        },
+        fetchStream: ((req: { headers: Record<string, string>; body: unknown }) => {
+          streams.push({ headers: req.headers, body: req.body });
+          return (async function* () {})();
+        }) as never,
+        timeoutMs: 1000,
+      } as never,
+    );
+    return { transport, posts, streams };
+  }
+
+  it('sends MCP-Protocol-Version and a matching Mcp-Method on the discover PROBE', async () => {
+    // A modern server routes by the version header; without it the probe lands on the
+    // legacy handler and is refused with "400 Missing session ID". And the modern handler
+    // rejects a request whose Mcp-Method does not match the body — a MISSING one included.
+    const { transport, posts } = transportWithCapture();
+    const client = new McpClient(transport, {});
+    await client.connect();
+
+    const probe = posts.find(
+      (p) => (p.body as { method?: string }).method === 'server/discover',
+    );
+    expect(probe).toBeDefined();
+    expect(probe?.headers[MCP_PROTOCOL_VERSION_HEADER]).toBe('2026-07-28');
+    expect(probe?.headers[MCP_METHOD_HEADER]).toBe('server/discover');
+  });
+
+  it('accepts BOTH media types on the long-lived listen POST', async () => {
+    // `text/event-stream` alone gets 406 Not Acceptable with an empty body, so the
+    // subscription is dead before it starts and listen() returns a stream that can never
+    // deliver.
+    const { transport, streams } = transportWithCapture();
+    const client = new McpClient(transport, {});
+    await client.connect();
+    await client.listen({ toolsListChanged: true }, () => {});
+
+    const listen = streams.find(
+      (s2) => (s2.body as { method?: string } | undefined)?.method === 'subscriptions/listen',
+    );
+    expect(listen).toBeDefined();
+    const accept = listen?.headers.accept ?? listen?.headers.Accept;
+    expect(accept).toContain('text/event-stream');
+    expect(accept).toContain('application/json');
+    expect(listen?.headers[MCP_METHOD_HEADER]).toBe('subscriptions/listen');
   });
 });

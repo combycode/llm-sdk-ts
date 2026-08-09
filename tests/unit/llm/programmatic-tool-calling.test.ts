@@ -206,6 +206,61 @@ describe('sending a programmatic turn back', () => {
   });
 });
 
+// ─── surviving a resume ──────────────────────────────────────────────────────
+
+import { ConversationHistory } from '../../../src/agent/history';
+
+describe('history round-trip', () => {
+  it('preserves the program binding through export/import', () => {
+    // A resumed run has to be able to send the program back. If persistence drops
+    // `_meta`, the next request either 400s (missing reasoning item) or, worse, the
+    // model silently re-emits the program and runs it a second time.
+    const h = new ConversationHistory();
+    h.append({
+      role: 'assistant',
+      content: [
+        {
+          type: 'program_call',
+          id: 'call_prog',
+          code: 'await tools.f()',
+          fingerprint: 'fp',
+          _meta: { itemId: 'cm_1', boundItems: [{ id: 'rs_1', type: 'reasoning', summary: [] }] },
+        },
+        {
+          type: 'tool_call',
+          id: 'call_1',
+          name: 'f',
+          arguments: {},
+          caller: { type: 'program', callerId: 'call_prog' },
+        },
+        { type: 'program_result', id: 'call_prog', result: '{}', status: 'completed', _meta: { itemId: 'cmo_1' } },
+      ],
+    });
+
+    // JSON round-trip is what a Persistence backend actually stores.
+    const restored = ConversationHistory.import(JSON.parse(JSON.stringify(h.export())));
+    const parts = restored.messages()[0].content as ContentPartLike[];
+    const prog = parts.find((p) => p.type === 'program_call');
+    const call = parts.find((p) => p.type === 'tool_call');
+    const result = parts.find((p) => p.type === 'program_result');
+
+    expect(prog?.code).toBe('await tools.f()');
+    expect(prog?.fingerprint).toBe('fp');
+    expect(prog?._meta?.itemId).toBe('cm_1');
+    expect((prog?._meta?.boundItems as { id: string }[])?.[0]?.id).toBe('rs_1');
+    expect(call?.caller).toEqual({ type: 'program', callerId: 'call_prog' });
+    expect(result?._meta?.itemId).toBe('cmo_1');
+  });
+});
+
+type ContentPartLike = {
+  type: string;
+  code?: string;
+  fingerprint?: string;
+  caller?: unknown;
+  _meta?: Record<string, unknown>;
+};
+
 // ─── allowed callers ─────────────────────────────────────────────────────────
 
 import { AgentLoop } from '../../../src/agent/loop';

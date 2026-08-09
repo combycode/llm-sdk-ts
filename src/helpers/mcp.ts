@@ -66,6 +66,11 @@ export interface ConnectMcpOptions {
    *    (the spec says answer with an error; not every implementation does).
    *  - a version string such as `'2026-07-28'` — adopt it directly, no probe. */
   protocolMode?: 'auto' | 'legacy' | (string & {});
+  /** Honour the server's `ttlMs` / `cacheScope` hints on list and read results (2026-07-28).
+   *  Off by default; a server that sends no hints caches nothing either way. */
+  cacheResults?: boolean;
+  /** Cap on `input_required` (MRTR) retry rounds before giving up. Default 10. */
+  inputRequiredMaxRounds?: number;
   /** OAuth provider for servers that require authorization (HTTP only). On a
    *  required interactive grant, `connectMcp` throws `McpUnauthorizedError`
    *  after the provider redirects; finish with `finishMcpAuth`, then reconnect. */
@@ -174,6 +179,11 @@ export async function connectMcp(
     server: ns,
     keepAliveMs: opts.keepAliveMs,
     protocolMode: opts.protocolMode,
+    // Forwarded explicitly: both were shipped on McpClient but never plumbed through
+    // connectMcp, so `cacheResults: true` was silently a no-op for anyone using the
+    // documented entry point.
+    cacheResults: opts.cacheResults,
+    inputRequiredMaxRounds: opts.inputRequiredMaxRounds,
     onServerRequest: hasServerHandlers ? onServerRequest : undefined,
     onNotification: (method, params) => {
       opts.onNotification?.(method, params);

@@ -14,6 +14,7 @@ import {
   MCP_NAME_HEADER,
   MCP_PROTOCOL_VERSION_HEADER,
   encodeMcpHeaderValue,
+  isModernMcpVersion,
 } from './protocol-version';
 import type { McpTransport } from './transport';
 import type { JsonRpcResponse, McpHttpConfig } from './types';
@@ -216,7 +217,12 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
         url: this.config.url,
         method: 'POST',
         headers: await this.authedHeaders({
-          accept: 'text/event-stream',
+          // BOTH media types, exactly as an ordinary POST sends: a modern server answers
+          // `text/event-stream` alone with **406 Not Acceptable** and an empty body, so the
+          // subscription was rejected before it began and `listen()` handed back a stream
+          // that could never deliver. Verified against mcp-py 2.0.0 Streamable HTTP
+          // (2026-08-09): 406 with this header, 200 + frames with both.
+          accept: 'application/json, text/event-stream',
           ...this.routingHeaders(method, params),
         }),
         body: message,
@@ -274,7 +280,13 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
    *  method's subject (tool name / prompt name / resource URI) so a gateway can route and
    *  authorize without parsing the body. No-op on the handshake wire. */
   private routingHeaders(method: string, params?: unknown): Record<string, string> {
-    if (this.era !== 'modern') return {};
+    // Driven by the version this request DECLARES, not by the negotiated era: the
+    // `server/discover` probe already says `MCP-Protocol-Version: 2026-07-28`, and a modern
+    // server rejects a request whose `Mcp-Method` does not match its body — including a
+    // missing one. Era is only set after discover succeeds, so keying on it left the probe
+    // itself half-modern. Found against mcp-py 2.0.0 Streamable HTTP (2026-08-09).
+    const modern = this.era === 'modern' || isModernMcpVersion(this.protocolVersion ?? '');
+    if (!modern) return {};
     const h: Record<string, string> = { [MCP_METHOD_HEADER]: method };
     const key = MCP_NAME_BEARING_METHODS[method];
     if (key && params && typeof params === 'object') {

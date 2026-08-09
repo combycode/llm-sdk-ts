@@ -5,6 +5,7 @@
  *  nothing. */
 
 import { describe, expect, it } from 'bun:test';
+import { readFileSync } from 'node:fs';
 import { McpClient } from '../../../../src/plugins/mcp/client';
 import type { IncomingMcpHandlers, McpTransport } from '../../../../src/plugins/mcp/transport';
 import { McpResultCache } from '../../../../src/plugins/mcp/result-cache';
@@ -173,10 +174,18 @@ describe('subscriptions/listen', () => {
       seen.push(e),
     );
 
-    expect(t.longLived[0]).toEqual({
-      method: 'subscriptions/listen',
-      params: { notifications: { toolsListChanged: true, resourceSubscriptions: ['file:///a'] } },
+    // The filter goes out under `notifications`, alongside the modern `_meta` identity
+    // envelope every 2026-07-28 request carries (a real server rejects it without one).
+    expect(t.longLived[0].method).toBe('subscriptions/listen');
+    const listenParams = t.longLived[0].params as {
+      notifications?: unknown;
+      _meta?: Record<string, unknown>;
+    };
+    expect(listenParams.notifications).toEqual({
+      toolsListChanged: true,
+      resourceSubscriptions: ['file:///a'],
     });
+    expect(listenParams._meta?.['io.modelcontextprotocol/protocolVersion']).toBe('2026-07-28');
 
     t.emit('notifications/tools/list_changed', stamped(sub.id as number));
     t.emit('notifications/resources/updated', stamped(sub.id as number, { uri: 'file:///a' }));
@@ -222,5 +231,29 @@ describe('subscriptions/listen', () => {
     sub.close();
     t.emit('notifications/tools/list_changed', stamped(sub.id as number));
     expect(seen).toEqual([]);
+  });
+});
+
+// ─── connectMcp must actually forward the options it documents ────────────────
+
+import { connectMcp } from '../../../../src/helpers/mcp';
+
+describe('connectMcp option forwarding', () => {
+  /** `cacheResults` and `inputRequiredMaxRounds` existed on McpClient but were never
+   *  passed through connectMcp — the documented entry point — so opting in was a silent
+   *  no-op. Proven by counting wire frames against a real mcp-py 2.0.0 server: 3
+   *  listTools() calls produced 3 requests with caching "on", and 0 after the fix. */
+  it('passes cacheResults and inputRequiredMaxRounds to the client', () => {
+    const src = readFileSync(
+      new URL('../../../../src/helpers/mcp.ts', import.meta.url),
+      'utf8',
+    );
+    const ctor = src.slice(src.indexOf('new McpClient('), src.indexOf('new McpClient(') + 900);
+    expect(ctor).toContain('cacheResults: opts.cacheResults');
+    expect(ctor).toContain('inputRequiredMaxRounds: opts.inputRequiredMaxRounds');
+    // And the options must be declarable, or callers cannot reach them in TypeScript.
+    expect(src).toMatch(/cacheResults\?: boolean/);
+    expect(src).toMatch(/inputRequiredMaxRounds\?: number/);
+    expect(typeof connectMcp).toBe('function');
   });
 });

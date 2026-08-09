@@ -300,3 +300,147 @@ describe('methods removed at 2026-07-28', () => {
     expect(modern.methods()).toEqual(['server/discover']);
   });
 });
+
+// ─── the per-request identity envelope ────────────────────────────────────────
+
+describe('modern-era `_meta` identity on every request', () => {
+  const modernRoutes = (): Record<string, Responder> => ({
+    'server/discover': () => modernDiscover(),
+    'tools/list': () => ({ tools: [{ name: 'add', inputSchema: {} }] }),
+    'tools/call': () => ({ content: [{ type: 'text', text: '42' }] }),
+  });
+
+  /** At 2026-07-28 there is no handshake and no session id, so identity travels per
+   *  request. Only `server/discover` used to build the envelope, so every later call was
+   *  rejected by a real server:
+   *
+   *    -32602 params._meta must be an object carrying the required
+   *           'io.modelcontextprotocol/protocolVersion' and
+   *           'io.modelcontextprotocol/clientCapabilities' envelope keys
+   *
+   *  No public 2026-07-28 server exists, so this was invisible until mcp-py 2.0.0 was run
+   *  over stdio (2026-08-09). */
+  it('stamps version + capabilities on requests made AFTER discovery', async () => {
+    const t = new FakeTransport(modernRoutes());
+    const client = new McpClient(t, { capabilities: { sampling: {} } });
+    await client.connect();
+    await client.listTools();
+    await client.callTool('add', { a: 2, b: 40 });
+
+    const after = t.calls.filter((c) => c.method !== 'server/discover');
+    expect(after.length).toBeGreaterThan(0);
+    for (const call of after) {
+      const meta = (call.params as { _meta?: Record<string, unknown> })._meta;
+      expect(meta?.['io.modelcontextprotocol/protocolVersion']).toBe('2026-07-28');
+      expect(meta?.['io.modelcontextprotocol/clientCapabilities']).toEqual({ sampling: {} });
+    }
+  });
+
+  it('keeps the real params alongside the envelope', async () => {
+    const t = new FakeTransport(modernRoutes());
+    const client = new McpClient(t, {});
+    await client.connect();
+    await client.callTool('add', { a: 1 });
+
+    const call = t.calls.find((c) => c.method === 'tools/call');
+    expect((call?.params as { name?: string }).name).toBe('add');
+    expect((call?.params as { arguments?: unknown }).arguments).toEqual({ a: 1 });
+  });
+
+  it('sends NO envelope on a handshake session', async () => {
+    // An older server can legitimately reject unknown `_meta`, and identity there lives in
+    // `initialize` — so the legacy wire must stay byte-identical to pre-2.0.
+    const t = new FakeTransport({ ...legacyRoutes(), 'tools/list': () => ({ tools: [] }) });
+    const client = new McpClient(t, { protocolMode: 'legacy' });
+    await client.connect();
+    await client.listTools();
+
+    const list = t.calls.find((c) => c.method === 'tools/list');
+    expect((list?.params as { _meta?: unknown })?._meta).toBeUndefined();
+  });
+});
+
+// ─── the long-lived path needs the envelope too ───────────────────────────────
+
+describe('subscriptions/listen carries the identity envelope', () => {
+  /** `listen()` goes through `sendLongLivedRequest`, which bypassed the request funnel.
+   *  The server answered -32602, and because the rejection arrives as the STREAM'S END
+   *  rather than a thrown error, `listen()` returned a subscription that looked alive and
+   *  delivered nothing — a silent no-op. Caught against mcp-py 2.0.0 (2026-08-09). */
+  it('stamps version + capabilities on the long-lived request', async () => {
+    const t = new FakeTransport({ 'server/discover': () => modernDiscover() });
+    let sentParams: unknown;
+    (t as unknown as { sendLongLivedRequest: unknown }).sendLongLivedRequest = async (
+      _m: string,
+      params: unknown,
+    ) => {
+      sentParams = params;
+      return 7;
+    };
+
+    const client = new McpClient(t, { capabilities: { elicitation: {} } });
+    await client.connect();
+    await client.listen({ toolsListChanged: true }, () => {});
+
+    const meta = (sentParams as { _meta?: Record<string, unknown> })._meta;
+    expect(meta?.['io.modelcontextprotocol/protocolVersion']).toBe('2026-07-28');
+    expect(meta?.['io.modelcontextprotocol/clientCapabilities']).toEqual({ elicitation: {} });
+    // …without losing the filter itself.
+    expect((sentParams as { notifications?: unknown }).notifications).toEqual({
+      toolsListChanged: true,
+    });
+  });
+});
+
+// ─── the probe header cuts both ways ──────────────────────────────────────────
+
+describe('HTTP 4xx to the probe means "legacy server", not "outage"', () => {
+  class RejectingTransport extends FakeTransport {
+    constructor(
+      private readonly probeError: unknown,
+      routes: Record<string, Responder>,
+    ) {
+      super(routes);
+    }
+    override async request(method: string, params?: unknown): Promise<unknown> {
+      if (method === 'server/discover') {
+        this.calls.push({ method, params });
+        throw this.probeError;
+      }
+      return super.request(method, params);
+    }
+  }
+
+  /** The probe must carry `MCP-Protocol-Version: 2026-07-28` or a modern HTTP server routes
+   *  it to the legacy handler. A 2025-era server answers that same header with a plain HTTP
+   *  400 before any JSON-RPC exists — so one probe cannot satisfy both, and the 400 has to be
+   *  read as evidence. Live: DeepWiki replies "400 Unsupported protocol version: 2026-07-28.
+   *  Supported versions: …2025-11-25". */
+  it('falls back to the handshake on a 4xx', async () => {
+    const t = new RejectingTransport(
+      Object.assign(new Error('Bad Request: Unsupported protocol version: 2026-07-28'), { status: 400 }),
+      legacyRoutes(),
+    );
+    const client = new McpClient(t, {});
+    const info = await client.connect();
+
+    expect(client.era).toBe('handshake');
+    expect(info.serverInfo.name).toBe('legacy-server');
+    expect(t.methods()).toEqual(['server/discover', 'initialize']);
+  });
+
+  it('rethrows a 5xx instead of downgrading the wire', async () => {
+    // E4: a transient is not a verdict. Silently dropping to the legacy protocol because a
+    // gateway blipped would be the worst possible failure mode.
+    const t = new RejectingTransport(
+      Object.assign(new Error('Bad Gateway'), { status: 502 }),
+      legacyRoutes(),
+    );
+    await expect(new McpClient(t, {}).connect()).rejects.toThrow(/Bad Gateway/);
+  });
+
+  it('rethrows a network error with no status', async () => {
+    const t = new RejectingTransport(new Error('socket hang up'), legacyRoutes());
+    await expect(new McpClient(t, {}).connect()).rejects.toThrow(/socket hang up/);
+  });
+});
