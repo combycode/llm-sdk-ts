@@ -352,6 +352,41 @@ const myGuardrail: Guardrail = {
 };
 ```
 
+## Was this file AI-generated? -- `checkProvenance()`
+
+Moderation asks *is this content harmful*. Provenance asks a different question: *does this file
+carry a signal saying a model made it*. Same shape as `moderate()` -- bytes in, structured verdict
+out:
+
+```ts
+import { checkProvenance } from '@combycode/llm-sdk';
+
+const res = await checkProvenance({ file: './upload.png' });
+for (const s of res.signals) {
+  console.log(s.kind, s.detected, s.trusted, s.issuer, s.model, s.generatedAt);
+}
+```
+
+Two signal kinds are reported: **C2PA** (a signed manifest embedded in the file, carrying issuer /
+model / timestamp) and **SynthID** (Google's watermark; for audio it is the only one available).
+
+**`detected` and `trusted` are separate on purpose, and the difference is the whole point.** A C2PA
+manifest is just metadata -- anyone can attach one, and it can be stripped, forged, or invalidated
+by re-encoding. `detected` means a manifest was found; `trusted` means its signature validated
+against a known issuer. Treating a detection as proof is the mistake this API is shaped to prevent.
+
+Read the result in that spirit:
+
+- **detected + trusted** -- strong evidence the named model produced it.
+- **detected, not trusted** -- a claim, nothing more. `validationState` says why
+  (`valid` / `invalid` / `not_present`).
+- **nothing detected** -- says *nothing at all* about whether the file was AI-generated. Signals are
+  routinely lost to a screenshot, a re-encode, or a crop. **Absence is not evidence of human
+  authorship**, and no policy should be built as if it were.
+
+OpenAI-only today (`POST /v1/content_provenance_checks`); it is the only "was this AI-generated"
+primitive any tracked SDK ships. `OpenAIProvenanceAdapter` is exported for custom wiring.
+
 ## Gotchas and next steps
 
 **Missing API key throws at call time.** There is no deferred error. If `apiKey` is not

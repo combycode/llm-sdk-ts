@@ -170,6 +170,34 @@ for (let i = 0; i < 50; i++) {
 guard.destroy();
 ```
 
+### `AnchoredStrategy` -- one growing scratchpad instead of a chain of summaries
+
+`LayeredStrategy` emits a **new** summary on every compaction, so a long run accumulates summaries
+of summaries. `AnchoredStrategy` keeps a **single** persistent state-tracker at the head of history
+and merges each compaction into it:
+
+```ts
+import { ContextGuard, AnchoredStrategy } from '@combycode/llm-sdk';
+
+const guard = new ContextGuard({
+  agent,
+  strategies: { anchored: new AnchoredStrategy({ keepRecent: 10 }) },
+  defaultStrategy: 'anchored',
+});
+```
+
+It is a materially different trade, not a better version of the same thing:
+
+| | `layered` | `anchored` |
+|---|---|---|
+| History shape | recent turns + a chain of summaries | recent turns + ONE merged anchor |
+| Older detail | preserved across separate summaries | folded into the anchor, losing separation |
+| Growth | grows with the number of compactions | roughly bounded |
+| Suits | audit trails, "what did we decide when" | long-running task agents tracking evolving state |
+
+Both refuse to cut between a tool call and its result — a retained result whose call was dropped is
+an unanswerable message that some providers reject outright.
+
 ## Related
 
 - [Agent Loop + delegate / chain / consolidate](./agent-loop.md)

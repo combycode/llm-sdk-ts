@@ -212,10 +212,15 @@ service tier (recognized values: `auto`, `standard`, `priority`, `flex`, `scale`
 const { text } = await complete({ model: 'openai/gpt-5.4:flex', prompt: '...' });
 ```
 
-Per provider: OpenAI (`flex`/`priority`), Anthropic (`standard`/`priority`), and Google
+Per provider: OpenAI (`flex`/`priority`/`fast`), Anthropic (`standard`/`priority`), and Google
 (`flex`/`standard`/`priority`) map the requested tier to their own request field; unsupported
 tiers are a no-op. In every case the tier the provider actually **billed** is read back into
 `usage.serviceTier` / `usage.pricingTier` so cost is priced against the right rate.
+
+OpenAI's `fast` tier is recognised on Responses and chat-completions. Note the response echoes
+`service_tier: priority` for either `fast` or `priority`, so read `usage.serviceTier` as *what was
+billed*, not as confirmation of which of the two you asked for. Being an entitlement-level tier, a
+200 does not by itself prove the request was served in Fast mode.
 
 Note: `batch` is NOT a service tier. Batch is a separate, asynchronous request flow --
 the Batch API (`submitBatch` / the [Batch guide](/docs/examples/22-batch/)), with its own

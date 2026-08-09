@@ -183,6 +183,69 @@ instead of a throw, use `agent.run()`, which returns an `AgentRunReport` with `r
 `error` message. **Bounded stops** are not errors: `max_steps` returns `finishReason: 'length'` (see
 above) and a model refusal returns normally — both are inspectable via `finishReason` / `report.reason`.
 
+## Recovering from a model failure (`reflectAndRetry`)
+
+Some failures are the model's, not the network's: a malformed tool call, a truncated call, a
+hallucinated tool name. Resending the identical request would never fix them, so the network retry
+layer correctly leaves them alone — and the run used to end there.
+
+`reflectAndRetry` gives the model a bounded number of second chances, telling it what went wrong:
+
+```ts
+const agent = createAgent({
+  client,
+  tools: [...],
+  reflectAndRetry: { maxRetries: 2 },   // OFF unless configured — a retry costs a real request
+});
+```
+
+On a triggering finish reason the loop injects structured guidance naming the attempt number and
+**explicitly instructing the model not to repeat the same call** (without that, models tend to
+re-emit identical arguments and burn the whole budget on one mistake), then retries the step. The
+failed assistant turn is *not* appended, so the model does not learn from its own broken output.
+
+- Default trigger: `malformed_tool_call`. Override with `onFinishReasons` — a content filter is
+  usually a decision rather than a mistake, so it is not retried by default.
+- Failures are counted **consecutively**: a success clears the streak, so an agent that recovers and
+  stumbles again much later gets a fresh budget rather than an inherited one.
+- When the budget is spent the loop throws, naming the escape hatch. Set `throwIfExceeded: false` to
+  get the unusable response back instead.
+
+This exists because `finishReason` now tells the truth about these turns. Google's
+`MALFORMED_FUNCTION_CALL` was previously unmapped and read as a clean `stop` with no content — a
+failure that looked like a successful empty answer.
+
+## Which text is the answer?
+
+Codex-family models narrate before answering. Those parts are tagged
+`phase: 'commentary'` versus `'final_answer'`, and `response.text` concatenates **everything** — so
+an agent's output used to include its own thinking-out-loud.
+
+`AgentLoop` now derives its answer with `finalAnswerText()`, which drops commentary. `response.text`
+and `contentText()` are unchanged, so callers who want the narration still get it:
+
+```ts
+import { finalAnswerText } from '@combycode/llm-sdk';
+
+const answer = finalAnswerText(res.content);   // commentary excluded
+console.log(res.text);                          // everything, as before
+```
+
+`AssistantPhase` is an open union, and `finalAnswerText` excludes only what is explicitly
+`'commentary'` rather than keeping only `'final_answer'` — the day a provider adds a third phase, an
+allow-list would silently drop the answer.
+
+## Tool-name collisions
+
+Tools are indexed by function name (or builtin type), so registering two under the same key means
+one **silently replaces** the other and the model never sees it. That surfaces much later as "the
+model called the wrong tool", with nothing in the logs pointing at the cause.
+
+Collisions are now reported. Default `'warn'` keeps last-write-wins (changing it would break apps
+that rely on a deliberate override) but emits an `onWarning` with code `tool_name_collision` naming
+which tool lost. `toolNameCollisionPolicy: 'error'` throws at construction instead, before the model
+is ever called.
+
 ## Server-state continuation
 
 On a stateful API (OpenAI Responses, Google Interactions) the loop automatically **continues by id**

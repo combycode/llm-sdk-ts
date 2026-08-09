@@ -29,6 +29,94 @@ MCP surfaces.
 Type-only exports: `ConnectMcpOptions`, `McpConnection`, `McpServerConfig`,
 `McpToolDef`, `McpCallResult`, `McpOAuthTokens`, `McpSamplingConfig`, and related.
 
+## Two protocol eras, both supported
+
+MCP `2026-07-28` is not an additive revision. It **removes** the `initialize` handshake, the session
+id, and the entire server-to-client back-channel, replacing them with a single `server/discover`
+probe and per-request `_meta` identity. Almost every server in the wild still speaks `2025-11-25`.
+
+So this client speaks **both**, and prefers neither:
+
+- On connect it probes `server/discover`. If that succeeds the session is **modern**
+  (`2026-07-28`); if the server rejects it, the client falls back to the `initialize` handshake and
+  the session is **handshake-era** (`2025-11-25`). Servers that reject `server/discover` in a way we
+  have not seen are remembered so the probe is not repeated needlessly.
+- Everything the new revision removed — `ping` keep-alive, `logging/setLevel`,
+  `resources/subscribe`, push sampling / roots / elicitation — **still works unchanged** on a
+  handshake-era session, and is simply not sent on a modern one.
+- Nothing was removed from this library. An upstream deletion is not our deletion.
+
+```ts
+import { connectMcp, mcpEraOf } from '@combycode/llm-sdk';
+
+const mcp = await connectMcp({ url: 'https://example.com/mcp' });
+console.log(mcp.client.protocolVersion);          // '2025-11-25' | '2026-07-28'
+console.log(mcpEraOf(mcp.client.protocolVersion)); // 'handshake' | 'modern'
+```
+
+Version constants are exported (`MCP_KNOWN_PROTOCOL_VERSIONS`,
+`MCP_HANDSHAKE_PROTOCOL_VERSIONS`, `MCP_MODERN_PROTOCOL_VERSIONS`, `MCP_LATEST_HANDSHAKE_VERSION`,
+`MCP_LATEST_MODERN_VERSION`) with the guards `isHandshakeMcpVersion` / `isModernMcpVersion`.
+**Versions are an enumerated set, not an ordered scalar** — compare with the guards, never with `<`.
+
+### "The server needs more input" — one primitive, both eras
+
+At `2026-07-28` a server no longer *pushes* a sampling or elicitation request at you. Instead the
+tool call **returns** with `status: 'input_required'` and a sealed `requestState`, and you retry the
+same call carrying the answers. That is a completely different mechanism from the legacy
+back-channel — but it exists to do the same job, so it is exposed as one thing.
+
+Your existing sampling / elicitation callbacks are used for both. `callTool` drives the exchange to
+a terminal result on either era; you do not branch on the protocol version:
+
+```ts
+const result = await mcp.client.callTool('search', { q: 'mcp' });
+// Already terminal. On a modern session any input_required round-trips happened inside.
+```
+
+The result type did not become a union (that would break every caller). `CallToolResult` grew
+optional `status` / `inputRequests` / `requestState` fields instead, so code that reads `.content`
+is untouched.
+
+### Change notifications: `subscriptions/listen`
+
+At `2026-07-28`, `resources/subscribe` and the standalone SSE GET stream are replaced by one
+`subscriptions/listen` call where the client names the notification kinds it wants and the server
+answers with the subset it will actually deliver:
+
+```ts
+const sub = await mcp.client.listen(['resources/updated', 'tools/list_changed']);
+console.log(sub.honored);   // what the server AGREED to send — may be narrower than you asked
+for await (const ev of sub.events) console.log(ev.method, ev.params);
+await sub.close();
+```
+
+`honored` matters: a server may accept the call and quietly deliver only some kinds. Reading it is
+the difference between "no events yet" and "this event is never coming".
+
+`listen()` works on **every** transport — stdio and WebSocket (naturally duplex), and Streamable
+HTTP (via a long-lived streaming POST). On a handshake-era session, `resources/subscribe` keeps
+working exactly as before.
+
+### Result caching from server hints
+
+List/read results may carry `ttlMs` and `cacheScope` hints. Caching is **opt-in** and does nothing
+for servers that send no hints:
+
+```ts
+const mcp = await connectMcp({ url }, { cacheResults: true });
+await mcp.client.listTools();   // second call inside ttlMs is served from cache
+```
+
+Entries are invalidated automatically by the matching `*_changed` notification, so a cached tool
+list cannot go stale behind your back.
+
+### stdio buffer bound
+
+The stdio transport's read buffer is bounded (`maxBufferSize`, default **10 MB**). A server that
+streams without ever emitting a newline used to grow that buffer without limit; it now fails the
+transport with a clear error instead of consuming memory until the process dies.
+
 ## Minimal examples
 
 ### HTTP MCP server (cross-env, including browser)

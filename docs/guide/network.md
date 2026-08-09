@@ -65,6 +65,37 @@ const llm1 = createLLM({ model: 'openai/gpt-5.4-nano', engine: e1 });
 const llm2 = createLLM({ model: 'anthropic/claude-haiku-4.5', engine: e2 });
 ```
 
+## Retries
+
+Retry policy is configured per queue (per provider), and a **single request can override it**
+without disturbing anything else on that queue:
+
+```ts
+const { text } = await complete({
+  model: 'openai/gpt-5.4-nano',
+  prompt: 'Hello',
+  retry: { attempts: 5, initialDelay: 200, maxDelay: 8_000, jitter: true },
+});
+```
+
+`RequestRetryOverride` accepts `attempts` / `initialDelay` / `maxDelay` / `expBase` / `jitter` /
+`httpStatusCodes`. Anything you leave out falls back to the queue's policy; the per-error-kind rules
+stay queue-level.
+
+### `Retry-After` is honoured, but bounded
+
+A server-supplied `Retry-After` is capped by `RetryConfig.maxRetryAfterMs` (default **120 s**), and a
+value **above** the cap is treated as a refusal — the request fails fast rather than being parked:
+
+- Uncapped, `Retry-After: 86400` held a request for a day, which from the caller's side is
+  indistinguishable from a hang.
+- On the rate-limit path an uncapped value also paused the **entire limiter** — every request on
+  that queue, not just the throttled one. Both paths are clamped.
+
+The HTTP-date form (RFC 9110) is parsed as well as the seconds form. Malformed values — `NaN`,
+negative, non-finite, or a date in the past — are discarded rather than propagated, because
+`setTimeout(fn, NaN)` fires immediately and turned one bad header into a retry storm.
+
 ## Related
 
 - [LLM Client + complete/stream](./llm-client.md)

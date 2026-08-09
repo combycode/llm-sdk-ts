@@ -82,7 +82,7 @@ export class OpenAIAdapter implements ProviderAdapter {
     }
 
     for (const msg of req.messages) {
-      messages.push(this.buildMessage(msg));
+      messages.push(...this.buildMessages(msg));
     }
 
     const body: Record<string, unknown> = {
@@ -170,25 +170,40 @@ export class OpenAIAdapter implements ProviderAdapter {
     return { body };
   }
 
-  private buildMessage(msg: {
+  /** One universal message can become SEVERAL chat-completions messages.
+   *
+   *  Parallel tool calls are the case that matters: the loop answers a round of calls
+   *  with ONE tool message carrying a `tool_result` part per call, but this API wants a
+   *  separate `{role:'tool'}` message per `tool_call_id`. Emitting only the first left
+   *  the rest unanswered and the provider rejected the whole request with
+   *  "No tool output found for function call <id>" — so parallel tools were broken on
+   *  every chat-completions backend. */
+  private buildMessages(msg: {
     role: string;
     content: string | ContentPart[];
-  }): Record<string, unknown> {
+  }): Record<string, unknown>[] {
     if (msg.role === 'tool') {
       const parts =
         typeof msg.content === 'string'
           ? [{ type: 'text' as const, text: msg.content }]
           : msg.content;
-      const result = parts.find((p) => p.type === 'tool_result');
-      if (result && result.type === 'tool_result') {
-        return {
+      const results = parts.filter((p) => p.type === 'tool_result');
+      if (results.length > 0) {
+        return results.map((result) => ({
           role: 'tool',
           tool_call_id: result.id,
           content:
             typeof result.content === 'string' ? result.content : JSON.stringify(result.content),
-        };
+        }));
       }
     }
+    return [this.buildMessage(msg)];
+  }
+
+  private buildMessage(msg: {
+    role: string;
+    content: string | ContentPart[];
+  }): Record<string, unknown> {
 
     if (msg.role === 'assistant') {
       const parts =

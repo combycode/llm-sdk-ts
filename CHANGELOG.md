@@ -305,6 +305,13 @@ unaffected — it already returned an object.
 
 ### Fixed — correctness
 
+- **Parallel tool calls were broken on every chat-completions backend.** The loop answers a round
+  of parallel calls with one tool message holding a `tool_result` part per call, and this API wants
+  a separate `{role:'tool'}` message per `tool_call_id` — but only the **first** was emitted. Every
+  call after the first went unanswered and the provider rejected the whole request with
+  *"No tool output found for function call &lt;id&gt;"*. Affected OpenRouter and any use of
+  `api: 'completions'` on OpenAI/xAI; the Responses path was always correct. Present in 1.7.0 and
+  earlier; found by running the examples corpus, not by a unit test.
 - **`serviceTier: 'fast'` is actually sent to OpenAI.** The value shipped in openai-ts 7.x but was
   missing from our known-tier set, so `openaiRequestTier('fast')` fell through to `'auto'` — a
   caller asking for Fast mode silently got the project default, with no error and no warning.
