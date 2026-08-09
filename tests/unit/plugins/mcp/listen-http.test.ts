@@ -277,3 +277,91 @@ describe('modern Streamable HTTP request shape', () => {
     expect(listen?.headers[MCP_METHOD_HEADER]).toBe('subscriptions/listen');
   });
 });
+
+// ─── resumption after a dropped stream ────────────────────────────────────────
+
+/** A stream that ends on its own is a DROP, not a close: the client never asked for it,
+ *  so it must reconnect and ask the server to replay from the last id it saw. Verified
+ *  against a real replaying mcp-py server: closing the stream, firing changes, and
+ *  reopening with `last-event-id` returns exactly the missed events. */
+describe('Last-Event-ID resumption', () => {
+  function transportWithStreams(streams: Array<Array<{ id?: string; data?: string }>>) {
+    const requests: Array<{ method?: string; headers: Record<string, string>; body: unknown }> = [];
+    let n = 0;
+    const transport = new HttpTransport(
+      { url: 'https://example.test/mcp', name: 's' },
+      {
+        fetch: async (req: { body: unknown }) => {
+          const msg = req.body as { id: number };
+          return {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({
+              jsonrpc: '2.0',
+              id: msg.id,
+              result: { capabilities: {}, supportedVersions: ['2026-07-28'], resultType: 'complete' },
+            }),
+          };
+        },
+        fetchStream: ((req: { method?: string; headers: Record<string, string>; body: unknown }) => {
+          requests.push({ method: req.method, headers: req.headers, body: req.body });
+          const frames = streams[n++] ?? [];
+          return (async function* () {
+            for (const f of frames) yield f;
+          })();
+        }) as never,
+        timeoutMs: 1000,
+      } as never,
+    );
+    return { transport, requests };
+  }
+
+  const note = (m: string) => ({ id: undefined, data: JSON.stringify({ jsonrpc: '2.0', method: m }) });
+  const withId = (id: string, m: string) => ({ id, data: JSON.stringify({ jsonrpc: '2.0', method: m }) });
+
+  it('reconnects the GET stream with the last id and delivers the replay', async () => {
+    const { transport, requests } = transportWithStreams([
+      [withId('1', 'notifications/one'), withId('2', 'notifications/two')], // then drops
+      [withId('3', 'notifications/three')], // the replay
+      [],
+    ]);
+    const routed: string[] = [];
+    transport.setHandlers({ onRequest: async () => ({}), onNotification: (m) => void routed.push(m) });
+
+    transport.listen();
+    await new Promise((r) => setTimeout(r, 3000));
+    await transport.close();
+
+    const gets = requests.filter((r) => r.method === 'GET');
+    expect(gets.length).toBeGreaterThanOrEqual(2);
+    expect(gets[0].headers['last-event-id']).toBeUndefined();
+    expect(gets[1].headers['last-event-id']).toBe('2'); // resumes from the last id seen
+    expect(routed).toContain('notifications/three'); // and the replay reaches the caller
+  });
+
+  it('resumes a dropped subscriptions/listen stream too', async () => {
+    // The long-lived POST is the ONLY notification channel on the 2026-07-28 wire, so a
+    // blip that ends it permanently would silently stop all change delivery.
+    const { transport, requests } = transportWithStreams([
+      [withId('10', 'notifications/tools/list_changed')], // listen POST, then drops
+      [withId('11', 'notifications/resources/updated')], // replay on reconnect
+      [],
+    ]);
+    const routed: string[] = [];
+    transport.setHandlers({ onRequest: async () => ({}), onNotification: (m) => void routed.push(m) });
+
+    await transport.sendLongLivedRequest('subscriptions/listen', { notifications: {} });
+    await new Promise((r) => setTimeout(r, 3000));
+    await transport.close();
+
+    const resumeGet = requests.find((r) => r.method === 'GET' && r.headers['last-event-id'] === '10');
+    expect(resumeGet).toBeDefined();
+    expect(routed).toContain('notifications/resources/updated');
+  });
+
+  // NOT unit-tested: exhausting the retry budget takes ~15s of real backoff, too slow for
+  // this suite. The `finally` in sendLongLivedRequest fires `onEnd` on every path, so the
+  // caller is always settled; the give-up branch itself is covered by inspection.
+
+  void note;
+});

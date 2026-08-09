@@ -6,7 +6,7 @@
  *  long-lived server->client GET stream reconnects with backoff + Last-Event-ID
  *  for resumption. */
 
-import type { EngineFetch, EngineFetchStream } from '../../network/types';
+import type { EngineFetch, EngineFetchStream, SSEEvent } from '../../network/types';
 import { McpError, McpErrorCode } from './jsonrpc';
 import {
   MCP_METHOD_HEADER,
@@ -31,6 +31,12 @@ export interface HttpTransportDeps {
   /** Called on a 401; return true to retry the request once (after re-auth). */
   onUnauthorized?: () => Promise<boolean>;
 }
+
+/** Resumption budget for a dropped long-lived stream. Bounded on purpose: an
+ *  unbounded retry against a server that is simply gone is indistinguishable from a hang,
+ *  and the caller is told the subscription ended either way. */
+const MAX_RESUME_ATTEMPTS = 5;
+const RESUME_BACKOFF_MS = 500;
 
 export class HttpTransport extends BaseJsonRpcTransport implements McpTransport {
   private nextHttpId = 0;
@@ -237,11 +243,21 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
     // the normal incoming path. Awaiting here would block until the subscription ENDED.
     void (async () => {
       let failure: unknown;
-      try {
-        for await (const ev of stream) {
+      /** Last id seen on THIS stream — the resumption cursor. Kept separately from the
+       *  shared `lastEventId`, which the standalone GET stream also writes. */
+      let cursor: string | undefined;
+
+      /** Drain one stream. Returns true if it delivered anything (used to reset backoff). */
+      const drain = async (s: AsyncIterable<SSEEvent>): Promise<boolean> => {
+        let delivered = false;
+        for await (const ev of s) {
           if (abort.signal.aborted) break;
-          if (ev.id) this.lastEventId = ev.id;
+          if (ev.id) {
+            this.lastEventId = ev.id;
+            cursor = ev.id;
+          }
           if (!ev.data) continue;
+          delivered = true;
           let msg: import('./base-transport').InboundMessage;
           try {
             msg = JSON.parse(ev.data) as import('./base-transport').InboundMessage;
@@ -250,12 +266,52 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
           }
           await this.routeIncoming(msg);
         }
+        return delivered;
+      };
+
+      try {
+        await drain(stream);
+
+        // The stream ended without the request completing. If the server gave us event ids
+        // we can ask it to replay what we missed — reconnect with `Last-Event-ID`, exactly
+        // as the reference client does. Without this a single blip permanently kills a
+        // subscription, and on the 2026-07-28 wire `subscriptions/listen` is the ONLY
+        // notification channel, so "permanently" means the caller stops seeing changes.
+        for (let attempt = 0; cursor && !abort.signal.aborted && attempt < MAX_RESUME_ATTEMPTS; ) {
+          await new Promise((r) => setTimeout(r, RESUME_BACKOFF_MS * 2 ** attempt));
+          if (abort.signal.aborted) break;
+          try {
+            const resumed = this.deps.fetchStream(
+              {
+                url: this.config.url,
+                method: 'GET',
+                headers: await this.authedHeaders({
+                  accept: 'text/event-stream',
+                  'last-event-id': cursor,
+                }),
+                body: undefined,
+                provider: 'mcp',
+                model: this.config.name ?? 'server',
+                signal: abort.signal,
+              },
+              { queueName: this.deps.queueName ? `${this.deps.queueName}/events` : undefined },
+            );
+            // A reconnect that delivered frames earns a fresh budget; one that opened and
+            // died immediately counts against it, so a flapping server still terminates.
+            attempt = (await drain(resumed)) ? 0 : attempt + 1;
+          } catch (e) {
+            failure = e;
+            attempt += 1;
+          }
+        }
       } catch (e) {
         // A rejected subscription (4xx) or a dropped connection. Reported rather than swallowed:
         // a caller holding a subscription that silently stopped delivering has no way to find out.
         if (!abort.signal.aborted) failure = e;
       } finally {
         this.streamAborts.delete(abort);
+        // Always settle: whether we resumed and later gave up, or never could, the caller
+        // must learn the subscription is over instead of waiting on a dead stream forever.
         onEnd?.(failure);
       }
     })();
