@@ -42,7 +42,8 @@
     "lint:fix": "biome lint --write src tests",
     "format": "biome format --write src tests",
     "check": "biome check src tests",
-    "check:fix": "biome check --write src tests"
+    "check:fix": "biome check --write src tests",
+    "gate:surface": "node scripts/gate-consumer-surface.mjs"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",
