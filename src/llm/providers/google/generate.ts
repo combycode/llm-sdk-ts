@@ -350,7 +350,14 @@ export class GoogleAdapter implements ProviderAdapter {
     const finishReason = extractFinishReason(
       toolCalls.length > 0,
       candidate.finishReason as string,
-      { MAX_TOKENS: 'length', SAFETY: 'content_filter' },
+      {
+        MAX_TOKENS: 'length',
+        SAFETY: 'content_filter',
+        // Verified in google-ts `src/types.ts:510`. Previously unmapped, so it fell through to
+        // `stop`: a turn where the model failed to produce a usable tool call looked like a clean
+        // finish with no content — precisely the state `reflectAndRetry` exists to recover from.
+        MALFORMED_FUNCTION_CALL: 'malformed_tool_call',
+      },
     );
 
     // Provider-run builtin tools — durable trail. Google has no call ids for these:

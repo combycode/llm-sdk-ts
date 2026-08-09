@@ -25,6 +25,7 @@ import { emptyUsage, type CompletionResponse, type FileOutput, type Usage } from
 import type { FileStream, RetrievedFile } from '../llm/files/retrieve';
 import type { LLMClient } from '../llm/client';
 import { buildAssistantMessage, parseStructured as parseStructuredText } from '../llm/client-internal';
+import { AgentRunError } from '../llm/output-errors';
 import { writeAgentLoopContext, writeAgentLoopSystem } from './context-registry/layers';
 import { ConversationHistory } from './history';
 import type {
@@ -38,6 +39,7 @@ import type {
 } from './types';
 import type { Guardrail, GuardrailDecision, ToolInputGuardrail } from './guardrail-types';
 import { describeTool, toolKey } from './tool-key';
+import { ReflectAndRetryPolicy, reflectionGuidance } from './reflect-retry';
 import type { AgentLoopConfig } from './loop-config';
 import type { PermissionPolicy } from '../plugins/permissions/policy';
 import type { ApprovalRequest, ApprovalDecision, PendingToolCall } from './approval-types';
@@ -72,6 +74,7 @@ export class AgentLoop {
   private _cache?: CacheConfig;
 
   private _collisionPolicy: 'warn' | 'error';
+  private readonly _reflectRetry: ReflectAndRetryPolicy | null;
   private _parallelToolCalls: boolean;
   private _toolTimeout: number;
   private _maxSteps: number;
@@ -117,6 +120,7 @@ export class AgentLoop {
     this._checkpoint = config.checkpoint ?? null;
 
     this._collisionPolicy = config.toolNameCollisionPolicy ?? 'warn';
+    this._reflectRetry = config.reflectAndRetry ? new ReflectAndRetryPolicy(config.reflectAndRetry) : null;
     this._tools = new Map();
     for (const t of config.tools ?? []) {
       this.registerTool(t);
@@ -341,6 +345,53 @@ export class AgentLoop {
         const stepLatency = performance.now() - stepStart;
         totalLlmTimeMs += stepLatency;
         addUsage(totalUsage, lastResponse.usage);
+
+        // Recoverable model failure (malformed tool call and friends): feed the model structured
+        // guidance and let it try again, instead of ending the run on a mistake it could fix. The
+        // usage above is already counted — a wasted turn still costs money and must show in the
+        // ledger. Deliberately BEFORE the history append: the failed turn is not appended, so the
+        // model does not learn from its own broken output.
+        if (this._reflectRetry?.handles(lastResponse.finishReason)) {
+          const verdict = this._reflectRetry.recordFailure();
+          await this.hooks.emit('onWarning', {
+            source: 'agent',
+            code: 'model_failure_retry',
+            message: `Step ${stepCount} ended with "${lastResponse.finishReason}"; ${
+              verdict.retry
+                ? `retrying with reflection guidance (attempt ${verdict.attempt} of ${this._reflectRetry.maxRetries})`
+                : 'retry budget exhausted'
+            }.`,
+            details: {
+              finishReason: lastResponse.finishReason,
+              attempt: verdict.attempt,
+              maxRetries: this._reflectRetry.maxRetries,
+            },
+          });
+
+          if (verdict.retry) {
+            this._history.append({
+              role: 'user',
+              content: reflectionGuidance(
+                lastResponse.finishReason,
+                verdict.attempt,
+                this._reflectRetry.maxRetries,
+                lastResponse.error?.message,
+              ),
+            });
+            continue;
+          }
+          if (this._reflectRetry.throwIfExceeded) {
+            throw new AgentRunError(
+              'model_failure_retry_exhausted',
+              `The model returned "${lastResponse.finishReason}" ${verdict.attempt} times in a row ` +
+                `(reflectAndRetry.maxRetries = ${this._reflectRetry.maxRetries}). Set ` +
+                `reflectAndRetry.throwIfExceeded = false to receive the last response instead.`,
+            );
+          }
+          // Fall through: the caller gets the unusable response and decides for themselves.
+        } else {
+          this._reflectRetry?.recordSuccess();
+        }
 
         // Stamp provenance (id/createdAt/origin.serverStateId on a stateful API) so
         // the next iteration can continue server-side (previous_response_id /

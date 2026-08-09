@@ -5,6 +5,7 @@ import type { LLMClient } from '../llm/client';
 import type { CacheConfig, ThinkingConfig } from '../llm/types/request';
 import type { ConversationHistory } from './history';
 import type { HistorySnapshot } from './history-types';
+import type { ReflectAndRetryConfig } from './reflect-retry';
 import type { AgentTool } from './types';
 import type { Guardrail, ToolInputGuardrail } from './guardrail-types';
 import type { PermissionPolicy } from '../plugins/permissions/policy';
@@ -42,6 +43,15 @@ export interface AgentLoopConfig {
    *  Defaults to `'warn'` so an app that unknowingly has a collision keeps working
    *  (CONSTITUTION.md R4) — the collision just stops being invisible. */
   toolNameCollisionPolicy?: 'warn' | 'error';
+
+  /** Self-healing recovery from a recoverable MODEL failure (a malformed tool call, a hallucinated
+   *  tool name, a truncated call). The model is given structured guidance naming the attempt and
+   *  told not to repeat the same call, then the step is retried within a bounded budget.
+   *
+   *  Off unless configured: a retry costs a real request, so it is the caller's decision. This is
+   *  NOT a network retry — the engine already handles transport failures. This one is for a request
+   *  that succeeded and came back unusable, which resending unchanged would never fix. */
+  reflectAndRetry?: ReflectAndRetryConfig;
 
   /** Reuse an existing history (or rehydrate from a snapshot). New history
    *  is created when omitted. */

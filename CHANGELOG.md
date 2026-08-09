@@ -147,7 +147,34 @@ re-issues the same call carrying the answers plus the server's opaque `requestSt
 - `cacheScope` is recorded but never used to widen sharing: this cache lives inside one client with
   one credential, where `public` buys nothing.
 
+### Changed — `FinishReason` is now an OPEN union
+
+- **`FinishReason` = `KnownFinishReason | (string & {})`.** Providers keep inventing terminal
+  states — four did so in a single upstream cycle — and against a closed union every one of those is
+  a breaking change for **every** consumer, including consumers of providers that changed nothing.
+  Opening it is what CONSTITUTION.md R1 exists for, and it means this is the **last** time this type
+  breaks anyone. Write a `default` branch; use `KnownFinishReason` for the documented set alone.
+- **New known value `'malformed_tool_call'`** — the model tried to call a tool and produced
+  something unusable. Distinct from `error` (the request failed) and `tool_use` (a call we can
+  run), because this one is *recoverable*.
+- **Google's `MALFORMED_FUNCTION_CALL` is now mapped.** It previously wasn't mapped at all, so it
+  fell through to `'stop'`: a turn where the model failed to produce a usable tool call looked like
+  a clean finish with no content.
+
 ### Added — agent + network
+
+- **`reflectAndRetry` on `AgentLoop`** (google-adk 2.6 `ReflectAndRetryModelPlugin`).
+  Self-healing recovery from a model failure the model itself can fix: it receives structured
+  guidance naming the attempt and forbidding an identical retry, then the step runs again within a
+  bounded budget. **Off unless configured** — a retry costs a real request.
+  - **Not a network retry.** The engine already retries transport failures; this is for a request
+    that *succeeded* and came back unusable, which resending unchanged would never fix.
+  - The failed turn is **not appended to history**, so the model never learns from its own broken
+    output; usage from it *is* counted, because a wasted turn still costs money.
+  - Counts **consecutive** failures, so an agent that recovers and fails again later gets a fresh
+    budget rather than inheriting a spent one.
+  - `throwIfExceeded` (default `true`) decides raise-vs-return when the budget is spent; the error
+    names the option so the alternative is discoverable.
 
 - **`checkProvenance()`** — detect provider provenance signals in a file (C2PA manifest, SynthID
   watermark) via OpenAI's new `POST /v1/content_provenance_checks`. Bytes in, structured verdict

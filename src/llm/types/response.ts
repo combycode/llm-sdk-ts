@@ -92,16 +92,34 @@ export interface BuiltinToolCall {
   url?: string;
 }
 
+/** The finish reasons this SDK documents and maps deliberately. */
+export type KnownFinishReason =
+  | 'stop'
+  | 'tool_use'
+  | 'length'
+  | 'content_filter'
+  | 'error'
+  | 'pending'
+  /** The model tried to call a tool and produced something unusable — malformed arguments, a
+   *  hallucinated tool name, a truncated call. Distinct from `error` (the request itself failed)
+   *  and from `tool_use` (a call we can execute): this turn is *recoverable* by telling the model
+   *  what went wrong and letting it try again — see `reflectAndRetry` on `AgentLoop`. */
+  | 'malformed_tool_call';
+
 /** Why a turn ended.
  *
- *  `pending` is NOT terminal: the provider accepted the request but has not produced a
- *  completion yet, so the response carries no content. It exists because several providers
- *  can return a non-terminal status on an otherwise successful call — Google Interactions
- *  `queued` (google 2.13) and OpenAI Responses `queued` / `in_progress` (background mode).
- *  Previously those fell through to `stop`, which claimed a clean finish for an empty
- *  response; a caller could not distinguish "the model answered nothing" from "it has not
- *  run yet". Treat `pending` as "poll/retry", never as a result. */
-export type FinishReason = 'stop' | 'tool_use' | 'length' | 'content_filter' | 'error' | 'pending';
+ *  **This union is OPEN by design** (CONSTITUTION.md R1). Providers keep inventing terminal states —
+ *  four of them did so in a single upstream cycle — and against a closed union every one of those is
+ *  a breaking change for every consumer, including consumers of providers that changed nothing.
+ *  Always write a `default` branch; use `KnownFinishReason` where you want the documented set alone.
+ *
+ *  `pending` is NOT terminal: the provider accepted the request but has not produced a completion
+ *  yet, so the response carries no content. It exists because several providers can return a
+ *  non-terminal status on an otherwise successful call — Google Interactions `queued` (google 2.13)
+ *  and OpenAI Responses `queued` / `in_progress` (background mode). Those used to fall through to
+ *  `stop`, which claimed a clean finish for an empty response. Treat `pending` as "poll/retry",
+ *  never as a result. */
+export type FinishReason = KnownFinishReason | (string & {});
 
 export interface Usage {
   inputTokens: number;

@@ -88,6 +88,7 @@ export type {
   CompletionResponse,
   FileOutput,
   FinishReason,
+  KnownFinishReason,
   Usage,
 } from './llm/types/response';
 export type { FileStream, RetrievedFile } from './llm/files/retrieve';
@@ -314,6 +315,8 @@ export type { McpServerEvent, McpSubscriptionFilter } from './plugins/mcp/subscr
 export { checkProvenance } from './helpers/provenance';
 export type { CheckProvenanceOptions, ProvenanceCheckResult, ProvenanceSignal, ProvenanceSignalKind, ProvenanceValidationState } from './helpers/provenance-types';
 export { OpenAIProvenanceAdapter } from './llm/providers/openai/provenance';
+export { DEFAULT_REFLECT_RETRY_REASONS, ReflectAndRetryPolicy, reflectionGuidance } from './agent/reflect-retry';
+export type { ReflectAndRetryConfig } from './agent/reflect-retry';
 export { AnchoredStrategy } from './plugins/context-guard/strategies/anchored';
 export type { AnchoredStrategyConfig } from './plugins/context-guard/strategies/anchored';
 export { loadContent, loadImageContent } from './helpers/content';
