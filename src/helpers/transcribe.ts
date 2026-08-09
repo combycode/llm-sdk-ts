@@ -8,7 +8,12 @@
 
 import { calculateTranscriptionCost } from '../plugins/cost-collector/cost-collector-internal';
 import { OpenAITranscriptionAdapter } from '../llm/providers/openai/transcription';
-import type { AudioInput } from '../llm/types/audio';
+import type {
+  AudioInput,
+  TranscriptLanguage,
+  TranscriptSegment,
+  TranscriptWord,
+} from '../llm/types/audio';
 import type { AudioPart, ContentPart } from '../llm/types/messages';
 import type { ProviderName } from '../llm/types/provider';
 import { base64ToBytes } from '../util/base64';
@@ -27,20 +32,49 @@ export interface TranscribeOptions {
   /** Audio source: a file path, raw bytes, or an AudioInput (with explicit
    *  mimeType for raw/stream audio). */
   audio: string | Uint8Array | AudioInput;
-  /** Optional language hint (BCP-47, e.g. "en"). */
+  /** Optional language hint (BCP-47, e.g. "en") — the language the audio IS in.
+   *  Supported by `whisper-1` and `gpt-4o-transcribe`. Use `languages` instead for
+   *  `gpt-transcribe`, which rejects this field. */
   language?: string;
+  /** Candidate languages for the audio (ISO-639-1), when the language is not known
+   *  up front. Narrowing the candidates changes what the model reports detecting.
+   *  OpenAI: `gpt-transcribe` only — other models reject it with a 400. */
+  languages?: string[];
+  /** Words or phrases that steer spelling — product names, people, jargon. Verified
+   *  to work: an invented name transcribed as "Zalbrequist" without keywords comes
+   *  back as "Zylberquist" with it.
+   *  OpenAI: `gpt-transcribe` only — other models reject it with a 400. */
+  keywords?: string[];
+  /** Ask for word-level timings (and segments).
+   *  OpenAI: `whisper-1` only — other models reject it with a 400. */
+  wordTimestamps?: boolean;
+  /** Ask for speaker-labelled segments.
+   *  OpenAI: `gpt-4o-transcribe-diarize` only — other models reject it with a 400.
+   *  Cannot be combined with `wordTimestamps`: no model returns both. */
+  diarization?: boolean;
   /** Prompt used for generateContent-style providers (ignored by openai). */
   prompt?: string;
-  /** Caller-supplied audio duration in seconds.  Used to price OpenAI
-   *  transcription calls (the API does not return duration).  When omitted,
-   *  the helper tries to parse duration from a WAV header; other formats
-   *  emit an honest zero with a note. */
+  /** Caller-supplied audio duration in seconds, used to price the call.
+   *  Takes precedence when set. Otherwise the provider's own reported duration is
+   *  used when it returns one, then a WAV-header estimate; if none of the three is
+   *  available the cost hook emits an honest zero with a note. */
   audioDurationSeconds?: number;
   engine?: EngineHandle;
 }
 
+/** `text` is the only guaranteed field. Everything else appears when the chosen
+ *  model returns it, so a consumer written against `text` keeps working forever
+ *  (CONSTITUTION.md R3). */
 export interface TranscribeResult {
   text: string;
+  /** Languages the provider reports detecting. */
+  languages?: TranscriptLanguage[];
+  /** Timed segments. `speaker` is set only when diarization ran. */
+  segments?: TranscriptSegment[];
+  /** Word-level timings. */
+  words?: TranscriptWord[];
+  /** Audio duration in seconds as the provider measured it. */
+  durationSeconds?: number;
 }
 
 export async function transcribe(opts: TranscribeOptions): Promise<TranscribeResult> {
@@ -58,16 +92,27 @@ export async function transcribe(opts: TranscribeOptions): Promise<TranscribeRes
   if (provider === 'openai') {
     const { bytes, mimeType } = await loadAudioBytes(data, declaredMime);
     const adapter = new OpenAITranscriptionAdapter({ apiKey });
-    const text = await adapter.transcribe(
-      { bytes, mimeType, model, language: opts.language },
+    const result = await adapter.transcribe(
+      {
+        bytes,
+        mimeType,
+        model,
+        language: opts.language,
+        languages: opts.languages,
+        keywords: opts.keywords,
+        wordTimestamps: opts.wordTimestamps,
+        diarization: opts.diarization,
+      },
       engine.fetch,
     );
-    const durationSeconds = opts.audioDurationSeconds ?? deriveWavDuration(bytes, mimeType);
+    const durationSeconds =
+      opts.audioDurationSeconds ?? result.durationSeconds ?? deriveWavDuration(bytes, mimeType);
     emitTranscriptionCost(engine, provider, model, durationSeconds);
-    return { text };
+    return result;
   }
 
   // generateContent providers (google, …): STT is a normal completion.
+  warnUnsupportedStructuredOptions(engine, provider, opts);
   const { text } = await complete({
     model: opts.model,
     provider,
@@ -78,6 +123,37 @@ export async function transcribe(opts: TranscribeOptions): Promise<TranscribeRes
     maxTokens: 1024,
   });
   return { text };
+}
+
+/** Structured-transcript options a generateContent provider cannot deliver.
+ *
+ *  Google types `audioTranscriptionConfig` (diarization / wordTimestamp /
+ *  languageCodes) and the Developer API accepts AND type-validates it — then
+ *  returns a response byte-identical to one sent without it: no speaker labels, no
+ *  word timings (verified with a two-speaker round-trip, 2026-08-09). Rather than
+ *  emit a field we have proven inert, we warn: a caller who asked for speakers must
+ *  learn that they are not coming, instead of quietly receiving plain text. */
+const STRUCTURED_ONLY_OPTIONS = ['languages', 'keywords', 'wordTimestamps', 'diarization'] as const;
+
+function warnUnsupportedStructuredOptions(
+  engine: EngineHandle,
+  provider: ProviderName,
+  opts: TranscribeOptions,
+): void {
+  const requested = STRUCTURED_ONLY_OPTIONS.filter((k) => {
+    const v = opts[k];
+    return Array.isArray(v) ? v.length > 0 : v === true;
+  });
+  if (requested.length === 0) return;
+  engine.hooks.emitSync('onWarning', {
+    source: 'media',
+    code: 'transcription_option_unsupported',
+    message:
+      `transcribe: ${requested.join(', ')} ${requested.length === 1 ? 'is' : 'are'} not available ` +
+      `on "${provider}" — the transcript will be plain text. Structured transcription currently ` +
+      `requires an OpenAI transcription model.`,
+    details: { provider, requested },
+  });
 }
 
 function normalizeAudio(audio: string | Uint8Array | AudioInput): {

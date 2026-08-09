@@ -235,6 +235,42 @@ re-issues the same call carrying the answers plus the server's opaque `requestSt
   namespaced tool. Probe-verified 2026-08-06: accepted, and a non-string `namespace` is rejected,
   so the fields are validated rather than tolerated.
 
+### Added — structured transcription
+
+`transcribe()` returned `{ text }` and nothing else, so segments, speakers and word timings that
+the provider had already computed were parsed and thrown away.
+
+- **New request options:** `keywords` (spelling control for names and jargon), `languages`
+  (candidate languages when the language is unknown), `wordTimestamps`, and `diarization`.
+- **New response fields, all optional:** `segments` (with `speaker` when diarizing), `words`,
+  detected `languages`, and `durationSeconds`. **`text` stays required** (R3), so existing code is
+  untouched — the additions appear only when the chosen model produces them.
+- **Behaviourally verified, not just accepted** (E2). `keywords` changes the transcript: an invented
+  name that comes back as *"Zalbrequist"* without it comes back as *"Zylberquist"* with it, on
+  identical audio. `languages` changes what the model reports detecting, and an invalid code is
+  rejected. Both are `gpt-transcribe`-only; word timings are `whisper-1`-only; speaker labels are
+  `gpt-4o-transcribe-diarize`-only. **No model returns speakers and word timings together**, so
+  combining `wordTimestamps` with `diarization` throws before any request is sent.
+- **Model-gated options are still sent.** A field the chosen model rejects produces a 400 naming
+  the parameter, rather than being dropped on our side — the caller learns their keywords did
+  nothing (R4: gating is internal, but silence is not a gate). On generateContent providers, which
+  have no structured endpoint at all, the same request emits an `onWarning`
+  (`transcription_option_unsupported`).
+- **Transcription cost is now measured, not estimated.** These models return the audio duration
+  they billed for (`usage.seconds`, or a top-level `duration`), which is used when the caller
+  supplies none. Previously a non-WAV file with no `audioDurationSeconds` could only produce an
+  honest zero.
+- **Google's equivalent is deliberately absent.** `audioTranscriptionConfig` is accepted *and
+  type-validated* by the Gemini Developer API and then completely ignored: a two-speaker round-trip
+  returned a response structurally identical to the control — no `speakerLabel`, no `words[]`
+  anywhere (2026-08-09). It is the second confirmed accepted-but-inert field after `top_k`. Shipping
+  it on the strength of the green probe would have meant a diarization feature that silently
+  returns nothing.
+
+**Breaking (2.0):** `OpenAITranscriptionAdapter.transcribe()` returns
+`OpenAITranscriptionResult` instead of `string`; read `.text`. The `transcribe()` helper is
+unaffected — it already returned an object.
+
 ### Fixed — correctness
 
 - **`serviceTier: 'fast'` is actually sent to OpenAI.** The value shipped in openai-ts 7.x but was

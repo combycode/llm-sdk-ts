@@ -77,7 +77,14 @@ export { NetworkEngine } from './network/engine';
 export type { FetchOptions, NetworkEngineConfig, QueueSettings } from './network/engine';
 
 // LLM — types + client + provider adapters
-export type { AudioFormat, AudioOptions, AudioInput } from './llm/types/audio';
+export type {
+  AudioFormat,
+  AudioOptions,
+  AudioInput,
+  TranscriptLanguage,
+  TranscriptSegment,
+  TranscriptWord,
+} from './llm/types/audio';
 export { contentParts, contentText, finalAnswerText } from './llm/types/messages';
 export type { AssistantPhase, Role, MessageOrigin, ContentPart, TextPart, ImagePart, DocumentPart, AudioPart, VideoPart, ToolCallPart, ToolResultPart, ImageOutputPart, AudioOutputPart, VideoOutputPart, MediaOutputPart, DataSource, Content, Message } from './llm/types/messages';
 export { isFunctionTool, isBuiltinTool } from './llm/types/tools';
@@ -118,7 +125,11 @@ export { OpenAIRealtimeAdapter } from './llm/providers/openai/realtime';
 export type { OpenAIRealtimeAdapterConfig } from './llm/providers/openai/realtime';
 export { OpenAIResponsesAdapter } from './llm/providers/openai/responses';
 export { OpenAITranscriptionAdapter } from './llm/providers/openai/transcription';
-export type { OpenAITranscriptionAdapterConfig, TranscriptionRequest } from './llm/providers/openai/transcription';
+export type {
+  OpenAITranscriptionAdapterConfig,
+  OpenAITranscriptionResult,
+  TranscriptionRequest,
+} from './llm/providers/openai/transcription';
 export { OpenRouterAdapter } from './llm/providers/openrouter/completions';
 export { OpenRouterResponsesAdapter } from './llm/providers/openrouter/responses';
 export { XAIBatchAdapter } from './llm/providers/xai/batch';

@@ -18,7 +18,7 @@ transcribing speech to text.
 |---|---|
 | `countTokens(opts)` | Count the tokens in a string or message array. Picks the right counter per model: tiktoken for OpenAI, count-API for Anthropic/Google, heuristic otherwise. |
 | `embed(opts)` | Produce embedding vectors from a string or string array. Works with OpenAI, Google, and OpenRouter. Returns `{ embeddings, dimensions, usage }`. |
-| `transcribe(opts)` | Speech-to-text. OpenAI routes to `/v1/audio/transcriptions`; Google uses a chat-style completion internally. Returns `{ text }`. |
+| `transcribe(opts)` | Speech-to-text. OpenAI routes to `/v1/audio/transcriptions`; Google uses a chat-style completion internally. Returns `{ text }`, plus `segments` / `words` / `languages` / `durationSeconds` when the model produces them. |
 | `HybridTokenCounter` | Low-level token counter that tries tiktoken, falls back to count-API, then heuristic. Used by `countTokens` and `estimate()` internally. |
 | `HeuristicCounter` / `TiktokenCounter` / `CountApiCounter` | Individual counters for custom wiring. |
 
@@ -85,6 +85,62 @@ const { text } = await transcribe({
 });
 console.log(text);
 ```
+
+### Structured transcription
+
+`text` is the only field you always get. Everything else -- `segments`, `words`,
+detected `languages`, `durationSeconds` -- appears when the model you chose produces it,
+so code written against `text` never breaks when you switch models.
+
+```ts
+// Spelling control: keywords steer names and jargon the model would otherwise guess at.
+const named = await transcribe({
+  model: 'openai/gpt-transcribe',
+  audio: './standup.wav',
+  keywords: ['Zylberquist', 'Praxil'],   // "Zalbrequist" -> "Zylberquist"
+  languages: ['en', 'de'],               // candidates, when the language is unknown
+});
+console.log(named.languages);            // [{ code: 'en' }]
+
+// Word-level timings (and segments).
+const timed = await transcribe({
+  model: 'openai/whisper-1',
+  audio: './standup.wav',
+  wordTimestamps: true,
+});
+console.log(timed.words?.[0]);           // { word: 'Hello', start: 0, end: 0.72 }
+
+// Speaker labels.
+const meeting = await transcribe({
+  model: 'openai/gpt-4o-transcribe-diarize',
+  audio: './standup.wav',
+  diarization: true,
+});
+for (const s of meeting.segments ?? []) {
+  console.log(`[${s.speaker}] ${s.start.toFixed(1)}s ${s.text}`);
+}
+```
+
+**Which model does what.** These capabilities live on different models, and asking the
+wrong one is an error from the provider rather than a silent downgrade -- you always find
+out that you did not get what you asked for:
+
+| | `gpt-transcribe` | `gpt-4o-transcribe` | `whisper-1` | `gpt-4o-transcribe-diarize` |
+|---|---|---|---|---|
+| `keywords` / `languages` | yes | -- | -- | -- |
+| detected `languages` | always | -- | -- | -- |
+| `wordTimestamps` (`words` + `segments`) | -- | -- | yes | -- |
+| `diarization` (`segments` with `speaker`) | -- | -- | -- | yes |
+| `language` (single, known) | -- | yes | yes | yes |
+
+No model returns speakers *and* word timings, so `wordTimestamps` and `diarization`
+cannot be combined -- that throws before any request is sent.
+
+**Google** returns plain text only. Its transcription config is accepted by the Developer
+API and then ignored -- a request carrying it comes back byte-identical to one without
+(verified with a two-speaker round-trip). Asking for structure on a Google model emits an
+`onWarning` (`transcription_option_unsupported`) so the missing speakers are visible
+rather than quietly absent.
 
 ## Related
 

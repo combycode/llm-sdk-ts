@@ -1378,7 +1378,7 @@
           "cells": {
             "ours": {
               "support": "partial",
-              "note": "`transcribe()` unifies both shapes — OpenAI's dedicated endpoint and the generateContent-style providers. Returns `{ text }` only: diarization and word timestamps are NOT yet surfaced (OpenAI supports them; Google's equivalent is not usable on the Developer API — see DEFERRED D-6).",
+              "note": "`transcribe()` unifies both shapes — OpenAI's dedicated endpoint and the generateContent-style providers. `text` is always returned; `segments` (with `speaker` when diarizing), `words`, detected `languages` and `durationSeconds` appear when the model produces them, and `keywords` / `languages` steer recognition. Still missing vs. the OpenAI SDK: known-speaker references, `chunking_strategy`, `include: logprobs`, and streaming transcription. Google returns plain text only — its `audioTranscriptionConfig` is accepted and then ignored on the Developer API (verified with a two-speaker round-trip, 2026-08-09; see DEFERRED D-6), so asking for structure there emits a warning rather than silently returning less.",
               "refs": [
                 {
                   "sdk": "lib",
