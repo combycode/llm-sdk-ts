@@ -235,6 +235,38 @@ re-issues the same call carrying the answers plus the server's opaque `requestSt
   namespaced tool. Probe-verified 2026-08-06: accepted, and a non-string `namespace` is rejected,
   so the fields are validated rather than tolerated.
 
+### Added — programmatic tool calling (the model writes code that calls your tools)
+
+A model can now write a short program that orchestrates your tools itself, instead of
+emitting one call at a time and waiting for each result. Previously the `program` items
+in the response were dropped on the floor.
+
+- **`ToolCaller` on `ToolCallPart` and `ToolResultPart`** — `{ type: 'direct' | 'program',
+  callerId? }`. Absent means what it always meant (the model called the tool itself), so
+  nothing changes for existing code. Open union with an optional payload rather than
+  `{type:'direct'} | {type:'program', callerId}` (R1 + R2), so a future caller kind is
+  additive; an unknown type is preserved rather than flattened to `direct`.
+- **`ProgramCallPart` (`program_call`) and `ProgramResultPart` (`program_result`)** —
+  the code the model wrote, and what it returned. The code is plain readable JavaScript
+  and worth surfacing: it is the plan the model is executing.
+- **`allowedCallers` is now enforced locally**, not only by the provider. A tool without
+  it is `direct`-only, so model-written code cannot reach a tool that never opted in. A
+  violation denies that one call with an error result to the model — the way a guardrail
+  trip does — rather than ending the run.
+- **Round-tripping is the whole feature**, and three wire rules make it work (all found
+  live, none of them in any SDK's types):
+  - The `program` item is **rejected without the `reasoning` item that produced it**, so
+    that item is captured and re-emitted with it.
+  - **Dropping the program item is worse than an error**: the model silently re-emits the
+    program and runs it again from the start.
+  - `program_output` **requires its `id`** when replayed as history — unlike
+    `function_call_output`, which needs none. Without it a follow-up question 400s on a
+    conversation that had just succeeded.
+- **Availability, checked model by model:** of the 53 gpt-5 / o3 / o4 / codex models
+  visible on the test account, only the **`gpt-5.6` family** (`luna`, `sol`, `terra`)
+  accepts the `programmatic_tool_calling` tool. Every other one returns
+  *"Tool 'programmatic_tool_calling' is not supported with &lt;model&gt;"*.
+
 ### Added — structured transcription
 
 `transcribe()` returned `{ text }` and nothing else, so segments, speakers and word timings that

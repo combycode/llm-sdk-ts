@@ -10,8 +10,10 @@ import type {
   ImageOutputPart,
   MediaOutputPart,
   Message,
+  ProgramResultPart,
   TextPart,
   ToolCallPart,
+  ToolCaller,
 } from '../../types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import type { NormalizedRequest } from '../../types/request';
@@ -33,6 +35,27 @@ import { extractFinishReason } from '../_shared/response-utils';
 export interface OpenAIResponsesAdapterConfig {
   apiKey: string;
   baseURL?: string;
+}
+
+/** `caller` on the wire uses `caller_id`; our facade uses `callerId`. The type value is
+ *  passed through unchanged — it is an open union on our side (R1), and the API rejects
+ *  a value it does not know (`'teleport'` → 400 naming `input[n].caller.type`), so an
+ *  unknown value fails loudly at the provider rather than being dropped here. */
+function toWireCaller(caller: ToolCaller): Record<string, unknown> {
+  return {
+    type: caller.type,
+    ...(caller.callerId !== undefined ? { caller_id: caller.callerId } : {}),
+  };
+}
+
+function fromWireCaller(raw: unknown): ToolCaller | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const r = raw as { type?: unknown; caller_id?: unknown };
+  if (typeof r.type !== 'string') return undefined;
+  return {
+    type: r.type,
+    ...(typeof r.caller_id === 'string' ? { callerId: r.caller_id } : {}),
+  };
 }
 
 /** A filename (with extension) for an inline input_file — required by the API. */
@@ -403,6 +426,25 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       }
       flush();
 
+      // Programmatic tool calling: the program the model wrote, plus whatever provider
+      // items it is bound to. OpenAI rejects a `program` item whose `reasoning` item is
+      // missing ("provided without its required 'reasoning' item"), and DROPPING the
+      // program instead is worse than an error — the model silently re-emits it and runs
+      // the whole thing again. Both verified on the wire 2026-08-09.
+      for (const p of parts) {
+        if (p.type === 'program_call') {
+          const meta = (p._meta ?? {}) as { itemId?: string; boundItems?: unknown[] };
+          for (const bound of meta.boundItems ?? []) items.push(bound);
+          items.push({
+            type: 'program',
+            ...(meta.itemId ? { id: meta.itemId } : {}),
+            call_id: p.id,
+            code: p.code,
+            fingerprint: p.fingerprint,
+          });
+        }
+      }
+
       // Tool calls as function_call items
       for (const p of parts) {
         if (p.type === 'tool_call') {
@@ -413,6 +455,25 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
             call_id: p.id,
             name: p.name,
             arguments: JSON.stringify(p.arguments),
+            ...(p.caller ? { caller: toWireCaller(p.caller) } : {}),
+          });
+        }
+      }
+
+      // The program's own return value, once it finished.
+      for (const p of parts) {
+        if (p.type === 'program_result') {
+          // `id` is REQUIRED here — unlike function_call_output, which needs none. A
+          // completed programmatic run replayed as history 400s without it
+          // ("Missing required parameter: 'input[n].id'"), so a follow-up question
+          // fails on a conversation that succeeded a moment earlier.
+          const itemId = (p._meta as { itemId?: string } | undefined)?.itemId;
+          items.push({
+            type: 'program_output',
+            ...(itemId ? { id: itemId } : {}),
+            call_id: p.id,
+            result: p.result,
+            ...(p.status !== undefined ? { status: p.status } : {}),
           });
         }
       }
@@ -437,6 +498,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
             output: typeof p.content === 'string' ? p.content : JSON.stringify(p.content),
             ...(name !== undefined ? { name } : {}),
             ...(p.namespace !== undefined ? { namespace: p.namespace } : {}),
+            ...(p.caller ? { caller: toWireCaller(p.caller) } : {}),
           });
         }
       }
@@ -457,6 +519,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
 
     const content: ContentPart[] = [];
     const toolCalls: ToolCallPart[] = [];
+    const reasoningItems: Record<string, unknown>[] = [];
     const media: MediaOutputPart[] = [];
     const files: FileOutput[] = [];
     const builtinToolCalls: BuiltinToolCall[] = [];
@@ -502,6 +565,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       }
 
       if (type === 'function_call') {
+        const caller = fromWireCaller(item.caller);
         const tc: ToolCallPart = {
           type: 'tool_call',
           id: (item.call_id as string) ?? (item.id as string),
@@ -510,9 +574,41 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
             typeof item.arguments === 'string'
               ? JSON.parse(item.arguments as string)
               : ((item.arguments as Record<string, unknown>) ?? {}),
+          ...(caller ? { caller } : {}),
         };
         content.push(tc);
         toolCalls.push(tc);
+      }
+
+      // Programmatic tool calling. `reasoningItems` collects the reasoning items seen
+      // earlier in this same output, because the program cannot be sent back without
+      // them — see buildInputItems.
+      if (type === 'reasoning') reasoningItems.push(item);
+
+      if (type === 'program') {
+        content.push({
+          type: 'program_call',
+          id: (item.call_id as string) ?? (item.id as string),
+          code: (item.code as string) ?? '',
+          fingerprint: (item.fingerprint as string) ?? '',
+          _meta: {
+            ...(typeof item.id === 'string' ? { itemId: item.id } : {}),
+            ...(reasoningItems.length > 0 ? { boundItems: [...reasoningItems] } : {}),
+          },
+        });
+      }
+
+      if (type === 'program_output') {
+        content.push({
+          type: 'program_result',
+          id: (item.call_id as string) ?? (item.id as string),
+          result: (item.result as string) ?? '',
+          ...(typeof item.status === 'string'
+            ? { status: item.status as ProgramResultPart['status'] }
+            : {}),
+          // Required on the way back in, unlike every other item we echo.
+          ...(typeof item.id === 'string' ? { _meta: { itemId: item.id } } : {}),
+        });
       }
 
       // Built-in image generation tool output

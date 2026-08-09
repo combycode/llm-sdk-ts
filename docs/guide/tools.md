@@ -134,12 +134,47 @@ Server-side tools the provider runs are passed as plain objects in `tools: [...]
 and `{ type: 'mcp' }`. Provider-specific configuration goes in `params`, forwarded verbatim
 (e.g. `{ type: 'web_fetch', params: { allowed_domains: ['docs.example'], max_content_tokens: 4096 } }`).
 
-**Programmatic tool calling (OpenAI Responses, gpt-5.6+).** Add
+**Programmatic tool calling (OpenAI Responses, `gpt-5.6` family).** Add
 `{ type: 'programmatic_tool_calling' }` to let the model write JS that orchestrates your tool calls.
 Function tools can then declare who may invoke them and the shape they return:
 `allowedCallers?: ('direct' | 'programmatic')[]` and `outputSchema?` on a `FunctionTool`. Both are
-emitted only on the OpenAI Responses path (other providers ignore them). Model-gated — models that
-don't support it reject the builtin.
+emitted only on the OpenAI Responses path (other providers ignore them). Model-gated — of the
+gpt-5 / o3 / o4 / codex models tested, only `gpt-5.6-luna` / `-sol` / `-terra` accept the builtin;
+the rest reject it by name.
+
+The model's program arrives as a `program_call` content part and its return value as
+`program_result`. The tool calls the program makes are ordinary `tool_call` parts — you execute them
+exactly as before — each carrying `caller: { type: 'program', callerId }` pointing back at the
+program that made it:
+
+```ts
+const res = await client.complete(messages, {
+  tools: [
+    { type: 'programmatic_tool_calling' },
+    { ...getWeather, allowedCallers: ['programmatic'] },
+  ],
+});
+
+for (const part of res.content) {
+  if (part.type === 'program_call') console.log('model wrote:', part.code);
+  if (part.type === 'program_result') console.log('program returned:', part.result);
+}
+for (const call of res.toolCalls) {
+  console.log(call.name, call.caller?.type ?? 'direct'); // -> get_weather program
+}
+```
+
+The program suspends at each `await`, so its calls still arrive one turn at a time; answer them the
+usual way and the program resumes.
+
+**Keep the `program_call` part in your history and send it back.** Dropping it is not just a lost
+audit trail — the model re-emits the program and runs the whole thing again from the start. The
+adapter also re-sends the provider items the program is bound to, which the API requires.
+
+`allowedCallers` is enforced locally as well as by the provider: **a tool without it is
+`direct`-only**, so model-written code cannot reach a tool that never opted in. A violation denies
+that single call (an error result to the model, plus an `onWarning` with code
+`tool_caller_not_allowed`) instead of ending the run.
 
 Files a hosted tool produces (e.g. code-execution charts or data files) are surfaced
 uniformly on `response.files` (`FileOutput[]` — `{ id?, name?, mimeType?, data?, url?, ref?, source? }`),

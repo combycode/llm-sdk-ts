@@ -4,6 +4,7 @@
 import type { HookBus } from '../bus/hook-bus';
 import type { ToolCallPart, ContentPart } from '../llm/types/messages';
 import { emptyUsage, type CompletionResponse } from '../llm/types/response';
+import { isFunctionTool } from '../llm/types/tools';
 import type { StreamEvent } from '../llm/types/stream';
 import type { TraceContext } from '../network/types';
 import type { AgentStreamEvent, AgentTool, ToolCallReport, ToolExecutionContext } from './types';
@@ -157,6 +158,27 @@ export function buildStepResponse(
 
 type LookupResult = { found: true; tool: AgentTool } | { found: false; errorResult: ContentPart };
 
+/** Reject a tool call made by a caller the tool did not opt into.
+ *
+ *  `allowedCallers` is declared per tool and enforced by the provider, but it is
+ *  enforced here too: the whole point of restricting a tool to `direct` is that
+ *  model-written code must not be able to reach it, and a client that only trusts
+ *  the provider's check has no defence if the provider's ever slips.
+ *
+ *  Absent `allowedCallers` means `['direct']` — a tool that never opted in is not
+ *  callable by a program. Note the two vocabularies differ upstream and we mirror
+ *  them: the caller reports `program`, the allow-list spells it `programmatic`. */
+function callerViolation(tc: ToolCallPart, tool: AgentTool): string | undefined {
+  const caller = tc.caller?.type === 'program' ? 'programmatic' : 'direct';
+  const def = tool.definition;
+  const allowed = (isFunctionTool(def) ? def.allowedCallers : undefined) ?? ['direct'];
+  if (allowed.includes(caller)) return undefined;
+  return (
+    `Tool "${tc.name}" was invoked by a ${caller} caller, but it allows only ` +
+    `${allowed.join(', ')}. The call was not executed.`
+  );
+}
+
 /** Resolve a tool by name; emit not-found hooks and push an error report.
  *  Returns found tool or an error ContentPart to return to the model. */
 export async function lookupToolOrError(
@@ -172,9 +194,12 @@ export async function lookupToolOrError(
   runTrace?: TraceContext,
 ): Promise<LookupResult> {
   const tool = tools.get(tc.name);
-  if (tool) return { found: true, tool };
+  const violation = tool ? callerViolation(tc, tool) : undefined;
+  if (tool && !violation) return { found: true, tool };
 
-  const errMsg = `Tool "${tc.name}" is not available. Available tools: ${[...tools.keys()].join(', ')}`;
+  const errMsg =
+    violation ??
+    `Tool "${tc.name}" is not available. Available tools: ${[...tools.keys()].join(', ')}`;
   const latencyMs = performance.now() - toolStart;
 
   await hooks.emit('onToolCallError', {
@@ -193,9 +218,11 @@ export async function lookupToolOrError(
 
   await hooks.emit('onWarning', {
     source: 'agent',
-    code: 'tool_not_found',
+    code: violation ? 'tool_caller_not_allowed' : 'tool_not_found',
     message: errMsg,
-    details: { toolName: tc.name, available: [...tools.keys()] },
+    details: violation
+      ? { toolName: tc.name, caller: tc.caller?.type ?? 'direct' }
+      : { toolName: tc.name, available: [...tools.keys()] },
   });
 
   reports.push({
