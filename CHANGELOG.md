@@ -96,11 +96,15 @@ re-issues the same call carrying the answers plus the server's opaque `requestSt
   for another subscription are ignored.
 - Refused with a clear error on a handshake session, which keeps `subscribeResource()` the right
   answer there instead of silently returning a subscription that never fires.
-- **Streamable HTTP is not supported yet** and says so: on that transport a listen is a POST whose
-  *response body* is the long-lived stream, and our POST path reads the body to completion — so the
-  frames would only surface once the stream closed. That needs streaming-response support in the
-  transport, which is a transport change rather than a protocol one. **stdio and WebSocket work
-  today.** Failing loudly beats accepting a subscription that delivers nothing.
+- **Works on every transport** — stdio, WebSocket and Streamable HTTP. On HTTP a listen is a POST
+  whose *response body* is the long-lived stream, so it goes through the streaming fetch rather than
+  the buffered POST path (which would surface frames only once the stream closed — i.e. never, for
+  a healthy subscription). Frames route identically on all three, so the client sees no difference.
+- **The end of a stream is observable.** `subscription.active` / `.ended` report whether the stream
+  is still live and, if not, the error that killed it — a rejected subscription, a dropped
+  connection, or a clean server-side teardown. A subscription that silently stopped delivering is
+  otherwise indistinguishable from one where nothing has changed yet; failures also surface on the
+  `onMcpError` hook. `close()` on the client tears down every open stream.
 
 **Hardening**
 

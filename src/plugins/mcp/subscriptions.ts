@@ -74,6 +74,7 @@ export class McpSubscription {
    *  than what was requested, so check it rather than assuming. */
   honored: McpSubscriptionFilter | null = null;
   private closed = false;
+  private endState: { error?: unknown } | null = null;
 
   constructor(
     readonly id: string | number,
@@ -107,9 +108,30 @@ export class McpSubscription {
     return Array.isArray(value) ? value.length > 0 : value === true;
   }
 
+  /** Set once the stream ends: `undefined` for a clean server-side teardown, otherwise the error
+   *  that killed it. A subscription that stopped delivering is otherwise indistinguishable from one
+   *  where nothing has changed yet. */
+  get ended(): { error?: unknown } | null {
+    return this.endState;
+  }
+
+  /** True while the subscription can still deliver. */
+  get active(): boolean {
+    return !this.closed;
+  }
+
+  /** Called by the transport when the underlying stream finishes. */
+  markEnded(error?: unknown): void {
+    if (this.closed) return;
+    this.endState = { ...(error !== undefined ? { error } : {}) };
+    this.closed = true;
+    this.onClose();
+  }
+
   close(): void {
     if (this.closed) return;
     this.closed = true;
+    this.endState = {};
     this.onClose();
   }
 }

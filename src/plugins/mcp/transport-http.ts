@@ -40,6 +40,9 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
   private era: 'handshake' | 'modern' = 'handshake';
   private eventAbort: AbortController | null = null;
   private lastEventId: string | null = null;
+  /** Live `subscriptions/listen` streams, so `close()` can tear them down. Without this a closed
+   *  client would leave the POST hanging until the server gave up on it. */
+  private readonly streamAborts = new Set<AbortController>();
 
   constructor(
     private readonly config: McpHttpConfig,
@@ -158,6 +161,8 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
   async close(): Promise<void> {
     this.eventAbort?.abort();
     this.eventAbort = null;
+    for (const abort of this.streamAborts) abort.abort();
+    this.streamAborts.clear();
     if (!this.sessionId) return;
     try {
       await this.deps.fetch(
@@ -185,21 +190,71 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
     return this.post(obj).then(() => undefined);
   }
 
-  /** Not available on Streamable HTTP yet.
+  /** Open a long-lived request whose RESPONSE BODY is the event stream.
    *
-   *  A `subscriptions/listen` on this transport is a POST whose RESPONSE BODY is the long-lived
-   *  event stream. Our POST path reads the body to completion and returns it, so the frames would
-   *  only surface after the stream closed — i.e. never, for a healthy subscription. Making this
-   *  work needs streaming-response support in the POST path, which is a transport change, not a
-   *  protocol one. Failing loudly beats silently accepting a subscription that delivers nothing. */
-  override async sendLongLivedRequest(method: string): Promise<number> {
-    throw new McpError({
-      code: McpErrorCode.MethodNotFound,
-      message:
-        `MCP '${method}' needs a long-lived response stream, which the Streamable HTTP transport ` +
-        `does not implement yet. Use the stdio or WebSocket transport for subscriptions, or poll ` +
-        `listTools()/listResources() instead.`,
-    });
+   *  This is how `subscriptions/listen` works on Streamable HTTP: unlike an ordinary call, the POST
+   *  does not return a single JSON-RPC message — the server holds the response open and writes
+   *  notification frames as they occur, closing it only when the subscription ends. So it goes
+   *  through `fetchStream` (streaming response) rather than the buffered `post()` path, which would
+   *  surface the frames only after the stream closed.
+   *
+   *  Frames are routed exactly like the GET channel's, so the client sees no difference between the
+   *  two. The eventual JSON-RPC response has no pending entry to settle — its only meaning is "the
+   *  stream ended", which is reported through `onEnd`. */
+  override async sendLongLivedRequest(
+    method: string,
+    params?: unknown,
+    onEnd?: (error?: unknown) => void,
+  ): Promise<number> {
+    const id = this.allocateId();
+    const message = { jsonrpc: '2.0', id, method, ...(params !== undefined ? { params } : {}) };
+    const abort = new AbortController();
+    this.streamAborts.add(abort);
+
+    const stream = this.deps.fetchStream(
+      {
+        url: this.config.url,
+        method: 'POST',
+        headers: await this.authedHeaders({
+          accept: 'text/event-stream',
+          ...this.routingHeaders(method, params),
+        }),
+        body: message,
+        provider: 'mcp',
+        model: this.config.name ?? 'server',
+        signal: abort.signal,
+      },
+      { queueName: this.deps.queueName ? `${this.deps.queueName}/events` : undefined },
+    );
+
+    // Consume in the background: the caller gets the id immediately and receives frames through
+    // the normal incoming path. Awaiting here would block until the subscription ENDED.
+    void (async () => {
+      let failure: unknown;
+      try {
+        for await (const ev of stream) {
+          if (abort.signal.aborted) break;
+          if (ev.id) this.lastEventId = ev.id;
+          if (!ev.data) continue;
+          let msg: import('./base-transport').InboundMessage;
+          try {
+            msg = JSON.parse(ev.data) as import('./base-transport').InboundMessage;
+          } catch {
+            continue; // comment / keep-alive frame
+          }
+          await this.routeIncoming(msg);
+        }
+      } catch (e) {
+        // A rejected subscription (4xx) or a dropped connection. Reported rather than swallowed:
+        // a caller holding a subscription that silently stopped delivering has no way to find out.
+        if (!abort.signal.aborted) failure = e;
+      } finally {
+        this.streamAborts.delete(abort);
+        onEnd?.(failure);
+      }
+    })();
+
+    return id;
   }
 
   private headers(): Record<string, string> {

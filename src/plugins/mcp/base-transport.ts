@@ -39,6 +39,9 @@ export abstract class BaseJsonRpcTransport {
   protected nextId = 0;
   protected handlers: IncomingMcpHandlers = {};
   protected readonly pending = new Map<number, Pending>();
+  /** Long-lived requests (`subscriptions/listen`) awaiting their end-of-stream response. Kept apart
+   *  from `pending` because these must NOT time out. */
+  protected readonly longLived = new Map<number, ((error?: unknown) => void) | undefined>();
 
   setHandlers(handlers: IncomingMcpHandlers): void {
     this.handlers = handlers;
@@ -62,10 +65,27 @@ export abstract class BaseJsonRpcTransport {
    *
    *  The caller correlates frames itself via the returned id. Duplex transports (stdio, WebSocket)
    *  support this; a request/response transport must override and reject. */
-  async sendLongLivedRequest(method: string, params?: unknown): Promise<number> {
+  async sendLongLivedRequest(
+    method: string,
+    params?: unknown,
+    onEnd?: (error?: unknown) => void,
+  ): Promise<number> {
     const id = this.allocateId();
+    // Registered with NO timeout: the response settles only when the server tears the subscription
+    // down, which is exactly the `onEnd` signal. Without an entry here that response would be an
+    // unmatched message and the caller would never learn the stream had ended.
+    this.longLived.set(id, onEnd);
     await this.sendMessage({ jsonrpc: '2.0', id, method, ...(params !== undefined ? { params } : {}) });
     return id;
+  }
+
+  /** Settle a long-lived request from its (late) response. Returns whether one was waiting. */
+  protected resolveLongLived(id: number | string, error?: unknown): boolean {
+    const onEnd = this.longLived.get(id as number);
+    if (onEnd === undefined && !this.longLived.has(id as number)) return false;
+    this.longLived.delete(id as number);
+    onEnd?.(error);
+    return true;
   }
 
   /** Register a pending request and arm its timeout. */
@@ -98,7 +118,12 @@ export abstract class BaseJsonRpcTransport {
   protected resolveResponse(msg: InboundMessage): void {
     if (typeof msg.id !== 'number') return;
     const p = this.pending.get(msg.id);
-    if (!p) return;
+    if (!p) {
+      // A long-lived request answers only when the server ends the subscription, so its response
+      // arrives with no pending entry. That is the end-of-stream signal, not a stray message.
+      this.resolveLongLived(msg.id, msg.error ? new McpError(msg.error) : undefined);
+      return;
+    }
     this.pending.delete(msg.id);
     clearTimeout(p.timer);
     if (msg.error) p.reject(new McpError(msg.error));
@@ -132,5 +157,9 @@ export abstract class BaseJsonRpcTransport {
       p.reject(err);
     }
     this.pending.clear();
+    // Subscriptions die with the connection too — otherwise a caller keeps a handle to a stream
+    // that will never deliver again and is never told.
+    for (const onEnd of this.longLived.values()) onEnd?.(err);
+    this.longLived.clear();
   }
 }

@@ -454,10 +454,27 @@ export class McpClient {
       });
     }
 
-    const id = await this.transport.sendLongLivedRequest('subscriptions/listen', {
-      notifications: filter,
-    });
-    const subscription = new McpSubscription(
+    // Declared before the send so an immediately-failing stream still finds it.
+    let subscription: McpSubscription | undefined;
+    const id = await this.transport.sendLongLivedRequest(
+      'subscriptions/listen',
+      { notifications: filter },
+      (error) => {
+        // The stream ended — cleanly, or because it was rejected/dropped. Either way the
+        // subscription is dead; leaving it "open" would let a caller wait forever on events that
+        // can no longer arrive.
+        subscription?.markEnded(error);
+        if (error) {
+          const hooks = this.opts.hooks ?? this.opts.telemetry?.hooks;
+          hooks?.emitSync('onMcpError', {
+            server: this.opts.server ?? this.opts.telemetry?.server ?? 'mcp',
+            phase: 'request',
+            error: error instanceof Error ? error : new Error(String(error)),
+          });
+        }
+      },
+    );
+    subscription = new McpSubscription(
       id,
       filter,
       (event) => {
