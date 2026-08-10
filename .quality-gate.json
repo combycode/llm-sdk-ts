@@ -24,5 +24,17 @@
     "extensions": [".ts", ".tsx", ".mts"],
     "ignore": [],
     "ignoreKinds": []
+  },
+
+  "_consumerInstall": "Installs the PACKED tarball, never a directory link: a file: dep on the source dir can be symlinked, walking past the files filter and exports map. Typecheck is the free tier; the LIVE run of consumers/feature is what proves behaviour and stays a human step.",
+  "consumerInstall": {
+    "packDir": "../consumers/.pack",
+    "packName": "llm-sdk.tgz",
+    "packageName": "@combycode/llm-sdk",
+    "consumers": [
+      { "path": "../consumers/server", "install": "bun install", "verify": ["bun run typecheck"] },
+      { "path": "../consumers/browser", "install": "bun install", "verify": ["bun run typecheck"] },
+      { "path": "../consumers/feature", "install": "bun install", "verify": ["bun run typecheck"] }
+    ]
   }
 }
