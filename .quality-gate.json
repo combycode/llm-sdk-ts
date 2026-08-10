@@ -26,6 +26,14 @@
     "ignoreKinds": []
   },
 
+  "_claims": "Every cited sha and path must resolve. `extra` reaches the update reports, which live outside the library but cite ITS commits. Versions are deliberately out of scope here (third-party versions look identical to ours) — that is G7's question.",
+  "claims": {
+    "files": ["docs", "README.md", "CHANGELOG.md", "MIGRATION.md"],
+    "extra": ["../library-updates/STATUS.md"],
+    "ignore": [],
+    "checkPaths": true
+  },
+
   "_consumerInstall": "Installs the PACKED tarball, never a directory link: a file: dep on the source dir can be symlinked, walking past the files filter and exports map. Typecheck is the free tier; the LIVE run of consumers/feature is what proves behaviour and stays a human step.",
   "consumerInstall": {
     "packDir": "../consumers/.pack",
