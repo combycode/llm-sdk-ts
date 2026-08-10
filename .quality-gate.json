@@ -1,12 +1,28 @@
 {
-  "_doc": "Config for CombyCode/quality-gate/*. Lives HERE, not with the engine: the receiver map describes this library's API and must change when the API does.",
+  "_doc": "Config for CombyCode/quality-gate. Lives HERE, not with the engine: it describes THIS library's API and must change when the API does. Run: bun run gate",
   "docs": ["docs", "README.md"],
   "dist": "dist",
+
+  "_receivers": "The name used in prose -> the class(es) it means. Class names, not file paths: moving a declaration between files is not an API change.",
   "receivers": {
-    "agent": ["agent/loop.d.ts"],
-    "loop": ["agent/loop.d.ts"],
-    "client": ["llm/client.d.ts", "plugins/mcp/client.d.ts"],
-    "llm": ["llm/client.d.ts"],
-    "mcp.client": ["plugins/mcp/client.d.ts"]
+    "agent": ["AgentLoop"],
+    "loop": ["AgentLoop"],
+    "client": ["LLMClient", "McpClient"],
+    "llm": ["LLMClient"],
+    "mcp.client": ["McpClient"]
+  },
+
+  "apiSnapshot": {
+    "file": "api-snapshot.json",
+    "baseline": "auto",
+    "breakingDocs": ["MIGRATION.md", "CHANGELOG.md"],
+    "exclude": []
+  },
+
+  "exampleFirst": {
+    "roots": ["../unified-examples-ts"],
+    "extensions": [".ts", ".tsx", ".mts"],
+    "ignore": [],
+    "ignoreKinds": []
   }
 }

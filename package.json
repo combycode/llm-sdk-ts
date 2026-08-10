@@ -43,7 +43,9 @@
     "format": "biome format --write src tests",
     "check": "biome check src tests",
     "check:fix": "biome check --write src tests",
-    "gate:surface": "node ../../quality-gate/consumer-surface.mjs"
+    "gate": "node ../../quality-gate/gate.mjs",
+    "gate:selftest": "node ../../quality-gate/selftest.mjs",
+    "gate:snapshot": "node ../../quality-gate/gate.mjs --only api-snapshot --update"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",
