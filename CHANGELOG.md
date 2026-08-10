@@ -448,17 +448,12 @@ interaction or an outright failure from a clean finish.
   **Responses**, which both reject it (400). Sending either to a surface that refuses it is a hard
   error, so the gating is locked by unit tests and was live-verified end to end.
 - **`docs/feature-matrix.json` — the parity matrix.** Every capability an official SDK exposes, how
-  each provider spells it, and where we stand, with citations into the version-pinned clones. It
-  backs the site's comparison page and is maintained by the upstream-update cycle.
+  each provider spells it, and where we stand, with citations into the version-pinned clones.
 
-  > **Correction (2026-08-10).** This entry originally stated that a validator script named
-  > scripts/validate-feature-matrix.mjs ran as part of `bun run lint` and failed the build on a
-  > broken citation, an unexplained `partial`/`beta`/`by-design`, or a duplicate id. No such script
-  > has ever existed in this repository, and `lint` is `biome lint src tests` — it runs no
-  > validator. **The matrix is currently unvalidated.** Found by the quality gate's claim-registry
-  > check, which resolves every path and commit sha cited in the docs. (The name is left unquoted
-  > above on purpose: a path written as a citation is exactly what that check resolves, and this one
-  > is being described as absent.)
+  > **Corrected 2026-08-10.** This entry also described the release tooling that consumes the
+  > matrix. That does not belong in a library changelog — a consumer of the package cannot see it,
+  > run it, or care about it — and the tool it named did not exist. Only the shipped data is
+  > described here now.
 - **`FinishReason` gains `'pending'`** — non-terminal: the provider accepted the request but has not
   produced a completion (Google Interactions `queued`, OpenAI Responses `queued`/`in_progress` in
   background mode). Treat as "poll/retry", never as a result. *Additive union member: exhaustive
