@@ -8,6 +8,15 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **Docs: the per-request retry sample could never compile.** `docs/guide/network.md` showed
+  `complete({ retry: { attempts, initialDelay, maxDelay, expBase, httpStatusCodes } })`. `complete()`
+  takes no `retry` option (`TS2353`), and not one of those field names exists on
+  `RequestRetryOverride` — the real fields are `maxRetries` / `totalTimeoutMs` / `attemptTimeoutMs` /
+  `maxRetryAfterMs` / `backoff{initialMs,maxMs,multiplier,jitter}`, and the override rides on
+  `engine.fetch()`. The feature was always correct; only its documentation was wrong. Same class as
+  the 2.0.0 `agent.run()` defect, on an option object rather than a method, which is why the
+  consumer-surface check did not see it.
+
 - **MCP result cache: `ttlMs: 0` now evicts.** The hint was documented as "immediately stale — not
   the same as absent", but `set()` funnelled it through the same branch as a missing hint and stored
   nothing. Any entry already held survived, so a server that said "cache for 60s" and later "stale

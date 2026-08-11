@@ -70,17 +70,34 @@ const llm2 = createLLM({ model: 'anthropic/claude-haiku-4.5', engine: e2 });
 Retry policy is configured per queue (per provider), and a **single request can override it**
 without disturbing anything else on that queue:
 
+The override rides on the **request**, so it is set through the engine rather than on `complete()`:
+
 ```ts
-const { text } = await complete({
-  model: 'openai/gpt-5.4-nano',
-  prompt: 'Hello',
-  retry: { attempts: 5, initialDelay: 200, maxDelay: 8_000, jitter: true },
+const res = await engine.fetch({
+  url: 'https://api.openai.com/v1/responses',
+  method: 'POST',
+  headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
+  body: { model: 'gpt-5.4-nano', input: 'Hello' },
+  provider: 'openai', // observability only — the routing key is the queue name
+  model: 'gpt-5.4-nano',
+  retry: {
+    maxRetries: 5,
+    attemptTimeoutMs: 10_000,
+    maxRetryAfterMs: 30_000,
+    backoff: { initialMs: 200, maxMs: 8_000, multiplier: 2, jitter: 0.2 },
+  },
 });
 ```
 
-`RequestRetryOverride` accepts `attempts` / `initialDelay` / `maxDelay` / `expBase` / `jitter` /
-`httpStatusCodes`. Anything you leave out falls back to the queue's policy; the per-error-kind rules
-stay queue-level.
+`RequestRetryOverride` accepts `maxRetries` / `totalTimeoutMs` / `attemptTimeoutMs` /
+`maxRetryAfterMs` / `backoff` (`initialMs`, `maxMs`, `multiplier`, `jitter`). Anything you leave out
+falls back to the queue's policy; `perKind` stays queue-level, because one request cannot sensibly
+redefine which error classes are retryable for a queue it shares with everyone else.
+
+> **Corrected 2026-08-11.** This section previously showed `complete({ retry: … })` with the fields
+> `attempts` / `initialDelay` / `maxDelay` / `expBase` / `httpStatusCodes`. None of those exist, and
+> `complete()` takes no `retry` option at all — the sample raised `TS2353` for anyone who copied it.
+> The feature itself was always correct; only its documentation was wrong.
 
 ### `Retry-After` is honoured, but bounded
 
