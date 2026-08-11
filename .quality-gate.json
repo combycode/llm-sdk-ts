@@ -89,5 +89,27 @@
         ]
       }
     ]
+  },
+  "_docSnippets": "Every documented TS block is compiled against the packed build in a real consumer project. Fragments (syntax-incomplete) are skipped; only API-mismatch codes are reported. A canary import proves the check is not blind.",
+  "docSnippets": {
+    "project": "../consumers/feature",
+    "packageName": "@combycode/llm-sdk",
+    "langs": [
+      "ts",
+      "typescript",
+      "tsx"
+    ],
+    "codes": [
+      "TS2339",
+      "TS2353",
+      "TS2551",
+      "TS2305",
+      "TS2724",
+      "TS2554"
+    ],
+    "ignore": [],
+    "types": [
+      "node"
+    ]
   }
 }
