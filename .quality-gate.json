@@ -1,48 +1,93 @@
 {
   "_doc": "Config for CombyCode/quality-gate. Lives HERE, not with the engine: it describes THIS library's API and must change when the API does. Run: bun run gate",
-  "docs": ["docs", "README.md"],
+  "docs": [
+    "docs",
+    "README.md"
+  ],
   "dist": "dist",
-
   "_receivers": "The name used in prose -> the class(es) it means. Class names, not file paths: moving a declaration between files is not an API change.",
   "receivers": {
-    "agent": ["AgentLoop"],
-    "loop": ["AgentLoop"],
-    "client": ["LLMClient", "McpClient"],
-    "llm": ["LLMClient"],
-    "mcp.client": ["McpClient"]
+    "agent": [
+      "AgentLoop"
+    ],
+    "loop": [
+      "AgentLoop"
+    ],
+    "client": [
+      "LLMClient",
+      "McpClient"
+    ],
+    "llm": [
+      "LLMClient"
+    ],
+    "mcp.client": [
+      "McpClient"
+    ]
   },
-
   "apiSnapshot": {
     "file": "api-snapshot.json",
     "baseline": "auto",
-    "breakingDocs": ["MIGRATION.md", "CHANGELOG.md"],
+    "breakingDocs": [
+      "MIGRATION.md",
+      "CHANGELOG.md"
+    ],
     "exclude": []
   },
-
   "exampleFirst": {
-    "roots": ["../unified-examples-ts"],
-    "extensions": [".ts", ".tsx", ".mts"],
+    "roots": [
+      "../unified-examples-ts",
+      "../consumers"
+    ],
+    "extensions": [
+      ".ts",
+      ".tsx",
+      ".mts"
+    ],
     "ignore": [],
-    "ignoreKinds": []
+    "ignoreKinds": [],
+    "debtFile": "example-debt.json"
   },
-
   "_claims": "Every cited sha and path must resolve. `extra` reaches the update reports, which live outside the library but cite ITS commits. Versions are deliberately out of scope here (third-party versions look identical to ours) — that is G7's question.",
   "claims": {
-    "files": ["docs", "README.md", "CHANGELOG.md", "MIGRATION.md"],
-    "extra": ["../library-updates/STATUS.md"],
+    "files": [
+      "docs",
+      "README.md",
+      "CHANGELOG.md",
+      "MIGRATION.md"
+    ],
+    "extra": [
+      "../library-updates/STATUS.md"
+    ],
     "ignore": [],
     "checkPaths": true
   },
-
   "_consumerInstall": "Installs the PACKED tarball, never a directory link: a file: dep on the source dir can be symlinked, walking past the files filter and exports map. Typecheck is the free tier; the LIVE run of consumers/feature is what proves behaviour and stays a human step.",
   "consumerInstall": {
     "packDir": "../consumers/.pack",
     "packName": "llm-sdk.tgz",
     "packageName": "@combycode/llm-sdk",
     "consumers": [
-      { "path": "../consumers/server", "install": "bun install", "verify": ["bun run typecheck"] },
-      { "path": "../consumers/browser", "install": "bun install", "verify": ["bun run typecheck"] },
-      { "path": "../consumers/feature", "install": "bun install", "verify": ["bun run typecheck"] }
+      {
+        "path": "../consumers/server",
+        "install": "bun install",
+        "verify": [
+          "bun run typecheck"
+        ]
+      },
+      {
+        "path": "../consumers/browser",
+        "install": "bun install",
+        "verify": [
+          "bun run typecheck"
+        ]
+      },
+      {
+        "path": "../consumers/feature",
+        "install": "bun install",
+        "verify": [
+          "bun run typecheck"
+        ]
+      }
     ]
   }
 }
