@@ -139,6 +139,13 @@ Entries are invalidated automatically by the matching `*_changed` notification, 
 list cannot go stale behind your back. `mcp.client.invalidateCache()` drops them by hand when you
 know the server moved before it says so.
 
+**`ttlMs: 0` is an instruction, not a missing value.** A server sending it is saying *do not reuse
+this*, so it **evicts** whatever is held under that key and the next call re-fetches. That matters
+when a server first says "cache for 60s" and later says "stale now": without the eviction the old
+value would keep being served for the rest of the original TTL. Hints that are simply **absent** are
+the opposite — they carry no instruction, leave any existing entry alone, and keep pre-2026 servers
+behaving exactly as before.
+
 Measured against the reference server by counting wire frames (timing is not a reliable oracle over
 a local pipe): with hints and `cacheResults`, three `listTools()` calls produce **one** request;
 without hints, or with caching off, all three reach the wire.

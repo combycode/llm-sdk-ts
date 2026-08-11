@@ -4,6 +4,20 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **MCP result cache: `ttlMs: 0` now evicts.** The hint was documented as "immediately stale — not
+  the same as absent", but `set()` funnelled it through the same branch as a missing hint and stored
+  nothing. Any entry already held survived, so a server that said "cache for 60s" and later "stale
+  now" kept being answered from the stale entry for the rest of the original TTL — the instruction
+  was accepted and inert. A non-positive `ttlMs` now drops the entry for that key. Absent hints are
+  unchanged and still leave an existing entry alone, so pre-2026 servers behave exactly as before.
+  - The existing unit test asserted `set(…, { ttlMs: 0 })` returned `false` and `get` was
+    `undefined` — on an *empty* cache, where that holds whether or not the hint does anything. It
+    passed for the wrong reason. Found by writing the MCP protocol example as a consumer.
+
 ## [2.0.1] - 2026-08-10
 
 Three defects reported by a consumer within a day of 2.0.0 — all reachable by reading the shipped

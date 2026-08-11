@@ -78,6 +78,29 @@ describe('McpResultCache', () => {
     expect(c.get('k')).toBeUndefined();
   });
 
+  // The assertion above passes on an EMPTY cache whether or not `ttlMs: 0` does
+  // anything — `get` is undefined because nothing was ever stored. The instruction
+  // is only observable when something IS held, which is the case a real server
+  // produces: "cache this for 60s", then later "this one is stale now".
+  it('ttlMs: 0 EVICTS an entry already held, so the stale value stops being served', () => {
+    const c = new McpResultCache();
+    c.set('k', [1], { ttlMs: 60_000 });
+    expect(c.get('k')).toEqual([1]);
+
+    expect(c.set('k', [2], { ttlMs: 0 })).toBe(false);
+    expect(c.get('k')).toBeUndefined();
+    expect(c.size).toBe(0);
+  });
+
+  it('absent hints carry no instruction, so they leave an existing entry alone', () => {
+    const c = new McpResultCache();
+    c.set('k', [1], { ttlMs: 60_000 });
+    expect(c.set('k', [2], undefined)).toBe(false);
+    expect(c.set('k', [2], {})).toBe(false);
+    // Byte-identical to pre-2026 behaviour: a server that says nothing changes nothing.
+    expect(c.get('k')).toEqual([1]);
+  });
+
   it('expires an entry once its ttl has elapsed', () => {
     const c = new McpResultCache();
     c.set('k', [1], { ttlMs: 1000 }, 0);

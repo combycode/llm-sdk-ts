@@ -42,10 +42,21 @@ export class McpResultCache {
     return hit.value;
   }
 
-  /** Store only when the server actually asked for it. Returns whether anything was stored. */
+  /** Store only when the server actually asked for it. Returns whether anything was stored.
+   *
+   *  A non-positive `ttlMs` is an instruction, not a missing value: the server is saying *do not
+   *  reuse this*. Any entry already held under that key is dropped, so the next `get` re-fetches.
+   *  Without the eviction the hint is inert — a server that first said "cache for 60s" and then
+   *  says "stale now" would keep being answered from the stale entry for the rest of the original
+   *  TTL. Absent hints are different and must stay different: they carry no instruction, so an
+   *  existing entry is left alone and pre-2026 servers behave exactly as before. */
   set(key: string, value: unknown, hints: McpCacheHints | undefined, now = Date.now()): boolean {
     const ttl = hints?.ttlMs;
-    if (typeof ttl !== 'number' || !Number.isFinite(ttl) || ttl <= 0) return false;
+    if (typeof ttl === 'number' && Number.isFinite(ttl) && ttl <= 0) {
+      this.entries.delete(key);
+      return false;
+    }
+    if (typeof ttl !== 'number' || !Number.isFinite(ttl)) return false;
     this.entries.set(key, {
       value,
       expiresAt: now + ttl,
