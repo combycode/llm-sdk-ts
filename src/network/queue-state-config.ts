@@ -26,6 +26,15 @@ export interface BackoffConfig {
   jitter: number;
 }
 
+/** A retry policy stated as a partial override of another one.
+ *
+ *  `Partial<RetryConfig>` only makes the TOP-level keys optional, so it still demands a complete
+ *  `backoff` object — which makes "override one knob, keep the rest" inexpressible even though the
+ *  merge has always supported it. Engine-level and queue-level overrides take this instead. */
+export type RetryPolicyOverride = Omit<Partial<RetryConfig>, 'backoff'> & {
+  backoff?: Partial<BackoffConfig>;
+};
+
 export interface ErrorRetryConfig {
   retryable?: boolean;
   maxRetries?: number;
@@ -59,7 +68,7 @@ export interface QueueStateConfig {
   fetch: FetchFn;
   hooks: HookBus;
   limits: RateLimiterConfig;
-  retry?: Partial<RetryConfig>;
+  retry?: RetryPolicyOverride;
   queue?: Partial<QueueConfig>;
 }
 
@@ -70,7 +79,7 @@ export const Priority = {
   LOW: 3,
 } as const;
 
-export function mergeRetry(overrides?: Partial<RetryConfig>): RetryConfig {
+export function mergeRetry(overrides?: RetryPolicyOverride): RetryConfig {
   return {
     ...DEFAULT_RETRY,
     ...overrides,

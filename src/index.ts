@@ -72,7 +72,7 @@ export type { QueueConfig, QueueEntry } from './network/request-queue';
 export { parseSSEStream } from './network/sse';
 export { QueueState } from './network/queue-state';
 export { DEFAULT_RETRY, Priority } from './network/queue-state-config';
-export type { BackoffConfig, ErrorRetryConfig, QueueStateConfig, RetryConfig } from './network/queue-state-config';
+export type { BackoffConfig, ErrorRetryConfig, QueueStateConfig, RetryConfig, RetryPolicyOverride } from './network/queue-state-config';
 export { NetworkEngine } from './network/engine';
 export type { FetchOptions, NetworkEngineConfig, QueueSettings } from './network/engine';
 

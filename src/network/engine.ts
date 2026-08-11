@@ -23,7 +23,7 @@ import type { RateLimiterConfig } from './rate-limiter';
 import type { QueueConfig } from './request-queue';
 import { QueueState } from './queue-state';
 import { Priority } from './queue-state-config';
-import type { QueueStateConfig, RetryConfig } from './queue-state-config';
+import type { QueueStateConfig, RetryConfig, RetryPolicyOverride } from './queue-state-config';
 import { RealtimeConnectionImpl } from './realtime-connection';
 import type {
   ConnectFn,
@@ -53,7 +53,7 @@ const FALLBACK_LIMITS: RateLimiterConfig = {
 
 export interface QueueSettings {
   limits?: Partial<RateLimiterConfig>;
-  retry?: Partial<RetryConfig>;
+  retry?: RetryPolicyOverride;
   queue?: Partial<QueueConfig>;
 }
 
@@ -68,6 +68,12 @@ export interface NetworkEngineConfig {
   connect?: ConnectFn;
   /** Pre-configured per-queue settings. Looked up by queueName at queue creation. */
   queues?: Record<string, QueueSettings>;
+  /** Retry policy inherited by EVERY queue this engine creates.
+   *
+   *  Retry is a cross-cutting setting, not something a caller should thread through each call, so
+   *  it is configured once (`createEngine({ retry })`) and applies everywhere. Three layers,
+   *  narrowest wins: `HttpRequest.retry` > `queues[name].retry` > this. */
+  retry?: RetryPolicyOverride;
 }
 
 /** Optional context for fetch/fetchStream. RequestContext + per-call overrides. */
@@ -85,6 +91,8 @@ export class NetworkEngine {
   readonly hooks: HookBus;
   private readonly fetchFn: FetchFn;
   private readonly connectFn: ConnectFn;
+  /** Engine-wide retry policy, inherited by every queue created from here. */
+  private readonly defaultRetry: RetryPolicyOverride | undefined;
   private readonly settings = new Map<string, QueueSettings>();
   private readonly queues = new Map<string, QueueState>();
 
@@ -92,6 +100,7 @@ export class NetworkEngine {
     this.hooks = config?.hooks ?? new HookBus();
     this.fetchFn = config?.fetch ?? globalThis.fetch.bind(globalThis);
     this.connectFn = config?.connect ?? defaultConnectFn;
+    this.defaultRetry = config?.retry;
     if (config?.queues) {
       for (const [name, settings] of Object.entries(config.queues)) {
         this.settings.set(name, settings);
@@ -188,12 +197,28 @@ export class NetworkEngine {
       ...settings.limits,
     };
 
+    // Engine-wide policy first, this queue's own settings on top. Nested groups are merged
+    // rather than replaced, so overriding one backoff knob does not silently discard the rest.
+    const retry: RetryPolicyOverride | undefined =
+      this.defaultRetry || settings.retry
+        ? {
+            ...this.defaultRetry,
+            ...settings.retry,
+            ...(this.defaultRetry?.backoff || settings.retry?.backoff
+              ? { backoff: { ...this.defaultRetry?.backoff, ...settings.retry?.backoff } }
+              : {}),
+            ...(this.defaultRetry?.perKind || settings.retry?.perKind
+              ? { perKind: { ...this.defaultRetry?.perKind, ...settings.retry?.perKind } }
+              : {}),
+          }
+        : undefined;
+
     const config: QueueStateConfig = {
       queueName,
       fetch: this.fetchFn,
       hooks: this.hooks,
       limits,
-      retry: settings.retry,
+      retry,
       queue: settings.queue,
     };
     queue = new QueueState(config);

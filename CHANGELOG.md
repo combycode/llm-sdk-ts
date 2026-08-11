@@ -6,6 +6,20 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+### Added
+
+- **`createEngine({ retry })` — retry policy configurable where it belongs.** The machinery existed
+  and worked, but the only way to reach it was hand-building an `HttpRequest`; nothing on
+  `createEngine()` exposed it. Retry is cross-cutting, so it is now an engine-level setting inherited
+  by every queue, with `createEngine({ queues })` for one provider and `HttpRequest.retry` for one
+  request. Nested groups (`backoff`, `perKind`) merge rather than replace, so overriding one knob
+  does not reset the schedule.
+  - New type `RetryPolicyOverride`. `Partial<RetryConfig>` only makes top-level keys optional, so it
+    still demanded a complete `backoff` — the partial override the merge always supported was not
+    expressible. Engine, queue and `mergeRetry` now take the deeper-partial type; strictly wider, so
+    existing config keeps compiling.
+  - Additive: omitting all of it is byte-identical to before.
+
 ### Fixed
 
 - **Docs: the per-request retry sample could never compile.** `docs/guide/network.md` showed

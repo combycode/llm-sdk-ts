@@ -70,34 +70,51 @@ const llm2 = createLLM({ model: 'anthropic/claude-haiku-4.5', engine: e2 });
 Retry policy is configured per queue (per provider), and a **single request can override it**
 without disturbing anything else on that queue:
 
-The override rides on the **request**, so it is set through the engine rather than on `complete()`:
+Retry is a cross-cutting setting, so you configure it **once on the engine** and every request
+inherits it — there is nothing to thread through individual calls:
 
 ```ts
-const res = await engine.fetch({
-  url: 'https://api.openai.com/v1/responses',
-  method: 'POST',
-  headers: { 'content-type': 'application/json', authorization: `Bearer ${key}` },
-  body: { model: 'gpt-5.4-nano', input: 'Hello' },
-  provider: 'openai', // observability only — the routing key is the queue name
-  model: 'gpt-5.4-nano',
+createEngine({
+  apiKeys: { openai: process.env.OPENAI_API_KEY! },
   retry: {
     maxRetries: 5,
     attemptTimeoutMs: 10_000,
     maxRetryAfterMs: 30_000,
     backoff: { initialMs: 200, maxMs: 8_000, multiplier: 2, jitter: 0.2 },
+    perKind: { server_error: { retryable: true, maxRetries: 3 } },
   },
 });
 ```
 
-`RequestRetryOverride` accepts `maxRetries` / `totalTimeoutMs` / `attemptTimeoutMs` /
-`maxRetryAfterMs` / `backoff` (`initialMs`, `maxMs`, `multiplier`, `jitter`). Anything you leave out
-falls back to the queue's policy; `perKind` stays queue-level, because one request cannot sensibly
-redefine which error classes are retryable for a queue it shares with everyone else.
+One provider needing different treatment is a per-queue override, keyed by queue name
+(`provider/model` unless you route otherwise):
+
+```ts
+createEngine({
+  retry: { maxRetries: 5 },
+  queues: { 'openai/gpt-5.4-nano': { retry: { maxRetries: 1 } } },
+});
+```
+
+**Three layers, narrowest wins:** `HttpRequest.retry` (one request, for the rare one-off — a long
+batch submit, a health check that should fail fast) → `queues[name].retry` (one provider) →
+`createEngine({ retry })` (everything). Nested groups merge rather than replace, so overriding one
+`backoff` knob keeps the rest.
+
+`RetryConfig` accepts `maxRetries` / `totalTimeoutMs` / `attemptTimeoutMs` / `maxRetryAfterMs` /
+`backoff` (`initialMs`, `maxMs`, `multiplier`, `jitter`) / `perKind`. `RequestRetryOverride` is the
+same minus `perKind`: one request cannot sensibly redefine which error classes are retryable for a
+queue it shares with everyone else.
+
+Note that `perKind` beats the top-level `maxRetries` for the kinds it names — the built-in policy
+already sets `server_error: 2` and `rate_limit: 5`, so raising the ceiling for those means raising
+them in `perKind`.
 
 > **Corrected 2026-08-11.** This section previously showed `complete({ retry: … })` with the fields
 > `attempts` / `initialDelay` / `maxDelay` / `expBase` / `httpStatusCodes`. None of those exist, and
-> `complete()` takes no `retry` option at all — the sample raised `TS2353` for anyone who copied it.
-> The feature itself was always correct; only its documentation was wrong.
+> `complete()` takes no `retry` option — the sample raised `TS2353` for anyone who copied it. The
+> retry machinery was always correct, but it was only reachable by hand-building an `HttpRequest`;
+> `createEngine({ retry })` now exposes it where a cross-cutting setting belongs.
 
 ### `Retry-After` is honoured, but bounded
 

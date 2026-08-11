@@ -216,3 +216,68 @@ describe('an over-cap Retry-After fails fast instead of parking', () => {
     expect(retries).toBe(1);
   });
 });
+
+// ─── engine-wide retry policy (createEngine({ retry })) ──────────────────────
+//
+// Retry is cross-cutting: configured once on the engine, inherited by every queue.
+// Precedence is unchanged and narrowest-wins — request > perKind > queue > engine.
+
+describe('engine-wide retry policy', () => {
+  const countRetries = () => {
+    const hooks = new HookBus();
+    const seen = { n: 0 };
+    hooks.on('onRetry', () => {
+      seen.n++;
+    });
+    return { hooks, seen };
+  };
+  const fast = { initialMs: 1, maxMs: 2, multiplier: 1, jitter: 0 };
+
+  it('applies to a queue that has no settings of its own', async () => {
+    const { hooks, seen } = countRetries();
+    const engine = new NetworkEngine({
+      hooks,
+      fetch: stubFetch(500, {}),
+      retry: { backoff: fast, perKind: { server_error: { retryable: true, maxRetries: 3 } } },
+    });
+
+    await expect(engine.fetch(request())).rejects.toBeDefined();
+    expect(seen.n).toBe(3); // 3, not the built-in 2
+  });
+
+  it('is overridden by a per-queue policy, which is overridden by the request', async () => {
+    const { hooks, seen } = countRetries();
+    const engine = new NetworkEngine({
+      hooks,
+      fetch: stubFetch(500, {}),
+      retry: { backoff: fast, perKind: { server_error: { retryable: true, maxRetries: 3 } } },
+      queues: {
+        'anthropic/claude-3-5': { retry: { perKind: { server_error: { retryable: true, maxRetries: 1 } } } },
+      },
+    });
+
+    await expect(engine.fetch(request())).rejects.toBeDefined();
+    expect(seen.n).toBe(1); // the queue beat the engine default
+
+    seen.n = 0;
+    await expect(engine.fetch({ ...request(), retry: { maxRetries: 0 } })).rejects.toBeDefined();
+    expect(seen.n).toBe(0); // the request beat both
+  });
+
+  it('merges nested groups instead of replacing them', async () => {
+    const { hooks, seen } = countRetries();
+    const engine = new NetworkEngine({
+      hooks,
+      fetch: stubFetch(500, {}),
+      retry: { backoff: fast, perKind: { server_error: { retryable: true, maxRetries: 2 } } },
+      // Overrides ONE backoff knob. The engine's initialMs/maxMs and its whole perKind
+      // group must survive, or this sits through the built-in 500ms/8s schedule.
+      queues: { 'anthropic/claude-3-5': { retry: { backoff: { multiplier: 1 } } } },
+    });
+
+    const started = performance.now();
+    await expect(engine.fetch(request())).rejects.toBeDefined();
+    expect(seen.n).toBe(2);
+    expect(performance.now() - started).toBeLessThan(1_000);
+  });
+});

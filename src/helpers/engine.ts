@@ -19,7 +19,8 @@
 import { AgentBus } from '../bus/agent-bus';
 import { HookBus } from '../bus/hook-bus';
 import type { ProviderName } from '../llm/types/provider';
-import { NetworkEngine } from '../network/engine';
+import { NetworkEngine, type QueueSettings } from '../network/engine';
+import type { RetryPolicyOverride } from '../network/queue-state-config';
 import type { EngineConnect, EngineFetch, EngineFetchStream, FetchFn } from '../network/types';
 import { Cache } from '../plugins/cache/cache';
 import { MemoryCacheStore } from '../plugins/cache/memory-store';
@@ -104,6 +105,21 @@ export interface EngineConfig {
   /** Per-provider API keys. Helpers consult this when no apiKey is passed
    *  alongside `model: 'provider/...'`. */
   apiKeys?: Partial<Record<ProviderName, string>>;
+  /** Retry policy for every request this engine makes.
+   *
+   *  Retry is a cross-cutting concern, so it is configured once here rather than threaded through
+   *  each call. Anything omitted falls back to the built-in policy (`DEFAULT_RETRY`).
+   *
+   *  ```ts
+   *  createEngine({ retry: { maxRetries: 5, backoff: { initialMs: 200, maxMs: 8_000 } } });
+   *  ```
+   *
+   *  Three layers, narrowest wins: `HttpRequest.retry` (one request) > `queues[name].retry`
+   *  (one provider queue) > this (everything). */
+  retry?: RetryPolicyOverride;
+  /** Per-queue overrides, keyed by queue name (`provider/model` unless routed otherwise).
+   *  Use when one provider needs a different policy from the rest. */
+  queues?: Record<string, QueueSettings>;
   /** Register this engine as the default for `coreRegistry.get()` (used by
    *  helpers when the caller doesn't pass an explicit `engine`). Defaults to
    *  `true` so `createEngine({ ... })` followed by helper calls just works.
@@ -124,7 +140,7 @@ export function createEngine(config: EngineConfig = {}): EngineHandle {
   const cache = resolveCache(config.cache);
   const catalog = resolveCatalog(config.catalog);
 
-  const network = new NetworkEngine({ hooks, fetch: config.fetch });
+  const network = new NetworkEngine({ hooks, fetch: config.fetch, retry: config.retry, queues: config.queues });
   // `fetch`/`fetchStream` reference the engine's own queue layer.
   const fetchBound: EngineFetch = (req, options) => network.fetch(req, options);
   const fetchStreamBound: EngineFetchStream = (req, options) => network.fetchStream(req, options);
