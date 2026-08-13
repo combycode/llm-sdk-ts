@@ -189,7 +189,7 @@ console.log(text);
 ### Stdio MCP server (Node/Bun only)
 
 ```ts
-import { connectMcp } from '@combycode/llm-sdk';
+import { connectMcp, toolKey } from '@combycode/llm-sdk';
 
 const mcp = await connectMcp({
   command: 'npx',
@@ -197,7 +197,9 @@ const mcp = await connectMcp({
   name: 'filesystem',
 });
 
-console.log('Available tools:', mcp.tools.map((t) => t.definition.name));
+// `toolKey` reads the name off either shape a tool definition can take (a
+// function tool or a builtin), so it needs no narrowing at the call site.
+console.log('Available tools:', mcp.tools.map(toolKey));
 await mcp.close();
 ```
 

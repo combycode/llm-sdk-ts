@@ -26,6 +26,24 @@ import { coreRegistry } from './engine';
 const MODERATION_COST_NOTE = 'free: moderations endpoint not billed';
 const MODERATION_DEFAULT_PROVIDER = 'openai';
 
+/** One input in, one result out: a single string, or one content-part array that
+ *  together forms a single multimodal item. */
+export async function moderate(
+  opts: ModerateOptions & { input: string | ModerationContentPart[] },
+): Promise<ModerationResult>;
+/** Many inputs in, one result each, in the same order. */
+export async function moderate(
+  opts: ModerateOptions & { input: string[] | ModerationContentPart[][] },
+): Promise<ModerationResult[]>;
+/** Fallback for a caller holding the wide `ModerateOptions['input']` union: the
+ *  arity is only knowable at runtime, so the union comes back. Kept so existing
+ *  code that already narrows the result keeps compiling. */
+export async function moderate(opts: ModerateOptions): Promise<ModerationResult | ModerationResult[]>;
+// The shape of the result follows the shape of the input — one item in, one out;
+// a list in, a list out. That was documented in prose from the start but not in
+// the type, so every documented example failed to compile: `result.flagged` on a
+// `ModerationResult | ModerationResult[]` is an error, and callers were forced to
+// re-narrow something the call site already knew.
 export async function moderate(
   opts: ModerateOptions,
 ): Promise<ModerationResult | ModerationResult[]> {

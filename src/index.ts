@@ -154,6 +154,9 @@ export type { ConversationHistoryConfig, HistoryEntry, HistorySnapshot } from '.
 export { AgentLoop } from './agent/loop';
 export type { AgentLoopConfig } from './agent/loop-config';
 export type { AgentLoopSnapshot, AgentRunReport, AgentStreamEvent, AgentTool, ContentClass, LearnInput, StepReport, TokenCountContext, TokenCounter, ToolCallReport, ToolExecutionContext } from './agent/types';
+/** Read a tool's key/label without narrowing `Tool` by hand: `definition` is a
+ *  union (function tool or builtin), so `.name` does not exist on it. */
+export { toolKey, describeTool } from './agent/tool-key';
 export type { Guardrail, GuardrailDecision, GuardrailPass, GuardrailTrip, GuardrailCheckContext, InputGuardrailContext, OutputGuardrailContext, GuardrailTriggeredContext, ToolInputGuardrail, ToolInputGuardrailContext, ToolInputGuardrailDecision } from './agent/guardrail-types';
 
 // Server — OpenAI-compatible HTTP server

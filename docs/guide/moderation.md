@@ -363,7 +363,7 @@ import { checkProvenance } from '@combycode/llm-sdk';
 
 const res = await checkProvenance({ file: './upload.png' });
 for (const s of res.signals) {
-  console.log(s.kind, s.detected, s.trusted, s.issuer, s.model, s.generatedAt);
+  console.log(s.kind, s.detected, s.validationState, s.issuer, s.model, s.generatedAt);
 }
 ```
 

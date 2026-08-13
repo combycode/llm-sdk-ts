@@ -8,6 +8,15 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **`moderate()` now returns the shape of its input.** Overloads: one input (a string, or one
+  content-part array forming a single multimodal item) returns a `ModerationResult`; a list of
+  inputs returns `ModerationResult[]`. The mapping was documented in prose from the start but the
+  signature returned the bare union, so `result.flagged` was a type error and **every documented
+  example failed to compile**. The wide-union overload is kept, so code that already narrows still
+  compiles. No runtime change.
+- **`toolKey` / `describeTool` are exported.** `AgentTool.definition` is a `Tool` union (function
+  tool or builtin), so `.name` does not exist on it; reading a tool's name previously required
+  hand-narrowing at every call site.
 - **`createEngine({ retry })` — retry policy configurable where it belongs.** The machinery existed
   and worked, but the only way to reach it was hand-building an `HttpRequest`; nothing on
   `createEngine()` exposed it. Retry is cross-cutting, so it is now an engine-level setting inherited

@@ -151,7 +151,7 @@ const agent = createAgent({ model: 'anthropic/claude-haiku-4.5', engine });
 const measurer = new ContextMeasurer({
   hooks: engine.hooks,
   catalog: engine.catalog,
-  counter: new HeuristicCounter(),
+  counter: new HeuristicCounter(engine.catalog),
 });
 
 const guard = new ContextGuard({
@@ -176,11 +176,14 @@ guard.destroy();
 of summaries. `AnchoredStrategy` keeps a **single** persistent state-tracker at the head of history
 and merges each compaction into it:
 
+Swapping the strategy is the only change — the wiring above is identical:
+
 ```ts
 import { ContextGuard, AnchoredStrategy } from '@combycode/llm-sdk';
 
 const guard = new ContextGuard({
-  agent,
+  hooks: engine.hooks,
+  measurer,
   strategies: { anchored: new AnchoredStrategy({ keepRecent: 10 }) },
   defaultStrategy: 'anchored',
 });
