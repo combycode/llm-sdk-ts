@@ -157,6 +157,9 @@ export type { AgentLoopSnapshot, AgentRunReport, AgentStreamEvent, AgentTool, Co
 /** Read a tool's key/label without narrowing `Tool` by hand: `definition` is a
  *  union (function tool or builtin), so `.name` does not exist on it. */
 export { toolKey, describeTool } from './agent/tool-key';
+/** The adapter class was exported without its config type, so a consumer could
+ *  construct one but not name the argument. */
+export type { OpenAIProvenanceAdapterConfig } from './llm/providers/openai/provenance';
 export type { Guardrail, GuardrailDecision, GuardrailPass, GuardrailTrip, GuardrailCheckContext, InputGuardrailContext, OutputGuardrailContext, GuardrailTriggeredContext, ToolInputGuardrail, ToolInputGuardrailContext, ToolInputGuardrailDecision } from './agent/guardrail-types';
 
 // Server — OpenAI-compatible HTTP server
