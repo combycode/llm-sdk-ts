@@ -8,6 +8,23 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **`complete({ cache })` — prompt caching is reachable from the one-shot helper.** `CompleteOptions`
+  had no `cache` field at all, so asking for it did nothing: the option was dropped in silence, with
+  no error and no warning, while `LLMClient` and every adapter supported it fully. It matters most
+  exactly where this helper is convenient — a long system prompt or a large tool block, which sit at
+  the front of the request and are the cheapest part to cache.
+  - Found by a benchmark that reported zero cached tokens for every arm it measured.
+
+### Fixed
+
+- **`complete()` sent different options depending on whether `tools` was passed.** The helper has two
+  branches, and the tools branch forwarded only `structured` — silently dropping `providerOptions`,
+  `audio`, `outputModalities` and `serviceTier`, which the no-tools branch honoured. Adding a tool to
+  a working call could therefore change behaviour that has nothing to do with tools. Both branches
+  now forward the same set.
+
+### Added
+
 - **MCP tool definitions carry what the spec publishes.** `McpToolDef` now models `annotations`
   (`readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`), `icons`, `execution`
   and `_meta`. The data always arrived — `tools/list` results are passed through unparsed — but was

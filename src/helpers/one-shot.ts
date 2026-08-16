@@ -16,6 +16,7 @@
  *  before returning so callers don't leak. */
 
 import type { AgentTool } from '../agent/types';
+import type { CacheConfig } from '../llm/types/request';
 import { AgentLoop } from '../agent/loop';
 import { parseStructured } from '../llm/client-internal';
 import type { LLMClientConfig } from '../llm/client-config';
@@ -75,6 +76,14 @@ export interface CompleteOptions {
   /** Service tier for this call. Also settable as a `model:tier` suffix (e.g.
    *  `anthropic/claude-opus-4.8:priority`); an explicit value here wins. */
   serviceTier?: ServiceTier;
+
+  /** Provider prompt caching: `'auto'`, `'off'`, or which segments to mark
+   *  (`{ system: true, tools: true }`).
+   *
+   *  It matters most exactly where this helper is convenient — a long system
+   *  prompt or a large tool block, both of which sit at the front of the request
+   *  and are the cheapest part to cache. */
+  cache?: CacheConfig;
 
   /** Optional engine to use. Falls back to coreRegistry default. */
   engine?: EngineHandle;
@@ -150,8 +159,17 @@ export async function complete<T = unknown>(opts: CompleteOptions): Promise<Comp
         maxTokens: opts.maxTokens,
         temperature: opts.temperature,
       });
+      // The same options as the no-tools branch. They used to diverge: passing
+      // `tools` silently dropped providerOptions, audio, outputModalities and
+      // serviceTier, so one call honoured them and the other did not depending on
+      // something unrelated to any of them.
       res = await loop.complete(input, {
         structured: opts.structured,
+        providerOptions: opts.providerOptions,
+        audio: opts.audio,
+        outputModalities: opts.outputModalities,
+        serviceTier,
+        cache: opts.cache,
       });
     } else {
       res = await llm.complete(input, {
@@ -163,6 +181,7 @@ export async function complete<T = unknown>(opts: CompleteOptions): Promise<Comp
         audio: opts.audio,
         outputModalities: opts.outputModalities,
         serviceTier,
+        cache: opts.cache,
       });
     }
 
