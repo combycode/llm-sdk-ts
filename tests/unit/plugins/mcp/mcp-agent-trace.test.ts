@@ -155,3 +155,51 @@ describe('mcpToolToAgentTool definition', () => {
     expect(Object.keys(t.definition).sort()).toEqual(['description', 'name', 'parameters', 'type']);
   });
 });
+
+// ─── declaring an output schema is a promise about the RESULT ────────────────
+//
+// Forwarding `outputSchema` to the model is only half the contract. OpenAI
+// Responses then rejects the turn — "expected a JSON string because the function
+// declares output_schema" — if the result comes back as prose. Forwarding it
+// without changing the result broke every MCP tool that publishes one, against a
+// real server, on a provider the unit tests never reach.
+
+describe('mcpToolToAgentTool result shape', () => {
+  const withSchema = {
+    name: 'structured',
+    inputSchema: { type: 'object' as const, properties: {} },
+    outputSchema: { type: 'object' as const, properties: { answer: { type: 'string' } } },
+  };
+  const stubClient = (res: unknown) => ({ callTool: async () => res }) as unknown as McpClient;
+  const ctx = { trace: undefined } as never;
+
+  it('returns structuredContent as a JSON string when the tool declares an output schema', async () => {
+    const t = mcpToolToAgentTool(stubClient({ content: [{ type: 'text', text: 'prose' }], structuredContent: { answer: 'x' } }), withSchema, 'ns');
+    const out = await t.execute({}, ctx);
+    expect(out).toBe('{"answer":"x"}');
+    expect(() => JSON.parse(out as string)).not.toThrow();
+  });
+
+  it('falls back to content when the server sends no structuredContent', async () => {
+    const t = mcpToolToAgentTool(stubClient({ content: [{ type: 'text', text: 'prose' }] }), withSchema, 'ns');
+    expect(await t.execute({}, ctx)).toBe('prose');
+  });
+
+  it('leaves an error result as readable text rather than dressing it as data', async () => {
+    const t = mcpToolToAgentTool(
+      stubClient({ content: [{ type: 'text', text: 'boom' }], structuredContent: { answer: 'x' }, isError: true }),
+      withSchema,
+      'ns',
+    );
+    expect(await t.execute({}, ctx)).toContain('boom');
+  });
+
+  it('is unchanged for a tool with no output schema', async () => {
+    const t = mcpToolToAgentTool(
+      stubClient({ content: [{ type: 'text', text: 'prose' }], structuredContent: { answer: 'x' } }),
+      { name: 'plain', inputSchema: { type: 'object' as const, properties: {} } },
+      'ns',
+    );
+    expect(await t.execute({}, ctx)).toBe('prose');
+  });
+});

@@ -88,6 +88,14 @@ export function mcpToolToAgentTool(
         const errors = validateJsonSchema(tool.outputSchema, res.structuredContent);
         if (errors.length > 0) return `Tool output failed schema validation: ${errors.slice(0, 5).join('; ')}`;
       }
+      // Declaring an output schema is a PROMISE about the result, not just a hint:
+      // OpenAI Responses rejects the turn with "expected a JSON string because the
+      // function declares output_schema" if the result is prose. MCP returns
+      // `structuredContent` exactly when a tool publishes `outputSchema`, so the
+      // two travel together or not at all.
+      if (tool.outputSchema && res.structuredContent !== undefined && !res.isError) {
+        return JSON.stringify(res.structuredContent);
+      }
       return mcpContentToResult(res);
     },
   };
