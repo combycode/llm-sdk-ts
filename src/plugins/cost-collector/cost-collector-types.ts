@@ -44,4 +44,12 @@ export interface CostSummary {
     reasoning: number;
   };
   entries: number;
+  /** How many of `entries` could not be priced — no catalog entry for the model, or no
+   *  applicable rate. They count as 0 in every field above, so a summary without this
+   *  number cannot tell "this run was cheap" from "this run was never priced". Free
+   *  calls are NOT counted here: they are priced, at zero. */
+  unpriced: number;
+  /** The distinct `provider/model` values behind `unpriced`, so the gap is actionable
+   *  rather than merely visible. Empty when everything was priced. */
+  unpricedModels: string[];
 }

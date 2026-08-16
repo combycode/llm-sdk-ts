@@ -265,8 +265,17 @@ export function summarize(entries: CostEntry[]): CostSummary {
     total: 0,
     tokens: { input: 0, output: 0, cached: 0, cacheWrite: 0, reasoning: 0 },
     entries: entries.length,
+    unpriced: 0,
+    unpricedModels: [],
   };
   for (const e of entries) {
+    // An unpriced entry contributes 0 to every total below, which is indistinguishable
+    // from a genuinely free call unless it is counted separately.
+    if (e.cost.source === 'unknown') {
+      s.unpriced++;
+      const key = `${e.provider}/${e.model}`;
+      if (!s.unpricedModels.includes(key)) s.unpricedModels.push(key);
+    }
     s.input += e.cost.input;
     s.output += e.cost.output;
     s.cacheRead += e.cost.cacheRead;
