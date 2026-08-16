@@ -4,7 +4,12 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.1.0] — 2026-08-17
+
+Minor, not major: everything below is additive or a bug fix, and no export was removed or
+renamed. One caveat worth reading before upgrading — see **`defineTool` optional parameters** under
+Fixed, which tightens an inferred type and can therefore surface a compile error in code that was
+already wrong at runtime.
 
 ### Added
 
