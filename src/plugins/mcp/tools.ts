@@ -75,12 +75,17 @@ export function mcpToolToAgentTool(
       name: `${namespace}__${tool.name}`,
       description: tool.description ?? tool.title ?? tool.name,
       parameters: tool.inputSchema ?? { type: 'object', properties: {} },
-      // MCP publishes a schema for the tool's structured output, and OpenAI
-      // Responses accepts one (`output_schema`) so the model can reason over the
-      // shape it will get back. Both ends already existed and nothing connected
-      // them: a hand-written tool could declare an output schema and an MCP tool
-      // could not. Providers without the field ignore it.
-      ...(tool.outputSchema ? { outputSchema: tool.outputSchema } : {}),
+      // MCP publishes a schema for the tool's structured output and OpenAI
+      // Responses accepts one (`output_schema`), so the model can reason over the
+      // shape it will get back.
+      //
+      // Gated on `validateOutput` because declaring it is a PROMISE, not a hint:
+      // the provider then requires the result to be JSON matching the schema, so
+      // the tool result changes from prose to structured data. Forwarding it
+      // unconditionally would silently reshape every existing MCP tool result —
+      // and did, until a live round trip through OpenAI Responses failed. Anyone
+      // asking for output validation has already opted into that contract.
+      ...(opts.validateOutput && tool.outputSchema ? { outputSchema: tool.outputSchema } : {}),
     },
     execute: async (args, ctx) => {
       const res = await client.callTool(tool.name, args, ctx.trace);
@@ -93,7 +98,7 @@ export function mcpToolToAgentTool(
       // function declares output_schema" if the result is prose. MCP returns
       // `structuredContent` exactly when a tool publishes `outputSchema`, so the
       // two travel together or not at all.
-      if (tool.outputSchema && res.structuredContent !== undefined && !res.isError) {
+      if (opts.validateOutput && tool.outputSchema && res.structuredContent !== undefined && !res.isError) {
         return JSON.stringify(res.structuredContent);
       }
       return mcpContentToResult(res);

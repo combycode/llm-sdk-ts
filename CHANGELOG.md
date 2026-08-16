@@ -33,10 +33,15 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   - `execution.taskSupport: 'required'` means the tool MUST be invoked as a task. Task invocation is
     not implemented, so such a tool cannot be called through this client — the field being visible is
     what lets a caller see that instead of meeting it as a server error.
-- **MCP `outputSchema` now reaches the model.** It was read for local validation only. OpenAI
-  Responses accepts `output_schema` and the library already emitted it for hand-written tools; the
-  two ends were never connected, so an MCP tool could not tell the model the shape it would get
-  back. Providers without the field ignore it.
+- **MCP `outputSchema` reaches the model when asked for** — `connectMcp(cfg, { validateOutput: true })`.
+  It was read for local validation only, while OpenAI Responses accepts `output_schema` and the
+  library already emitted it for hand-written tools; the two ends were never connected.
+  - **Opt-in, because declaring it is a promise about the RESULT.** OpenAI then rejects the turn
+    — *"expected a JSON string because the function declares output_schema"* — unless the result is
+    JSON matching that schema, so the tool result changes from prose to structured data. MCP returns
+    `structuredContent` exactly when a tool publishes `outputSchema`, and that is now what comes
+    back — under the same flag, so nothing changes for anyone who did not ask for it.
+  - Verified end to end against a live MCP server through OpenAI Responses, in both modes.
 - **`moderate()` now returns the shape of its input.** Overloads: one input (a string, or one
   content-part array forming a single multimodal item) returns a `ModerationResult`; a list of
   inputs returns `ModerationResult[]`. The mapping was documented in prose from the start but the

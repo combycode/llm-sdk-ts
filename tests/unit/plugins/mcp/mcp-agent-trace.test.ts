@@ -127,10 +127,19 @@ describe('mcpToolToAgentTool definition', () => {
   const base = { name: 'echo', inputSchema: { type: 'object' as const, properties: {} } };
   const client = null as unknown as McpClient; // never called; only the definition is read
 
-  it('forwards outputSchema so the model can reason over structured output', () => {
-    const outputSchema = { type: 'object' as const, properties: { ok: { type: 'boolean' } } };
-    const t = mcpToolToAgentTool(client, { ...base, outputSchema }, 'stub');
+  const outputSchema = { type: 'object' as const, properties: { ok: { type: 'boolean' } } };
+
+  it('forwards outputSchema when the caller opted into the output contract', () => {
+    const t = mcpToolToAgentTool(client, { ...base, outputSchema }, 'stub', { validateOutput: true });
     expect((t.definition as { outputSchema?: unknown }).outputSchema).toEqual(outputSchema);
+  });
+
+  // Declaring it obliges the RESULT to be JSON matching the schema, which turns
+  // every existing MCP tool result from prose into structured data. That is not a
+  // change to make on a caller's behalf.
+  it('does NOT forward outputSchema by default, leaving results unchanged', () => {
+    const t = mcpToolToAgentTool(client, { ...base, outputSchema }, 'stub');
+    expect('outputSchema' in t.definition).toBe(false);
   });
 
   it('omits outputSchema entirely when the server publishes none', () => {
@@ -174,14 +183,14 @@ describe('mcpToolToAgentTool result shape', () => {
   const ctx = { trace: undefined } as never;
 
   it('returns structuredContent as a JSON string when the tool declares an output schema', async () => {
-    const t = mcpToolToAgentTool(stubClient({ content: [{ type: 'text', text: 'prose' }], structuredContent: { answer: 'x' } }), withSchema, 'ns');
+    const t = mcpToolToAgentTool(stubClient({ content: [{ type: 'text', text: 'prose' }], structuredContent: { answer: 'x' } }), withSchema, 'ns', { validateOutput: true });
     const out = await t.execute({}, ctx);
     expect(out).toBe('{"answer":"x"}');
     expect(() => JSON.parse(out as string)).not.toThrow();
   });
 
   it('falls back to content when the server sends no structuredContent', async () => {
-    const t = mcpToolToAgentTool(stubClient({ content: [{ type: 'text', text: 'prose' }] }), withSchema, 'ns');
+    const t = mcpToolToAgentTool(stubClient({ content: [{ type: 'text', text: 'prose' }] }), withSchema, 'ns', { validateOutput: true });
     expect(await t.execute({}, ctx)).toBe('prose');
   });
 
@@ -190,6 +199,7 @@ describe('mcpToolToAgentTool result shape', () => {
       stubClient({ content: [{ type: 'text', text: 'boom' }], structuredContent: { answer: 'x' }, isError: true }),
       withSchema,
       'ns',
+      { validateOutput: true },
     );
     expect(await t.execute({}, ctx)).toContain('boom');
   });
