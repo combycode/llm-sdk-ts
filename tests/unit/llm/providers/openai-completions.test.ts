@@ -206,7 +206,9 @@ describe('OpenAIAdapter — tools', () => {
         function: {
           name: 'get_weather',
           description: 'Get weather',
-          parameters: { type: 'object' },
+          // Strict also requires `additionalProperties: false`; sending `strict: true`
+          // without it is rejected, so asking for strict now conforms the schema too.
+          parameters: { type: 'object', additionalProperties: false },
           strict: true,
         },
       },
@@ -263,7 +265,9 @@ describe('OpenAIAdapter — thinking and structured', () => {
     });
     expect(r.body.response_format).toEqual({
       type: 'json_schema',
-      json_schema: { name: 'foo', schema: { type: 'object' }, strict: true },
+      // Same conforming as function tools: strict json_schema is rejected without
+      // `additionalProperties: false`, and strict has always defaulted on here.
+      json_schema: { name: 'foo', schema: { type: 'object', additionalProperties: false }, strict: true },
     });
   });
 

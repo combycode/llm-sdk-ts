@@ -8,6 +8,14 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **`strictSupport(schema, dialect)` — ask whether a schema can satisfy a provider's strict mode.**
+  Returns `{ ok, reason }`, where `reason` names the property or keyword responsible. Exported
+  because the answer differs per provider and was otherwise only discoverable by getting a 400.
+- **`complete({ seed, topK })` and `CompleteResult.error`.** All three existed on `LLMClient` and the
+  agent path but not on the one-shot helper, so a documented example demonstrating them did not
+  compile. `error` surfaces the in-band failure some providers report instead of throwing (OpenAI
+  Responses `status: 'failed'`), which otherwise reads as a successful empty answer.
+
 - **`complete({ cache })` — prompt caching is reachable from the one-shot helper.** `CompleteOptions`
   had no `cache` field at all, so asking for it did nothing: the option was dropped in silence, with
   no error and no warning, while `LLMClient` and every adapter supported it fully. It matters most
@@ -16,6 +24,32 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   - Found by a benchmark that reported zero cached tokens for every arm it measured.
 
 ### Fixed
+
+- **Any OpenAI tool with an OPTIONAL parameter was rejected outright.** The library forced
+  `strict: true` on every function tool while sending the schema as written. OpenAI's strict mode
+  requires every property to appear in `required`, at every nesting level, and answers a schema that
+  does not with `400 Invalid schema: 'required' is required to be supplied` — never a degraded
+  result. So `defineTool({ optional: [...] })`, a documented feature, could not be used on OpenAI at
+  all, and neither could most MCP servers. The same forcing applied to structured output on both
+  OpenAI APIs.
+
+  Strict is still the default. It is now requested only where the schema can satisfy the provider,
+  whose rules differ and are disjoint: OpenAI needs every property required; Anthropic accepts
+  optional properties but rejects `minimum` / `maximum` / `exclusiveMinimum` / `multipleOf` /
+  `maxItems`. Passing `strict` explicitly still wins in either direction.
+
+  Nothing caught this because nothing executed it: every example declared its tool parameters as
+  required, and the MCP server used throughout the corpus marks everything required. Typecheck,
+  API snapshot, doc-snippet compilation and consumer install all passed on code the API refuses.
+
+- **Strict is now the default on Anthropic and on OpenAI Chat Completions too.** It was only ever
+  sent when asked for. Measured live, it is what stops the model calling a tool that was never
+  declared (4 of 4 undeclared calls without it, 0 of 4 with it).
+
+- **`defineTool` typed optional parameters as always present.** Keys listed in `optional` inferred as
+  required in the `execute` args, so `args.unit.toUpperCase()` typechecked and threw at runtime on
+  every call where the model omitted the argument — the expected case for an optional argument. They
+  now infer as `| undefined`.
 
 - **`complete()` sent different options depending on whether `tools` was passed.** The helper has two
   branches, and the tools branch forwarded only `structured` — silently dropping `providerOptions`,

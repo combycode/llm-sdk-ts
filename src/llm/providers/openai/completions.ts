@@ -13,6 +13,7 @@ import {
 } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
 import { isFunctionTool } from '../../types/tools';
+import { ensureAdditionalProperties, strictSupport } from '../../types/schema-utils';
 import { buildNativeModeration, parseNativeModeration } from '../../moderation/native';
 import { openaiBilledTier, openaiRequestTier } from './tiers';
 import { DEFAULT_MAX_TOKENS } from '../_shared/constants';
@@ -136,15 +137,24 @@ export class OpenAIAdapter implements ProviderAdapter {
 
     if (req.tools?.length) {
       // Chat Completions only supports function tools; skip BuiltinTool entries.
-      body.tools = req.tools.filter(isFunctionTool).map((t) => ({
-        type: 'function',
-        function: {
-          name: t.name,
-          description: t.description,
-          parameters: t.parameters,
-          ...(t.strict ? { strict: true } : {}),
-        },
-      }));
+      body.tools = req.tools.filter(isFunctionTool).map((t) => {
+        // Strict is defaulted ON here, matching Responses: it is what makes the
+        // provider constrain arguments during generation instead of after. It needs
+        // `additionalProperties: false` everywhere and every property in `required`,
+        // so it is requested only for schemas that already satisfy that. When strict
+        // stays off the schema goes out untouched, exactly as before.
+        const params = ensureAdditionalProperties(t.parameters);
+        const strict = t.strict ?? strictSupport(params, 'openai').ok;
+        return {
+          type: 'function',
+          function: {
+            name: t.name,
+            description: t.description,
+            parameters: strict ? params : t.parameters,
+            ...(strict ? { strict: true } : {}),
+          },
+        };
+      });
     }
 
     if (req.toolChoice) {
@@ -157,12 +167,17 @@ export class OpenAIAdapter implements ProviderAdapter {
     }
 
     if (req.structured) {
+      // Strict json_schema requires `additionalProperties: false` and every property
+      // in `required`. Neither was enforced here, so a schema missing either was
+      // rejected by the API rather than degraded — the same failure as function tools.
+      const schema = ensureAdditionalProperties(req.structured.schema);
+      const strict = req.structured.strict ?? strictSupport(schema, 'openai').ok;
       body.response_format = {
         type: 'json_schema',
         json_schema: {
           name: req.structured.name ?? 'response',
-          schema: req.structured.schema,
-          strict: req.structured.strict ?? true,
+          schema: strict ? schema : req.structured.schema,
+          strict,
         },
       };
     }

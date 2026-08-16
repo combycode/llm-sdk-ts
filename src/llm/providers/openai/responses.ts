@@ -25,7 +25,7 @@ import {
   type Usage,
 } from '../../types/response';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
-import { ensureAdditionalProperties } from '../../types/schema-utils';
+import { ensureAdditionalProperties, strictSupport } from '../../types/schema-utils';
 import type { StreamEvent } from '../../types/stream';
 import { isFunctionTool } from '../../types/tools';
 import { buildNativeModeration, parseNativeModeration } from '../../moderation/native';
@@ -294,12 +294,21 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     if (req.tools?.length) {
       body.tools = req.tools.map((t) => {
         if (isFunctionTool(t)) {
+          // Strict is the default because it is what makes OpenAI constrain the
+          // arguments during generation. But OpenAI's strict mode requires EVERY
+          // property to be listed in `required`, at every depth, and rejects the
+          // request outright when one is not — "'required' is required to be
+          // supplied". Defaulting strict on without checking meant any tool with an
+          // optional parameter 400'd, which is most real MCP tools; the DeepWiki
+          // server happens to declare everything required, which is why the whole
+          // example corpus never hit it.
+          const params = ensureAdditionalProperties(t.parameters);
           return {
             type: 'function',
             name: t.name,
             description: t.description,
-            parameters: ensureAdditionalProperties(t.parameters),
-            strict: t.strict ?? true,
+            parameters: params,
+            strict: t.strict ?? strictSupport(params, 'openai').ok,
             // Programmatic tool calling (Responses): who may call it + return schema.
             ...(t.allowedCallers ? { allowed_callers: t.allowedCallers } : {}),
             ...(t.outputSchema ? { output_schema: t.outputSchema } : {}),
@@ -325,12 +334,16 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
 
     // Structured output → text.format
     if (req.structured) {
+      // Same all-properties-required constraint as function tools: a response schema
+      // with an optional field is rejected outright under strict, so strict is
+      // defaulted on only where the schema can satisfy it.
+      const schema = ensureAdditionalProperties(req.structured.schema);
       body.text = {
         format: {
           type: 'json_schema',
           name: req.structured.name ?? 'response',
-          schema: ensureAdditionalProperties(req.structured.schema),
-          strict: req.structured.strict ?? true,
+          schema,
+          strict: req.structured.strict ?? strictSupport(schema, 'openai').ok,
         },
       };
     }

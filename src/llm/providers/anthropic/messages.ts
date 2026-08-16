@@ -19,7 +19,7 @@ import {
 } from '../../types/response';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
-import { ensureAdditionalProperties } from '../../types/schema-utils';
+import { ensureAdditionalProperties, strictSupport } from '../../types/schema-utils';
 import type { ServiceTier } from '../../types/tiers';
 import { isFunctionTool } from '../../types/tools';
 import { DEFAULT_MAX_TOKENS } from '../_shared/constants';
@@ -230,12 +230,23 @@ export class AnthropicAdapter implements ProviderAdapter {
             }
             return null;
           }
+          // Strict is defaulted ON to match OpenAI: Anthropic documents it as
+          // guaranteeing schema validation of tool names and inputs, and measured
+          // live it is what stops the model calling a tool that was never declared
+          // (4/4 undeclared calls with strict off, 0/4 with it on). Its constraint
+          // differs from OpenAI's — optional properties are fine, but a set of
+          // validation keywords (`maximum`, `multipleOf`, `maxItems`…) is rejected
+          // outright — so it is only requested where the schema qualifies.
+          const params = ensureAdditionalProperties(t.parameters);
+          const strict = t.strict ?? strictSupport(params, 'anthropic').ok;
           const tool: Record<string, unknown> = {
             name: t.name,
             description: t.description,
-            input_schema: t.parameters,
+            // Only the strict path was measured with `additionalProperties: false`
+            // applied; without strict the schema goes out untouched, as before.
+            input_schema: strict ? params : t.parameters,
           };
-          if (t.strict) tool.strict = true;
+          if (strict) tool.strict = true;
           if ((t.cache || shouldCacheTools) && i === req.tools!.length - 1) {
             tool.cache_control = { type: 'ephemeral' };
           }

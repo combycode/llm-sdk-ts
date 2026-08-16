@@ -227,7 +227,12 @@ describe('OpenAIResponsesAdapter — buildInputItems variants', () => {
 describe('OpenAIResponsesAdapter — tools', () => {
   const a = new OpenAIResponsesAdapter({ apiKey: 'k' });
 
-  it('function tool flat with strict default true; ensureAdditionalProperties applied', () => {
+  // `x` is listed under `properties` with no `required` at all, which OpenAI's strict
+  // mode refuses — 400 "'required' is required to be supplied". The old expectation of
+  // `strict: true` on exactly this shape was pinning a request the API rejects. Strict
+  // is still the default; it is now withheld from schemas that cannot satisfy it.
+  // See strict-schema.test.ts for the full per-provider constraint matrix.
+  it('function tool flat: strict withheld when a property is not in required', () => {
     const r = a.buildRequest({
       ...baseReq,
       tools: [
@@ -247,6 +252,33 @@ describe('OpenAIResponsesAdapter — tools', () => {
           type: 'object',
           additionalProperties: false,
           properties: { x: { type: 'string' } },
+        },
+        strict: false,
+      },
+    ]);
+  });
+
+  it('function tool flat: strict kept, and schema conformed, when the schema qualifies', () => {
+    const r = a.buildRequest({
+      ...baseReq,
+      tools: [
+        {
+          name: 'fn',
+          description: 'd',
+          parameters: { type: 'object', properties: { x: { type: 'string' } }, required: ['x'] },
+        },
+      ],
+    });
+    expect(r.body.tools).toEqual([
+      {
+        type: 'function',
+        name: 'fn',
+        description: 'd',
+        parameters: {
+          type: 'object',
+          additionalProperties: false,
+          properties: { x: { type: 'string' } },
+          required: ['x'],
         },
         strict: true,
       },

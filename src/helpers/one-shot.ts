@@ -65,6 +65,12 @@ export interface CompleteOptions {
   /** Generation control. */
   maxTokens?: number;
   temperature?: number;
+  /** Top-k sampling. Emitted only where the wire accepts it (Anthropic, Google, xAI,
+   *  OpenRouter) and dropped for OpenAI, which defines no top-k. */
+  topK?: number;
+  /** Best-effort deterministic sampling. Dropped on Anthropic, which has no seed.
+   *  Determinism is never guaranteed. */
+  seed?: number;
   structured?: { schema: Record<string, unknown>; name?: string };
 
   /** Output audio controls (voice/format) for audio-capable models. */
@@ -108,6 +114,11 @@ export interface CompleteResult<T = unknown> {
    *  otherwise `undefined`. The generic on `complete<T>(...)` types this. */
   parsed?: T;
   response: CompletionResponse;
+  /** In-band provider failure. Some providers report a failed generation IN the
+   *  response rather than by throwing (OpenAI Responses `status: 'failed'`, Google
+   *  Interactions likewise), so a caller that only catches sees empty text and no
+   *  exception — a failure indistinguishable from a successful empty answer. */
+  error?: CompletionResponse['error'];
   /** Fetch a hosted-tool output file (from `response.files`): bytes (`Blob`) +
    *  `name` / `mimeType` / `size` — bound to the SAME model + key this call used. */
   retrieveFile(file: FileOutput): Promise<RetrievedFile>;
@@ -170,6 +181,8 @@ export async function complete<T = unknown>(opts: CompleteOptions): Promise<Comp
         outputModalities: opts.outputModalities,
         serviceTier,
         cache: opts.cache,
+        topK: opts.topK,
+        seed: opts.seed,
       });
     } else {
       res = await llm.complete(input, {
@@ -182,12 +195,15 @@ export async function complete<T = unknown>(opts: CompleteOptions): Promise<Comp
         outputModalities: opts.outputModalities,
         serviceTier,
         cache: opts.cache,
+        topK: opts.topK,
+        seed: opts.seed,
       });
     }
 
     const result: CompleteResult<T> = {
       text: res.text,
       response: res,
+      ...(res.error ? { error: res.error } : {}),
       // Bound to this call's client (same provider/model/key/engine).
       retrieveFile: (file) => llm.retrieveFile(file),
       streamFile: (file) => llm.streamFile(file),

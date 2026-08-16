@@ -149,7 +149,11 @@ describe('AnthropicAdapter — tools', () => {
       {
         name: 'get_weather',
         description: 'Get the weather',
-        input_schema: { type: 'object', properties: { city: { type: 'string' } } },
+        // Strict now defaults ON where the schema qualifies. Unlike OpenAI, Anthropic
+        // accepts optional properties, so this schema does qualify; what it refuses is
+        // a set of validation keywords. See strict-schema.test.ts.
+        input_schema: { type: 'object', additionalProperties: false, properties: { city: { type: 'string' } } },
+        strict: true,
       },
     ]);
   });

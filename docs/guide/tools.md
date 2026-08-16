@@ -51,6 +51,30 @@ const { text } = await complete({
 console.log(text);
 ```
 
+### Strict mode and optional parameters
+
+Strict mode is what makes a provider constrain the tool name and argument shape while
+generating them, instead of leaving you to validate afterwards. The library asks for it
+by default -- but only for schemas the provider will accept, because the two providers
+constrain different things and reject a violating schema with a 400 rather than
+degrading it:
+
+| | OpenAI | Anthropic |
+|---|---|---|
+| optional properties (not in `required`) | rejected | fine |
+| `maximum`, `minimum`, `multipleOf`, `maxItems`, `exclusive*` | fine | rejected |
+
+So the tool above -- `optional: ['unit']` -- runs with strict **off** on OpenAI and
+**on** on Anthropic, and the same source works on both. Nothing to configure.
+
+Set `strict` explicitly on a `FunctionTool` to override the decision in either
+direction. `strictSupport(schema, 'openai' | 'anthropic')` is exported if you want to
+ask the question yourself; it returns `{ ok, reason }`, and `reason` names the property
+or keyword responsible.
+
+Keys listed in `optional` are optional in the inferred `execute` args too, so `unit`
+above is `string | undefined` and the `?? 'celsius'` is load-bearing.
+
 ### Multi-step tool loop
 
 `complete()` runs the full loop until the model stops requesting tools:

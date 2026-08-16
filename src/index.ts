@@ -103,7 +103,7 @@ export type { NormalizedRequest, ReasoningContext, ThinkingConfig, CacheConfig }
 export type { MediaStreamType, StreamEvent } from './llm/types/stream';
 export type { ExecuteOptions } from './llm/types/options';
 export type { ProviderName, ApiType, ProviderConfig, ProviderHttpRequest, ProviderAdapter } from './llm/types/provider';
-export { ensureAdditionalProperties } from './llm/types/schema-utils';
+export { ensureAdditionalProperties, strictSupport, type StrictDialect } from './llm/types/schema-utils';
 export { LLMClient } from './llm/client';
 export type { LLMClientConfig, AdapterFactory } from './llm/client-config';
 export { AnthropicBatchAdapter } from './llm/providers/anthropic/batch';

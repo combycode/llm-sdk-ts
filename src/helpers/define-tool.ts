@@ -81,27 +81,35 @@ type InferParam<S> = S extends 'string'
                   ? boolean
                   : unknown;
 
-type InferArgs<P extends Record<string, ParamSpec>> = {
-  [K in keyof P]: InferParam<P[K]>;
+/** Keys named in `optional` are optional HERE TOO. Typing them as always-present is
+ *  a lie the compiler then helps enforce: `args.unit.toUpperCase()` typechecks and
+ *  throws at runtime whenever the model omits the argument — which, for an argument
+ *  declared optional, is the expected case rather than the edge one. */
+type InferArgs<P extends Record<string, ParamSpec>, O extends keyof P = never> = {
+  [K in Exclude<keyof P, O>]: InferParam<P[K]>;
+} & {
+  [K in Extract<O, keyof P>]?: InferParam<P[K]>;
 };
 
-export interface DefineToolInput<P extends Record<string, ParamSpec>> {
+export interface DefineToolInput<P extends Record<string, ParamSpec>, O extends keyof P & string = never> {
   name: string;
   description: string;
   /** Object spec — keys are arg names. All keys are treated as required by
    *  default; mark optional ones via `optional: ['x']`. */
   params: P;
-  optional?: ReadonlyArray<keyof P & string>;
+  optional?: readonly O[];
   execute: (
-    args: InferArgs<P>,
+    args: InferArgs<P, O>,
     context: ToolExecutionContext,
   ) => Promise<string | ContentPart[]> | string | ContentPart[];
 }
 
-export function defineTool<P extends Record<string, ParamSpec>>(
-  input: DefineToolInput<P>,
+export function defineTool<P extends Record<string, ParamSpec>, const O extends keyof P & string = never>(
+  input: DefineToolInput<P, O>,
 ): AgentTool {
-  const optional = new Set(input.optional ?? []);
+  // Widened to string: the lookup key comes from Object.entries, which cannot know
+  // it is one of `O`.
+  const optional = new Set<string>(input.optional ?? []);
   const properties: Record<string, unknown> = {};
   const required: string[] = [];
   for (const [key, spec] of Object.entries(input.params)) {
@@ -119,6 +127,6 @@ export function defineTool<P extends Record<string, ParamSpec>>(
         ...(required.length > 0 ? { required } : {}),
       },
     },
-    execute: async (args, ctx) => input.execute(args as InferArgs<P>, ctx),
+    execute: async (args, ctx) => input.execute(args as InferArgs<P, O>, ctx),
   };
 }
