@@ -8,6 +8,18 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **MCP tool definitions carry what the spec publishes.** `McpToolDef` now models `annotations`
+  (`readOnlyHint` / `destructiveHint` / `idempotentHint` / `openWorldHint`), `icons`, `execution`
+  and `_meta`. The data always arrived — `tools/list` results are passed through unparsed — but was
+  untyped, so a host could not act on it without a cast. These stay **host-facing**: no provider's
+  function-tool schema has a field that could carry them, so none is sent to the model.
+  - `execution.taskSupport: 'required'` means the tool MUST be invoked as a task. Task invocation is
+    not implemented, so such a tool cannot be called through this client — the field being visible is
+    what lets a caller see that instead of meeting it as a server error.
+- **MCP `outputSchema` now reaches the model.** It was read for local validation only. OpenAI
+  Responses accepts `output_schema` and the library already emitted it for hand-written tools; the
+  two ends were never connected, so an MCP tool could not tell the model the shape it would get
+  back. Providers without the field ignore it.
 - **`moderate()` now returns the shape of its input.** Overloads: one input (a string, or one
   content-part array forming a single multimodal item) returns a `ModerationResult`; a list of
   inputs returns `ModerationResult[]`. The mapping was documented in prose from the start but the

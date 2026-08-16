@@ -75,6 +75,12 @@ export function mcpToolToAgentTool(
       name: `${namespace}__${tool.name}`,
       description: tool.description ?? tool.title ?? tool.name,
       parameters: tool.inputSchema ?? { type: 'object', properties: {} },
+      // MCP publishes a schema for the tool's structured output, and OpenAI
+      // Responses accepts one (`output_schema`) so the model can reason over the
+      // shape it will get back. Both ends already existed and nothing connected
+      // them: a hand-written tool could declare an output schema and an MCP tool
+      // could not. Providers without the field ignore it.
+      ...(tool.outputSchema ? { outputSchema: tool.outputSchema } : {}),
     },
     execute: async (args, ctx) => {
       const res = await client.callTool(tool.name, args, ctx.trace);

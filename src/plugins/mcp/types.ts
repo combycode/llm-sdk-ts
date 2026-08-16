@@ -22,6 +22,43 @@ export interface JsonRpcResponse {
 
 // ─── MCP tools + content ──────────────────────────────────────────────────
 
+/** Behavioural hints a server publishes about a tool. Advisory and UNVERIFIED — a
+ *  server asserts them about itself — so they inform a host's UX (confirm before a
+ *  destructive call) and must never be treated as a security boundary.
+ *
+ *  Open (CONSTITUTION R1): the spec gains hints over time and an unknown one must
+ *  survive rather than be dropped. */
+export interface McpToolAnnotations {
+  title?: string;
+  /** The tool does not modify its environment. Default false. */
+  readOnlyHint?: boolean;
+  /** The tool may perform destructive updates rather than only additive ones. */
+  destructiveHint?: boolean;
+  /** Repeated calls with the same arguments have no additional effect. */
+  idempotentHint?: boolean;
+  /** The tool touches an open world (the internet) rather than a closed one. */
+  openWorldHint?: boolean;
+  [hint: string]: unknown;
+}
+
+/** An icon a host may render beside the tool. Display only. */
+export interface McpToolIcon {
+  src: string;
+  mimeType?: string;
+  sizes?: string[];
+  theme?: 'light' | 'dark' | (string & {});
+}
+
+/** How the tool must be invoked.
+ *
+ *  `taskSupport: 'required'` means the client MUST call it as a task rather than a
+ *  plain `tools/call`. Task invocation is not implemented here, so such a tool
+ *  cannot be called through this client — carrying the field lets a caller SEE
+ *  that instead of discovering it as a server error. Absent means `'forbidden'`. */
+export interface McpToolExecution {
+  taskSupport?: 'required' | 'optional' | 'forbidden' | (string & {});
+}
+
 export interface McpToolDef {
   name: string;
   description?: string;
@@ -30,6 +67,15 @@ export interface McpToolDef {
   inputSchema: Record<string, unknown>;
   /** JSON Schema for the tool's `structuredContent` output (optional). */
   outputSchema?: Record<string, unknown>;
+  /** Advisory behavioural hints. HOST-facing, never sent to the model: no
+   *  provider's function-tool schema has a field that could carry them. */
+  annotations?: McpToolAnnotations;
+  /** Display icons for a host UI. */
+  icons?: McpToolIcon[];
+  /** Invocation requirements; see {@link McpToolExecution}. */
+  execution?: McpToolExecution;
+  /** Spec-defined passthrough metadata. */
+  _meta?: Record<string, unknown>;
 }
 
 /** A content block in a `tools/call` result. Open union — unknown types ignored. */

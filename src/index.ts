@@ -314,7 +314,7 @@ export type {
 } from './plugins/mcp/types';
 export type { IncomingMcpHandlers } from './plugins/mcp/transport';
 export { MCP_PROTOCOL_VERSION, isHttpConfig } from './plugins/mcp/types';
-export type { McpCallResult, McpCompletionRef, McpCompletionResult, McpContentBlock, McpDiscoverResult, McpGetPromptResult, McpCacheHints, McpInputRequest, McpInputRequiredFields, McpHttpConfig, McpInitializeResult, McpLogLevel, McpPrompt, McpPromptArg, McpPromptMessage, McpResource, McpResourceContent, McpResourceTemplate, McpServerConfig, McpStdioConfig, McpToolDef } from './plugins/mcp/types';
+export type { McpCallResult, McpCompletionRef, McpCompletionResult, McpContentBlock, McpDiscoverResult, McpGetPromptResult, McpCacheHints, McpInputRequest, McpInputRequiredFields, McpHttpConfig, McpInitializeResult, McpLogLevel, McpPrompt, McpPromptArg, McpPromptMessage, McpResource, McpResourceContent, McpResourceTemplate, McpServerConfig, McpStdioConfig, McpToolDef, McpToolAnnotations, McpToolIcon, McpToolExecution } from './plugins/mcp/types';
 export {
   MCP_HANDSHAKE_PROTOCOL_VERSIONS,
   MCP_KNOWN_PROTOCOL_VERSIONS,

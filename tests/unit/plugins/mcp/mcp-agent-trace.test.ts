@@ -115,3 +115,43 @@ describe('MCP tool trace threading through AgentLoop', () => {
     expect(mcpToolCalls[0].trace!.requestId!.length).toBeGreaterThan(0);
   });
 });
+
+// ─── what of an MCP tool definition reaches the model ────────────────────────
+//
+// A provider's function-tool schema has three slots, so annotations/icons/_meta
+// are host-facing and correctly never sent. `outputSchema` is the exception: the
+// model CAN be told the shape it will get back (OpenAI Responses `output_schema`),
+// and for a long time only hand-written tools could say so.
+
+describe('mcpToolToAgentTool definition', () => {
+  const base = { name: 'echo', inputSchema: { type: 'object' as const, properties: {} } };
+  const client = null as unknown as McpClient; // never called; only the definition is read
+
+  it('forwards outputSchema so the model can reason over structured output', () => {
+    const outputSchema = { type: 'object' as const, properties: { ok: { type: 'boolean' } } };
+    const t = mcpToolToAgentTool(client, { ...base, outputSchema }, 'stub');
+    expect((t.definition as { outputSchema?: unknown }).outputSchema).toEqual(outputSchema);
+  });
+
+  it('omits outputSchema entirely when the server publishes none', () => {
+    const t = mcpToolToAgentTool(client, base, 'stub');
+    expect('outputSchema' in t.definition).toBe(false);
+  });
+
+  it('never leaks host-facing metadata into what the model sees', () => {
+    const t = mcpToolToAgentTool(
+      client,
+      {
+        ...base,
+        annotations: { readOnlyHint: true, destructiveHint: false },
+        icons: [{ src: 'https://example.com/i.png', mimeType: 'image/png' }],
+        execution: { taskSupport: 'optional' },
+        _meta: { 'io.example/trace': 'abc' },
+      },
+      'stub',
+    );
+    // No provider field could carry these, and inventing one would be a silent
+    // change to the prompt the model sees.
+    expect(Object.keys(t.definition).sort()).toEqual(['description', 'name', 'parameters', 'type']);
+  });
+});
