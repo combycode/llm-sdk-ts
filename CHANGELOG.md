@@ -8,6 +8,14 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **`CostSummary.unpriced` / `.unpricedModels` — a $0.00 total no longer hides a failed lookup.** A
+  model with no catalog entry was priced at zero and summed into every total, so a report read $0.00
+  when it meant "could not price this", and a budget built on that total silently never fired. The
+  per-entry `cost.source: 'unknown'` tag already recorded it; nothing aggregated it. The collector
+  now also emits one `onWarning` per unknown model (`code: 'unpriced_model'`) — once per model, not
+  per request. Genuinely free calls are unaffected: they are priced `'calculated'` at zero with a
+  note. The usual cause is a model id that reaches the provider but is not a catalog key, e.g.
+  `anthropic/claude-haiku-4-5` against the catalog's `anthropic/claude-haiku-4.5`.
 - **`strictSupport(schema, dialect)` — ask whether a schema can satisfy a provider's strict mode.**
   Returns `{ ok, reason }`, where `reason` names the property or keyword responsible. Exported
   because the answer differs per provider and was otherwise only discoverable by getting a 400.

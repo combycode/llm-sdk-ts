@@ -126,8 +126,32 @@ interface CostSummary {
     reasoning: number;
   };
   entries: number;     // number of completions included
+  unpriced: number;         // how many of `entries` could not be priced
+  unpricedModels: string[]; // the distinct provider/model behind `unpriced`
 }
 ```
+
+### Zero is not the same as free
+
+An entry the catalog cannot price contributes `0` to every field above. Without
+`unpriced`, that is indistinguishable from a run that genuinely cost nothing -- and a
+budget built on the total silently never fires. Check it before trusting a total:
+
+```ts
+const costs = engine.cost.total();
+if (costs.unpriced > 0) {
+  console.warn(`${costs.unpriced} entries unpriced: ${costs.unpricedModels.join(', ')}`);
+}
+```
+
+The collector also emits one `onWarning` per unknown model (`code: 'unpriced_model'`), so
+this surfaces without polling. Once per model, not per request: an unpriced model is a
+configuration mistake, not a per-call event.
+
+The usual cause is a model id that reaches the provider but is not a catalog key --
+`anthropic/claude-haiku-4-5` calls the API perfectly well, while the catalog keys it as
+`anthropic/claude-haiku-4.5`. Genuinely free calls are *not* counted here: they are priced
+`'calculated'` at zero, with a note explaining why.
 
 ### Step 5 -- slice by provider, model, or tag
 
