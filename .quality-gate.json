@@ -45,7 +45,16 @@
     ],
     "ignore": [],
     "ignoreKinds": [],
-    "debtFile": "example-debt.json"
+    "debtFile": "example-debt.json",
+    "typeAware": {
+      "packageName": "@combycode/llm-sdk",
+      "projects": [
+        "../unified-examples-ts",
+        "../consumers/feature",
+        "../consumers/server",
+        "../consumers/browser"
+      ]
+    }
   },
   "_claims": "Every cited sha and path must resolve. `extra` reaches the update reports, which live outside the library but cite ITS commits. Versions are deliberately out of scope here (third-party versions look identical to ours) — that is G7's question.",
   "claims": {
