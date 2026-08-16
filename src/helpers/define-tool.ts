@@ -98,6 +98,9 @@ export interface DefineToolInput<P extends Record<string, ParamSpec>, O extends 
    *  default; mark optional ones via `optional: ['x']`. */
   params: P;
   optional?: readonly O[];
+  /** Register the tool without declaring it — the model finds it via `tool_search` and
+   *  calls it through `call_tool`. See `AgentTool.lazy`. */
+  lazy?: boolean;
   execute: (
     args: InferArgs<P, O>,
     context: ToolExecutionContext,
@@ -118,6 +121,7 @@ export function defineTool<P extends Record<string, ParamSpec>, const O extends 
   }
 
   return {
+    ...(input.lazy ? { lazy: true } : {}),
     definition: {
       name: input.name,
       description: input.description,

@@ -11,6 +11,8 @@ export interface McpToolAdapterOptions {
   /** Validate `structuredContent` against the tool's `outputSchema`; on mismatch
    *  the tool returns an error string instead of the content. Default false. */
   validateOutput?: boolean;
+  /** Register the tool without declaring it — see `AgentTool.lazy`. */
+  lazy?: boolean;
 }
 
 /** Map one MCP content block to a ContentPart (null for unknown types). */
@@ -70,6 +72,7 @@ export function mcpToolToAgentTool(
   opts: McpToolAdapterOptions = {},
 ): AgentTool {
   return {
+    ...(opts.lazy ? { lazy: true } : {}),
     definition: {
       type: 'function',
       name: `${namespace}__${tool.name}`,

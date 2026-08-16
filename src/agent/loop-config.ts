@@ -7,6 +7,7 @@ import type { ConversationHistory } from './history';
 import type { HistorySnapshot } from './history-types';
 import type { ReflectAndRetryConfig } from './reflect-retry';
 import type { AgentTool } from './types';
+import type { LazyToolsConfig } from './lazy-tools';
 import type { Guardrail, ToolInputGuardrail } from './guardrail-types';
 import type { PermissionPolicy } from '../plugins/permissions/policy';
 import type { ApprovalRequest, ApprovalDecision } from './approval-types';
@@ -43,6 +44,15 @@ export interface AgentLoopConfig {
    *  Defaults to `'warn'` so an app that unknowingly has a collision keeps working
    *  (CONSTITUTION.md R4) — the collision just stops being invisible. */
   toolNameCollisionPolicy?: 'warn' | 'error';
+
+  /** Tuning for tools registered with `lazy: true`. Has no effect when none are — the
+   *  built-in `tool_search` / `call_tool` are declared only if a lazy tool exists, so an
+   *  app that never uses the feature never sees them.
+   *
+   *  There is deliberately no `threshold` here: whether deferring pays depends on the
+   *  SIZE of the tool schemas, not their count, so an automatic cutoff would be guessing.
+   *  Mark tools lazy explicitly. */
+  lazyTools?: LazyToolsConfig;
 
   /** Self-healing recovery from a recoverable MODEL failure (a malformed tool call, a hallucinated
    *  tool name, a truncated call). The model is given structured guidance naming the attempt and

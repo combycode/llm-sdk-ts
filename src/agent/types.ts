@@ -49,6 +49,16 @@ export interface LearnInput {
 export interface AgentTool {
   /** Tool schema sent to the LLM. */
   definition: Tool;
+  /** Register the tool but do NOT declare it: the model finds it with `tool_search` and
+   *  invokes it through `call_tool`. Exposure only — registration, validation and
+   *  collision checking are unchanged, and nothing happens mid-run.
+   *
+   *  Worth it when the tool block is large and a run touches few of them: measured at
+   *  −72% (claude-haiku-4.5) and −97% (gpt-5.4-nano) cost per task across 308 tools, with
+   *  identical correctness, for one extra round trip. NOT worth it for a small tool set —
+   *  below roughly a hundred richly-schema'd tools the saving inverts, because the
+   *  remaining prefix falls under the provider's minimum cacheable size. */
+  lazy?: boolean;
   /** Execute the tool. Return string or structured content. */
   execute: (
     args: Record<string, unknown>,
@@ -90,6 +100,11 @@ export interface ToolCallReport {
   /** Out-of-band metadata from the tool's `customDataExtractor`, if any. Never sent
    *  to the model; present only when an extractor returned a value. */
   customData?: unknown;
+  /** `'search'` when the model reached this tool through `call_tool` after finding it
+   *  with `tool_search`. Absent for a normally-declared tool. `toolName` is the tool that
+   *  actually ran either way — without that unwrapping every lazy call would report
+   *  `call_tool` and attribution would be worthless. */
+  discoveredVia?: 'search';
 }
 
 export interface StepReport {

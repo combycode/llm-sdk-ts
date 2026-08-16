@@ -420,6 +420,20 @@ export interface CostEntry {
   tags: Record<string, string | undefined>;
 }
 
+/** One `tool_search` call by the model, when lazy tools are in use.
+ *
+ *  `unmatched` is the field that matters: a query that found nothing is how a
+ *  multi-capability request quietly becomes a partial answer. Watch it to see whether the
+ *  catalog's descriptions actually match the words your users reach for. */
+export interface ToolSearchContext {
+  agentId: string;
+  queries: string[];
+  /** Tool names returned to the model, deduplicated across queries. */
+  matched: string[];
+  /** Queries that matched no tool at all. */
+  unmatched: string[];
+}
+
 export interface CostEntryContext {
   entry: CostEntry;
   runningTotal: number;
@@ -667,6 +681,7 @@ export interface HookMap {
   onToolCallStart: ToolCallStartContext;
   onToolCallComplete: ToolCallCompleteContext;
   onToolCallError: ToolCallErrorContext;
+  onToolSearch: ToolSearchContext;
   onRunComplete: RunCompleteContext;
   onRunError: RunErrorContext;
   onGuardrailTriggered: GuardrailTriggeredContext;

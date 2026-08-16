@@ -108,6 +108,9 @@
     "scope": "official-comparision",
     "_runs": "The first two runs are the ones with teeth. A run set chosen by SURFACE (tools, structured, MCP) missed the strict bug entirely, because every example declared its tool parameters as required — the defect only appears on a shape no example used. Choose these by SHAPE.",
     "runs": [
+      { "file": "features-highlight/lazy-tools.ts", "apiKeyEnv": "OPENAI_API_KEY", "env": { "LLM_MODEL": "openai/gpt-5.4-nano" }, "expect": "declaredStableAcross" },
+      { "file": "features-highlight/lazy-tools.ts", "apiKeyEnv": "ANTHROPIC_API_KEY", "env": { "LLM_MODEL": "anthropic/claude-haiku-4.5" }, "expect": "declaredStableAcross" },
+      { "file": "features-highlight/mcp-lazy-server.ts", "apiKeyEnv": "OPENAI_API_KEY", "env": { "LLM_MODEL": "openai/gpt-5.4-nano" }, "expect": "ranViaSearch" },
       { "file": "features-highlight/tool-optional-parameters.ts", "apiKeyEnv": "OPENAI_API_KEY", "env": { "LLM_MODEL": "openai/gpt-5.4-nano" }, "expect": "result" },
       { "file": "features-highlight/tool-optional-parameters.ts", "apiKeyEnv": "ANTHROPIC_API_KEY", "env": { "LLM_MODEL": "anthropic/claude-haiku-4-5" }, "expect": "result" },
       { "file": "official-comparision/06-tool-call.ts", "apiKeyEnv": "OPENAI_API_KEY", "env": { "LLM_MODEL": "openai/gpt-5.4-nano" }, "expect": "result" },

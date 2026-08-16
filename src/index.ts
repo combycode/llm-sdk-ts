@@ -154,6 +154,7 @@ export type { ConversationHistoryConfig, HistoryEntry, HistorySnapshot } from '.
 export { AgentLoop } from './agent/loop';
 export type { AgentLoopConfig } from './agent/loop-config';
 export type { AgentLoopSnapshot, AgentRunReport, AgentStreamEvent, AgentTool, ContentClass, LearnInput, StepReport, TokenCountContext, TokenCounter, ToolCallReport, ToolExecutionContext } from './agent/types';
+export { LAZY_CALL_TOOL, LAZY_SEARCH_TOOL, rankTools, type LazyToolsConfig } from './agent/lazy-tools';
 /** Read a tool's key/label without narrowing `Tool` by hand: `definition` is a
  *  union (function tool or builtin), so `.name` does not exist on it. */
 export { toolKey, describeTool } from './agent/tool-key';

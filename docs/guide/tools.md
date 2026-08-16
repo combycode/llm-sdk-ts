@@ -286,6 +286,80 @@ Optional `params`: `authorization`, `headers`, `require_approval`, `allowed_tool
 > This is the **provider-hosted** MCP path. For connecting the SDK itself to MCP
 > servers as a client, see [MCP (Model Context Protocol)](./mcp.md).
 
+## Lazy tools -- register without declaring
+
+Tool definitions are sent in full on every request. Three MCP servers and the tool block
+can dominate the context before the conversation starts.
+
+Mark a tool `lazy` and it is registered but **not declared**. The model finds it with a
+built-in `tool_search`, which returns full schemas, and runs it through a built-in
+`call_tool`:
+
+```ts
+import { connectMcp, createAgent } from '@combycode/llm-sdk';
+
+// The common case: an entire MCP server, deferred.
+const gh = await connectMcp({ url: 'https://example.com/mcp' }, { lazy: true });
+
+const agent = createAgent({
+  model: 'anthropic/claude-haiku-4.5',
+  tools: gh.tools,
+  lazyTools: { limit: 5, maxSearches: 5 }, // both optional
+});
+```
+
+`tool_search` and `call_tool` are declared only when at least one lazy tool exists, so an
+app that never opts in never sees them.
+
+Per tool instead of per server:
+
+```ts
+import { defineTool } from '@combycode/llm-sdk';
+
+defineTool({
+  name: 'rare_thing',
+  description: 'Something needed once in a hundred runs.',
+  params: { id: 'string' },
+  lazy: true,
+  execute: ({ id }) => id,
+});
+```
+
+**What it costs and what it saves.** Measured over 308 tools, six tasks, both providers:
+identical correctness, **-72%** cost per task on `claude-haiku-4.5` and **-97%** on
+`gpt-5.4-nano`, for **one extra round trip** (the search). The saving comes from the tool
+block never being sent -- not from caching, which this design does not even rely on.
+
+**It is not always a win.** Below roughly a hundred richly-schema'd tools it costs *more*
+than declaring everything, because what remains in the prefix falls under the provider's
+minimum cacheable size while a search round trip is still paid. There is deliberately no
+automatic threshold: whether deferring pays depends on the size of your schemas, not their
+count. Mark tools lazy on purpose.
+
+**Nothing moves mid-run.** Registration, namespacing and `toolNameCollisionPolicy` are
+unchanged, and the declared tool array is identical on every request of a conversation --
+which is the point, since changing it would invalidate the cached prefix and cost more
+than it saves.
+
+### Watching it work
+
+`ToolCallReport.toolName` names the tool that actually **ran**, not `call_tool`, and adds
+`discoveredVia: 'search'`. Without that unwrapping every lazy call would look identical in
+a trace.
+
+```ts
+agent.hooks.on('onToolSearch', ({ queries, matched, unmatched }) => {
+  if (unmatched.length) console.warn('no tool matched:', unmatched);
+});
+```
+
+`unmatched` is the field worth watching. Ranking is local token overlap over name,
+description and parameter names -- it has no idea that "coughed up" means "payment
+status", and against raw user phrasing it finds nothing at all. That is survivable because
+the **model** writes the query, not the user, and it rewrites well. When a query does miss,
+`tool_search` says so and the model searches again with different words; without that
+signal a request needing two tools quietly becomes an answer from one.
+
 ## Related
 
 - [Agent Loop + delegate / chain / consolidate](./agent-loop.md)

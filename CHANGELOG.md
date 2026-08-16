@@ -8,6 +8,28 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **Lazy tool loading — register a tool without declaring it.** `lazy: true` on `defineTool`, on an
+  `AgentTool`, or on a whole MCP server via `connectMcp(cfg, { lazy: true })`. The tool is registered,
+  namespaced and collision-checked exactly as before, but is not placed in the `tools` array: the
+  model finds it with a built-in `tool_search`, which returns full schemas as data, and runs it
+  through a built-in `call_tool`. Both are declared only when at least one lazy tool exists, so an app
+  that never opts in sees nothing new.
+
+  Measured over 308 tools, six tasks, three reps, both providers: identical correctness, **−72%** cost
+  per task on `claude-haiku-4.5` and **−97%** on `gpt-5.4-nano`, for one extra round trip. The saving
+  is not from caching — it is from never sending the tool block. Schemas arrive in a tool RESULT,
+  which lands after the cached prefix, so the declared array never changes and no discovery event can
+  invalidate it. Promoting tools into the array instead costs **+63%** versus never deferring.
+
+  **It is not always a win.** Below roughly a hundred richly-schema'd tools it costs more than
+  declaring everything, because what remains in the prefix falls under the provider's minimum
+  cacheable size while a search round trip is still paid. There is deliberately no automatic
+  threshold: whether deferring pays depends on schema size, not tool count.
+
+  `ToolCallReport.toolName` names the tool that actually ran, never `call_tool`, and carries
+  `discoveredVia: 'search'`. A new `onToolSearch` hook reports queries, what matched, and — the field
+  worth alerting on — which queries matched nothing. Tuning via `lazyTools: { limit, maxSearches }`.
+
 - **`CostSummary.unpriced` / `.unpricedModels` — a $0.00 total no longer hides a failed lookup.** A
   model with no catalog entry was priced at zero and summed into every total, so a report read $0.00
   when it meant "could not price this", and a budget built on that total silently never fired. The

@@ -26,8 +26,9 @@ import type { FileStream, RetrievedFile } from '../llm/files/retrieve';
 import type { LLMClient } from '../llm/client';
 import { buildAssistantMessage, parseStructured as parseStructuredText } from '../llm/client-internal';
 import { AgentRunError } from '../llm/output-errors';
-import { writeAgentLoopContext, writeAgentLoopSystem } from './context-registry/layers';
+import { writeAgentLoopContext, writeAgentLoopSystem, writeLazyToolsProtocol } from './context-registry/layers';
 import { ConversationHistory } from './history';
+import { createLazyTools, unwrapLazyCall, type LazyToolsConfig } from './lazy-tools';
 import type {
   AgentLoopSnapshot,
   AgentRunReport,
@@ -64,6 +65,13 @@ export class AgentLoop {
   private _systemThunk: (() => string | Promise<string>) | null = null;
   private _context: string;
   private _tools: Map<string, AgentTool>;
+  private _lazyConfig: LazyToolsConfig = {};
+  /** Per-run search budget, reset at the start of every run. */
+  private _lazyState: { searches: number } = { searches: 0 };
+  /** Installed on the first `lazy` registration and never removed, so the declared tool
+   *  array stays byte-identical for the life of the conversation — which is the entire
+   *  reason the design is cheap. */
+  private _lazyInstalled = false;
   private _history: ConversationHistory;
   private _reports: AgentRunReport[] = [];
   private _metadata: Record<string, unknown> = {};
@@ -121,6 +129,7 @@ export class AgentLoop {
 
     this._collisionPolicy = config.toolNameCollisionPolicy ?? 'warn';
     this._reflectRetry = config.reflectAndRetry ? new ReflectAndRetryPolicy(config.reflectAndRetry) : null;
+    this._lazyConfig = config.lazyTools ?? {};
     this._tools = new Map();
     for (const t of config.tools ?? []) {
       this.registerTool(t);
@@ -141,6 +150,8 @@ export class AgentLoop {
     // memory layers, etc. See `context-registry/layers.ts` for priorities.
     writeAgentLoopSystem(this._history.registry, this._system, 'agent-loop');
     writeAgentLoopContext(this._history.registry, this._context, 'agent-loop');
+    // Constructor tools registered before `_history` existed, so publish now.
+    this.syncLazyProtocol();
 
     this.hooks.emitSync('onAgentCreate', {
       agentId: this.id,
@@ -248,6 +259,7 @@ export class AgentLoop {
       });
     }
     this._tools.set(key, tool);
+    if (tool.lazy) this.installLazyTools();
   }
 
   removeTool(name: string): void {
@@ -1125,25 +1137,70 @@ export class AgentLoop {
       trace: runTrace,
     });
 
+    // Report the tool that actually ran. Without this every lazy call reads `call_tool`
+    // in the trace and attribution dies — the one real regression this design causes,
+    // and it is entirely inside our layer, so it is fixed here rather than documented.
+    const inner = unwrapLazyCall(tc.name, tc.arguments);
     reports.push({
       callId: tc.id,
-      toolName: tc.name,
+      toolName: inner ?? tc.name,
       arguments: tc.arguments,
       resultSizeBytes: resultStr.length,
       latencyMs,
       skipped: false,
       error: null,
       metrics: Object.fromEntries(metrics),
+      ...(inner ? { discoveredVia: 'search' as const } : {}),
       ...(customData !== undefined ? { customData } : {}),
     });
     return { type: 'tool_result', id: tc.id, content: resultStr };
   }
 
-  /** Merge agent's tool definitions with caller-provided tools (caller wins on conflict). */
+  /** Declare `tool_search` + `call_tool`, once, on the first lazy registration.
+   *
+   *  They go through `registerTool` like anything else, so the collision policy covers
+   *  them and there is no second registry to keep in sync. They are never removed: the
+   *  declared array must stay identical for the whole conversation or the cached prefix
+   *  is invalidated, which is the cost the feature exists to avoid. */
+  private installLazyTools(): void {
+    if (this._lazyInstalled) return;
+    this._lazyInstalled = true;
+    for (const t of createLazyTools({
+      lazyTools: () => [...this._tools.values()].filter((t) => t.lazy),
+      eagerNames: () =>
+        [...this._tools.entries()].filter(([, t]) => !t.lazy).map(([key]) => key),
+      state: this._lazyState,
+      config: this._lazyConfig,
+      onSearch: (info) => {
+        void this.hooks.emit('onToolSearch', { agentId: this.id, ...info });
+      },
+    })) {
+      this.registerTool(t);
+    }
+    this.syncLazyProtocol();
+  }
+
+  /** Publish (or remove) the "your tools are not all listed" layer.
+   *
+   *  Separate from `installLazyTools` because tools are registered in the constructor
+   *  BEFORE `_history` exists, and the layer lives in the history's registry. The
+   *  constructor calls this again once history is built.
+   *
+   *  The model has no reason to suspect a tool it cannot see, and the failure without
+   *  this is quiet — it answers from whatever it did find. Measured at 8/12 and 9/12
+   *  without the protocol, 18/18 with it, same tasks and same ranker. */
+  private syncLazyProtocol(): void {
+    if (!this._history) return;
+    writeLazyToolsProtocol(this._history.registry, this._lazyInstalled, 'agent-loop');
+  }
+
+  /** Merge agent's tool definitions with caller-provided tools (caller wins on conflict).
+   *
+   *  Lazy tools are registered but NOT declared — that filter is the whole mechanism. */
   private toolDefinitions(
     options: ExecuteOptions,
   ): import('../llm/types/tools').Tool[] | undefined {
-    const own = [...this._tools.values()].map((t) => t.definition);
+    const own = [...this._tools.values()].filter((t) => !t.lazy).map((t) => t.definition);
     if (options.tools) return [...own, ...options.tools];
     return own.length > 0 ? own : undefined;
   }
@@ -1161,6 +1218,9 @@ export class AgentLoop {
     this._running = true;
     this._stopRequested = false;
     this._abortController = new AbortController();
+    // The search budget is per RUN. Carrying it across runs would silently starve a long
+    // conversation of discovery after the fifth search of its life.
+    this._lazyState.searches = 0;
 
     // Re-evaluate the system thunk so live-reload prompts (config files,
     // collection-backed prompts) pick up changes between runs.

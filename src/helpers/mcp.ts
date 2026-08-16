@@ -55,6 +55,15 @@ export interface ConnectMcpOptions {
   roots?: McpRoot[] | (() => McpRoot[] | Promise<McpRoot[]>);
   /** Validate tool `structuredContent` against the tool's `outputSchema`. */
   validateOutput?: boolean;
+  /** Register this server's tools WITHOUT declaring them: the model finds them with
+   *  `tool_search` and calls them through `call_tool`. Exposure only — every tool is
+   *  still registered, namespaced and collision-checked exactly as today.
+   *
+   *  This is the common case for the feature, since an MCP server is where a large tool
+   *  block usually comes from. Measured over 308 tools: identical correctness, −72% cost
+   *  per task on claude-haiku-4.5 and −97% on gpt-5.4-nano, for one extra round trip.
+   *  Not worth it for a small server — see `AgentTool.lazy`. */
+  lazy?: boolean;
   /** Send a `ping` every N ms to keep the connection alive (0 = off).
    *  Ignored on a 2026-07-28 session, where `ping` no longer exists. */
   keepAliveMs?: number;
@@ -145,7 +154,9 @@ export async function connectMcp(
   const refresh = async (c: McpClient): Promise<void> => {
     const defs = await c.listTools();
     tools.length = 0;
-    for (const d of defs) tools.push(mcpToolToAgentTool(c, d, ns, { validateOutput: opts.validateOutput }));
+    for (const d of defs) {
+      tools.push(mcpToolToAgentTool(c, d, ns, { validateOutput: opts.validateOutput, lazy: opts.lazy }));
+    }
   };
 
   // Capability declaration + server->client request dispatch (P3).
