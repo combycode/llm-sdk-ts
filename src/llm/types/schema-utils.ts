@@ -84,6 +84,27 @@ export function strictSupport(
     }
 
     const props = n.properties as Record<string, unknown> | undefined;
+
+    // BOTH providers refuse an open object under strict — the whole point of strict is
+    // that the argument shape is closed. Absent is fine (it gets supplied as false); an
+    // explicit `true` survives conforming and is rejected. OpenAI: "'additionalProperties'
+    // is required to be supplied and to be false". Anthropic: "For 'object' type,
+    // 'additionalProperties: true' is not supported".
+    if (n.additionalProperties !== undefined && n.additionalProperties !== false) {
+      return `${at}: 'additionalProperties' must be false under strict`;
+    }
+
+    if (dialect === 'openai') {
+      // A free-form object — `{ type: 'object' }` with no `properties` — is not
+      // expressible under OpenAI strict at all: "object schema missing properties". An
+      // EMPTY `properties: {}` is fine, so no-argument tools are unaffected. Nested, the
+      // API reports this against the PARENT ("Extra required key 'input' supplied"),
+      // which sends you looking in the wrong place. Anthropic accepts this shape.
+      if (n.type === 'object' && props === undefined) {
+        return `${at}: an object schema with no 'properties' cannot be strict (a free-form object is not expressible)`;
+      }
+    }
+
     if (props && typeof props === 'object') {
       if (dialect === 'openai') {
         const required = new Set(Array.isArray(n.required) ? (n.required as string[]) : []);

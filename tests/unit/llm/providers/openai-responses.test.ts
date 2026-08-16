@@ -360,12 +360,16 @@ describe('OpenAIResponsesAdapter — text format and reasoning', () => {
       structured: { schema: { type: 'object' }, name: 'foo' },
     });
     // additionalProperties:false is injected (required by OpenAI strict json_schema).
+    // Strict is withheld: `{ type: 'object' }` declares no `properties`, and strict
+    // refuses that outright — "object schema missing properties" — on the response
+    // format exactly as on function tools. Verified live. Without properties there is
+    // nothing for strict to constrain anyway.
     expect(r.body.text).toEqual({
       format: {
         type: 'json_schema',
         name: 'foo',
         schema: { type: 'object', additionalProperties: false },
-        strict: true,
+        strict: false,
       },
     });
   });

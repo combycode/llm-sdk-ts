@@ -34,9 +34,21 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   OpenAI APIs.
 
   Strict is still the default. It is now requested only where the schema can satisfy the provider,
-  whose rules differ and are disjoint: OpenAI needs every property required; Anthropic accepts
-  optional properties but rejects `minimum` / `maximum` / `exclusiveMinimum` / `multipleOf` /
-  `maxItems`. Passing `strict` explicitly still wins in either direction.
+  and the rules differ per provider, measured live rather than read off the docs:
+
+  | | OpenAI | Anthropic |
+  |---|---|---|
+  | optional properties (not in `required`) | rejected | fine |
+  | `minimum` / `maximum` / `exclusive*` / `multipleOf` / `maxItems` | fine | rejected |
+  | `additionalProperties: true` | rejected | rejected |
+  | `{ type: 'object' }` with no `properties` key | rejected | fine |
+  | more than 20 strict tools per request | fine | rejected |
+
+  Two consequences: a generic router tool — one whose parameter must accept any shape — can never
+  be strict, and past Anthropic's cap the defaulted tools give up strict together rather than the
+  first 20 keeping it by array order. Passing `strict` explicitly still wins in either direction,
+  including past the cap. A no-argument tool is unaffected: `properties: {}` is present but empty,
+  which both providers accept.
 
   Nothing caught this because nothing executed it: every example declared its tool parameters as
   required, and the MCP server used throughout the corpus marks everything required. Typecheck,

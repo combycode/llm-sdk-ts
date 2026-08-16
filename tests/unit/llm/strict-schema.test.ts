@@ -50,6 +50,21 @@ const WITH_MAXIMUM: JsonSchema = {
   properties: { n: { type: 'number', maximum: 10 } },
   required: ['n'],
 };
+/** The shape a generic tool router needs: `input` must accept any tool's arguments. */
+const FREE_FORM_NESTED: JsonSchema = {
+  type: 'object',
+  properties: {
+    calls: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: { name: { type: 'string' }, input: { type: 'object', additionalProperties: true } },
+        required: ['name', 'input'],
+      },
+    },
+  },
+  required: ['calls'],
+};
 
 const req = (over: Partial<NormalizedRequest>): NormalizedRequest =>
   ({ model: 'm', messages: [{ role: 'user', content: 'hi' }], ...over }) as NormalizedRequest;
@@ -98,6 +113,30 @@ describe('strictSupport — openai dialect', () => {
 
   it('does not care about validation keywords that only Anthropic refuses', () => {
     expect(strictSupport(WITH_MAXIMUM, 'openai').ok).toBe(true);
+  });
+
+  // A generic router tool — `call_tools([{ name, input }])` — needs `input` to accept
+  // any shape, and under strict it simply cannot. Found by an experiment building
+  // exactly that: the check said yes and the API said 400.
+  it('rejects a free-form object, which is not expressible under strict', () => {
+    const r = strictSupport(FREE_FORM_NESTED, 'openai');
+    expect(r.ok).toBe(false);
+    expect(r.reason).toContain('input');
+  });
+
+  it('rejects an explicit additionalProperties: true', () => {
+    const r = strictSupport(
+      { type: 'object', properties: { k: { type: 'string' } }, required: ['k'], additionalProperties: true },
+      'openai',
+    );
+    expect(r.ok).toBe(false);
+    expect(r.reason).toContain('additionalProperties');
+  });
+
+  // The case that must NOT be caught by the rule above: a tool that takes no
+  // arguments. `properties: {}` is accepted live; only a MISSING `properties` is not.
+  it('accepts a no-argument tool, whose properties are empty but present', () => {
+    expect(strictSupport({ type: 'object', properties: {} }, 'openai').ok).toBe(true);
   });
 });
 
@@ -207,5 +246,49 @@ describe('Anthropic — strict on tools', () => {
   it('still honours an explicit strict', () => {
     expect('strict' in toolOf(ALL_REQUIRED, false)).toBe(false);
     expect(toolOf(WITH_MAXIMUM, true).strict).toBe(true);
+  });
+
+  it('refuses an open object under strict, as OpenAI does', () => {
+    expect(strictSupport(FREE_FORM_NESTED, 'anthropic').ok).toBe(false);
+    // …but unlike OpenAI it accepts an object that simply declares no properties.
+    expect(strictSupport({ type: 'object' }, 'anthropic').ok).toBe(true);
+  });
+});
+
+// ── the per-request cap, which no per-schema check can see ──────────────────
+//
+// Anthropic answers a request carrying more than 20 STRICT tools with
+// "Too many strict tools (21)". Defaulting strict on therefore broke every caller
+// with more than 20 tools — an ordinary number once MCP servers are attached, and a
+// case that worked before strict was defaulted. Found by a benchmark declaring 60.
+
+describe('Anthropic — the 20 strict-tool cap', () => {
+  const adapter = new AnthropicAdapter({ apiKey: 'k' });
+  const manyTools = (n: number, strict?: boolean) =>
+    Array.from({ length: n }, (_, i) => ({ ...fnTool(ALL_REQUIRED, strict), name: `op_${i}` }));
+  const strictCount = (tools: ReturnType<typeof manyTools>) =>
+    (adapter.buildRequest(req({ tools, maxTokens: 16 })).body as { tools: Array<Record<string, unknown>> }).tools.filter(
+      (t) => t.strict === true,
+    ).length;
+
+  it('keeps strict at the cap', () => {
+    expect(strictCount(manyTools(20))).toBe(20);
+  });
+
+  it('drops strict entirely one tool past the cap, rather than sending a rejected request', () => {
+    // All-or-nothing on purpose: filling to 20 would make the guarantee depend on array
+    // order, and would change the tools block — and so the cache prefix — whenever a
+    // tool is added anywhere.
+    expect(strictCount(manyTools(21))).toBe(0);
+  });
+
+  it('counts only strict tools, so many non-strict tools cost nothing', () => {
+    const tools = [...manyTools(20), ...manyTools(40, false).map((t, i) => ({ ...t, name: `off_${i}` }))];
+    expect(strictCount(tools)).toBe(20);
+  });
+
+  it('never overrides an explicit strict, even past the cap', () => {
+    // The caller asked for it; the 400 that follows is their decision to make.
+    expect(strictCount(manyTools(21, true))).toBe(21);
   });
 });

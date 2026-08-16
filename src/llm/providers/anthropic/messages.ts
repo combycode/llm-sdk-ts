@@ -21,7 +21,12 @@ import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
 import { ensureAdditionalProperties, strictSupport } from '../../types/schema-utils';
 import type { ServiceTier } from '../../types/tiers';
-import { isFunctionTool } from '../../types/tools';
+import { isFunctionTool, type Tool } from '../../types/tools';
+
+/** Anthropic rejects a request carrying more than this many STRICT tools — measured
+ *  live 2026-08-16: 20 accepted, 21 answered "Too many strict tools (21)". Only strict
+ *  tools count, so 60 tools with 20 strict is fine. */
+const ANTHROPIC_MAX_STRICT_TOOLS = 20;
 import { DEFAULT_MAX_TOKENS } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
 import {
@@ -192,6 +197,25 @@ export class AnthropicAdapter implements ProviderAdapter {
     if (req.tools?.length) {
       const shouldCacheTools =
         req.cache === 'auto' || (typeof req.cache === 'object' && req.cache.tools);
+
+      // Anthropic caps STRICT tools at 20 per request — "Too many strict tools (21).
+      // The maximum number of strict tools supported is 20" — counting only the strict
+      // ones, so 60 tools with 20 strict is accepted. Defaulting strict on therefore
+      // breaks any caller with more than 20 tools, which is an ordinary number once MCP
+      // servers are attached, and it worked before strict was defaulted.
+      //
+      // Over the cap, the DEFAULTED tools give up strict together rather than the first
+      // 20 keeping it. Filling to the cap would make the guarantee depend on array
+      // order — and silently change the tools block, and with it the cache prefix, when
+      // a tool is added anywhere. An explicit `strict: true` is the caller's decision
+      // and is never overridden; more than 20 of those is their call to make.
+      const strictDecision = req.tools.map((t) =>
+        isFunctionTool(t) ? (t.strict ?? strictSupport(ensureAdditionalProperties(t.parameters), 'anthropic').ok) : false,
+      );
+      const overCap = strictDecision.filter(Boolean).length > ANTHROPIC_MAX_STRICT_TOOLS;
+      const strictFor = (t: Tool, i: number) =>
+        isFunctionTool(t) && t.strict === true ? true : overCap ? false : strictDecision[i]!;
+
       body.tools = req.tools
         .map((t, i) => {
           // Map unified builtins to Anthropic's hosted server tools. web_search is GA;
@@ -236,9 +260,10 @@ export class AnthropicAdapter implements ProviderAdapter {
           // (4/4 undeclared calls with strict off, 0/4 with it on). Its constraint
           // differs from OpenAI's — optional properties are fine, but a set of
           // validation keywords (`maximum`, `multipleOf`, `maxItems`…) is rejected
-          // outright — so it is only requested where the schema qualifies.
+          // outright — so it is only requested where the schema qualifies, and only
+          // while the per-request strict cap allows it.
           const params = ensureAdditionalProperties(t.parameters);
-          const strict = t.strict ?? strictSupport(params, 'anthropic').ok;
+          const strict = strictFor(t, i);
           const tool: Record<string, unknown> = {
             name: t.name,
             description: t.description,

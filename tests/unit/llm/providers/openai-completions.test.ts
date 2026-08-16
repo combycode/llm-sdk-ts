@@ -265,9 +265,11 @@ describe('OpenAIAdapter — thinking and structured', () => {
     });
     expect(r.body.response_format).toEqual({
       type: 'json_schema',
-      // Same conforming as function tools: strict json_schema is rejected without
-      // `additionalProperties: false`, and strict has always defaulted on here.
-      json_schema: { name: 'foo', schema: { type: 'object', additionalProperties: false }, strict: true },
+      // Strict is withheld here: `{ type: 'object' }` declares no `properties`, which
+      // strict refuses ("object schema missing properties"), so the schema goes out as
+      // given. Verified live — forcing strict on this shape returns 400, while strict
+      // off returns the JSON object asked for.
+      json_schema: { name: 'foo', schema: { type: 'object' }, strict: false },
     });
   });
 

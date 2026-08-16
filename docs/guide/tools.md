@@ -63,9 +63,25 @@ degrading it:
 |---|---|---|
 | optional properties (not in `required`) | rejected | fine |
 | `maximum`, `minimum`, `multipleOf`, `maxItems`, `exclusive*` | fine | rejected |
+| `additionalProperties: true` (an open object) | rejected | rejected |
+| `{ type: 'object' }` with no `properties` key | rejected | fine |
+| more than 20 strict tools in one request | fine | rejected |
 
 So the tool above -- `optional: ['unit']` -- runs with strict **off** on OpenAI and
 **on** on Anthropic, and the same source works on both. Nothing to configure.
+
+Two consequences worth knowing:
+
+- **A generic "router" tool cannot be strict.** If a parameter has to accept any shape
+  (`{ type: 'object', additionalProperties: true }`), that is the opposite of what
+  strict means, and both providers refuse it. Strict is dropped for that tool.
+- **Past 20 strict tools, Anthropic takes none.** The limit counts strict tools only,
+  so 60 tools with 20 strict is accepted. Over the limit the tools that were defaulted
+  give up strict together, rather than the first 20 keeping it by array order. An
+  explicit `strict: true` is never overridden.
+
+A tool taking no arguments is unaffected: `properties: {}` is present but empty, which
+both providers accept.
 
 Set `strict` explicitly on a `FunctionTool` to override the decision in either
 direction. `strictSupport(schema, 'openai' | 'anthropic')` is exported if you want to
