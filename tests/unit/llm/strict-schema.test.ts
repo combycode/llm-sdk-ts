@@ -206,19 +206,21 @@ describe('OpenAI Chat Completions — strict on tools', () => {
       }
     ).tools[0]!.function;
 
-  it('now defaults strict on, as Responses does', () => {
+  // Opt-in on this API, as it always was. Briefly defaulted on for consistency with
+  // Responses, then reverted: strict changes nothing measurable about argument quality
+  // (40/40 conformant either way, both providers) and only adds exposure.
+  it('does not ask for strict unless the caller does', () => {
     const fn = fnOf(ALL_REQUIRED);
-    expect(fn.strict).toBe(true);
-    // Strict also requires additionalProperties:false, so the schema must be
-    // conformed on the way out or the provider rejects the very request we just
-    // opted in to.
-    expect((fn.parameters as Record<string, unknown>).additionalProperties).toBe(false);
+    expect('strict' in fn).toBe(false);
+    expect(fn.parameters).toEqual(ALL_REQUIRED);
   });
 
-  it('leaves the schema untouched when strict is not sent', () => {
-    const fn = fnOf(OPTIONAL_PROP);
-    expect('strict' in fn).toBe(false);
-    expect(fn.parameters).toEqual(OPTIONAL_PROP);
+  it('conforms the schema when strict IS asked for', () => {
+    const fn = fnOf(ALL_REQUIRED, true);
+    expect(fn.strict).toBe(true);
+    // Strict without `additionalProperties: false` is rejected, so opting in has to
+    // conform the schema or it fails the very request it opted into.
+    expect((fn.parameters as Record<string, unknown>).additionalProperties).toBe(false);
   });
 });
 
@@ -229,23 +231,22 @@ describe('Anthropic — strict on tools', () => {
       tools: Array<Record<string, unknown>>;
     }).tools[0]!;
 
-  it('defaults strict on — it is what suppresses undeclared tool calls', () => {
-    expect(toolOf(ALL_REQUIRED).strict).toBe(true);
-    // Optional properties are fine here, unlike OpenAI.
-    expect(toolOf(OPTIONAL_PROP).strict).toBe(true);
+  // Strict is OPT-IN here. It was briefly defaulted on — it is the only thing that
+  // stops this model calling a tool that was never declared (10/10 -> 0/10) — but that
+  // benefit only applies when something puts an undeclared tool in front of the model,
+  // and the cost turned out to be limits no per-schema check can predict. See the
+  // aggregate-limits block below.
+  it('does not ask for strict unless the caller does', () => {
+    expect('strict' in toolOf(ALL_REQUIRED)).toBe(false);
+    expect('strict' in toolOf(OPTIONAL_PROP)).toBe(false);
+    // The schema goes out exactly as written when strict is not requested.
+    expect(toolOf(WITH_MAXIMUM).input_schema).toEqual(WITH_MAXIMUM);
   });
 
-  it('omits strict when the schema uses a keyword Anthropic refuses', () => {
-    const tool = toolOf(WITH_MAXIMUM);
-    expect('strict' in tool).toBe(false);
-    // …and the schema still goes out intact: the tool keeps working, it is only
-    // the generation-time guarantee that is unavailable.
-    expect(tool.input_schema).toEqual(WITH_MAXIMUM);
-  });
-
-  it('still honours an explicit strict', () => {
+  it('honours an explicit strict, and conforms the schema when it does', () => {
+    expect(toolOf(ALL_REQUIRED, true).strict).toBe(true);
+    expect((toolOf(ALL_REQUIRED, true).input_schema as Record<string, unknown>).additionalProperties).toBe(false);
     expect('strict' in toolOf(ALL_REQUIRED, false)).toBe(false);
-    expect(toolOf(WITH_MAXIMUM, true).strict).toBe(true);
   });
 
   it('refuses an open object under strict, as OpenAI does', () => {
@@ -255,14 +256,25 @@ describe('Anthropic — strict on tools', () => {
   });
 });
 
-// ── the per-request cap, which no per-schema check can see ──────────────────
+// ── why strict cannot be defaulted on for Anthropic ─────────────────────────
 //
-// Anthropic answers a request carrying more than 20 STRICT tools with
-// "Too many strict tools (21)". Defaulting strict on therefore broke every caller
-// with more than 20 tools — an ordinary number once MCP servers are attached, and a
-// case that worked before strict was defaulted. Found by a benchmark declaring 60.
+// Three limits, measured live 2026-08-16, none of which a per-SCHEMA predicate can
+// see, because two are aggregates over the whole request and the third has no
+// published formula at all:
+//
+//   20 strict tools   21 answers "Too many strict tools (21)"
+//   24 optional params summed across all strict schemas, nested ones included;
+//                      25 answers "too many optional parameters (25) ... limit: 24"
+//   complexity        those same 24 optional params in ONE tool instead of four
+//                      answers "Schema is too complex for compilation"
+//
+// Non-strict tools count toward none of them. Twelve ordinary tools with five optional
+// parameters each already exceed the second, so defaulting strict on broke realistic
+// tool sets — found when a benchmark of 12 such tools stopped working. The first two
+// could be counted; the third cannot be predicted, which is what makes opt-in the only
+// honest default here rather than merely the safer one.
 
-describe('Anthropic — the 20 strict-tool cap', () => {
+describe('Anthropic — strict stays opt-in because its limits are unpredictable', () => {
   const adapter = new AnthropicAdapter({ apiKey: 'k' });
   const manyTools = (n: number, strict?: boolean) =>
     Array.from({ length: n }, (_, i) => ({ ...fnTool(ALL_REQUIRED, strict), name: `op_${i}` }));
@@ -271,24 +283,15 @@ describe('Anthropic — the 20 strict-tool cap', () => {
       (t) => t.strict === true,
     ).length;
 
-  it('keeps strict at the cap', () => {
-    expect(strictCount(manyTools(20))).toBe(20);
+  it('asks for strict on no tool by default, at any tool count', () => {
+    expect(strictCount(manyTools(1))).toBe(0);
+    expect(strictCount(manyTools(60))).toBe(0);
   });
 
-  it('drops strict entirely one tool past the cap, rather than sending a rejected request', () => {
-    // All-or-nothing on purpose: filling to 20 would make the guarantee depend on array
-    // order, and would change the tools block — and so the cache prefix — whenever a
-    // tool is added anywhere.
-    expect(strictCount(manyTools(21))).toBe(0);
-  });
-
-  it('counts only strict tools, so many non-strict tools cost nothing', () => {
-    const tools = [...manyTools(20), ...manyTools(40, false).map((t, i) => ({ ...t, name: `off_${i}` }))];
-    expect(strictCount(tools)).toBe(20);
-  });
-
-  it('never overrides an explicit strict, even past the cap', () => {
-    // The caller asked for it; the 400 that follows is their decision to make.
+  it('sends exactly the strict tools the caller asked for, and no more', () => {
+    // Past the provider's limits this is a 400 — about a schema the caller chose,
+    // which is the difference between their decision and our default.
     expect(strictCount(manyTools(21, true))).toBe(21);
+    expect(strictCount([...manyTools(5, true), ...manyTools(40, false).map((t, i) => ({ ...t, name: `off_${i}` }))])).toBe(5);
   });
 });

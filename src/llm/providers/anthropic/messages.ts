@@ -19,14 +19,9 @@ import {
 } from '../../types/response';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
-import { ensureAdditionalProperties, strictSupport } from '../../types/schema-utils';
+import { ensureAdditionalProperties } from '../../types/schema-utils';
 import type { ServiceTier } from '../../types/tiers';
-import { isFunctionTool, type Tool } from '../../types/tools';
-
-/** Anthropic rejects a request carrying more than this many STRICT tools — measured
- *  live 2026-08-16: 20 accepted, 21 answered "Too many strict tools (21)". Only strict
- *  tools count, so 60 tools with 20 strict is fine. */
-const ANTHROPIC_MAX_STRICT_TOOLS = 20;
+import { isFunctionTool } from '../../types/tools';
 import { DEFAULT_MAX_TOKENS } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
 import {
@@ -198,24 +193,6 @@ export class AnthropicAdapter implements ProviderAdapter {
       const shouldCacheTools =
         req.cache === 'auto' || (typeof req.cache === 'object' && req.cache.tools);
 
-      // Anthropic caps STRICT tools at 20 per request — "Too many strict tools (21).
-      // The maximum number of strict tools supported is 20" — counting only the strict
-      // ones, so 60 tools with 20 strict is accepted. Defaulting strict on therefore
-      // breaks any caller with more than 20 tools, which is an ordinary number once MCP
-      // servers are attached, and it worked before strict was defaulted.
-      //
-      // Over the cap, the DEFAULTED tools give up strict together rather than the first
-      // 20 keeping it. Filling to the cap would make the guarantee depend on array
-      // order — and silently change the tools block, and with it the cache prefix, when
-      // a tool is added anywhere. An explicit `strict: true` is the caller's decision
-      // and is never overridden; more than 20 of those is their call to make.
-      const strictDecision = req.tools.map((t) =>
-        isFunctionTool(t) ? (t.strict ?? strictSupport(ensureAdditionalProperties(t.parameters), 'anthropic').ok) : false,
-      );
-      const overCap = strictDecision.filter(Boolean).length > ANTHROPIC_MAX_STRICT_TOOLS;
-      const strictFor = (t: Tool, i: number) =>
-        isFunctionTool(t) && t.strict === true ? true : overCap ? false : strictDecision[i]!;
-
       body.tools = req.tools
         .map((t, i) => {
           // Map unified builtins to Anthropic's hosted server tools. web_search is GA;
@@ -254,16 +231,27 @@ export class AnthropicAdapter implements ProviderAdapter {
             }
             return null;
           }
-          // Strict is defaulted ON to match OpenAI: Anthropic documents it as
-          // guaranteeing schema validation of tool names and inputs, and measured
-          // live it is what stops the model calling a tool that was never declared
-          // (4/4 undeclared calls with strict off, 0/4 with it on). Its constraint
-          // differs from OpenAI's — optional properties are fine, but a set of
-          // validation keywords (`maximum`, `multipleOf`, `maxItems`…) is rejected
-          // outright — so it is only requested where the schema qualifies, and only
-          // while the per-request strict cap allows it.
+          // Strict is OPT-IN here, and stays that way. It was briefly defaulted on,
+          // because it is the one thing that stops this model calling a tool that was
+          // never declared (10/10 undeclared without it, 0/10 with it). That benefit is
+          // real but conditional — it only matters when something puts an undeclared
+          // tool in front of the model, which normal use does not do — and the cost is
+          // that Anthropic's strict mode carries limits no per-schema check can predict:
+          //
+          //   · at most 20 strict tools per request
+          //   · at most 24 OPTIONAL parameters summed across all strict schemas,
+          //     counting nested ones
+          //   · an opaque complexity limit on top: 24 optional parameters spread over
+          //     four tools compiles, the same 24 in ONE tool answers "Schema is too
+          //     complex for compilation"
+          //
+          // The first two are aggregate, so they cannot live in a per-schema predicate;
+          // the third has no published formula at all. Twelve ordinary tools with five
+          // optional parameters each already exceed the second, so defaulting strict on
+          // broke realistic tool sets. Callers who want the guarantee ask for it, and
+          // the provider's error is then about a schema they chose.
+          const strict = t.strict === true;
           const params = ensureAdditionalProperties(t.parameters);
-          const strict = strictFor(t, i);
           const tool: Record<string, unknown> = {
             name: t.name,
             description: t.description,

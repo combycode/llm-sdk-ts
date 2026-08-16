@@ -33,8 +33,9 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   all, and neither could most MCP servers. The same forcing applied to structured output on both
   OpenAI APIs.
 
-  Strict is still the default. It is now requested only where the schema can satisfy the provider,
-  and the rules differ per provider, measured live rather than read off the docs:
+  On Responses, where strict has long been the default, it is now requested only where the schema
+  can satisfy the provider. Elsewhere it stays OPT-IN — see the next entry. The rules differ per
+  provider, measured live rather than read off the docs:
 
   | | OpenAI | Anthropic |
   |---|---|---|
@@ -54,9 +55,22 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   required, and the MCP server used throughout the corpus marks everything required. Typecheck,
   API snapshot, doc-snippet compilation and consumer install all passed on code the API refuses.
 
-- **Strict is now the default on Anthropic and on OpenAI Chat Completions too.** It was only ever
-  sent when asked for. Measured live, it is what stops the model calling a tool that was never
-  declared (4 of 4 undeclared calls without it, 0 of 4 with it).
+- **Strict stays OPT-IN on Anthropic and OpenAI Chat Completions.** It was briefly defaulted on
+  during this cycle and reverted before release, so behaviour on both is unchanged from 2.0.1.
+
+  What decided it: strict makes no measurable difference to argument quality — 40 of 40 calls
+  conformed with it and without it on both providers, including prompts written to pull away from
+  the schema. Its one real effect is that Anthropic then refuses to call a tool that was never
+  declared (10/10 undeclared without it, 0/10 with it), and that only matters when something puts
+  an undeclared tool in front of the model, which ordinary use does not.
+
+  Against that, Anthropic's strict mode carries limits no per-schema check can predict: at most 20
+  strict tools per request, at most 24 optional parameters summed across all strict schemas
+  (nested ones included), and an opaque complexity limit on top — 24 optional parameters spread
+  over four tools compiles, the same 24 in one tool answers "Schema is too complex for
+  compilation". Twelve ordinary tools with five optional parameters each already exceed the second.
+  The first two are aggregates, so they cannot live in a per-schema predicate; the third has no
+  published formula. Opt-in is the only honest default there.
 
 - **`defineTool` typed optional parameters as always present.** Keys listed in `optional` inferred as
   required in the `execute` args, so `args.unit.toUpperCase()` typechecked and threw at runtime on

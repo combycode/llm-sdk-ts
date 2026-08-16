@@ -53,11 +53,20 @@ console.log(text);
 
 ### Strict mode and optional parameters
 
-Strict mode is what makes a provider constrain the tool name and argument shape while
-generating them, instead of leaving you to validate afterwards. The library asks for it
-by default -- but only for schemas the provider will accept, because the two providers
-constrain different things and reject a violating schema with a 400 rather than
-degrading it:
+Strict mode makes a provider constrain the tool name and argument shape while generating
+them, instead of leaving you to validate afterwards.
+
+**It is opt-in** (`strict: true` on a `FunctionTool`) everywhere except the OpenAI
+Responses API, where it has long been the default. Measured against both providers it
+makes no difference to argument quality -- 40 of 40 calls conformed with it and without
+it, including prompts written to pull away from the schema -- while a schema the provider
+dislikes is rejected with a 400 rather than degraded. Its one real effect is that
+Anthropic refuses to call a tool that was never declared (10/10 undeclared without it,
+0/10 with it), which only matters if something puts an undeclared tool in front of the
+model.
+
+When you do ask for it, the schema must satisfy that provider's rules, and the two
+constrain different things:
 
 | | OpenAI | Anthropic |
 |---|---|---|
@@ -66,30 +75,32 @@ degrading it:
 | `additionalProperties: true` (an open object) | rejected | rejected |
 | `{ type: 'object' }` with no `properties` key | rejected | fine |
 | more than 20 strict tools in one request | fine | rejected |
+| more than 24 optional parameters across all strict schemas | fine | rejected |
+| "too complex to compile" (no published formula) | -- | rejected |
 
-So the tool above -- `optional: ['unit']` -- runs with strict **off** on OpenAI and
-**on** on Anthropic, and the same source works on both. Nothing to configure.
+On the Responses API, where strict is the default, it is requested only for schemas that
+satisfy OpenAI's rules -- so a tool with an optional parameter simply runs without it
+rather than failing. `strictSupport(schema, 'openai' | 'anthropic')` is exported if you
+want to ask the question yourself; it returns `{ ok, reason }`, and `reason` names the
+property or keyword responsible.
 
-Two consequences worth knowing:
+Anthropic's last three rows are why strict is not defaulted on there. Two are aggregates
+over the whole request, so no per-schema check can see them, and the third has no
+published formula at all: 24 optional parameters spread over four tools compiles, the
+same 24 in one tool does not. Twelve ordinary tools with five optional parameters each
+already exceed the 24 limit. Non-strict tools count toward none of the limits.
 
-- **A generic "router" tool cannot be strict.** If a parameter has to accept any shape
-  (`{ type: 'object', additionalProperties: true }`), that is the opposite of what
-  strict means, and both providers refuse it. Strict is dropped for that tool.
-- **Past 20 strict tools, Anthropic takes none.** The limit counts strict tools only,
-  so 60 tools with 20 strict is accepted. Over the limit the tools that were defaulted
-  give up strict together, rather than the first 20 keeping it by array order. An
-  explicit `strict: true` is never overridden.
+One consequence worth knowing: **a generic "router" tool can never be strict.** If a
+parameter must accept any shape (`{ type: 'object', additionalProperties: true }`), that
+is the opposite of what strict means, and both providers refuse it.
 
 A tool taking no arguments is unaffected: `properties: {}` is present but empty, which
 both providers accept.
 
-Set `strict` explicitly on a `FunctionTool` to override the decision in either
-direction. `strictSupport(schema, 'openai' | 'anthropic')` is exported if you want to
-ask the question yourself; it returns `{ ok, reason }`, and `reason` names the property
-or keyword responsible.
-
 Keys listed in `optional` are optional in the inferred `execute` args too, so `unit`
-above is `string | undefined` and the `?? 'celsius'` is load-bearing.
+above is `string | undefined` and the `?? 'celsius'` is load-bearing. Anthropic keeps
+that working under strict: asked not to specify a unit it omitted the argument 10/10,
+asked for fahrenheit it supplied it 10/10, and never invented the second optional one.
 
 ### Multi-step tool loop
 

@@ -138,13 +138,13 @@ export class OpenAIAdapter implements ProviderAdapter {
     if (req.tools?.length) {
       // Chat Completions only supports function tools; skip BuiltinTool entries.
       body.tools = req.tools.filter(isFunctionTool).map((t) => {
-        // Strict is defaulted ON here, matching Responses: it is what makes the
-        // provider constrain arguments during generation instead of after. It needs
-        // `additionalProperties: false` everywhere and every property in `required`,
-        // so it is requested only for schemas that already satisfy that. When strict
-        // stays off the schema goes out untouched, exactly as before.
+        // Strict is OPT-IN on this API, as it has always been. It was briefly defaulted
+        // on for consistency with Responses, but measured against both providers it
+        // changes nothing about argument quality (40/40 conformant either way) and only
+        // adds exposure to provider-side schema rules. Asking for it conforms the schema
+        // too, since strict without `additionalProperties: false` is rejected.
         const params = ensureAdditionalProperties(t.parameters);
-        const strict = t.strict ?? strictSupport(params, 'openai').ok;
+        const strict = t.strict === true;
         return {
           type: 'function',
           function: {
