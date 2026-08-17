@@ -808,12 +808,18 @@ export class TelemetryAdapter {
           // openSpan puts a container on the trace's stack itself, so everything emitted
           // until this run closes nests under it.
           const runSpan = this.openSpan(`agent:${runId}`, traceId ?? runId, 'agent.run', 'agent', {
+            // The host's own attributes go FIRST so ours win on a key collision: a stray
+            // `gen_ai.*` key in a caller's bag must not be able to rewrite the identity
+            // of the span.
+            ...(c.attributes as Record<string, unknown> | undefined),
             'gen_ai.operation.name': 'invoke_agent',
-            // No `gen_ai.agent.name` yet: the SDK has agent IDs, not human names, so the
-            // exported span is the bare `invoke_agent`. It fills in on its own once
-            // agents carry a label.
+            // Named when the agent was given a label; the exported span is then
+            // `invoke_agent {label}` rather than the bare operation.
+            'gen_ai.agent.name': c.label,
             'gen_ai.agent.id': c.agentId,
             'gen_ai.request.model': c.model,
+            // Ours, not a convention attribute — the GenAI spec has no term for it.
+            'agent.source': c.source,
           });
           this.emitMessage(runSpan, 'input', c.userMessage);
         }

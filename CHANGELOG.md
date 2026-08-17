@@ -8,6 +8,14 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **Agents can be named: `label`, `source` and an `attributes` bag.** An unlabelled agent
+  exported as a bare `invoke_agent` carrying only a per-process id, so a trace could not say
+  which agent ran or be compared across runs. `label` becomes `gen_ai.agent.name` and names
+  the span (`invoke_agent briefing`); `source` records which part of the host system the
+  agent belongs to, as free text because the taxonomy is the application's; `attributes`
+  stamps anything else onto the run. Library attributes win on a key collision, so the bag
+  cannot rewrite what a span claims to be.
+
 - **`onTrace` -- an event surface, so this SDK can be one source in a bigger pipeline.**
   Configure it at `createEngine({ telemetry: { types, content, sample, onTrace } })` and take
   the levels you want: an operator reading business traces does not want our HTTP retries,

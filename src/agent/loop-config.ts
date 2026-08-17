@@ -17,6 +17,28 @@ export interface AgentLoopConfig {
   /** LLM client. AgentLoop reads `client.model` and uses `client.complete`/`client.stream`. */
   client: LLMClient;
 
+  /** Human name for this agent, e.g. `'briefing'`. Without it telemetry only has the
+   *  agent's generated id, and a trace reads as `invoke_agent` with no clue which of your
+   *  agents ran — the ids differ per process, so they cannot be compared across runs
+   *  either. With it the span becomes `invoke_agent briefing` and carries
+   *  `gen_ai.agent.name`, which is what the conventions ask for. */
+  label?: string;
+
+  /** Which part of YOUR system this agent belongs to, e.g. `'customer'`, `'moderation'`.
+   *
+   *  Free text rather than a fixed set, because the taxonomy is the application's: a
+   *  library cannot know whether you divide by product surface, team, or bounded context,
+   *  and forcing our categories on you would only make you encode yours inside a `label`.
+   *  Exported as `agent.source` — our attribute, not a convention one; the GenAI spec has
+   *  no term for it. */
+  source?: string;
+
+  /** Extra attributes stamped on this agent's span, for whatever the fixed fields do not
+   *  cover — tenant, tier, experiment arm. Keys are used verbatim, so namespace them
+   *  (`app.tenant`) to stay clear of convention attributes; ours win on a collision, so a
+   *  stray key here cannot corrupt `gen_ai.*`. */
+  attributes?: Record<string, string | number | boolean>;
+
   /** Persona / role text for the agent. Stored as the `agentloop.system` registry
    *  layer (priority 10). Composed with other system-tagged layers when sending.
    *  When passed as a function, it is re-evaluated at the start of every

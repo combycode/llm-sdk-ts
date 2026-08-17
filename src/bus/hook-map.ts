@@ -269,6 +269,12 @@ export interface AgentDestroyContext {
 export interface RunStartContext {
   runId: string;
   agentId: string;
+  /** Human name for the agent, when one was configured. */
+  label?: string;
+  /** Which part of the host system the agent belongs to. */
+  source?: string;
+  /** Extra attributes the host stamped on this agent. */
+  attributes?: Record<string, string | number | boolean>;
   userMessage: string | ContentPart[] | Message[];
   model: string;
   system?: string;

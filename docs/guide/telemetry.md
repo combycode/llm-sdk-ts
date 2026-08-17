@@ -81,6 +81,29 @@ const otlp = telemetry.toOtlpTraces();
 console.log(JSON.stringify(otlp).slice(0, 200));
 ```
 
+### Naming your agents
+
+An unlabelled agent exports as a bare `invoke_agent` carrying only its generated id -- and
+that id changes per process, so you can neither tell which of your agents ran nor compare
+one across runs. Give it a name:
+
+```ts
+const agent = createAgent({
+  model: 'anthropic/claude-haiku-4.5',
+  label: 'briefing',                       // -> `invoke_agent briefing`, gen_ai.agent.name
+  source: 'customer',                      // -> agent.source: which part of YOUR system
+  attributes: { 'app.tenant': 'acme' },    // -> anything the fixed fields do not cover
+});
+```
+
+`source` is free text, not a fixed set: the taxonomy is your application's -- product
+surface, team, bounded context -- and a library that imposed its own categories would just
+push you into encoding yours inside `label`. It exports as `agent.source`, our attribute,
+because the GenAI conventions have no term for it.
+
+Attribute keys are used verbatim, so namespace yours (`app.tenant`). Ours win on a
+collision: a stray `gen_ai.*` key in the bag cannot relabel what the span claims to be.
+
 ### `onTrace` -- take the events, send them yourself
 
 This SDK is one part of a larger system. The traces an operator reads are the *business*

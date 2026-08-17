@@ -60,6 +60,12 @@ import type { RunTrace } from './loop-internals';
 
 export class AgentLoop {
   readonly id: string;
+  /** Human name, surfaced as `gen_ai.agent.name` — see AgentLoopConfig.label. */
+  readonly label?: string;
+  /** Which part of the host system this agent belongs to. */
+  readonly source?: string;
+  /** Extra attributes stamped on this agent's spans. */
+  readonly attributes?: Record<string, string | number | boolean>;
   readonly client: LLMClient;
   readonly hooks: HookBus;
 
@@ -146,6 +152,9 @@ export class AgentLoop {
     }
 
     this.id = this._history.id;
+    this.label = config.label;
+    this.source = config.source;
+    this.attributes = config.attributes;
 
     // Publish loop-level system/context into the history's ContextRegistry so
     // they flow through the same composition pipeline as ContextGuard facts,
@@ -1301,6 +1310,9 @@ export class AgentLoop {
     await this.hooks.emit('onRunStart', {
       runId,
       agentId: this.id,
+      label: this.label,
+      source: this.source,
+      attributes: this.attributes,
       userMessage: input,
       model: this.client.model,
       system: this._history.system,
