@@ -4,6 +4,32 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **`toOtlpTraces()` produced JSON that only LOOKED like OTLP, and no collector would accept it.**
+  Trace ids went out as `s:r` and span ids as `llm:s:r` where the protocol requires 16- and 8-byte
+  hex; `kind` was the string `'llm'` where it must be the int enum; and every attribute value was
+  `String(value)`, so `gen_ai.usage.input_tokens` arrived as text and could not be summed by any
+  backend. Ids are now derived deterministically from the readable internal ones, so a trace split
+  across two exports still joins up.
+
+- **LLM spans used attribute names no backend recognises.** `gen_ai.provider` / `gen_ai.model` are
+  not in the OTel GenAI semantic conventions; the required names are `gen_ai.provider.name` and
+  `gen_ai.operation.name`, with `gen_ai.request.model`. A span carrying the old names is not
+  identified as a model call at all. Adds `gen_ai.response.model` (the model that actually answered,
+  which an alias can change) and `gen_ai.conversation.id` (the agent's history id).
+
+- **Point spans could share an id, and the backend silently dropped the duplicates.**
+  `mcp:connect:${server}` repeated on every reconnect and `media:${traceId}` repeated for a second
+  image in the same run; `mcp:tool:…:${Date.now()}` collided for two calls in one millisecond. A
+  duplicate span id within a trace is invalid OTLP, so those runs looked like they did less work
+  than they did.
+
+  The in-memory model is unchanged — `snapshot()` still returns readable ids and the domain `kind`,
+  which is what the sandbox groups by. Only the export is translated.
+
 ## [2.1.0] — 2026-08-17
 
 Minor, not major: everything below is additive or a bug fix, and no export was removed or

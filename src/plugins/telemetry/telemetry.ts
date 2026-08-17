@@ -30,6 +30,90 @@ const SENSITIVE_HEADERS = new Set(['authorization', 'x-goog-api-key', 'x-api-key
  *  any ZIP/transcript export. */
 const MAX_ERROR_RAW_CHARS = 512;
 
+// ─── OTLP wire conformance ───────────────────────────────────────────────────
+//
+// The in-memory model is OURS: readable span ids (`mcp:tool:server:name:ts`), a
+// domain `kind` the sandbox sidebar groups by, and a `traceId` of
+// `sessionId:requestId` a human can grep for. None of that is legal OTLP, and
+// rewriting it would break every consumer of `snapshot()` to satisfy a wire format
+// they never look at. So the conversion happens at the EDGE, in `toOtlpTraces()`.
+//
+// What the spec requires, against what was going out before:
+//   trace id     16 bytes hex           was `s:r`
+//   span id       8 bytes hex           was `llm:s:r`
+//   kind         int enum (CLIENT=3)    was the string 'llm'
+//   attributes   typed AnyValue         was String(v) for everything — so token
+//                                       counts arrived as strings and would not
+//                                       aggregate in Prometheus
+
+/** OTel SpanKind enum. GenAI inference and outbound HTTP are CLIENT calls; agent and
+ *  tool work runs in-process, so INTERNAL. */
+const OTLP_SPAN_KIND = { internal: 1, client: 3 } as const;
+
+const OTLP_KIND_BY_SPAN: Record<SpanKind, number> = {
+  llm: OTLP_SPAN_KIND.client,
+  http: OTLP_SPAN_KIND.client,
+  mcp: OTLP_SPAN_KIND.client,
+  media: OTLP_SPAN_KIND.client,
+  agent: OTLP_SPAN_KIND.internal,
+  tool: OTLP_SPAN_KIND.internal,
+  other: OTLP_SPAN_KIND.internal,
+};
+
+/** FNV-1a, one 32-bit word per seed. Deterministic, synchronous, dependency-free —
+ *  `crypto.subtle.digest` is async and would force the whole export async for an id
+ *  nobody verifies cryptographically. */
+function fnv1a32(input: string, seed: number): number {
+  let h = seed >>> 0;
+  for (let i = 0; i < input.length; i++) {
+    h ^= input.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h >>> 0;
+}
+
+/** Derive a conformant hex id from one of our readable ids. `bytes` is 16 for a trace
+ *  id, 8 for a span id.
+ *
+ *  Deterministic on purpose: the same logical trace maps to the same OTLP id on every
+ *  export and in every process, so a trace stitched together from two exports — or
+ *  from two services sharing a sessionId — still joins up in the backend. */
+export function toOtlpId(input: string, bytes: 8 | 16): string {
+  let out = '';
+  for (let i = 0; i < bytes / 4; i++) {
+    out += fnv1a32(input, (0x811c9dc5 + i * 0x9e3779b9) >>> 0)
+      .toString(16)
+      .padStart(8, '0');
+  }
+  // An all-zero id is invalid OTLP and gets dropped by the collector.
+  return /^0+$/.test(out) ? `${out.slice(0, -1)}1` : out;
+}
+
+/** One attribute in OTLP's AnyValue shape, keeping numbers numeric. Integers go out as
+ *  `intValue` carrying a STRING, which is how OTLP/JSON encodes 64-bit integers; send
+ *  them as plain strings instead and no backend can sum them. */
+export function toOtlpValue(value: unknown): Record<string, unknown> {
+  if (typeof value === 'boolean') return { boolValue: value };
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return Number.isInteger(value) ? { intValue: String(value) } : { doubleValue: value };
+  }
+  if (typeof value === 'string') return { stringValue: value };
+  if (value === null || value === undefined) return { stringValue: '' };
+  return { stringValue: typeof value === 'object' ? JSON.stringify(value) : String(value) };
+}
+
+/** The span name the SPEC asks for: `"{gen_ai.operation.name} {gen_ai.request.model}"`,
+ *  e.g. `chat gpt-5.4-nano`. Applied only on export — the internal name stays
+ *  `llm.request`, which is what the sandbox groups by and what tests assert.
+ *
+ *  Falls back to the internal name for spans that carry no GenAI attributes (http,
+ *  mcp, tool), where the convention does not apply. */
+function otlpSpanName(span: { name: string; attributes: Record<string, unknown> }): string {
+  const op = span.attributes['gen_ai.operation.name'];
+  const model = span.attributes['gen_ai.request.model'];
+  return typeof op === 'string' && typeof model === 'string' ? `${op} ${model}` : span.name;
+}
+
 export type SpanKind = 'llm' | 'http' | 'media' | 'agent' | 'tool' | 'mcp' | 'other';
 
 export interface Span {
@@ -136,12 +220,16 @@ const CATEGORY: Partial<Record<string, string>> = {
 };
 
 /** Pull `sessionId`/`requestId` out of any event ctx (`.trace`, `.ctx`, or flat). */
-function traceIdsOf(ctx: unknown): { sessionId?: string; requestId?: string } {
+function traceIdsOf(ctx: unknown): { sessionId?: string; requestId?: string; conversationId?: string } {
   const c = ctx as Record<string, unknown>;
   const t = (c?.trace ?? c?.ctx ?? c) as Record<string, unknown> | undefined;
   return {
     sessionId: t?.sessionId as string | undefined,
     requestId: t?.requestId as string | undefined,
+    // `gen_ai.conversation.id` in the semantic conventions — the thread a turn
+    // belongs to, which is what lets a backend group turns into one conversation.
+    // AgentLoop sets it from the history id; a bare client call has none.
+    conversationId: t?.conversationId as string | undefined,
   };
 }
 
@@ -203,6 +291,11 @@ export class TelemetryAdapter {
   readonly resource: TelemetryResource;
 
   private seq = 0;
+  /** Discriminator for POINT spans (media, mcp connect/tool), whose natural keys are
+   *  not unique — the same server reconnects, a run emits two images, two tool calls
+   *  land in one millisecond. A duplicate span id inside a trace is invalid OTLP and
+   *  the backend silently keeps only one. */
+  private spanSeq = 0;
   private latSum = 0;
   private readonly open = new Map<string, Span>();
   private readonly maxEvents: number;
@@ -248,9 +341,19 @@ export class TelemetryAdapter {
           this.metrics.outputTokens += usage.outputTokens ?? 0;
         }
         if (traceId) {
+          // OTel GenAI semantic conventions. `gen_ai.provider.name` and
+          // `gen_ai.operation.name` are REQUIRED by the spec; we previously sent
+          // `gen_ai.provider` / `gen_ai.model`, which are not attribute names any
+          // backend recognises, so the spans arrived unrecognised as GenAI at all.
+          const responseModel = (c.response as { model?: string } | undefined)?.model;
           const attrs = {
-            'gen_ai.provider': c.provider,
-            'gen_ai.model': c.model,
+            'gen_ai.provider.name': c.provider,
+            'gen_ai.operation.name': 'chat',
+            'gen_ai.request.model': c.model,
+            // The model that actually answered, which can differ from the one asked
+            // for (an alias resolving to a dated snapshot, a router picking a peer).
+            'gen_ai.response.model': responseModel,
+            'gen_ai.conversation.id': ids.conversationId,
             'gen_ai.usage.input_tokens': usage?.inputTokens,
             'gen_ai.usage.output_tokens': usage?.outputTokens,
           };
@@ -326,7 +429,9 @@ export class TelemetryAdapter {
           const now = Date.now();
           this.spans.push({
             traceId,
-            spanId: `media:${traceId}`,
+            // One run can generate several images; `media:${traceId}` would give them
+            // all the same span id, which is invalid within a trace.
+            spanId: `media:${traceId}:${this.spanSeq++}`,
             name: 'media.generate',
             kind: 'media',
             startTime: now,
@@ -406,7 +511,11 @@ export class TelemetryAdapter {
           const now = Date.now();
           this.spans.push({
             traceId: server,
-            spanId: `mcp:connect:${server}`,
+            // `${server}` alone repeats on every reconnect, and a duplicate span id
+            // within a trace is invalid OTLP — the backend keeps one and drops the
+            // rest. The counter is monotonic where a timestamp is not: two connects
+            // inside the same millisecond would still collide.
+            spanId: `mcp:connect:${server}:${this.spanSeq++}`,
             name: 'mcp.connect',
             kind: 'mcp',
             startTime: now,
@@ -431,7 +540,9 @@ export class TelemetryAdapter {
           const lat = c.latencyMs as number | undefined;
           this.spans.push({
             traceId: server,
-            spanId: `mcp:tool:${server}:${tool}:${now}`,
+            // A timestamp is not a unique key: two tool calls in the same millisecond
+            // share it. The counter is.
+            spanId: `mcp:tool:${server}:${tool}:${this.spanSeq++}`,
             name: 'mcp.tool_call',
             kind: 'mcp',
             startTime: now - (lat ?? 0),
@@ -533,14 +644,19 @@ export class TelemetryAdapter {
             {
               scope: { name: 'combycode.telemetry' },
               spans: this.spans.map((s) => ({
-                traceId: s.traceId,
-                spanId: s.spanId,
-                name: s.name,
+                traceId: toOtlpId(s.traceId, 16),
+                // Scoped by trace: two conversations can each hold a span keyed
+                // `llm:…`, and colliding their ids would merge unrelated traces.
+                spanId: toOtlpId(`${s.traceId}|${s.spanId}`, 8),
+                name: otlpSpanName(s),
                 startTimeUnixNano: Math.round(s.startTime * 1e6),
                 endTimeUnixNano: Math.round((s.endTime ?? s.startTime) * 1e6),
-                kind: s.kind,
+                kind: OTLP_KIND_BY_SPAN[s.kind] ?? OTLP_SPAN_KIND.internal,
                 status: { code: s.status === 'error' ? 2 : s.status === 'ok' ? 1 : 0 },
-                attributes: Object.entries(s.attributes).map(([key, value]) => ({ key, value: { stringValue: String(value) } })),
+                attributes: Object.entries(s.attributes).map(([key, value]) => ({
+                  key,
+                  value: toOtlpValue(value),
+                })),
               })),
             },
           ],
