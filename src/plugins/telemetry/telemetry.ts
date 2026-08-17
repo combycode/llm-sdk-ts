@@ -446,7 +446,10 @@ export class TelemetryAdapter {
       case 'onRunStart': {
         const runId = c.runId as string | undefined;
         if (runId) {
-          this.openSpan(`agent:${runId}`, runId, 'agent.run', 'agent', {
+          // `traceId` (from the event's trace context), NOT `runId`. The run id is this
+          // SPAN's identity; using it as the trace put the agent's own span in a
+          // different trace from the LLM calls it made.
+          this.openSpan(`agent:${runId}`, traceId ?? runId, 'agent.run', 'agent', {
             'agent.id': c.agentId,
             'agent.model': c.model,
           });
@@ -476,7 +479,9 @@ export class TelemetryAdapter {
       case 'onToolCallStart': {
         const callId = c.callId as string | undefined;
         if (callId) {
-          this.openSpan(`tool:${callId}`, callId, 'tool.call', 'tool', {
+          // Same mistake as `agent.run`: `callId` identifies the tool call, not the
+          // trace. It produced spans whose trace id was literally `t1`.
+          this.openSpan(`tool:${callId}`, traceId ?? callId, 'tool.call', 'tool', {
             'tool.name': c.toolName,
             'agent.id': c.agentId,
           });
@@ -510,7 +515,11 @@ export class TelemetryAdapter {
         if (server) {
           const now = Date.now();
           this.spans.push({
-            traceId: server,
+            // A connect usually happens at startup, outside any run, so there is often
+            // no trace to join — but keying the trace by server name merged every
+            // reconnect over the process lifetime into one trace. Falls back to a span
+            // of its own instead.
+            traceId: traceId ?? `mcp:connect:${server}:${this.spanSeq}`,
             // `${server}` alone repeats on every reconnect, and a duplicate span id
             // within a trace is invalid OTLP — the backend keeps one and drops the
             // rest. The counter is monotonic where a timestamp is not: two connects
@@ -539,7 +548,10 @@ export class TelemetryAdapter {
           const now = Date.now();
           const lat = c.latencyMs as number | undefined;
           this.spans.push({
-            traceId: server,
+            // An MCP tool call happens INSIDE a run, so it belongs to that run's trace.
+            // Keying it by server put every call to one server in a single eternal
+            // trace, and none of them with the agent that made the call.
+            traceId: traceId ?? `mcp:${server}`,
             // A timestamp is not a unique key: two tool calls in the same millisecond
             // share it. The counter is.
             spanId: `mcp:tool:${server}:${tool}:${this.spanSeq++}`,
@@ -570,7 +582,11 @@ export class TelemetryAdapter {
   ): Span {
     const span: Span = {
       traceId,
-      spanId: key,
+      // The KEY pairs open with close (`llm:${traceId}`); the SPAN ID must be unique.
+      // Those were the same string until a run stopped fragmenting into one trace per
+      // call — at which point every LLM call in a run produced the identical key, and
+      // the collision merged them into one span at the collector.
+      spanId: `${key}#${this.spanSeq++}`,
       name: spanName,
       kind,
       startTime: Date.now(),

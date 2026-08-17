@@ -42,6 +42,7 @@ import type { Guardrail, GuardrailDecision, ToolInputGuardrail } from './guardra
 import { describeTool, toolKey } from './tool-key';
 import { ReflectAndRetryPolicy, reflectionGuidance } from './reflect-retry';
 import type { AgentLoopConfig } from './loop-config';
+import type { RequestContext } from '../types/request-context';
 import type { PermissionPolicy } from '../plugins/permissions/policy';
 import type { ApprovalRequest, ApprovalDecision, PendingToolCall } from './approval-types';
 import {
@@ -283,7 +284,7 @@ export class AgentLoop {
     input: string | ContentPart[] | Message[],
     options: ExecuteOptions = {},
   ): Promise<CompletionResponse> {
-    const { runId, startedAt, startPerf, userMessageText, runTrace } = await this.beginRun(input);
+    const { runId, startedAt, startPerf, userMessageText, runTrace } = await this.beginRun(input, options.ctx);
 
     const steps: StepReport[] = [];
     const totalUsage = emptyUsage();
@@ -350,7 +351,24 @@ export class AgentLoop {
           thinking: options.thinking ?? this._thinking,
           cache: options.cache ?? this._cache,
           tools: this.toolDefinitions(options),
-          ctx: { ...options.ctx, conversationId: this._history.id },
+          ctx: {
+            // The RUN's trace, handed down to every LLM call it makes.
+            //
+            // Without this the agent kept `runTrace` to itself: its own spans used it
+            // while each `client.complete()` fell through to mint-if-absent and
+            // invented a fresh `requestId`. Since the trace id is `sessionId:requestId`,
+            // one conversation arrived at the backend as SEVERAL unrelated traces —
+            // measured against a real collector: a single turn with one tool call
+            // produced six. Correlation is the whole point of a trace id, so this is
+            // the one thing it must not get wrong.
+            sessionId: runTrace.sessionId,
+            requestId: runTrace.requestId,
+            conversationId: this._history.id,
+            // A caller's explicit ctx wins over all of the above: an app that already
+            // owns a request id or a conversation id has better information than we do,
+            // and silently overwriting it is how its telemetry stops joining up.
+            ...options.ctx,
+          },
           signal: options.signal ?? this._abortController?.signal,
         });
 
@@ -588,7 +606,7 @@ export class AgentLoop {
     input: string | ContentPart[] | Message[],
     options: ExecuteOptions = {},
   ): AsyncIterable<AgentStreamEvent> {
-    const { runId, startedAt, startPerf, userMessageText, runTrace } = await this.beginRun(input);
+    const { runId, startedAt, startPerf, userMessageText, runTrace } = await this.beginRun(input, options.ctx);
 
     const steps: StepReport[] = [];
     const totalUsage = emptyUsage();
@@ -656,7 +674,24 @@ export class AgentLoop {
           thinking: options.thinking ?? this._thinking,
           cache: options.cache ?? this._cache,
           tools: this.toolDefinitions(options),
-          ctx: { ...options.ctx, conversationId: this._history.id },
+          ctx: {
+            // The RUN's trace, handed down to every LLM call it makes.
+            //
+            // Without this the agent kept `runTrace` to itself: its own spans used it
+            // while each `client.complete()` fell through to mint-if-absent and
+            // invented a fresh `requestId`. Since the trace id is `sessionId:requestId`,
+            // one conversation arrived at the backend as SEVERAL unrelated traces —
+            // measured against a real collector: a single turn with one tool call
+            // produced six. Correlation is the whole point of a trace id, so this is
+            // the one thing it must not get wrong.
+            sessionId: runTrace.sessionId,
+            requestId: runTrace.requestId,
+            conversationId: this._history.id,
+            // A caller's explicit ctx wins over all of the above: an app that already
+            // owns a request id or a conversation id has better information than we do,
+            // and silently overwriting it is how its telemetry stops joining up.
+            ...options.ctx,
+          },
           signal: options.signal ?? this._abortController?.signal,
         })) {
           const toYield = accumulateStreamEvent(event, state);
@@ -1207,7 +1242,10 @@ export class AgentLoop {
 
   // ─── Run helpers ────────────────────────────────────────────────────────
 
-  private async beginRun(input: string | ContentPart[] | Message[]): Promise<{
+  private async beginRun(
+    input: string | ContentPart[] | Message[],
+    callerCtx?: Partial<RequestContext>,
+  ): Promise<{
     runId: string;
     startedAt: number;
     startPerf: number;
@@ -1243,7 +1281,17 @@ export class AgentLoop {
           ? contentText((input[input.length - 1] as Message).content)
           : contentText(input as ContentPart[]);
 
-    const runTrace = { sessionId: this.id, requestId: runId };
+    // ONE definition of the run's trace, honouring the caller's ids.
+    //
+    // It has to be computed here rather than at each emit site: the agent's own spans
+    // and the LLM calls it makes must agree, and when they were derived separately a
+    // caller passing only `sessionId` split the run in two — `agent.run` kept the agent
+    // id while the model calls took the caller's. Caught against a live collector, not
+    // by any test.
+    const runTrace = {
+      sessionId: callerCtx?.sessionId ?? this.id,
+      requestId: callerCtx?.requestId ?? runId,
+    };
     await this.hooks.emit('onRunStart', {
       runId,
       agentId: this.id,

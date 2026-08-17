@@ -8,6 +8,30 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **One agent run arrived as several unrelated traces.** The agent built a `runTrace` for its own
+  spans and never handed it to the LLM calls it made, so each call fell through to mint-if-absent and
+  invented its own `requestId`. Since the trace id is `sessionId:requestId`, a single conversation
+  fragmented: measured against a live Grafana Tempo endpoint, one turn with one tool call produced
+  SIX traces. Every span looked correct on its own, which is why it survived until telemetry was
+  pointed at a real backend.
+
+- **A caller's own trace ids were discarded, then half-honoured.** `ctx.sessionId` / `ctx.requestId`
+  now win over the agent's, and the run trace is derived in ONE place from them — deriving it
+  separately for agent spans and LLM calls meant a caller passing only `sessionId` split the run in
+  two. `ctx.conversationId` likewise wins over the history id instead of being silently overwritten.
+
+- **`agent.run` and `tool.call` spans used an entity id as the trace id** — the run id and the tool
+  call id respectively — putting them in a different trace from the work they describe. One span's
+  trace id was literally `t1`. MCP spans keyed their trace by server name, merging every call to a
+  server over the process lifetime into one eternal trace.
+
+- **Span ids collided once a run shared one trace.** The span KEY (`llm:${traceId}`) doubled as the
+  span ID, so every LLM call in a run emitted the same id and the collector merged them into one
+  span. Key and id are now separate.
+
+
+### Fixed
+
 - **`toOtlpTraces()` produced JSON that only LOOKED like OTLP, and no collector would accept it.**
   Trace ids went out as `s:r` and span ids as `llm:s:r` where the protocol requires 16- and 8-byte
   hex; `kind` was the string `'llm'` where it must be the int enum; and every attribute value was
