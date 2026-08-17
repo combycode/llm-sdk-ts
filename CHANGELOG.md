@@ -4,7 +4,7 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [2.2.0] — 2026-08-17
 
 ### Added
 
@@ -31,6 +31,13 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   `message` events only, never on spans, so spans can go to a metrics backend without
   carrying prompts into it.
 
+- **The SDK can run inside your application's trace.** Pass `ctx.traceparent` -- the W3C header
+  shape -- and every span the run emits joins that trace and hangs under that span instead of
+  rooting one of its own. A business chain and the model calls it triggers now arrive as one
+  request rather than two unrelated traces. A malformed header is ignored rather than fatal.
+
+### Changed
+
 - **Exported spans follow the GenAI semantic conventions.** `agent.run` and `tool.call` export as
   `invoke_agent` and `execute_tool {name}`, carrying `gen_ai.operation.name`, `gen_ai.agent.id`,
   `gen_ai.tool.name` and `gen_ai.tool.call.id`. Names only this library understood forced every
@@ -38,10 +45,9 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   without one. Internal names are unchanged, so `snapshot()` and the sandbox sidebar group as
   before.
 
-- **The SDK can run inside your application's trace.** Pass `ctx.traceparent` -- the W3C header
-  shape -- and every span the run emits joins that trace and hangs under that span instead of
-  rooting one of its own. A business chain and the model calls it triggers now arrive as one
-  request rather than two unrelated traces. A malformed header is ignored rather than fatal.
+  **If you read span attributes,** three keys moved: `tool.name` → `gen_ai.tool.name`,
+  `agent.id` → `gen_ai.agent.id`, `agent.model` → `gen_ai.request.model`. Span *names* in
+  `snapshot()` are untouched; only the exported ones changed.
 
 ### Fixed
 
@@ -83,7 +89,7 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   span. Key and id are now separate.
 
 
-### Fixed
+
 
 - **`toOtlpTraces()` produced JSON that only LOOKED like OTLP, and no collector would accept it.**
   Trace ids went out as `s:r` and span ids as `llm:s:r` where the protocol requires 16- and 8-byte

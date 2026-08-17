@@ -278,6 +278,24 @@ transcript — gated by the catalog's retention TTL (openai/xai 30d, google 72h)
 configuration needed; it falls back to full history when the stored turn is too old or the provider
 isn't stateful.
 
+## Naming an agent for telemetry
+
+An unnamed agent exports as a bare `invoke_agent` carrying only its generated id, and that id changes
+per process — so a trace cannot say which of your agents ran, and two runs of the same agent cannot be
+compared. Three optional fields fix that:
+
+```ts
+const agent = createAgent({
+  model: 'anthropic/claude-haiku-4.5',
+  label: 'briefing',                     // names the span: `invoke_agent briefing`
+  source: 'customer',                    // which part of YOUR system this belongs to
+  attributes: { 'app.tenant': 'acme' },  // anything the two fixed fields do not cover
+});
+```
+
+They change no behaviour and cost nothing when telemetry is off — they travel with the agent's spans
+and nothing else. See [Observability / Telemetry](./telemetry.md) for how each is exported.
+
 ## Related
 
 - [Tools (defineTool)](./tools.md)
