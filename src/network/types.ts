@@ -70,6 +70,12 @@ export interface TraceContext {
   sessionId?: string;
   requestId?: string;
   callId?: string;
+  /** W3C `traceparent` of the span this work runs UNDER, when the caller runs the SDK
+   *  inside its own trace. It rides with the ids because every span we emit needs it,
+   *  not only the ones built straight from a caller's RequestContext — an agent run
+   *  reaches its tool calls and its nested agents through this object, and those were
+   *  left rooting traces of their own while the LLM spans joined the caller's. */
+  traceparent?: string;
 }
 
 /** Point-in-time numeric state of one queue (for metrics / observability). */

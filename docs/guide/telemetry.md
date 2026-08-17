@@ -107,14 +107,60 @@ What the payload conforms to, and why each part matters:
 | span kind | the int enum -- `CLIENT` for inference, HTTP and MCP; `INTERNAL` for agent and tool work. |
 | attribute values | typed. Token counts go out as `intValue`, so a backend can sum them; as strings every token metric is unaggregatable. |
 | span name | `"{gen_ai.operation.name} {gen_ai.request.model}"`, e.g. `chat claude-haiku-4.5`. |
+| parent | `parentSpanId` on every span, so a backend draws a **tree** rather than a flat list of siblings. |
 
 The **internal** model keeps readable ids (`s:r`, `mcp:tool:deepwiki:ask:3`) and the domain
 `kind`: `snapshot()` is unchanged, and that is what the sandbox sidebar groups by. Only the
 export is translated.
 
+### Running inside your application's trace
+
+By default the SDK roots a trace of its own. That is right for a script and wrong for a service:
+your app already owns the span where the request arrived, and the model calls it triggers belong
+*under* it. Without this, the business chain and the agent work reach the backend as two unrelated
+traces with nothing to join them.
+
+Pass the app's span as `traceparent` -- the W3C header shape, which is exactly what an inbound
+`traceparent` header or an active OTel span gives you:
+
+```ts
+await agent.complete(userInput, {
+  ctx: {
+    traceparent: req.headers['traceparent'],   // 00-<32 hex trace>-<16 hex span>-<flags>
+    conversationId: thread.id,
+  },
+});
+```
+
+Everything the run emits then joins that trace and hangs under that span:
+
+```
+POST /api/orders                 <- your span
+  └ price confirmed              <- your span
+    └ agent.run
+      └ llm.request
+      └ tool.call
+        └ agent.run              <- an agent nested in a tool lands where it ran
+          └ llm.request
+```
+
+A malformed or absent header is ignored rather than fatal: the run keeps its own trace and its
+telemetry, it simply does not join yours.
+
+For a nested agent, hand down the trace your tool executor already receives -- that is all the
+inner run needs to stay in the same trace:
+
+```ts
+const tool = defineTool({
+  name: 'research',
+  params: { topic: 'string' },
+  execute: async ({ topic }, toolCtx) => inner.complete(topic, { ctx: toolCtx.trace }),
+});
+```
+
 ### GenAI attributes
 
-LLM spans carry the [OTel GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai),
+Spans carry the [OTel GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai),
 which is what makes a backend recognise them as model calls rather than anonymous spans:
 
 | attribute | source |

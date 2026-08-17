@@ -10,6 +10,17 @@ import type { TraceContext } from '../network/types';
 import type { AgentStreamEvent, AgentTool, ToolCallReport, ToolExecutionContext } from './types';
 import type { StepState, ToolCallAccumEntry } from './loop-step-state';
 
+/** The trace one agent run belongs to — resolved once in `beginRun` and handed to
+ *  everything the run emits: its own span, its LLM calls, its tool calls, and any agent
+ *  nested inside a tool.
+ *
+ *  Not a bare `TraceContext` because `sessionId`/`requestId` are always resolved here
+ *  (mint-if-absent), while `traceparent` appears only when the caller runs us inside a
+ *  span of its own. Named rather than written inline because the shape was repeated at
+ *  eleven signatures — and adding a field to ten of them is how a run ends up split
+ *  across two traces. */
+export type RunTrace = TraceContext & { sessionId: string; requestId: string };
+
 // ─── Stream event accumulation ───────────────────────────────────────────
 
 /** Create a fresh StepState for the start of a streaming step. */

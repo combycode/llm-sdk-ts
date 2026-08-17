@@ -29,6 +29,18 @@ export interface RequestContext {
    *  the whole chain; the request half of the trace id. */
   requestId?: string;
 
+  /** W3C trace context of the span this work runs UNDER — `00-<32 hex trace>-<16 hex
+   *  span>-<flags>`, exactly the `traceparent` header shape.
+   *
+   *  Pass it and the SDK stops rooting its own trace: its spans join that trace and hang
+   *  under that span. Without it the library cannot know it is inside an application's
+   *  request, so the business chain and the model calls reach the backend as two
+   *  unrelated traces.
+   *
+   *  Sources: the inbound `traceparent` header, or an active span from an OTel SDK if
+   *  the app already runs one. */
+  traceparent?: string;
+
   // ─── Layer 3 — Agent ─────────────────────────────────────────────────
   /** = `history.id`. Stable for the lifetime of the conversation. */
   conversationId?: string;

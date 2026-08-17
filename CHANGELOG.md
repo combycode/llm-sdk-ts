@@ -6,7 +6,30 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+### Added
+
+- **The SDK can run inside your application's trace.** Pass `ctx.traceparent` -- the W3C header
+  shape -- and every span the run emits joins that trace and hangs under that span instead of
+  rooting one of its own. A business chain and the model calls it triggers now arrive as one
+  request rather than two unrelated traces. A malformed header is ignored rather than fatal.
+
 ### Fixed
+
+- **Spans had no parent, so a backend drew a flat list instead of a tree.** Every span was a
+  sibling, and a turn read as "nine things happened" rather than "a run, which called a tool, which
+  asked a second model". Spans now carry `parentSpanId`, resolved to the innermost enclosing
+  `agent.run` / `tool.call`, else the caller's span, else none.
+
+- **An agent nested inside a tool call orphaned the run around it.** The enclosing span was tracked
+  as one slot per trace, so a second run on the same trace overwrote it and then deleted it on
+  close, leaving the rest of the outer run parentless. It is a stack now, and a container is removed
+  by id rather than popped, because parallel tool calls close out of order.
+
+- **`traceparent` was dropped at two layers, each by hand-picking fields off the trace.** `beginRun`
+  built `{ sessionId, requestId }` and `LLMClient` handed `{ sessionId, requestId, callId }` to the
+  network layer. One request became three traces: the model calls joined the caller's, while
+  `agent.run`, every `tool.call`, every nested agent and every `http.request` rooted their own. The
+  trace now travels whole, and `RunTrace` replaces a shape written inline at eleven signatures.
 
 - **One agent run arrived as several unrelated traces.** The agent built a `runTrace` for its own
   spans and never handed it to the LLM calls it made, so each call fell through to mint-if-absent and

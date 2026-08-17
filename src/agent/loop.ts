@@ -54,6 +54,7 @@ import {
   executeWithTimeout,
   handleToolError,
 } from './loop-internals';
+import type { RunTrace } from './loop-internals';
 
 // ─── AgentLoop ──────────────────────────────────────────────────────────
 
@@ -361,8 +362,7 @@ export class AgentLoop {
             // measured against a real collector: a single turn with one tool call
             // produced six. Correlation is the whole point of a trace id, so this is
             // the one thing it must not get wrong.
-            sessionId: runTrace.sessionId,
-            requestId: runTrace.requestId,
+            ...runTrace,
             conversationId: this._history.id,
             // A caller's explicit ctx wins over all of the above: an app that already
             // owns a request id or a conversation id has better information than we do,
@@ -684,8 +684,7 @@ export class AgentLoop {
             // measured against a real collector: a single turn with one tool call
             // produced six. Correlation is the whole point of a trace id, so this is
             // the one thing it must not get wrong.
-            sessionId: runTrace.sessionId,
-            requestId: runTrace.requestId,
+            ...runTrace,
             conversationId: this._history.id,
             // A caller's explicit ctx wins over all of the above: an app that already
             // owns a request id or a conversation id has better information than we do,
@@ -898,7 +897,7 @@ export class AgentLoop {
     step: number,
     toolCalls: ToolCallPart[],
     reports: ToolCallReport[],
-    runTrace: { sessionId: string; requestId: string },
+    runTrace: RunTrace,
   ): Promise<ContentPart[]> {
     if (this._parallelToolCalls && toolCalls.length > 1) {
       return Promise.all(toolCalls.map((tc) => this.executeSingleTool(tc, runId, step, reports, runTrace)));
@@ -915,7 +914,7 @@ export class AgentLoop {
     runId: string,
     step: number,
     reports: ToolCallReport[],
-    runTrace: { sessionId: string; requestId: string },
+    runTrace: RunTrace,
   ): Promise<ContentPart> {
     const metrics = new Map<string, { value: number | string | boolean; type: string }>();
 
@@ -965,7 +964,7 @@ export class AgentLoop {
         arguments: tc.arguments,
         callId: tc.id,
         step,
-        trace: { sessionId: runTrace.sessionId, requestId: runTrace.requestId, callId: tc.id },
+        trace: { ...runTrace, callId: tc.id },
       });
       if (!decision.pass) {
         return this.buildDeniedResult(tc, decision.reason, reports);
@@ -991,7 +990,7 @@ export class AgentLoop {
 
     // ─── Execute ─────────────────────────────────────────────────────────
     try {
-      const baseCtx = { step, callId: tc.id, metrics, trace: { sessionId: runTrace.sessionId, requestId: runTrace.requestId, callId: tc.id } };
+      const baseCtx = { step, callId: tc.id, metrics, trace: { ...runTrace, callId: tc.id } };
       const result = await executeWithTimeout(lookup.tool, tc, baseCtx, this._toolTimeout);
       return await this.buildSuccessResult(tc, result, runId, step, metrics, reports, toolStart, runTrace, lookup.tool, baseCtx);
     } catch (e) {
@@ -1066,7 +1065,7 @@ export class AgentLoop {
     metrics: Map<string, { value: number | string | boolean; type: string }>,
     reports: ToolCallReport[],
     toolStart: number,
-    runTrace: { sessionId: string; requestId: string },
+    runTrace: RunTrace,
     tool: AgentTool,
   ): Promise<ContentPart> {
     const req: ApprovalRequest = {
@@ -1075,7 +1074,7 @@ export class AgentLoop {
       arguments: tc.arguments,
       reason,
       step,
-      trace: { sessionId: runTrace.sessionId, requestId: runTrace.requestId, callId: tc.id },
+      trace: { ...runTrace, callId: tc.id },
     };
 
     const pending: PendingToolCall = {
@@ -1115,7 +1114,7 @@ export class AgentLoop {
         return this.buildOverriddenResult(tc, decision.overrideResult, reports);
       }
       try {
-        const baseCtx = { step, callId: tc.id, metrics, trace: { sessionId: runTrace.sessionId, requestId: runTrace.requestId, callId: tc.id } };
+        const baseCtx = { step, callId: tc.id, metrics, trace: { ...runTrace, callId: tc.id } };
         const result = await executeWithTimeout(tool, tc, baseCtx, this._toolTimeout);
         return await this.buildSuccessResult(tc, result, runId, step, metrics, reports, toolStart, runTrace, tool, baseCtx);
       } catch (e) {
@@ -1140,7 +1139,7 @@ export class AgentLoop {
     metrics: Map<string, { value: number | string | boolean; type: string }>,
     reports: ToolCallReport[],
     toolStart: number,
-    runTrace: { sessionId: string; requestId: string },
+    runTrace: RunTrace,
     tool?: AgentTool,
     context?: Omit<ToolExecutionContext, 'signal'>,
   ): Promise<ContentPart> {
@@ -1250,7 +1249,7 @@ export class AgentLoop {
     startedAt: number;
     startPerf: number;
     userMessageText: string;
-    runTrace: { sessionId: string; requestId: string };
+    runTrace: RunTrace;
   }> {
     if (this._running) throw new Error('AgentLoop is already running');
     this._running = true;
@@ -1288,9 +1287,16 @@ export class AgentLoop {
     // caller passing only `sessionId` split the run in two — `agent.run` kept the agent
     // id while the model calls took the caller's. Caught against a live collector, not
     // by any test.
-    const runTrace = {
+    const runTrace: RunTrace = {
       sessionId: callerCtx?.sessionId ?? this.id,
       requestId: callerCtx?.requestId ?? runId,
+      // The caller's span travels WITH the ids, for the same reason they do: `agent.run`,
+      // every `tool.call`, and any agent nested inside a tool reach the telemetry through
+      // `runTrace` and nothing else. While this field was missing from it only the LLM
+      // calls joined the app's trace — they are built from the caller's ctx directly —
+      // and the run that made them sat in a second, unrelated one. Measured against a
+      // live backend; the unit tests fed the hooks directly and never saw it.
+      ...(callerCtx?.traceparent ? { traceparent: callerCtx.traceparent } : {}),
     };
     await this.hooks.emit('onRunStart', {
       runId,
@@ -1331,7 +1337,7 @@ export class AgentLoop {
     totalUsage: Usage;
     totalLlmTimeMs: number;
     totalToolTimeMs: number;
-    runTrace: { sessionId: string; requestId: string };
+    runTrace: RunTrace;
   }): Promise<AgentRunReport> {
     const report: AgentRunReport = {
       id: args.runId,
@@ -1372,13 +1378,13 @@ export class AgentLoop {
     step: number,
     messages: import('../llm/types/messages').Message[],
     system: string | undefined,
-    runTrace: { sessionId: string; requestId: string },
+    runTrace: RunTrace,
   ): Promise<string | null> {
     for (const g of this._guardrails) {
       if (g.kind !== 'input') continue;
       const decision: GuardrailDecision = await g.check({
         kind: 'input',
-        trace: { sessionId: runTrace.sessionId, requestId: runTrace.requestId },
+        trace: { ...runTrace },
         step,
         messages,
         system,
@@ -1406,13 +1412,13 @@ export class AgentLoop {
     runId: string,
     step: number,
     response: CompletionResponse,
-    runTrace: { sessionId: string; requestId: string },
+    runTrace: RunTrace,
   ): Promise<string | null> {
     for (const g of this._guardrails) {
       if (g.kind !== 'output') continue;
       const decision: GuardrailDecision = await g.check({
         kind: 'output',
-        trace: { sessionId: runTrace.sessionId, requestId: runTrace.requestId },
+        trace: { ...runTrace },
         step,
         response,
       });

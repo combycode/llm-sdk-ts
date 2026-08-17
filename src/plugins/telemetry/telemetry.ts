@@ -72,6 +72,11 @@ function fnv1a32(input: string, seed: number): number {
   return h >>> 0;
 }
 
+/** Already a conformant id of exactly `chars` hex digits? Then it came from the caller's
+ *  trace context and must travel unchanged. */
+const isHex = (value: string, chars: number): boolean =>
+  value.length === chars && /^[0-9a-f]+$/.test(value);
+
 /** Derive a conformant hex id from one of our readable ids. `bytes` is 16 for a trace
  *  id, 8 for a span id.
  *
@@ -119,6 +124,14 @@ export type SpanKind = 'llm' | 'http' | 'media' | 'agent' | 'tool' | 'mcp' | 'ot
 export interface Span {
   traceId: string;
   spanId: string;
+  /** The span this one runs under. Without it every span is a sibling and a backend
+   *  draws a flat list instead of a tree — so a run reads as "9 things happened", not
+   *  "a turn, which called a tool, which asked a second model".
+   *
+   *  Resolved in this order: the innermost container span still open on this trace
+   *  (`agent.run` / `tool.call`), else the app's span from a supplied `traceparent`,
+   *  else none — this span is the root. */
+  parentSpanId?: string;
   name: string;
   kind: SpanKind;
   startTime: number;
@@ -220,12 +233,19 @@ const CATEGORY: Partial<Record<string, string>> = {
 };
 
 /** Pull `sessionId`/`requestId` out of any event ctx (`.trace`, `.ctx`, or flat). */
-function traceIdsOf(ctx: unknown): { sessionId?: string; requestId?: string; conversationId?: string } {
+function traceIdsOf(ctx: unknown): {
+  sessionId?: string;
+  requestId?: string;
+  conversationId?: string;
+  traceparent?: string;
+} {
   const c = ctx as Record<string, unknown>;
   const t = (c?.trace ?? c?.ctx ?? c) as Record<string, unknown> | undefined;
   return {
     sessionId: t?.sessionId as string | undefined,
     requestId: t?.requestId as string | undefined,
+    /** W3C parent context, when the app is already inside a trace of its own. */
+    traceparent: t?.traceparent as string | undefined,
     // `gen_ai.conversation.id` in the semantic conventions — the thread a turn
     // belongs to, which is what lets a backend group turns into one conversation.
     // AgentLoop sets it from the history id; a bare client call has none.
@@ -233,8 +253,45 @@ function traceIdsOf(ctx: unknown): { sessionId?: string; requestId?: string; con
   };
 }
 
-const traceKey = (ids: { sessionId?: string; requestId?: string }): string | undefined =>
-  ids.requestId ? `${ids.sessionId ?? '?'}:${ids.requestId}` : undefined;
+/** Parse a W3C `traceparent`: `00-<32 hex trace>-<16 hex span>-<flags>`.
+ *  Returns null for anything malformed or for the all-zero ids the spec forbids —
+ *  a bad header must not silently reroute telemetry into a garbage trace. */
+export function parseTraceparent(value: string | undefined): { traceId: string; spanId: string } | null {
+  if (!value) return null;
+  const m = /^[0-9a-f]{2}-([0-9a-f]{32})-([0-9a-f]{16})-[0-9a-f]{2}$/.exec(value.trim().toLowerCase());
+  if (!m) return null;
+  const [, traceId, spanId] = m as unknown as [string, string, string];
+  if (/^0+$/.test(traceId) || /^0+$/.test(spanId)) return null;
+  return { traceId, spanId };
+}
+
+/** The trace a span belongs to.
+ *
+ *  An app-supplied `traceparent` WINS: its trace id is already a real 32-hex id, and
+ *  adopting it verbatim is what puts our spans in the caller's trace instead of a
+ *  parallel one of our own. Otherwise we fall back to `sessionId:requestId`, which the
+ *  exporter hashes into a conformant id. */
+/** Spans that CONTAIN other work, and so can be a parent. Everything else — an LLM call,
+ *  an HTTP request, an MCP round trip — is a leaf, and a leaf on the stack would become
+ *  the parent of whatever span happened to open next.
+ *
+ *  `llm.request` is deliberately NOT here, even though its HTTP attempts really do happen
+ *  inside it. Its span key is `llm:${traceId}`, which is not unique across concurrent
+ *  calls on one trace: two opens overwrite each other in `open`, the second close finds
+ *  nothing, and the first id would sit on the stack parenting the rest of the trace
+ *  forever. Flat-but-correct beats nested-and-occasionally-wrong until that key carries
+ *  the call id. */
+const CONTAINER_SPANS = new Set(['agent.run', 'tool.call']);
+
+const traceKey = (ids: {
+  sessionId?: string;
+  requestId?: string;
+  traceparent?: string;
+}): string | undefined => {
+  const parent = parseTraceparent(ids.traceparent);
+  if (parent) return parent.traceId;
+  return ids.requestId ? `${ids.sessionId ?? '?'}:${ids.requestId}` : undefined;
+};
 
 /** OpenTelemetry Resource — identifies the SERVICE producing this telemetry, so
  *  a shared backend can separate streams from different apps and attribute cost
@@ -296,6 +353,16 @@ export class TelemetryAdapter {
    *  land in one millisecond. A duplicate span id inside a trace is invalid OTLP and
    *  the backend silently keeps only one. */
   private spanSeq = 0;
+  /** Per trace: the app's span from a `traceparent`, and the CONTAINER spans currently
+   *  open on it. Together they decide what a new span hangs under — see `parentFor`.
+   *  Both are cleared once a trace has nothing open, so a long-lived process does not
+   *  accumulate an entry per conversation forever.
+   *
+   *  A list, not a single slot: an agent nested in a tool call (C2 inside C1's tool) is a
+   *  second run on the SAME trace, and with one slot it overwrote its own parent and then
+   *  deleted it on close — leaving the rest of the outer run parentless. */
+  private appParent = new Map<string, string>();
+  private containers = new Map<string, string[]>();
   private latSum = 0;
   private readonly open = new Map<string, Span>();
   private readonly maxEvents: number;
@@ -317,6 +384,11 @@ export class TelemetryAdapter {
   private handle(name: HookName, ctx: unknown): void {
     const ids = traceIdsOf(ctx);
     const traceId = traceKey(ids);
+
+    // Remember the app's span for this trace, so everything we emit under it hangs
+    // off the caller's span rather than floating as a second root.
+    const parent = parseTraceparent(ids.traceparent);
+    if (parent && traceId) this.appParent.set(traceId, parent.spanId);
 
     this.events.push({
       seq: this.seq++,
@@ -449,6 +521,8 @@ export class TelemetryAdapter {
           // `traceId` (from the event's trace context), NOT `runId`. The run id is this
           // SPAN's identity; using it as the trace put the agent's own span in a
           // different trace from the LLM calls it made.
+          // openSpan puts a container on the trace's stack itself, so everything emitted
+          // until this run closes nests under it.
           this.openSpan(`agent:${runId}`, traceId ?? runId, 'agent.run', 'agent', {
             'agent.id': c.agentId,
             'agent.model': c.model,
@@ -573,6 +647,24 @@ export class TelemetryAdapter {
     }
   }
 
+  /** What a new span on this trace hangs under: the innermost container still open on
+   *  it, else the app's span, else nothing (we are the root).
+   *
+   *  A container wins over the app's span because an LLM call made during a run belongs
+   *  to that run — attaching it straight to the app would flatten the very nesting the
+   *  tree exists to show. A span joins the stack only after it is built, so nothing can
+   *  become its own parent, and a run nested in a tool call lands under that tool call —
+   *  exactly where it happened.
+   *
+   *  Limit worth naming: with tools running in parallel two `tool.call` spans are open at
+   *  once and "innermost" is merely the more recent one. Attributing a nested run to the
+   *  right sibling needs real async context propagation, which this adapter does not
+   *  have; sequential tools, the common case, are exact. */
+  private parentFor(traceId: string): string | undefined {
+    const stack = this.containers.get(traceId);
+    return stack?.[stack.length - 1] ?? this.appParent.get(traceId);
+  }
+
   private openSpan(
     key: string,
     traceId: string,
@@ -580,8 +672,10 @@ export class TelemetryAdapter {
     kind: SpanKind,
     attributes: Record<string, unknown>,
   ): Span {
+    const parentSpanId = this.parentFor(traceId);
     const span: Span = {
       traceId,
+      ...(parentSpanId ? { parentSpanId } : {}),
       // The KEY pairs open with close (`llm:${traceId}`); the SPAN ID must be unique.
       // Those were the same string until a run stopped fragmenting into one trace per
       // call — at which point every LLM call in a run produced the identical key, and
@@ -594,12 +688,33 @@ export class TelemetryAdapter {
       attributes,
     };
     this.open.set(key, span);
+    // Only spans that CONTAIN other work become parents. An LLM call or an HTTP request
+    // is a leaf; letting one on the stack would make it the parent of whatever concurrent
+    // span opened next.
+    if (CONTAINER_SPANS.has(spanName)) {
+      const stack = this.containers.get(traceId);
+      if (stack) stack.push(span.spanId);
+      else this.containers.set(traceId, [span.spanId]);
+    }
     return span;
   }
 
   private closeSpan(key: string, status: 'ok' | 'error', attributes: Record<string, unknown>): void {
     const span = this.open.get(key);
     if (!span) return;
+    // A finished container stops being the parent for later work. Removed BY ID rather
+    // than popped: parallel tool calls close out of order, and popping blindly would
+    // retire a sibling that is still running. Once the trace has nothing open, its
+    // entries go too, so a long-lived process does not hold one per conversation.
+    const stack = this.containers.get(span.traceId);
+    if (stack) {
+      const at = stack.lastIndexOf(span.spanId);
+      if (at !== -1) stack.splice(at, 1);
+      if (stack.length === 0) {
+        this.containers.delete(span.traceId);
+        this.appParent.delete(span.traceId);
+      }
+    }
     span.endTime = Date.now();
     span.durationMs = span.endTime - span.startTime;
     span.status = status;
@@ -660,10 +775,22 @@ export class TelemetryAdapter {
             {
               scope: { name: 'combycode.telemetry' },
               spans: this.spans.map((s) => ({
-                traceId: toOtlpId(s.traceId, 16),
+                // An app-supplied trace id is ALREADY a real 32-hex id — hashing it
+                // would produce a different trace and defeat the whole point of
+                // accepting a parent.
+                traceId: isHex(s.traceId, 32) ? s.traceId : toOtlpId(s.traceId, 16),
                 // Scoped by trace: two conversations can each hold a span keyed
                 // `llm:…`, and colliding their ids would merge unrelated traces.
                 spanId: toOtlpId(`${s.traceId}|${s.spanId}`, 8),
+                // The app's own span id arrives as hex and passes through; one of ours
+                // is hashed exactly as it was when we emitted it, so the link matches.
+                ...(s.parentSpanId
+                  ? {
+                      parentSpanId: isHex(s.parentSpanId, 16)
+                        ? s.parentSpanId
+                        : toOtlpId(`${s.traceId}|${s.parentSpanId}`, 8),
+                    }
+                  : {}),
                 name: otlpSpanName(s),
                 startTimeUnixNano: Math.round(s.startTime * 1e6),
                 endTimeUnixNano: Math.round((s.endTime ?? s.startTime) * 1e6),

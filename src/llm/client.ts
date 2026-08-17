@@ -356,7 +356,15 @@ export class LLMClient {
         signal: options.signal,
         provider: this.provider,
         model: this.model,
-        trace: { sessionId: ctx.sessionId, requestId: ctx.requestId, callId: ctx.callId },
+        // Every trace field, not a hand-picked three: `traceparent` rides with the ids,
+        // and picking fields here is what left the HTTP spans rooting a trace of their
+        // own while the LLM span they belong to had joined the caller's.
+        trace: {
+          sessionId: ctx.sessionId,
+          requestId: ctx.requestId,
+          callId: ctx.callId,
+          traceparent: ctx.traceparent,
+        },
       };
       response = await this.fetchFn(httpReq, {
         queueName: this.queueName,
@@ -515,7 +523,15 @@ export class LLMClient {
       stream: true,
       provider: this.provider,
       model: this.model,
-      trace: { sessionId: ctx.sessionId, requestId: ctx.requestId, callId: ctx.callId },
+      // Every trace field, not a hand-picked three: `traceparent` rides with the ids,
+        // and picking fields here is what left the HTTP spans rooting a trace of their
+        // own while the LLM span they belong to had joined the caller's.
+        trace: {
+          sessionId: ctx.sessionId,
+          requestId: ctx.requestId,
+          callId: ctx.callId,
+          traceparent: ctx.traceparent,
+        },
     };
 
     // Accumulate the stream so we can emit a single onCompletion at the end
