@@ -223,7 +223,7 @@ describe('a run joins the caller’s trace', () => {
     // the hook-level test could not make.
     for (const s of spans) expect(s.traceId).toBe(APP_TRACE);
 
-    const run = spans.find((s) => s.name === 'agent.run')!;
+    const run = spans.find((s) => s.name === 'invoke_agent')!;
     expect(run.parentSpanId).toBe(APP_SPAN);
   });
 

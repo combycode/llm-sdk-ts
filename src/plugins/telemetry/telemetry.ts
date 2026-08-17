@@ -107,16 +107,35 @@ export function toOtlpValue(value: unknown): Record<string, unknown> {
   return { stringValue: typeof value === 'object' ? JSON.stringify(value) : String(value) };
 }
 
-/** The span name the SPEC asks for: `"{gen_ai.operation.name} {gen_ai.request.model}"`,
- *  e.g. `chat gpt-5.4-nano`. Applied only on export — the internal name stays
- *  `llm.request`, which is what the sandbox groups by and what tests assert.
+/** What each operation names itself after, per the GenAI conventions:
  *
- *  Falls back to the internal name for spans that carry no GenAI attributes (http,
- *  mcp, tool), where the convention does not apply. */
+ *    chat           `chat {gen_ai.request.model}`
+ *    invoke_agent   `invoke_agent {gen_ai.agent.name}`
+ *    execute_tool   `execute_tool {gen_ai.tool.name}`
+ *
+ *  The subject is "if readily available" in the spec, so an operation whose subject we
+ *  do not know falls back to the bare operation name — which is still a conventional
+ *  name, unlike our internal `agent.run`. */
+const SPAN_NAME_SUBJECT: Record<string, string> = {
+  chat: 'gen_ai.request.model',
+  invoke_agent: 'gen_ai.agent.name',
+  execute_tool: 'gen_ai.tool.name',
+};
+
+/** The span name the conventions ask for, applied only on EXPORT — the internal names
+ *  (`llm.request`, `agent.run`, `tool.call`) stay put, because the sandbox groups by them
+ *  and because a span's identity should not depend on which attributes happen to be set.
+ *
+ *  Why bother: a backend that speaks the conventions recognises `execute_tool search` as
+ *  a tool call and can chart it. `tool.call` is a name only we understand, and it makes
+ *  every consumer write a bespoke mapping — which is the cost we are trying to avoid.
+ *
+ *  Falls back to the internal name for spans outside the conventions (http, mcp). */
 function otlpSpanName(span: { name: string; attributes: Record<string, unknown> }): string {
   const op = span.attributes['gen_ai.operation.name'];
-  const model = span.attributes['gen_ai.request.model'];
-  return typeof op === 'string' && typeof model === 'string' ? `${op} ${model}` : span.name;
+  if (typeof op !== 'string') return span.name;
+  const subject = SPAN_NAME_SUBJECT[op] ? span.attributes[SPAN_NAME_SUBJECT[op]!] : undefined;
+  return typeof subject === 'string' && subject ? `${op} ${subject}` : op;
 }
 
 export type SpanKind = 'llm' | 'http' | 'media' | 'agent' | 'tool' | 'mcp' | 'other';
@@ -524,8 +543,12 @@ export class TelemetryAdapter {
           // openSpan puts a container on the trace's stack itself, so everything emitted
           // until this run closes nests under it.
           this.openSpan(`agent:${runId}`, traceId ?? runId, 'agent.run', 'agent', {
-            'agent.id': c.agentId,
-            'agent.model': c.model,
+            'gen_ai.operation.name': 'invoke_agent',
+            // No `gen_ai.agent.name` yet: the SDK has agent IDs, not human names, so the
+            // exported span is the bare `invoke_agent`. It fills in on its own once
+            // agents carry a label.
+            'gen_ai.agent.id': c.agentId,
+            'gen_ai.request.model': c.model,
           });
         }
         break;
@@ -556,8 +579,10 @@ export class TelemetryAdapter {
           // Same mistake as `agent.run`: `callId` identifies the tool call, not the
           // trace. It produced spans whose trace id was literally `t1`.
           this.openSpan(`tool:${callId}`, traceId ?? callId, 'tool.call', 'tool', {
-            'tool.name': c.toolName,
-            'agent.id': c.agentId,
+            'gen_ai.operation.name': 'execute_tool',
+            'gen_ai.tool.name': c.toolName,
+            'gen_ai.tool.call.id': callId,
+            'gen_ai.agent.id': c.agentId,
           });
         }
         break;
@@ -566,7 +591,7 @@ export class TelemetryAdapter {
         const callId = c.callId as string | undefined;
         if (callId) {
           this.closeSpan(`tool:${callId}`, 'ok', {
-            'tool.name': c.toolName,
+            'gen_ai.tool.name': c.toolName,
             'tool.latency_ms': c.latencyMs,
           });
         }
@@ -576,7 +601,7 @@ export class TelemetryAdapter {
         const callId = c.callId as string | undefined;
         if (callId) {
           this.closeSpan(`tool:${callId}`, 'error', {
-            'tool.name': c.toolName,
+            'gen_ai.tool.name': c.toolName,
             'tool.error': (c.error as Error)?.message,
           });
         }

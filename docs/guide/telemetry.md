@@ -106,7 +106,7 @@ What the payload conforms to, and why each part matters:
 | trace / span ids | 16- and 8-byte **hex**, derived deterministically from the readable internal ids. A collector rejects anything else outright. |
 | span kind | the int enum -- `CLIENT` for inference, HTTP and MCP; `INTERNAL` for agent and tool work. |
 | attribute values | typed. Token counts go out as `intValue`, so a backend can sum them; as strings every token metric is unaggregatable. |
-| span name | `"{gen_ai.operation.name} {gen_ai.request.model}"`, e.g. `chat claude-haiku-4.5`. |
+| span name | the conventional one -- `chat claude-haiku-4.5`, `execute_tool search`, `invoke_agent`. |
 | parent | `parentSpanId` on every span, so a backend draws a **tree** rather than a flat list of siblings. |
 
 The **internal** model keeps readable ids (`s:r`, `mcp:tool:deepwiki:ask:3`) and the domain
@@ -137,11 +137,11 @@ Everything the run emits then joins that trace and hangs under that span:
 ```
 POST /api/orders                 <- your span
   └ price confirmed              <- your span
-    └ agent.run
-      └ llm.request
-      └ tool.call
-        └ agent.run              <- an agent nested in a tool lands where it ran
-          └ llm.request
+    └ invoke_agent
+      └ chat claude-haiku-4.5
+      └ execute_tool set_brief_fields
+        └ invoke_agent           <- an agent nested in a tool lands where it ran
+          └ chat gpt-5.4-nano
 ```
 
 A malformed or absent header is ignored rather than fatal: the run keeps its own trace and its
@@ -158,22 +158,31 @@ const tool = defineTool({
 });
 ```
 
-### GenAI attributes
+### GenAI attributes and span names
 
 Spans carry the [OTel GenAI semantic conventions](https://github.com/open-telemetry/semantic-conventions-genai),
-which is what makes a backend recognise them as model calls rather than anonymous spans:
+which is what makes a backend recognise them as agent work rather than anonymous spans -- and what
+saves you writing a bespoke mapping per backend:
 
 | attribute | source |
 |---|---|
 | `gen_ai.provider.name` *(required)* | the provider the call went to |
-| `gen_ai.operation.name` *(required)* | `chat` |
+| `gen_ai.operation.name` *(required)* | `chat`, `invoke_agent`, `execute_tool` |
 | `gen_ai.request.model` | the model you asked for |
 | `gen_ai.response.model` | the model that answered -- an alias can resolve to a dated snapshot |
 | `gen_ai.conversation.id` | the agent's history id; absent for a bare client call |
 | `gen_ai.usage.input_tokens` / `output_tokens` | reported usage |
+| `gen_ai.agent.id` | the agent that ran |
+| `gen_ai.tool.name` / `gen_ai.tool.call.id` | the tool that ran, and the call it answered |
 
-These conventions are still marked *Development* upstream, so names can move. They are applied
-at the export boundary precisely so a rename does not reach into the rest of the library.
+Exported span names follow from the operation: `chat {model}`, `execute_tool {name}`, and
+`invoke_agent` -- bare, because the SDK has agent IDs rather than human names and the convention
+only asks for the subject when one is readily available.
+
+Internally the spans stay `llm.request`, `agent.run` and `tool.call`: `snapshot()` is unchanged,
+and that is what the sandbox sidebar groups by. These conventions are still marked *Development*
+upstream, so names can move -- they are applied at the export boundary precisely so a rename does
+not reach into the rest of the library.
 
 ### Redacting error text (`includeSensitiveData`)
 

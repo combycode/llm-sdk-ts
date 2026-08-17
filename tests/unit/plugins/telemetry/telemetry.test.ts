@@ -500,7 +500,7 @@ describe('TelemetryAdapter agent/tool/mcp spans', () => {
     expect(span).toBeDefined();
     expect(span?.kind).toBe('tool');
     expect(span?.status).toBe('ok');
-    expect(span?.attributes['tool.name']).toBe('search');
+    expect(span?.attributes['gen_ai.tool.name']).toBe('search');
   });
 
   it('marks tool.call span as error on onToolCallError', async () => {

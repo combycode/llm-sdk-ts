@@ -8,6 +8,13 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **Exported spans follow the GenAI semantic conventions.** `agent.run` and `tool.call` export as
+  `invoke_agent` and `execute_tool {name}`, carrying `gen_ai.operation.name`, `gen_ai.agent.id`,
+  `gen_ai.tool.name` and `gen_ai.tool.call.id`. Names only this library understood forced every
+  consumer to write its own mapping; a backend that speaks the conventions now recognises the work
+  without one. Internal names are unchanged, so `snapshot()` and the sandbox sidebar group as
+  before.
+
 - **The SDK can run inside your application's trace.** Pass `ctx.traceparent` -- the W3C header
   shape -- and every span the run emits joins that trace and hangs under that span instead of
   rooting one of its own. A business chain and the model calls it triggers now arrive as one

@@ -71,7 +71,7 @@ describe('adopting the app’s trace', () => {
     const tel = new TelemetryAdapter(bus);
     await feedRun(bus, { sessionId: 's', requestId: 'r', traceparent: TRACEPARENT });
 
-    const run = otlp(tel).find((s) => s.name === 'agent.run')!;
+    const run = otlp(tel).find((s) => s.name === 'invoke_agent')!;
     expect(run.parentSpanId).toBe(APP_SPAN);
   });
 
@@ -81,7 +81,7 @@ describe('adopting the app’s trace', () => {
     await feedRun(bus, { sessionId: 's', requestId: 'r', traceparent: TRACEPARENT });
 
     const spans = otlp(tel);
-    const run = spans.find((s) => s.name === 'agent.run')!;
+    const run = spans.find((s) => s.name === 'invoke_agent')!;
     const llm = spans.find((s) => s.name.startsWith('chat ') || s.name === 'llm.request')!;
     // An LLM call made during a run belongs to the run. Attaching it straight to the
     // app's span would flatten the nesting the tree exists to show.
@@ -96,7 +96,7 @@ describe('adopting the app’s trace', () => {
 
     const spans = otlp(tel);
     for (const s of spans) expect(s.traceId).not.toBe(APP_TRACE);
-    const run = spans.find((s) => s.name === 'agent.run')!;
+    const run = spans.find((s) => s.name === 'invoke_agent')!;
     expect(run.parentSpanId).toBeUndefined();
   });
 
@@ -118,7 +118,7 @@ describe('adopting the app’s trace', () => {
     await feedRun(bus, { sessionId: 's', requestId: 'r2' });
 
     const second = otlp(tel).filter((s) => s.traceId !== APP_TRACE);
-    const run = second.find((s) => s.name === 'agent.run')!;
+    const run = second.find((s) => s.name === 'invoke_agent')!;
     expect(run.parentSpanId).toBeUndefined();
   });
 });
