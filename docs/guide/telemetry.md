@@ -81,6 +81,68 @@ const otlp = telemetry.toOtlpTraces();
 console.log(JSON.stringify(otlp).slice(0, 200));
 ```
 
+### `onTrace` -- take the events, send them yourself
+
+This SDK is one part of a larger system. The traces an operator reads are the *business*
+ones -- order confirmed, worker selected -- and our HTTP retries are detail to unfold only
+when something is wrong. So the library does not export anything and does not decide what
+is worth keeping: it hands you events, filtered the way you asked, and your pipeline --
+which already exists, and already carries the spans that matter more than ours -- decides
+where they go.
+
+```ts
+const engine = createEngine({
+  catalog: 'defaults',
+  telemetry: {
+    types: ['agent', 'tool', 'message'],   // business level; http/llm detail stays out
+    content: 'none',                       // conversation text off unless you ask
+    sample: 0.05,                          // per TRACE, not per span
+    onTrace: (event) => myPipeline.push(map(event)),
+  },
+});
+
+// More sinks, each with its own filter -- returns an unsubscribe function:
+const stop = engine.telemetry!.onTrace({ types: ['message'] }, (e) => debugStore.write(e));
+```
+
+Each event carries the tree, so nothing has to be reconstructed:
+
+```ts
+interface TraceEvent {
+  type: 'agent' | 'tool' | 'llm' | 'http' | 'mcp' | 'media' | 'message' | 'other';
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string;   // already re-parented past whatever YOU filtered out
+  name: string;            // `execute_tool search`, `chat gpt-5.4-nano`
+  startTime: number;
+  endTime?: number;
+  durationMs?: number;
+  status: 'unset' | 'ok' | 'error';
+  attributes: Record<string, unknown>;
+}
+```
+
+Three things worth knowing, because the obvious implementation of each is broken:
+
+**Filtering splices the tree, it does not punch holes in it.** Drop `http` and the spans
+underneath re-parent to the nearest ancestor *you* still receive. Dropping without that
+leaves children pointing at a span that never arrives, and a backend draws a dangling
+parent as a second root -- worse than not filtering. Two subscribers with different
+filters each get a tree that is correct for them.
+
+**Sampling is per trace.** Sampling spans independently shreds every tree it touches: a
+tool call with no run, a model call with no tool. The decision is a hash of the trace id,
+so it is stable across processes and two services sharing a trace agree without
+coordinating. It is *head* sampling -- the choice is made before we know whether the trace
+ends in an error, so "keep every error" belongs in your collector, which is built for it.
+
+**Conversation content is off by default.** Prompts and completions are the debugging gold
+and the PII both. `content: 'full'` adds the Opt-In `gen_ai.input.messages` /
+`gen_ai.output.messages` attributes to `message` events; `'none'` still reports the shape
+(counts, sizes), which is enough to spot a runaway prompt. Content rides on `message`
+events *only* -- never on spans -- so routing spans to a metrics backend cannot leak a
+prompt into it.
+
 ### Sending it to an OTLP endpoint
 
 `toOtlpTraces()` returns an OTLP/JSON `resourceSpans` payload -- POST it to any collector

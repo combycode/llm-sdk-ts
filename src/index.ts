@@ -15,6 +15,10 @@ export {
   type TelemetryMetrics,
   type TelemetryAdapterOptions,
   type TelemetryResource,
+  type TraceEvent,
+  type TraceEventType,
+  type TraceFilter,
+  type TraceHandler,
 } from './plugins/telemetry/telemetry';
 export {
   conversationToMarkdown,

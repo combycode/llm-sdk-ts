@@ -8,6 +8,21 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **`onTrace` -- an event surface, so this SDK can be one source in a bigger pipeline.**
+  Configure it at `createEngine({ telemetry: { types, content, sample, onTrace } })` and take
+  the levels you want: an operator reading business traces does not want our HTTP retries,
+  and an SDK that ships its own exporter just competes with the pipeline they already run.
+  Events carry `traceId` / `spanId` / `parentSpanId`, so a consumer pushes them straight
+  into their own tracer. Nothing is sent anywhere by the library.
+
+  Filtering **splices** the tree rather than punching holes in it -- drop `http` and its
+  children re-parent to the nearest ancestor that subscriber still receives, because a
+  dangling parent renders as a second root. Sampling is per **trace**, hashed from the
+  trace id so two services sharing one agree without coordinating; sampling per span would
+  shred every tree it touched. Conversation content is off by default and rides on
+  `message` events only, never on spans, so spans can go to a metrics backend without
+  carrying prompts into it.
+
 - **Exported spans follow the GenAI semantic conventions.** `agent.run` and `tool.call` export as
   `invoke_agent` and `execute_tool {name}`, carrying `gen_ai.operation.name`, `gen_ai.agent.id`,
   `gen_ai.tool.name` and `gen_ai.tool.call.id`. Names only this library understood forced every

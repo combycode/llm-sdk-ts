@@ -27,6 +27,7 @@ import { MemoryCacheStore } from '../plugins/cache/memory-store';
 import { CostCollector } from '../plugins/cost-collector/collector';
 import { ModelCatalog } from '../plugins/model-catalog/catalog';
 import { FilePersistence } from '../plugins/persistence/file';
+import { TelemetryAdapter, type TelemetryAdapterOptions } from '../plugins/telemetry/telemetry';
 import { MemoryPersistence } from '../plugins/persistence/memory';
 import type { Persistence } from '../plugins/persistence/types';
 
@@ -61,6 +62,10 @@ export interface EngineHandle {
   /** CostCollector — subscribes to onCompletion + onMediaGenerated and
    *  prices via catalog. Call `engine.cost.total()` for a running tally. */
   cost: CostCollector;
+  /** TelemetryAdapter — present only when `telemetry` was configured, because an
+   *  unwanted one would sit there accumulating spans for a process that never reads
+   *  them. Subscribe with `engine.telemetry.onTrace(...)`, or use it directly. */
+  telemetry: TelemetryAdapter | null;
   /** API keys per provider. Helpers (createLLM, createAgent,
    *  createMediaOutput, complete) read these to wire LLM clients without
    *  the caller passing apiKey explicitly. */
@@ -105,6 +110,20 @@ export interface EngineConfig {
   /** Per-provider API keys. Helpers consult this when no apiKey is passed
    *  alongside `model: 'provider/...'`. */
   apiKeys?: Partial<Record<ProviderName, string>>;
+  /** Observability. Omitted → no adapter is built and nothing is collected.
+   *
+   *  ```ts
+   *  createEngine({
+   *    telemetry: {
+   *      types: ['agent', 'tool'],        // http/llm detail stays out
+   *      content: 'none',                 // conversation text off by default
+   *      sample: 0.05,                    // per trace, not per span
+   *      onTrace: (e) => myPipeline.push(e),
+   *    },
+   *  });
+   *  ```
+   */
+  telemetry?: TelemetryAdapterOptions;
   /** Retry policy for every request this engine makes.
    *
    *  Retry is a cross-cutting concern, so it is configured once here rather than threaded through
@@ -147,6 +166,10 @@ export function createEngine(config: EngineConfig = {}): EngineHandle {
   const connectBound: EngineConnect = (req) => network.connect(req);
 
   const cost = new CostCollector({ hooks, catalog });
+  // The SDK never sends telemetry anywhere. It hands you events, filtered the way you
+  // asked, and your pipeline — which already exists and already has the business spans
+  // that matter more than ours — decides where they go.
+  const telemetry = config.telemetry ? new TelemetryAdapter(hooks, config.telemetry) : null;
 
   const handle: EngineHandle = {
     sessionId,
@@ -160,9 +183,11 @@ export function createEngine(config: EngineConfig = {}): EngineHandle {
     connect: connectBound,
     catalog,
     cost,
+    telemetry,
     apiKeys: config.apiKeys ?? {},
     destroy(): void {
       cost.destroy();
+      telemetry?.destroy();
       network.destroy();
     },
   };

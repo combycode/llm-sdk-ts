@@ -138,6 +138,47 @@ function otlpSpanName(span: { name: string; attributes: Record<string, unknown> 
   return typeof subject === 'string' && subject ? `${op} ${subject}` : op;
 }
 
+/** Normalise whatever a hook carried into `{ role, content }` pairs.
+ *
+ *  Deliberately NOT the provider-shaped request body: that is a different shape per
+ *  provider, and a consumer would have to know which one it was looking at. The library's
+ *  own normalised forms are the whole reason it exists. */
+function toMessageList(
+  payload: unknown,
+  defaultRole: string,
+): Array<{ role: string; content: string }> {
+  if (payload == null) return [];
+  if (typeof payload === 'string') {
+    return payload ? [{ role: defaultRole, content: payload }] : [];
+  }
+  if (Array.isArray(payload)) {
+    const parts = payload as Array<Record<string, unknown>>;
+    // A Message[] (has `role`) or a ContentPart[] (does not).
+    if (parts.length > 0 && parts[0] && 'role' in parts[0]) {
+      return parts
+        .map((m) => ({ role: String(m.role ?? defaultRole), content: contentToText(m.content) }))
+        .filter((m) => m.content);
+    }
+    const text = contentToText(parts);
+    return text ? [{ role: defaultRole, content: text }] : [];
+  }
+  const text = contentToText(payload);
+  return text ? [{ role: defaultRole, content: text }] : [];
+}
+
+/** Flatten content to plain text, keeping only what a human would read. */
+function contentToText(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return content
+    .map((part) => {
+      const p = part as Record<string, unknown>;
+      return typeof p?.text === 'string' ? p.text : '';
+    })
+    .filter(Boolean)
+    .join('');
+}
+
 export type SpanKind = 'llm' | 'http' | 'media' | 'agent' | 'tool' | 'mcp' | 'other';
 
 export interface Span {
@@ -159,6 +200,68 @@ export interface Span {
   status: 'unset' | 'ok' | 'error';
   attributes: Record<string, unknown>;
 }
+
+// ─── The event surface ───────────────────────────────────────────────────────
+//
+// This SDK is one part of a larger system. The traces that matter to an operator are the
+// business ones — an order confirmed, a worker selected — and our HTTP retries are a
+// detail to unfold only when something is wrong. So the library does not decide what is
+// worth exporting, and it does not export anything: it hands over events, filtered the
+// way the consumer asked, and the consumer sends them wherever their pipeline already
+// goes. One place, their choice, no exporter of ours competing with theirs.
+
+/** What kind of work an event describes. `message` is conversation content, which is not
+ *  a span — it is the thing you want in a debug store and NOT in your metrics backend,
+ *  which is exactly why it filters separately. */
+export type TraceEventType =
+  | 'agent'
+  | 'tool'
+  | 'llm'
+  | 'http'
+  | 'mcp'
+  | 'media'
+  | 'message'
+  | 'other';
+
+const EVENT_TYPE_BY_KIND: Record<SpanKind, TraceEventType> = {
+  agent: 'agent',
+  tool: 'tool',
+  llm: 'llm',
+  http: 'http',
+  mcp: 'mcp',
+  media: 'media',
+  other: 'other',
+};
+
+/** Seed for the sampling hash. Fixed so the decision is reproducible — see `isSampled`. */
+const SAMPLE_SEED = 0x9e3779b9;
+
+/** One piece of work, carrying enough of the tree that a consumer can push it straight
+ *  into their own tracer without reconstructing anything. */
+export interface TraceEvent {
+  type: TraceEventType;
+  /** The app's trace when it supplied a `traceparent`, else ours. */
+  traceId: string;
+  spanId: string;
+  /** Already resolved past anything this subscriber filtered out — see `survivingParent`. */
+  parentSpanId?: string;
+  /** The conventional name (`chat gpt-5.4-nano`, `execute_tool search`). */
+  name: string;
+  startTime: number;
+  endTime?: number;
+  durationMs?: number;
+  status: 'unset' | 'ok' | 'error';
+  attributes: Record<string, unknown>;
+}
+
+/** Declarative on purpose, rather than a predicate: knowing the types up front lets a
+ *  filtered-out event cost nothing, where a predicate would force us to build the payload
+ *  just to let the caller throw it away. */
+export interface TraceFilter {
+  types?: readonly TraceEventType[];
+}
+
+export type TraceHandler = (event: TraceEvent) => void;
 
 export interface TelemetryEvent {
   seq: number;
@@ -343,6 +446,32 @@ export interface TelemetryAdapterOptions {
    *  boundary (a shared collector, a vendor APM) and the message is replaced by a
    *  fixed `[redacted]` string while name/code/status are kept for triage. */
   includeSensitiveData?: boolean;
+  /** Which event types to hand to `onTrace`. Omitted → everything.
+   *
+   *  Filtering SPLICES the tree rather than punching holes in it: drop `http` and the
+   *  spans under it re-parent to the nearest surviving ancestor. Dropping without that
+   *  leaves orphans, and a backend draws an orphan as a second root — worse than not
+   *  filtering at all. */
+  types?: readonly TraceEventType[];
+  /** Whether conversation content rides along on `message` events. Default `'none'`:
+   *  prompts and completions are the debugging gold AND the PII, so sending them is a
+   *  decision to make on purpose rather than inherit. `'full'` adds the Opt-In
+   *  `gen_ai.input.messages` / `gen_ai.output.messages` attributes; `'none'` still
+   *  reports the shape (counts and sizes), which is enough to spot a runaway prompt. */
+  content?: 'none' | 'full';
+  /** Fraction of TRACES to emit, 0..1. Default 1.
+   *
+   *  Per trace, never per span: sampling spans independently shreds every tree it touches
+   *  — a tool call with no run, a model call with no tool. The decision is a hash of the
+   *  trace id, so it is stable across processes and two services sharing a trace agree
+   *  without coordinating.
+   *
+   *  This is HEAD sampling: the choice is made when the trace first appears, before we
+   *  know whether it ends in an error. Keeping all errors needs tail sampling, which
+   *  needs buffering; do that in your collector, which is built for it. */
+  sample?: number;
+  /** Convenience for the common case of a single sink — same as calling `onTrace`. */
+  onTrace?: TraceHandler;
 }
 
 export class TelemetryAdapter {
@@ -388,11 +517,141 @@ export class TelemetryAdapter {
   private readonly includeSensitiveData: boolean;
   private readonly unsub: () => void;
 
+  /** Subscribers, each with its own filter. Re-parenting is computed PER SINK: two
+   *  consumers asking for different types each get a tree that is correct for them. */
+  private readonly sinks: Array<{ types?: Set<TraceEventType>; handler: TraceHandler }> = [];
+  private readonly content: 'none' | 'full';
+  private readonly sampleRate: number;
+  /** spanId → its parent and type, for EVERY span including filtered ones — walking up
+   *  past a dropped ancestor is the whole point, so the dropped ones must still be here.
+   *  Bounded, because a long-lived process would otherwise remember every span it ever
+   *  saw. */
+  private readonly lineage = new Map<string, { parentSpanId?: string; type: TraceEventType }>();
+  private readonly maxLineage: number;
+  private msgSeq = 0;
+
   constructor(hooks: HookBus, opts: TelemetryAdapterOptions = {}) {
     this.maxEvents = opts.maxEvents ?? 2000;
     this.includeSensitiveData = opts.includeSensitiveData ?? true;
     this.resource = opts.resource ?? { serviceName: 'unknown_service' };
+    this.content = opts.content ?? 'none';
+    this.sampleRate = opts.sample ?? 1;
+    this.maxLineage = this.maxEvents * 2;
+    if (opts.onTrace) this.onTrace({ types: opts.types }, opts.onTrace);
     this.unsub = hooks.onAny((name, ctx) => this.handle(name, ctx));
+  }
+
+  /** Subscribe to the event stream. Returns an unsubscribe function.
+   *
+   *  ```ts
+   *  const stop = telemetry.onTrace({ types: ['agent', 'tool'] }, (e) => pipeline.push(e));
+   *  ```
+   */
+  onTrace(handler: TraceHandler): () => void;
+  onTrace(filter: TraceFilter, handler: TraceHandler): () => void;
+  onTrace(filterOrHandler: TraceFilter | TraceHandler, maybeHandler?: TraceHandler): () => void {
+    const handler = typeof filterOrHandler === 'function' ? filterOrHandler : maybeHandler;
+    if (!handler) throw new Error('onTrace requires a handler');
+    const filter = typeof filterOrHandler === 'function' ? {} : filterOrHandler;
+    const sink = { types: filter.types ? new Set(filter.types) : undefined, handler };
+    this.sinks.push(sink);
+    return () => {
+      const at = this.sinks.indexOf(sink);
+      if (at !== -1) this.sinks.splice(at, 1);
+    };
+  }
+
+  /** Record a finished span and hand it to the subscribers. Every span reaches the store
+   *  through here, so there is one place where an event can be missed rather than five. */
+  private recordSpan(span: Span): void {
+    this.spans.push(span);
+    const type = EVENT_TYPE_BY_KIND[span.kind];
+    // Point spans (media, MCP) never pass through openSpan, so they register here.
+    if (!this.lineage.has(span.spanId)) this.remember(span.spanId, span.parentSpanId, type);
+    this.dispatch({
+      type,
+      traceId: span.traceId,
+      spanId: span.spanId,
+      parentSpanId: span.parentSpanId,
+      name: otlpSpanName(span),
+      startTime: span.startTime,
+      endTime: span.endTime,
+      durationMs: span.durationMs,
+      status: span.status,
+      attributes: span.attributes,
+    });
+  }
+
+  private remember(spanId: string, parentSpanId: string | undefined, type: TraceEventType): void {
+    this.lineage.set(spanId, { parentSpanId, type });
+    if (this.lineage.size > this.maxLineage) {
+      const oldest = this.lineage.keys().next().value;
+      if (oldest !== undefined) this.lineage.delete(oldest);
+    }
+  }
+
+  private dispatch(event: TraceEvent): void {
+    if (this.sinks.length === 0) return;
+    if (!this.isSampled(event.traceId)) return;
+    for (const sink of this.sinks) {
+      if (sink.types && !sink.types.has(event.type)) continue;
+      const parentSpanId = sink.types
+        ? this.survivingParent(event.parentSpanId, sink.types)
+        : event.parentSpanId;
+      sink.handler(parentSpanId === event.parentSpanId ? event : { ...event, parentSpanId });
+    }
+  }
+
+  /** The nearest ancestor this subscriber actually receives. Without this, filtering out
+   *  `http` would leave its children pointing at a span that never arrives, and a backend
+   *  renders a dangling parent as a separate root. */
+  private survivingParent(
+    parentSpanId: string | undefined,
+    types: Set<TraceEventType>,
+  ): string | undefined {
+    let id = parentSpanId;
+    while (id) {
+      const node = this.lineage.get(id);
+      // Evicted or unknown: root it rather than point at something the consumer will
+      // never see. A root is honest; a dangling parent is a broken trace.
+      if (!node) return undefined;
+      if (types.has(node.type)) return id;
+      id = node.parentSpanId;
+    }
+    return undefined;
+  }
+
+  /** Hashed rather than random, so the same trace samples the same way in every process
+   *  and a trace shared by two services is kept or dropped by both. */
+  private isSampled(traceId: string): boolean {
+    if (this.sampleRate >= 1) return true;
+    if (this.sampleRate <= 0) return false;
+    return fnv1a32(traceId, SAMPLE_SEED) / 0x1_0000_0000 < this.sampleRate;
+  }
+
+  /** Conversation content, as its own event so it can be routed somewhere different from
+   *  the spans — a debug store, not the metrics backend. */
+  private emitMessage(span: Span, direction: 'input' | 'output', payload: unknown): void {
+    if (this.sinks.length === 0) return;
+    const messages = toMessageList(payload, direction === 'input' ? 'user' : 'assistant');
+    if (messages.length === 0) return;
+    const chars = messages.reduce((n, m) => n + m.content.length, 0);
+    this.dispatch({
+      type: 'message',
+      traceId: span.traceId,
+      spanId: `${span.spanId}:msg${this.msgSeq++}`,
+      parentSpanId: span.spanId,
+      name: `message.${direction}`,
+      startTime: Date.now(),
+      status: 'unset',
+      attributes: clean({
+        'message.direction': direction,
+        'message.count': messages.length,
+        'message.chars': chars,
+        // Opt-In in the spec, and off by default here for the same reason.
+        [`gen_ai.${direction}.messages`]: this.content === 'full' ? messages : undefined,
+      }),
+    });
   }
 
   /** Stop tapping the bus. */
@@ -449,16 +708,17 @@ export class TelemetryAdapter {
             'gen_ai.usage.output_tokens': usage?.outputTokens,
           };
           const key = `llm:${traceId}`;
+          let llmSpan: Span | undefined;
           if (this.open.has(key)) {
             // complete(): span was opened on onBeforeSubmit.
-            this.closeSpan(key, 'ok', attrs);
+            llmSpan = this.closeSpan(key, 'ok', attrs);
           } else {
             // stream(): no onBeforeSubmit — synthesize the llm span spanning the
             // request's HTTP span (so it has a real duration).
             const http = [...this.spans].reverse().find((s) => s.traceId === traceId && s.kind === 'http');
             const start = http?.startTime ?? Date.now();
             const end = Date.now();
-            this.spans.push({
+            llmSpan = {
               traceId,
               spanId: key,
               name: 'llm.request',
@@ -468,7 +728,12 @@ export class TelemetryAdapter {
               durationMs: end - start,
               status: 'ok',
               attributes: clean(attrs),
-            });
+            };
+            this.recordSpan(llmSpan);
+          }
+          if (llmSpan) {
+            const response = c.response as { content?: unknown; text?: string } | undefined;
+            this.emitMessage(llmSpan, 'output', response?.content ?? response?.text);
           }
         }
         break;
@@ -518,7 +783,7 @@ export class TelemetryAdapter {
         if (traceId) {
           // Media is reported as a single completed event → a point span.
           const now = Date.now();
-          this.spans.push({
+          this.recordSpan({
             traceId,
             // One run can generate several images; `media:${traceId}` would give them
             // all the same span id, which is invalid within a trace.
@@ -542,7 +807,7 @@ export class TelemetryAdapter {
           // different trace from the LLM calls it made.
           // openSpan puts a container on the trace's stack itself, so everything emitted
           // until this run closes nests under it.
-          this.openSpan(`agent:${runId}`, traceId ?? runId, 'agent.run', 'agent', {
+          const runSpan = this.openSpan(`agent:${runId}`, traceId ?? runId, 'agent.run', 'agent', {
             'gen_ai.operation.name': 'invoke_agent',
             // No `gen_ai.agent.name` yet: the SDK has agent IDs, not human names, so the
             // exported span is the bare `invoke_agent`. It fills in on its own once
@@ -550,6 +815,7 @@ export class TelemetryAdapter {
             'gen_ai.agent.id': c.agentId,
             'gen_ai.request.model': c.model,
           });
+          this.emitMessage(runSpan, 'input', c.userMessage);
         }
         break;
       }
@@ -613,7 +879,7 @@ export class TelemetryAdapter {
         const server = c.server as string | undefined;
         if (server) {
           const now = Date.now();
-          this.spans.push({
+          this.recordSpan({
             // A connect usually happens at startup, outside any run, so there is often
             // no trace to join — but keying the trace by server name merged every
             // reconnect over the process lifetime into one trace. Falls back to a span
@@ -646,7 +912,7 @@ export class TelemetryAdapter {
         if (server && tool) {
           const now = Date.now();
           const lat = c.latencyMs as number | undefined;
-          this.spans.push({
+          this.recordSpan({
             // An MCP tool call happens INSIDE a run, so it belongs to that run's trace.
             // Keying it by server put every call to one server in a single eternal
             // trace, and none of them with the agent that made the call.
@@ -713,6 +979,10 @@ export class TelemetryAdapter {
       attributes,
     };
     this.open.set(key, span);
+    // Registered on OPEN, not on close: an LLM call finishes before the run that made
+    // it, so at close time the parent would not be known yet and re-parenting would
+    // walk into nothing.
+    this.remember(span.spanId, parentSpanId, EVENT_TYPE_BY_KIND[kind]);
     // Only spans that CONTAIN other work become parents. An LLM call or an HTTP request
     // is a leaf; letting one on the stack would make it the parent of whatever concurrent
     // span opened next.
@@ -724,9 +994,13 @@ export class TelemetryAdapter {
     return span;
   }
 
-  private closeSpan(key: string, status: 'ok' | 'error', attributes: Record<string, unknown>): void {
+  private closeSpan(
+    key: string,
+    status: 'ok' | 'error',
+    attributes: Record<string, unknown>,
+  ): Span | undefined {
     const span = this.open.get(key);
-    if (!span) return;
+    if (!span) return undefined;
     // A finished container stops being the parent for later work. Removed BY ID rather
     // than popped: parallel tool calls close out of order, and popping blindly would
     // retire a sibling that is still running. Once the trace has nothing open, its
@@ -745,7 +1019,8 @@ export class TelemetryAdapter {
     span.status = status;
     Object.assign(span.attributes, clean(attributes));
     this.open.delete(key);
-    this.spans.push(span);
+    this.recordSpan(span);
+    return span;
   }
 
   private recordLatency(ms: number): void {
