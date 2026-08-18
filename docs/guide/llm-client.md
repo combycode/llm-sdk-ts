@@ -153,12 +153,18 @@ await complete({ model: 'openai/gpt-5.4-nano', apiKey, prompt: '…', presencePe
 
 - `mode: 'auto' | 'on' | 'off'` — enable/disable reasoning.
 - `effort: 'low' | 'medium' | 'high' | 'max'` — intensity, mapped per provider (Anthropic
-  `budget_tokens`, OpenAI/xAI `effort`, Google `thinkingBudget` on 2.5 / `thinkingLevel` on 3.x).
+  `budget_tokens` below 4.6 and `output_config.effort` on 4.6+, OpenAI/xAI `effort`, Google
+  `thinkingBudget` on 2.5 / `thinkingLevel` on 3.x).
 - `visibility: 'full' (default) | 'summary' | 'hidden'` — how much reasoning comes back: Anthropic
   `enabled.display`, OpenAI Responses `summary`, Google `includeThoughts`. Best-effort — a provider
   without a middle state degrades `summary` to `full`.
 - `context: 'auto' | 'current_turn' | 'all_turns'` — cross-turn reasoning persistence (OpenAI Responses).
   Omitted, the model decides: the `gpt-5.6` family defaults to `all_turns`, earlier models to `current_turn`.
+
+**Anthropic has two incompatible request shapes and the SDK picks per model** — you do not configure
+this. Claude 4.6 and later take `thinking: {type:'adaptive'}` and reject `budget_tokens` with a 400;
+everything below 4.6 has no adaptive mode and requires the budget. An unrecognised model id gets
+`adaptive`, since that is the shape Anthropic is moving to.
 
 ```ts
 await complete({ model: 'anthropic/claude-haiku-4.5', apiKey, prompt: '…',

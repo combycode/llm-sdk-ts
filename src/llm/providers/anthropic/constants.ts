@@ -21,6 +21,53 @@ export const ANTHROPIC_THINKING_BUDGETS: Record<string, number> = {
 export const DEFAULT_ANTHROPIC_THINKING_BUDGET = 2048;
 
 /**
+ * The version at which `thinking: {type:'adaptive'}` takes over from
+ * `{type:'enabled', budget_tokens}`.
+ *
+ * There is no shape that works everywhere, and the direction reversed under us. This
+ * adapter used to send the budgeted form to every model, on the reasoning that it was the
+ * universally accepted one — true when it was written. Anthropic then REMOVED
+ * `budget_tokens` on 4.7 and later: Sonnet 5, Opus 5/4.8/4.7 and Fable 5 reject it with a
+ * 400 ("thinking.type.enabled is not supported for this model"). Meanwhile the older half
+ * — Haiku 4.5, Sonnet 4.5, Opus 4.x — has no `adaptive` at all and still requires the
+ * budget. So the shape must be chosen per model.
+ *
+ * 4.6 is the boundary: it accepts both and prefers `adaptive`, everything above requires
+ * `adaptive`, everything below requires the budget.
+ */
+export const ANTHROPIC_ADAPTIVE_THINKING_MIN = { major: 4, minor: 6 } as const;
+
+/**
+ * Pick the `thinking` shape for a model id.
+ *
+ * Parsed from the id rather than read from the catalog on purpose: the catalog is optional
+ * (an engine can run with none), `buildRequest` has no access to it, and its per-model
+ * `reasoning` block does not currently distinguish the two shapes anyway.
+ *
+ * An unrecognised id gets `adaptive`, because `budget_tokens` is the shape being retired —
+ * an id we do not recognise is far likelier to be newer than us than older.
+ */
+export function anthropicThinkingShape(model: string): 'adaptive' | 'budgeted' {
+  const id = model.toLowerCase().replace(/^anthropic\//, '');
+
+  // Current ids put the family before the version: claude-sonnet-4-6, claude-opus-5,
+  // claude-haiku-4-5-20251001 (the date suffix falls outside the match).
+  const modern = /^claude-[a-z]+-(\d+)(?:[-.](\d+))?/.exec(id);
+  if (modern) {
+    const major = Number(modern[1]);
+    const minor = modern[2] === undefined ? 0 : Number(modern[2]);
+    const { major: minMajor, minor: minMinor } = ANTHROPIC_ADAPTIVE_THINKING_MIN;
+    return major > minMajor || (major === minMajor && minor >= minMinor) ? 'adaptive' : 'budgeted';
+  }
+
+  // Legacy ids put the version first: claude-3-5-sonnet-latest. All of those predate
+  // adaptive thinking, so they take the budget rather than the unknown-id default.
+  if (/^claude-\d/.test(id)) return 'budgeted';
+
+  return 'adaptive';
+}
+
+/**
  * Models that still accept `top_k`.
  *
  * Anthropic DEPRECATED `top_k`: the SDK marks it

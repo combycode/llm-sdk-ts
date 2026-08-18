@@ -16,7 +16,7 @@
  *  before returning so callers don't leak. */
 
 import type { AgentTool } from '../agent/types';
-import type { CacheConfig } from '../llm/types/request';
+import type { CacheConfig, ThinkingConfig } from '../llm/types/request';
 import { AgentLoop } from '../agent/loop';
 import { parseStructured } from '../llm/client-internal';
 import type { LLMClientConfig } from '../llm/client-config';
@@ -78,6 +78,11 @@ export interface CompleteOptions {
   /** Which output modalities to return. Default ['text']; add 'audio' for a spoken
    *  reply (surfaced as a media part on `response.media`). */
   outputModalities?: Array<'text' | 'audio'>;
+
+  /** Extended thinking. Missing from this helper until 2.2.1: `client.complete()` and
+   *  agents honoured `thinking` while a one-shot silently dropped it, so the simplest
+   *  entry point was the only one that could not reason. */
+  thinking?: ThinkingConfig;
 
   /** Service tier for this call. Also settable as a `model:tier` suffix (e.g.
    *  `anthropic/claude-opus-4.8:priority`); an explicit value here wins. */
@@ -183,6 +188,7 @@ export async function complete<T = unknown>(opts: CompleteOptions): Promise<Comp
         cache: opts.cache,
         topK: opts.topK,
         seed: opts.seed,
+        thinking: opts.thinking,
       });
     } else {
       res = await llm.complete(input, {
@@ -197,6 +203,7 @@ export async function complete<T = unknown>(opts: CompleteOptions): Promise<Comp
         cache: opts.cache,
         topK: opts.topK,
         seed: opts.seed,
+        thinking: opts.thinking,
       });
     }
 

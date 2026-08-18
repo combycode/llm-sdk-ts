@@ -4,6 +4,30 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [2.2.1] — 2026-08-17
+
+### Fixed
+
+- **Extended thinking returned a 400 on Claude 4.7 and later.** The Anthropic adapter sent
+  `thinking: {type:'enabled', budget_tokens: N}` to every model, on the reasoning that it was the
+  universally accepted shape — true when written, and since reversed. Anthropic removed
+  `budget_tokens` on 4.7+, so Sonnet 5, Opus 5/4.8/4.7 and Fable 5 rejected every thinking request
+  outright:
+
+  > `"thinking.type.enabled" is not supported for this model. Use "thinking.type.adaptive"`
+
+  There is no shape that works everywhere: Haiku 4.5, Sonnet 4.5 and the Opus 4.x line have no
+  adaptive mode at all and still require the budget (`adaptive thinking is not supported on this
+  model`), so a blanket switch would have broken the other half. The shape is now chosen per model
+  at 4.6 — the version that accepts both — with `effort` mapping to `output_config.effort` on the
+  adaptive side instead of a token budget. An unrecognised model id gets `adaptive`, since
+  `budget_tokens` is the shape being retired. Both halves verified against the live API.
+
+- **`complete()` silently dropped `thinking`.** The one-shot helper never declared the option, so a
+  reasoning request through the simplest entry point sent no thinking at all while `client.complete()`
+  and agents honoured it. Found while live-testing the fix above — the run came back green because
+  nothing was being sent.
+
 ## [2.2.0] — 2026-08-17
 
 ### Added

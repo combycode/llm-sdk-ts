@@ -26,6 +26,7 @@ import { DEFAULT_MAX_TOKENS } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
 import {
   ANTHROPIC_API_VERSION,
+  anthropicThinkingShape,
   ANTHROPIC_THINKING_BUDGETS,
   DEFAULT_ANTHROPIC_THINKING_BUDGET,
   anthropicAcceptsTopK,
@@ -278,16 +279,31 @@ export class AnthropicAdapter implements ProviderAdapter {
     if (req.thinking) {
       if (req.thinking.mode === 'off') {
         /* no thinking param */
+      } else if (anthropicThinkingShape(req.model) === 'adaptive') {
+        // 4.6 and later. `budget_tokens` is REJECTED here with a 400 — the model decides
+        // its own depth, and `effort` is how you steer it.
+        const thinking: Record<string, unknown> = { type: 'adaptive' };
+        // `hidden` redacts thinking from the output (a signature is kept for
+        // multi-turn continuity); full/summary leave it summarized (the default).
+        if (req.thinking.visibility === 'hidden') thinking.display = 'omitted';
+        body.thinking = thinking;
+        if (req.thinking.effort) {
+          // Merged, not assigned: `structured` writes its format into the same object
+          // further down, and it reads what is already there.
+          body.output_config = {
+            ...((body.output_config as Record<string, unknown>) ?? {}),
+            effort: req.thinking.effort,
+          };
+        }
+        // No max_tokens lifting: there is no budget for it to have to exceed.
       } else {
-        // Extended thinking. Use enabled+budget — works on ALL thinking-capable
-        // models (incl. Haiku); `adaptive` is only on newer models. Map the
-        // unified effort to a token budget.
+        // Pre-4.6. `adaptive` does not exist on these models, and thinking without a
+        // budget is not enabled at all, so the budget is mandatory. Map the unified
+        // effort to a token budget.
         const budget = req.thinking.effort
           ? (ANTHROPIC_THINKING_BUDGETS[req.thinking.effort] ?? DEFAULT_ANTHROPIC_THINKING_BUDGET)
           : DEFAULT_ANTHROPIC_THINKING_BUDGET;
         const thinking: Record<string, unknown> = { type: 'enabled', budget_tokens: budget };
-        // `hidden` redacts thinking from the output (a signature is kept for
-        // multi-turn continuity); full/summary leave it summarized (the default).
         if (req.thinking.visibility === 'hidden') thinking.display = 'omitted';
         body.thinking = thinking;
         // Anthropic requires max_tokens > budget_tokens — lift it transparently.
