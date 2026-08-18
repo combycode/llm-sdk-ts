@@ -123,7 +123,30 @@ export class GoogleAdapter implements ProviderAdapter {
           functionDeclarations: fnTools.map((t) => ({
             name: t.name,
             description: t.description,
-            parameters: t.parameters,
+            // `parametersJsonSchema`, NOT `parameters`. The two are mutually exclusive
+            // (sending both is a 400) and accept different things:
+            //
+            //   parameters            a narrow OpenAPI subset. Anything outside it is
+            //                         rejected outright with `Unknown name "<keyword>"` —
+            //                         measured: additionalProperties (at any depth),
+            //                         $schema, $ref, $defs, definitions, const, examples,
+            //                         exclusiveMinimum/Maximum, multipleOf, uniqueItems,
+            //                         patternProperties, propertyNames, if/then,
+            //                         readOnly, deprecated, and `type` as an array.
+            //   parametersJsonSchema  full JSON Schema.
+            //
+            // We passed callers' schemas straight into `parameters`, so any tool defined
+            // with `additionalProperties: false` — which OpenAI's strict mode requires —
+            // failed on EVERY Gemini model. A consuming app had to delete it from its
+            // manifest, degrading its OpenAI schema to keep Google working.
+            //
+            // Sanitising into the subset was the obvious fix and is the wrong one: it
+            // silently drops constraints and cannot express a `$ref` at all. Verified on
+            // every tool-capable model we ship (2.5 pro/flash/flash-lite, 3-flash,
+            // 3.1-pro incl. customtools, 3.1-flash-lite, 3.5-flash/-lite, 3.6-flash,
+            // gemma-4-26b/-31b) that this field takes the schema unchanged and the model
+            // still calls the tool.
+            parametersJsonSchema: t.parameters,
           })),
         });
       }

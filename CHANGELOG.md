@@ -4,6 +4,30 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [2.2.2] — 2026-08-17
+
+### Fixed
+
+- **Every Gemini model rejected any tool schema carrying `additionalProperties`.** Function
+  declarations were sent on Gemini's `parameters` field, which takes a narrow OpenAPI subset and
+  rejects anything outside it outright:
+
+  > `Invalid JSON payload received. Unknown name "additionalProperties" at 'tools[0].function_declarations[0].parameters'`
+
+  Since OpenAI strict mode *requires* `additionalProperties: false`, no single tool manifest could
+  satisfy both providers — a consuming app had to delete the property, degrading its OpenAI schema,
+  to keep Google working. Measured against the live API, the narrow field also rejects `$schema`,
+  `$ref`, `$defs`, `definitions`, `const`, `examples`, `exclusiveMinimum`/`Maximum`, `multipleOf`,
+  `uniqueItems`, `patternProperties`, `propertyNames`, `if`/`then`, `readOnly`, `deprecated`, and
+  `type` given as an array.
+
+  Schemas now go on `parametersJsonSchema`, which takes full JSON Schema unchanged. Sanitising into
+  the subset was the obvious alternative and is worse: it silently drops constraints and cannot
+  express a `$ref` at all. Verified end to end on every tool-capable model the catalog ships —
+  gemini 2.5 pro/flash/flash-lite, 3-flash, 3.1-pro (incl. customtools), 3.1-flash-lite,
+  3.5-flash/-lite, 3.6-flash, gemma-4-26b/-31b: 11/11 fail before the change and drive the tool
+  after it. The Interactions surface already accepted full JSON Schema and is unchanged.
+
 ## [2.2.1] — 2026-08-17
 
 ### Fixed

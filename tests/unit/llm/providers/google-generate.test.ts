@@ -231,8 +231,11 @@ describe('GoogleAdapter — tools and toolChoice', () => {
       ...baseReq,
       tools: [{ name: 'fn', description: 'd', parameters: {} }],
     });
+    // `parametersJsonSchema`, not `parameters`: the narrow field rejects any schema
+    // carrying additionalProperties / $ref / const and friends. See
+    // google-tool-schema.test.ts for the measured keyword list.
     expect(r.body.tools).toEqual([
-      { functionDeclarations: [{ name: 'fn', description: 'd', parameters: {} }] },
+      { functionDeclarations: [{ name: 'fn', description: 'd', parametersJsonSchema: {} }] },
     ]);
   });
 
