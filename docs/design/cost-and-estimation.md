@@ -10,7 +10,7 @@ Source: `src/plugins/cost-collector/collector.ts`,
 `src/helpers/estimate.ts`, `src/helpers/estimator.ts`,
 `src/helpers/estimate-types.ts`,
 `src/helpers/calibration-store.ts`, `src/helpers/calibration-types.ts`,
-`src/plugins/model-catalog/catalog.ts`.
+`src/catalog/catalog.ts`.
 
 ## Purpose and responsibilities
 
@@ -25,7 +25,7 @@ The cost subsystem has three independent parts:
    a pure function (no network, no state). `Estimator` wraps it with
    EWMA-calibrated output-token bounds derived from observed completions.
 
-## `ModelCatalog` (`src/plugins/model-catalog/catalog.ts`)
+## `ModelCatalog` (`src/catalog/catalog.ts`)
 
 ### Data model
 

@@ -79,6 +79,25 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   They are not exported from `index.ts` and are tree-shaken out of `dist`, so they add **no bytes**
   to the published package (verified: package size unchanged).
 
+- **Every catalogued chat model is checked against its pinned spec on every run.** The previous
+  pin test drove Anthropic and Google models only — 26 of 289. The other 263, 224 of them
+  OpenRouter, were covered by nothing stronger than "the pin names a spec that resolves", which a
+  typo satisfies. `tests/unit/wire/every-model-reproduces-its-adapter.test.ts` now builds 17
+  request shapes for every chat model, through the spec the CATALOG pins it to, and requires the
+  payload to equal the one the real adapter produces — ~4,900 comparisons, under a second.
+
+  The adapter is chosen from `preferredApi`, never from the pin. Choosing it from the pin is
+  circular and silently so: mis-pin an OpenRouter model to `openai/responses` and the adapter
+  moves with it, both sides agree, and the sweep stays green on a broken pin. It did exactly that
+  until a deliberate corruption caught it. Mis-pinning any single model in any of the five
+  providers now fails, as does a provider losing its pins entirely.
+
+- **A consumer example for traces** (`telemetry-traces`, in the examples corpus): subscribing with
+  `onTrace`, filtering by span type at the subscription rather than in the handler, head sampling,
+  keeping prompt content out, joining an inbound `traceparent`, naming a run with
+  `label`/`source`/`attributes`, and reading `client.routing`. The trace feed had no example at
+  all, which the quality gate's example-first check was reporting.
+
 ### Fixed
 
 - **`google/files` rejected Google's own resource-name format.** `delete()` and `getInfo()`

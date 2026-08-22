@@ -3353,7 +3353,7 @@
               "refs": [
                 {
                   "sdk": "lib",
-                  "path": "src/plugins/model-catalog/catalog.ts"
+                  "path": "src/catalog/catalog.ts"
                 }
               ]
             },

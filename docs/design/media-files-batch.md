@@ -165,7 +165,7 @@ events for a single media generation in telemetry.
 All polling calls use the same traced `EngineFetch` as the submit call. The trace
 `requestId` is shared across the entire job lifecycle.
 
-### Source image normalization (`src/plugins/media/source-image.ts`)
+### Source image normalization (`src/util/source-image.ts`)
 
 `normalizeImageSource(src: DataSource): NormalizedImageRef` collapses any `DataSource`
 variant (base64, buffer, url, file, provider\_ref, path) to `{ base64?, mimeType?, url?,

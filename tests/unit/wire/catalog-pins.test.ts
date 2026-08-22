@@ -88,9 +88,15 @@ describe('catalog wire-spec pins', () => {
 describe('the pin agrees with the wire traits', () => {
   /** Drive the pinned spec and read back the shape it chose, so a mismatch
    *  between the two representations fails here rather than in production. */
-  const thinkingShapeFromSpec = (m: { provider: string; wireSpec?: string; model: string }) => {
+  const thinkingShapeFromSpec = (m: {
+    provider: string;
+    wireSpec?: string;
+    model: string;
+    providerModelName?: string;
+  }) => {
     const spec = resolveSpec(m.wireSpec as string, byId);
-    const body = buildFromSpec(spec, req(m.model, { thinking: { mode: 'on' } }), reg).body as any;
+    const id = m.providerModelName ?? m.model;
+    const body = buildFromSpec(spec, req(id, { thinking: { mode: 'on' } }), reg).body as any;
     if (m.provider === 'anthropic') {
       return body.thinking?.type === 'adaptive' ? 'adaptive' : 'budgeted';
     }
@@ -123,7 +129,8 @@ describe('the pin agrees with the wire traits', () => {
     for (const m of chatModels()) {
       if (m.provider !== 'anthropic' || m.wire?.topK === undefined) continue;
       const spec = resolveSpec(m.wireSpec as string, byId);
-      const body = buildFromSpec(spec, req(m.model, { topK: 20 }), reg).body as any;
+      const body = buildFromSpec(spec, req(m.providerModelName ?? m.model, { topK: 20 }), reg)
+        .body as any;
       const sent = body.top_k !== undefined;
       if (sent !== m.wire.topK) {
         mismatches.push(`${m.provider}/${m.model}: trait=${m.wire.topK} spec=${sent}`);

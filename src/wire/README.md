@@ -69,6 +69,17 @@ uses them.
 3. `bun test tests/unit/wire` — the differential fails if the spec and the
    adapter disagree.
 
-The exhaustive corpus (116 chat cases, and all 289 catalogued chat models across
-17 request shapes) lives in `wire-spec-lab/` outside the package, along with the
-mutation suite that proves the differential can actually fail.
+Two suites guard the specs in-repo:
+
+- `spec-differential.test.ts` — one representative case per rule family, against
+  every adapter shape.
+- `every-model-reproduces-its-adapter.test.ts` — every catalogued chat model, 17
+  request shapes each, through the spec the CATALOG pins it to. ~4,900
+  comparisons in under a second, so OpenRouter's 224 models are covered by
+  execution rather than by a pin that merely resolves.
+
+The lab in `wire-spec-lab/` (outside the package) keeps the wider corpus — 116
+chat cases, the media/realtime/CRUD rehearsals, and the mutation suite that
+proves the differential can actually fail. It derives each pin from the model's
+version, so it validates the derivation RULE; the in-repo sweep reads the
+`wireSpec` that actually ships.
