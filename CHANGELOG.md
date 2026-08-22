@@ -45,6 +45,24 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   re-exported from the same place as before. A new test (`tests/unit/architecture/layers.test.ts`)
   fails if any cycle returns.
 
+### Added
+
+- **Wire specs ship in the repo** (`src/wire/`). 71 JSON specs describe how to talk to each
+  provider API — field names, enum values, defaults, versioned tool-type strings, which shape a
+  model version takes — covering every adapter the SDK has: chat, interactions, media, realtime,
+  embeddings, files and batch.
+
+  They exist so the Python and Rust ports consume one artifact instead of re-deriving the same
+  knowledge three times, and so a provider change is one reviewable diff rather than three code
+  changes. This is the knowledge that, living in regexes, produced the 2.2.1 and 2.2.2 bugs.
+
+  **Oracle, not yet authority:** the adapters remain hand-written, and a test
+  (`tests/unit/wire`) proves the specs and the adapters agree on every CI run — data that is
+  never executed rots. Making the specs authoritative is the 3.0.0 step.
+
+  They are not exported from `index.ts` and are tree-shaken out of `dist`, so they add **no bytes**
+  to the published package (verified: package size unchanged).
+
 ### Fixed
 
 - **`google/files` rejected Google's own resource-name format.** `delete()` and `getInfo()`

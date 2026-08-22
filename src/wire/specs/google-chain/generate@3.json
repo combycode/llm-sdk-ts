@@ -1,0 +1,49 @@
+{
+  "id": "google/generate@3",
+  "extends": "google/generate@2.5",
+  "_note": "Gemini 3 and later: thinkingLevel enum; thinkingBudget is not accepted.",
+  "removeBlocks": [
+    "thinking.budget"
+  ],
+  "blocks": [
+    {
+      "name": "thinking.level",
+      "when": {
+        "all": [
+          {
+            "truthy": "thinking"
+          },
+          {
+            "ne": [
+              "thinking.mode",
+              "off"
+            ]
+          },
+          {
+            "not": {
+              "variant": "thinkingBudget"
+            }
+          }
+        ]
+      },
+      "to": "generationConfig.thinkingConfig",
+      "template": {
+        "includeThoughts": {
+          "$table": "includeThoughts",
+          "$key": "thinking.visibility",
+          "$default": true
+        },
+        "thinkingLevel": {
+          "$table": "thinkingLevels",
+          "$key": "thinking.effort",
+          "$default": "HIGH"
+        }
+      }
+    }
+  ],
+  "placeBlocks": {
+    "thinking.level": {
+      "before": "structured"
+    }
+  }
+}

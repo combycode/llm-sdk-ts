@@ -1,0 +1,15 @@
+{
+  "id": "google/media.predict",
+  "provider": "google",
+  "api": "predict",
+  "_note": "Vertex-style predict envelope: {instances:[...], parameters:{...}}. Shared by imagen (images) and veo (video) — two FAMILIES, one envelope, which is why they are siblings in a tree rather than steps in a chain.",
+  "envelope": {
+    "method": "POST",
+    "url": { "$join": [{ "$config": "baseURL" }, "/v1beta/models/", { "$": "model" }, ":predict?key=", { "$config": "apiKey" }] },
+    "headers": [{ "name": "content-type", "value": "application/json" }]
+  },
+  "blocks": [
+    { "name": "instances", "to": "instances", "template": [{ "prompt": { "$": "prompt" } }] },
+    { "name": "parameters.root", "to": "parameters", "merge": true, "template": {}, "_note": "parameters ships even when empty" }
+  ]
+}

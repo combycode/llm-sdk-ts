@@ -1,0 +1,10 @@
+{
+  "id": "google/files.delete",
+  "provider": "google", "api": "files",
+  "_note": "Query-string auth and NO headers at all — unlike every other Google surface.",
+  "envelope": {
+    "method": "DELETE", "bodyKind": "none",
+    "url": { "$join": [{ "$config": "baseURL" }, "/v1beta/files/", { "$": "name" }, "?key=", { "$config": "apiKey" }] },
+    "headers": []
+  }
+}

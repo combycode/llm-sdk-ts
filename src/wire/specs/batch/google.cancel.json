@@ -1,0 +1,9 @@
+{
+  "id": "google/batch.cancel",
+  "provider": "google", "api": "batch",
+  "envelope": {
+    "method": "POST",
+    "url": { "$join": [{ "$config": "baseURL" }, "/v1beta/", { "$": "batchId" }, ":cancel?key=", { "$config": "apiKey" }] },
+    "headers": []
+  }
+}
