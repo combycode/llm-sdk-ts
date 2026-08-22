@@ -16,7 +16,7 @@
  *  before returning so callers don't leak. */
 
 import type { AgentTool } from '../agent/types';
-import type { CacheConfig, ThinkingConfig } from '../llm/types/request';
+import type { CacheConfig, ProviderOptions, ThinkingConfig } from '../llm/types/request';
 import { AgentLoop } from '../agent/loop';
 import { parseStructured } from '../llm/client-internal';
 import type { LLMClientConfig } from '../llm/client-config';
@@ -99,7 +99,7 @@ export interface CompleteOptions {
   /** Optional engine to use. Falls back to coreRegistry default. */
   engine?: EngineHandle;
   /** Provider-specific request options (e.g. `{ openrouter: { models: [...] } }`). */
-  providerOptions?: Record<string, unknown>;
+  providerOptions?: ProviderOptions;
   /** Extra LLMClient options. */
   client?: Partial<Omit<LLMClientConfig, 'provider' | 'model' | 'apiKey'>>;
 

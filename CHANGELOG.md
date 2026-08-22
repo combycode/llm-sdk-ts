@@ -47,6 +47,22 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Changed
 
+- **`providerOptions` is typed.** It was `Record<string, unknown>` — the one untyped hole in the
+  request, and so the one place a typo produced silence rather than an error:
+  `promtCacheOptions` type-checked and was simply never sent.
+
+  The new `ProviderOptions` interface documents every key an adapter actually reads
+  (`userProfileId`; `moderationPolicy`, `promptCacheOptions`, `reasoningMode`;
+  `responseModalities`, `speechConfig`, `imageConfig`, `translationConfig`, `cachedContent`;
+  `openrouter`), derived from the read sites rather than invented. Two `as` casts at those sites
+  became unnecessary and were removed.
+
+  **Not breaking:** the index signature stays, so an unmodelled key is still accepted — providers
+  ship parameters before the SDK models them, and refusing those would make the escape hatch
+  useless. What changed is that the keys we do know are checked and discoverable.
+
+### Changed
+
 - **`AgentLoop.complete()` and `stream()` no longer duplicate their scaffolding.** The two are the
   same loop with different plumbing, and they had drifted into near-duplicates — 167 identical
   lines across ~560. Five shared pieces are now extracted: `recordRunError`, `resolveFinalText`,

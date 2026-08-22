@@ -55,7 +55,7 @@ export async function route<T = unknown>(opts: RouteOptions): Promise<RouteResul
   if (models.length > 1 && models.every((m) => providerOf(m) === 'openrouter')) {
     const bare = models.map(stripProvider);
     const prevOpenrouter =
-      (completeOpts.providerOptions?.openrouter as Record<string, unknown>) ?? {};
+      completeOpts.providerOptions?.openrouter ?? {};
     const res = await complete<T>({
       ...(completeOpts as CompleteOptions),
       model: models[0],

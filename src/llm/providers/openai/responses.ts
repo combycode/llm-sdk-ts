@@ -356,7 +356,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       const summary = visibility === 'hidden' ? null : visibility === 'summary' ? 'concise' : 'auto';
       // Execution mode (standard | pro) is Responses-only — chat-completions rejects
       // it — so it's a providerOptions passthrough, not a unified ThinkingConfig knob.
-      const mode = req.providerOptions?.reasoningMode as 'standard' | 'pro' | undefined;
+      const mode = req.providerOptions?.reasoningMode;
       body.reasoning = {
         effort: req.thinking.effort ?? 'medium',
         ...(summary !== null ? { summary } : {}),

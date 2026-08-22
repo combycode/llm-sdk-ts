@@ -4,7 +4,7 @@ import type { ConversationHistory } from '../../agent/history';
 import type { RequestContext } from '../../types/request-context';
 import type { ModerationRequest } from '../moderation/types';
 import type { AudioOptions } from './audio';
-import type { CacheConfig, ThinkingConfig } from './request';
+import type { CacheConfig, ProviderOptions, ThinkingConfig } from './request';
 import type { ServiceTier } from './tiers';
 import type { Tool, ToolChoice } from './tools';
 
@@ -84,8 +84,8 @@ export interface ExecuteOptions {
    *  moderations endpoint. See ModerationRequest. */
   moderation?: ModerationRequest;
 
-  // Provider-specific
-  providerOptions?: Record<string, unknown>;
+  // Provider-specific — see ProviderOptions.
+  providerOptions?: ProviderOptions;
 
   // Provider chain support
   previousResponseId?: string;

@@ -11,6 +11,58 @@ import type { Message } from './messages';
 import type { ServiceTier } from './tiers';
 import type { Tool, ToolChoice } from './tools';
 
+/** Provider-specific request options that have no unified equivalent.
+ *
+ *  This was `Record<string, unknown>` — the one untyped hole in the request, and
+ *  therefore the one place a typo produced silence rather than an error:
+ *  `promtCacheOptions` type-checked and was simply never sent.
+ *
+ *  Every key below is one an adapter actually reads; the list is derived from
+ *  the read sites, not invented. The index signature stays so a caller can still
+ *  pass something the SDK does not know about yet — a provider ships a parameter
+ *  before we model it, and refusing it would make the escape hatch useless. What
+ *  changed is that the keys we DO know are checked and discoverable.
+ *
+ *  Keys are grouped by the provider that consumes them; sending one to a
+ *  different provider is ignored, not an error. */
+export interface ProviderOptions {
+  // ── Anthropic ──────────────────────────────────────────────────────────
+  /** Forwarded as the `anthropic-user-profile-id` header: identifies the end
+   *  user a request acts on behalf of. Needs the account-level
+   *  `user-profiles` beta. */
+  userProfileId?: string;
+
+  // ── OpenAI (responses + chat-completions) ──────────────────────────────
+  /** Native moderation policy, sent alongside the `moderation` request field. */
+  moderationPolicy?: Record<string, unknown>;
+  /** `prompt_cache_options` — OpenAI-only prompt-cache controls. */
+  promptCacheOptions?: Record<string, unknown>;
+  /** `reasoning.mode` on the Responses API. */
+  reasoningMode?: 'standard' | 'pro';
+
+  // ── Google (generate) ──────────────────────────────────────────────────
+  /** Overrides `generationConfig.responseModalities`, e.g. for image or audio
+   *  generation. Wins over the modality implied by `outputModalities`. */
+  responseModalities?: string[];
+  /** `generationConfig.speechConfig` — voice selection for audio output. */
+  speechConfig?: Record<string, unknown>;
+  /** `generationConfig.imageConfig` — aspect ratio / size for image output. */
+  imageConfig?: Record<string, unknown>;
+  /** `generationConfig.translationConfig`. */
+  translationConfig?: Record<string, unknown>;
+  /** Name of a cached-content handle to reuse. Forwarded only when it is a
+   *  non-empty string. */
+  cachedContent?: string;
+
+  // ── OpenRouter ─────────────────────────────────────────────────────────
+  /** Routing options merged into the request body (provider order, transforms,
+   *  and the rest of OpenRouter's routing surface). */
+  openrouter?: Record<string, unknown>;
+
+  /** Anything the SDK does not model yet. Adapters ignore what they do not read. */
+  [key: string]: unknown;
+}
+
 export interface NormalizedRequest {
   /** From LLMClientConfig.model — fixed at construction. */
   model: string;
@@ -67,8 +119,8 @@ export interface NormalizedRequest {
   // request field; other providers are emulated client-side. See ModerationRequest.
   moderation?: ModerationRequest;
 
-  // Provider-specific passthrough
-  providerOptions?: Record<string, unknown>;
+  // Provider-specific passthrough — see ProviderOptions.
+  providerOptions?: ProviderOptions;
   /** Wire traits for THIS model, resolved from the catalog by `LLMClient`.
    *  Adapters prefer this over parsing the model id. Absent when the engine runs
    *  without a catalog or the model is not catalogued, in which case adapters
