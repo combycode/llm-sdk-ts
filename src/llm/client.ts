@@ -242,6 +242,7 @@ export class LLMClient {
     // Build the normalized internal request from fixed config + per-call options.
     const normalized: NormalizedRequest = {
       model: this.model,
+      wire: this.catalog.get(this.provider, this.model)?.wire,
       messages,
       system: composedSystem,
       maxTokens: options.maxTokens,
@@ -466,6 +467,7 @@ export class LLMClient {
 
     const normalized: NormalizedRequest = {
       model: this.model,
+      wire: this.catalog.get(this.provider, this.model)?.wire,
       messages,
       system: composedSystem,
       maxTokens: options.maxTokens,

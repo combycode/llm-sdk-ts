@@ -182,9 +182,13 @@ export class AnthropicAdapter implements ProviderAdapter {
 
     if (req.temperature !== undefined) body.temperature = req.temperature;
     if (req.topP !== undefined) body.top_p = req.topP;
+    // Wire traits come from the CATALOG when the model is catalogued, and fall back
+    // to parsing the id otherwise. The fallback is what a catalog-less engine uses;
+    // it is also what got this wrong twice, so the catalog wins whenever it speaks.
+    //
     // `top_k` is DEPRECATED on Anthropic: models released after Claude Opus 4.6 reject it
     // outright (400 "`top_k` is deprecated for this model"), so sending it breaks the call.
-    if (req.topK !== undefined && anthropicAcceptsTopK(req.model)) body.top_k = req.topK;
+    if (req.topK !== undefined && (req.wire?.topK ?? anthropicAcceptsTopK(req.model))) body.top_k = req.topK;
     // No `seed` — Anthropic rejects it (live 2026-07-28: 400 "seed: Extra inputs are not permitted").
     if (req.stop) body.stop_sequences = req.stop;
     const tier = anthropicRequestTier(req.serviceTier);
@@ -279,7 +283,7 @@ export class AnthropicAdapter implements ProviderAdapter {
     if (req.thinking) {
       if (req.thinking.mode === 'off') {
         /* no thinking param */
-      } else if (anthropicThinkingShape(req.model) === 'adaptive') {
+      } else if ((req.wire?.thinking ?? anthropicThinkingShape(req.model)) === 'adaptive') {
         // 4.6 and later. `budget_tokens` is REJECTED here with a 400 — the model decides
         // its own depth, and `effort` is how you steer it.
         const thinking: Record<string, unknown> = { type: 'adaptive' };

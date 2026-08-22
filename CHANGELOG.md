@@ -47,6 +47,23 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **The catalog now knows how to TALK to a model, not just what it can do.** `ModelInfo` gains a
+  `wire` block carrying per-model wire traits — which `thinking` shape the model accepts, whether
+  it takes `top_k` — and `LLMClient` resolves it onto every request as `NormalizedRequest.wire`.
+  Adapters read that instead of parsing the model id.
+
+  This is the gap behind two shipped bugs. The catalog already recorded that a model supported
+  reasoning; nothing recorded which of two incompatible `thinking` shapes it accepted, so adapters
+  matched on the id and got it wrong twice — in 2.2.1, and again in the 4.0 date-suffix defect
+  fixed this release. Wire knowledge is now reviewable data that can be diffed and generated,
+  rather than a regex nobody re-reads.
+
+  The bundled catalog carries `wire` for all 14 Anthropic and 12 Google chat models, generated
+  from the existing rules so behaviour is unchanged on day one. When the catalog is silent —
+  an engine running without one, or an uncatalogued model — adapters fall back to parsing the id
+  exactly as before, so nothing breaks. Removing that fallback is a later step, once every model
+  is pinned.
+
 - `EngineHandle.createClient(options)` — build an `LLMClient` bound to that engine. Added so
   `plugins/internal-tools` can obtain a client without importing `createLLM` from the helpers
   layer. Additive on a handle callers receive rather than implement.

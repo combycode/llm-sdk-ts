@@ -62,7 +62,10 @@
     "family": "gemini-pro",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "budget"
+    }
   },
   "google/gemini-3.1-pro": {
     "providerModelName": "gemini-3.1-pro-preview",
@@ -128,7 +131,10 @@
     "family": "gemini-pro",
     "version": "3.1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "level"
+    }
   },
   "google/gemini-3.1-pro-customtools": {
     "providerModelName": "gemini-3.1-pro-preview-customtools",
@@ -176,7 +182,10 @@
     "family": "gemini-pro",
     "version": "3.1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "level"
+    }
   },
   "google/gemini-2.5-flash": {
     "providerModelName": "gemini-2.5-flash",
@@ -245,7 +254,10 @@
     "family": "gemini-flash",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "budget"
+    }
   },
   "google/gemini-3-flash": {
     "providerModelName": "gemini-3-flash-preview",
@@ -314,7 +326,10 @@
     "family": "gemini-flash",
     "version": "3",
     "status": "preview",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "level"
+    }
   },
   "google/gemini-3.5-flash": {
     "providerModelName": "gemini-3.5-flash",
@@ -379,7 +394,10 @@
     "family": "gemini-flash",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "level"
+    }
   },
   "google/gemini-2.5-flash-lite": {
     "providerModelName": "gemini-2.5-flash-lite",
@@ -448,7 +466,10 @@
     "family": "gemini-flash-lite",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "budget"
+    }
   },
   "google/gemini-3.1-flash-lite": {
     "providerModelName": "gemini-3.1-flash-lite",
@@ -518,7 +539,10 @@
     "family": "gemini-flash-lite",
     "version": "3.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "level"
+    }
   },
   "google/gemini-2.5-flash-image": {
     "providerModelName": "gemini-2.5-flash-image",
@@ -1418,7 +1442,10 @@
     "family": "gemma",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "level"
+    }
   },
   "google/gemma-4-31b": {
     "providerModelName": "gemma-4-31b-it",
@@ -1465,7 +1492,10 @@
     "family": "gemma",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "level"
+    }
   },
   "google/imagen-4": {
     "providerModelName": "imagen-4.0-generate-001",
@@ -2524,7 +2554,10 @@
     "family": "gemini-flash",
     "version": "3.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "level"
+    }
   },
   "google/gemini-3.5-flash-lite": {
     "providerModelName": "gemini-3.5-flash-lite",
@@ -2590,6 +2623,9 @@
     "family": "gemini-flash-lite",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wire": {
+      "thinking": "level"
+    }
   }
 }

@@ -184,7 +184,11 @@ export class GoogleAdapter implements ProviderAdapter {
       const thinkingConfig: Record<string, unknown> = {
         includeThoughts: req.thinking.visibility !== 'hidden',
       };
-      if (googleUsesThinkingBudget(req.model)) {
+      // Catalog first, id-parse as the fallback (see the Anthropic adapter note).
+      const usesBudget = req.wire?.thinking
+        ? req.wire.thinking === 'budget'
+        : googleUsesThinkingBudget(req.model);
+      if (usesBudget) {
         thinkingConfig.thinkingBudget = GOOGLE_THINKING_BUDGETS[effort] ?? GOOGLE_THINKING_BUDGETS.high;
       } else {
         thinkingConfig.thinkingLevel = GOOGLE_THINKING_LEVELS[effort] ?? 'HIGH';
