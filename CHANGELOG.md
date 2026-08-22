@@ -45,6 +45,21 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   re-exported from the same place as before. A new test (`tests/unit/architecture/layers.test.ts`)
   fails if any cycle returns.
 
+### Changed
+
+- **`AgentLoop.complete()` and `stream()` no longer duplicate their scaffolding.** The two are the
+  same loop with different plumbing, and they had drifted into near-duplicates — 167 identical
+  lines across ~560. Five shared pieces are now extracted: `recordRunError`, `resolveFinalText`,
+  `buildFinalResponse`, `settleRun`, and `buildStepOptions`.
+
+  This is not tidying. The `ctx` block in `buildStepOptions` is what stops one conversation
+  arriving at a collector as several unrelated traces; duplicated, a fix to one path would have
+  left the other silently splitting. The same applies to the run's final-text rules and its
+  error reporting.
+
+  `complete()` 303 -> 234 lines, `stream()` 261 -> 209, identical shared lines 167 -> ~118.
+  Behaviour unchanged: all 1,953 tests pass untouched.
+
 ### Added
 
 - **Request builders on the media and realtime adapters.** These adapters used to assemble each

@@ -54,7 +54,7 @@ import {
   executeWithTimeout,
   handleToolError,
 } from './loop-internals';
-import type { RunTrace } from './loop-internals';
+import type { RunEndReason, RunTrace } from './loop-internals';
 
 // ─── AgentLoop ──────────────────────────────────────────────────────────
 
@@ -288,6 +288,160 @@ export class AgentLoop {
     this._abortController?.abort();
   }
 
+  // ─── shared run scaffolding ─────────────────────────────────────────────
+  //
+  // `complete()` and `stream()` are the same loop with different plumbing, and
+  // they had drifted into near-duplicates: 167 identical lines across ~560. The
+  // three pieces below are what was copied verbatim — how a run's error is
+  // recorded, how its final text is decided, and how its final response is
+  // shaped. Sharing them means a fix to one path cannot silently miss the other.
+
+  /** Record a thrown error onto the run: emit `onRunError` and return the parts
+   *  the caller assigns. Both paths report `phase: 'llm_call'`. */
+  private async recordRunError(
+    e: unknown,
+    args: { runId: string; stepCount: number; runTrace: RunTrace },
+  ): Promise<{ errorMsg: string; caughtError: unknown }> {
+    await this.hooks.emit('onRunError', {
+      runId: args.runId,
+      agentId: this.id,
+      step: args.stepCount,
+      error: e instanceof Error ? e : new Error(String(e)),
+      phase: 'llm_call',
+      trace: args.runTrace,
+    });
+    return { errorMsg: e instanceof Error ? e.message : String(e), caughtError: e };
+  }
+
+  /** The run's final text.
+   *
+   *  `finalAnswerText` strips `phase: 'commentary'` parts: a codex-family model
+   *  narrates before it answers and `response.text` concatenates both, so an
+   *  agent's final output used to include its own thinking-out-loud. Falls back
+   *  to `.text` when the content carries no text parts, and is identical to
+   *  `.text` for every model that reports no phase.
+   *
+   *  The streaming path passes what it accumulated; the non-streaming path lets
+   *  the last response decide. Both share the guardrail / max-steps overrides. */
+  private resolveFinalText(args: {
+    reason: RunEndReason;
+    guardrailTripReason?: string;
+    lastResponse?: CompletionResponse | null;
+    streamedText?: string;
+  }): string {
+    if (args.reason === 'guardrail') return args.guardrailTripReason ?? '';
+    if (args.reason === 'max_steps') return `stopped: reached maxSteps (${this._maxSteps})`;
+    if (args.streamedText !== undefined) return args.streamedText;
+    const last = args.lastResponse;
+    return last ? finalAnswerText(last.content ?? []) || (last.text ?? '') : '';
+  }
+
+  /** Compose the run's CompletionResponse. `media` and `raw` are parameters
+   *  because the two paths genuinely differ: the streaming path has already
+   *  emitted media as events and never holds a raw provider payload. */
+  private buildFinalResponse(args: {
+    runId: string;
+    startPerf: number;
+    reason: RunEndReason;
+    finalText: string;
+    finalContent: ContentPart[];
+    totalUsage: Usage;
+    lastResponse: CompletionResponse | null;
+    media: CompletionResponse['media'];
+    raw: CompletionResponse['raw'];
+  }): CompletionResponse {
+    const last = args.lastResponse;
+    const reason = args.reason;
+    return {
+      id: last?.id ?? `agent-${args.runId}`,
+      model: this.client.model,
+      content: args.finalContent,
+      finishReason:
+        reason === 'done'
+          ? // Ended because the model requested no tools — surface the provider's
+            // actual reason (stop / content_filter / length), not a flat 'stop'.
+            (last?.finishReason ?? 'stop')
+          : reason === 'stopped'
+            ? 'stop'
+            : reason === 'guardrail'
+              ? 'stop'
+              : reason === 'max_steps'
+                ? 'length'
+                : 'error',
+      usage: args.totalUsage,
+      text: args.finalText,
+      toolCalls: last?.toolCalls ?? [],
+      thinking: last?.thinking ?? null,
+      media: args.media,
+      // Propagate hosted-tool file outputs + inline-moderation result from the
+      // final LLM response (e.g. code-execution files produced during the run).
+      ...(last?.files ? { files: last.files } : {}),
+      ...(last?.builtinToolCalls ? { builtinToolCalls: last.builtinToolCalls } : {}),
+      ...(last?.moderation ? { moderation: last.moderation } : {}),
+      latencyMs: performance.now() - args.startPerf,
+      raw: args.raw,
+    };
+  }
+
+  /** Close out a run: write the report, then surface a failure.
+   *
+   *  The order matters and is the reason this is one function rather than two
+   *  calls at each site — a failed run must still emit its metrics and hooks
+   *  before the error propagates, or a crash silently loses the run's telemetry.
+   *  A failed run throws rather than returning empty text, matching the raw
+   *  client. */
+  private async settleRun(
+    args: Parameters<AgentLoop['finalizeRun']>[0] & { caughtError: unknown },
+  ): Promise<void> {
+    await this.finalizeRun(args);
+    if (args.reason === 'error') {
+      throw args.caughtError ?? new Error(args.error ?? 'agent run failed');
+    }
+  }
+
+  /** Per-step options for the underlying LLM call: loop defaults, then the
+   *  caller's overrides, then the run's trace.
+   *
+   *  `complete()` and `stream()` duplicated this verbatim, differing only in the
+   *  name of the local holding the composed system prompt. That is a bad place
+   *  for a copy: the ctx block below is what stops one conversation arriving at
+   *  the collector as several unrelated traces, and a fix applied to one path
+   *  would have left the other silently splitting. */
+  private buildStepOptions(
+    options: ExecuteOptions,
+    composedSystem: string | undefined,
+    runTrace: RunTrace,
+  ): ExecuteOptions {
+    return {
+      ...options,
+      system: composedSystem,
+      history: options.history ?? this._history,
+      maxTokens: options.maxTokens ?? this._maxTokens,
+      temperature: options.temperature ?? this._temperature,
+      thinking: options.thinking ?? this._thinking,
+      cache: options.cache ?? this._cache,
+      tools: this.toolDefinitions(options),
+      ctx: {
+        // The RUN's trace, handed down to every LLM call it makes.
+        //
+        // Without this the agent kept `runTrace` to itself: its own spans used it
+        // while each `client.complete()` fell through to mint-if-absent and
+        // invented a fresh `requestId`. Since the trace id is `sessionId:requestId`,
+        // one conversation arrived at the backend as SEVERAL unrelated traces —
+        // measured against a real collector: a single turn with one tool call
+        // produced six. Correlation is the whole point of a trace id, so this is
+        // the one thing it must not get wrong.
+        ...runTrace,
+        conversationId: this._history.id,
+        // A caller's explicit ctx wins over all of the above: an app that already
+        // owns a request id or a conversation id has better information than we do,
+        // and silently overwriting it is how its telemetry stops joining up.
+        ...options.ctx,
+      },
+      signal: options.signal ?? this._abortController?.signal,
+    };
+  }
+
   // ─── complete (non-streaming) ───────────────────────────────────────────
 
   async complete(
@@ -353,32 +507,7 @@ export class AgentLoop {
         }
 
         lastResponse = await this.client.complete(this._history.messages(), {
-          ...options,
-          system: composedSystemStr,
-          history: options.history ?? this._history,
-          maxTokens: options.maxTokens ?? this._maxTokens,
-          temperature: options.temperature ?? this._temperature,
-          thinking: options.thinking ?? this._thinking,
-          cache: options.cache ?? this._cache,
-          tools: this.toolDefinitions(options),
-          ctx: {
-            // The RUN's trace, handed down to every LLM call it makes.
-            //
-            // Without this the agent kept `runTrace` to itself: its own spans used it
-            // while each `client.complete()` fell through to mint-if-absent and
-            // invented a fresh `requestId`. Since the trace id is `sessionId:requestId`,
-            // one conversation arrived at the backend as SEVERAL unrelated traces —
-            // measured against a real collector: a single turn with one tool call
-            // produced six. Correlation is the whole point of a trace id, so this is
-            // the one thing it must not get wrong.
-            ...runTrace,
-            conversationId: this._history.id,
-            // A caller's explicit ctx wins over all of the above: an app that already
-            // owns a request id or a conversation id has better information than we do,
-            // and silently overwriting it is how its telemetry stops joining up.
-            ...options.ctx,
-          },
-          signal: options.signal ?? this._abortController?.signal,
+          ...this.buildStepOptions(options, composedSystemStr, runTrace),
         });
 
         const stepLatency = performance.now() - stepStart;
@@ -507,68 +636,27 @@ export class AgentLoop {
       }
     } catch (e) {
       reason = 'error';
-      errorMsg = e instanceof Error ? e.message : String(e);
-      caughtError = e;
-
-      await this.hooks.emit('onRunError', {
-        runId,
-        agentId: this.id,
-        step: stepCount,
-        error: e instanceof Error ? e : new Error(String(e)),
-        phase: 'llm_call',
-        trace: runTrace,
-      });
+      ({ errorMsg, caughtError } = await this.recordRunError(e, { runId, stepCount, runTrace }));
     } finally {
       this._running = false;
       this._abortController = null;
     }
 
-    // Compose final CompletionResponse — total usage, last step's content/text.
-    //
-    // `finalAnswerText` strips `phase: 'commentary'` parts: a codex-family model narrates before it
-    // answers, and `response.text` concatenates both — so an agent's final output used to include
-    // its own thinking-out-loud. Falls back to `.text` when the content carries no text parts, and
-    // is identical to `.text` for every model that reports no phase.
-    const finalText =
-      reason === 'guardrail'
-        ? (guardrailTripReason ?? '')
-        : reason === 'max_steps'
-          ? `stopped: reached maxSteps (${this._maxSteps})`
-          : lastResponse
-            ? finalAnswerText(lastResponse.content ?? []) || (lastResponse.text ?? '')
-            : '';
+    const finalText = this.resolveFinalText({ reason, guardrailTripReason, lastResponse });
     const finalContent = lastResponse?.content ?? [];
-    const finalResponse: CompletionResponse = {
-      id: lastResponse?.id ?? `agent-${runId}`,
-      model: this.client.model,
-      content: finalContent,
-      finishReason:
-        reason === 'done'
-          ? // Ended because the model requested no tools — surface the provider's
-            // actual reason (stop / content_filter / length), not a flat 'stop'.
-            (lastResponse?.finishReason ?? 'stop')
-          : reason === 'stopped'
-            ? 'stop'
-            : reason === 'guardrail'
-              ? 'stop'
-              : reason === 'max_steps'
-                ? 'length'
-                : 'error',
-      usage: totalUsage,
-      text: finalText,
-      toolCalls: lastResponse?.toolCalls ?? [],
-      thinking: lastResponse?.thinking ?? null,
+    const finalResponse = this.buildFinalResponse({
+      runId,
+      startPerf,
+      reason,
+      finalText,
+      finalContent,
+      totalUsage,
+      lastResponse,
       media: lastResponse?.media ?? [],
-      // Propagate hosted-tool file outputs + inline-moderation result from the final
-      // LLM response (e.g. code-execution files produced during the run).
-      ...(lastResponse?.files ? { files: lastResponse.files } : {}),
-      ...(lastResponse?.builtinToolCalls ? { builtinToolCalls: lastResponse.builtinToolCalls } : {}),
-      ...(lastResponse?.moderation ? { moderation: lastResponse.moderation } : {}),
-      latencyMs: performance.now() - startPerf,
       raw: lastResponse?.raw ?? null,
-    };
+    });
 
-    await this.finalizeRun({
+    await this.settleRun({
       runId,
       startedAt,
       startPerf,
@@ -577,6 +665,7 @@ export class AgentLoop {
       finalText,
       reason,
       error: errorMsg,
+      caughtError,
       response: finalResponse,
       steps,
       stepCount,
@@ -586,10 +675,6 @@ export class AgentLoop {
       totalToolTimeMs,
       runTrace,
     });
-
-    // A failed LLM call must surface, not silently return empty text (the no-tools
-    // path throws too). Finalize first so metrics/hooks fire, then re-throw.
-    if (reason === 'error') throw caughtError ?? new Error(errorMsg ?? 'agent run failed');
 
     return finalResponse;
   }
@@ -675,32 +760,7 @@ export class AgentLoop {
         }
 
         for await (const event of this.client.stream(this._history.messages(), {
-          ...options,
-          system: composedSystemForStream,
-          history: options.history ?? this._history,
-          maxTokens: options.maxTokens ?? this._maxTokens,
-          temperature: options.temperature ?? this._temperature,
-          thinking: options.thinking ?? this._thinking,
-          cache: options.cache ?? this._cache,
-          tools: this.toolDefinitions(options),
-          ctx: {
-            // The RUN's trace, handed down to every LLM call it makes.
-            //
-            // Without this the agent kept `runTrace` to itself: its own spans used it
-            // while each `client.complete()` fell through to mint-if-absent and
-            // invented a fresh `requestId`. Since the trace id is `sessionId:requestId`,
-            // one conversation arrived at the backend as SEVERAL unrelated traces —
-            // measured against a real collector: a single turn with one tool call
-            // produced six. Correlation is the whole point of a trace id, so this is
-            // the one thing it must not get wrong.
-            ...runTrace,
-            conversationId: this._history.id,
-            // A caller's explicit ctx wins over all of the above: an app that already
-            // owns a request id or a conversation id has better information than we do,
-            // and silently overwriting it is how its telemetry stops joining up.
-            ...options.ctx,
-          },
-          signal: options.signal ?? this._abortController?.signal,
+          ...this.buildStepOptions(options, composedSystemForStream, runTrace),
         })) {
           const toYield = accumulateStreamEvent(event, state);
           if (toYield) yield toYield;
@@ -801,53 +861,29 @@ export class AgentLoop {
       }
     } catch (e) {
       reason = 'error';
-      errorMsg = e instanceof Error ? e.message : String(e);
-      caughtError = e;
-      await this.hooks.emit('onRunError', {
-        runId,
-        agentId: this.id,
-        step: stepCount,
-        error: e instanceof Error ? e : new Error(String(e)),
-        phase: 'llm_call',
-        trace: runTrace,
-      });
+      ({ errorMsg, caughtError } = await this.recordRunError(e, { runId, stepCount, runTrace }));
     } finally {
       this._running = false;
       this._abortController = null;
     }
 
-    if (reason === 'guardrail') finalText = guardrailTripReason ?? '';
-    if (reason === 'max_steps') finalText = `stopped: reached maxSteps (${this._maxSteps})`;
+    finalText = this.resolveFinalText({ reason, guardrailTripReason, streamedText: finalText });
 
-    const finalResponse: CompletionResponse = {
-      id: lastResponse?.id ?? `agent-${runId}`,
-      model: this.client.model,
-      content: finalContent,
-      finishReason:
-        reason === 'done'
-          ? // Ended because the model requested no tools — surface the provider's
-            // actual reason (stop / content_filter / length), not a flat 'stop'.
-            (lastResponse?.finishReason ?? 'stop')
-          : reason === 'stopped'
-            ? 'stop'
-            : reason === 'guardrail'
-              ? 'stop'
-              : reason === 'max_steps'
-                ? 'length'
-                : 'error',
-      usage: totalUsage,
-      text: finalText,
-      toolCalls: lastResponse?.toolCalls ?? [],
-      thinking: lastResponse?.thinking ?? null,
+    const finalResponse = this.buildFinalResponse({
+      runId,
+      startPerf,
+      reason,
+      finalText,
+      finalContent,
+      totalUsage,
+      lastResponse,
+      // The streaming path already emitted media as events, and never holds a
+      // raw provider payload.
       media: [],
-      ...(lastResponse?.files ? { files: lastResponse.files } : {}),
-      ...(lastResponse?.builtinToolCalls ? { builtinToolCalls: lastResponse.builtinToolCalls } : {}),
-      ...(lastResponse?.moderation ? { moderation: lastResponse.moderation } : {}),
-      latencyMs: performance.now() - startPerf,
       raw: null,
-    };
+    });
 
-    await this.finalizeRun({
+    await this.settleRun({
       runId,
       startedAt,
       startPerf,
@@ -856,6 +892,7 @@ export class AgentLoop {
       finalText,
       reason,
       error: errorMsg,
+      caughtError,
       response: finalResponse,
       steps,
       stepCount,
@@ -865,10 +902,6 @@ export class AgentLoop {
       totalToolTimeMs,
       runTrace,
     });
-
-    // Match complete() + the raw client stream: a failed run throws (it does not
-    // silently end with an empty 'done'). Finalize first so metrics/hooks fire.
-    if (reason === 'error') throw caughtError ?? new Error(errorMsg ?? 'agent run failed');
 
     yield { type: 'done', response: finalResponse };
   }

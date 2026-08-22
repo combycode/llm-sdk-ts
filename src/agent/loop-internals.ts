@@ -21,6 +21,11 @@ import type { StepState, ToolCallAccumEntry } from './loop-step-state';
  *  across two traces. */
 export type RunTrace = TraceContext & { sessionId: string; requestId: string };
 
+/** Why a run ended. Written inline in both `complete()` and `stream()` and in
+ *  `finalizeRun`'s argument list, which is three places to keep in step; named
+ *  so adding a reason is one edit. */
+export type RunEndReason = 'done' | 'stopped' | 'error' | 'guardrail' | 'max_steps';
+
 // ─── Stream event accumulation ───────────────────────────────────────────
 
 /** Create a fresh StepState for the start of a streaming step. */
