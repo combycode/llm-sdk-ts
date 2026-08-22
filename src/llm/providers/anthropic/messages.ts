@@ -31,6 +31,7 @@ import {
   DEFAULT_ANTHROPIC_THINKING_BUDGET,
   anthropicAcceptsTopK,
 } from './constants';
+import { sseJson } from '../_shared/sse';
 
 export interface AnthropicAdapterConfig {
   apiKey: string;
@@ -522,7 +523,7 @@ export class AnthropicAdapter implements ProviderAdapter {
 
   private streamEvents(event: SSEEvent, state: AnthropicStreamState): StreamEvent[] {
     if (event.event === 'ping') return [];
-    const data = JSON.parse(event.data) as Record<string, unknown>;
+    const data = sseJson(event);
     const type = data.type as string;
 
     if (type === 'content_block_delta') {

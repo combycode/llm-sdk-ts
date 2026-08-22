@@ -18,6 +18,7 @@ import { buildNativeModeration, parseNativeModeration } from '../../moderation/n
 import { openaiBilledTier, openaiRequestTier } from './tiers';
 import { DEFAULT_MAX_TOKENS } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
+import { sseJson } from '../_shared/sse';
 
 export interface OpenAIAdapterConfig {
   apiKey: string;
@@ -382,7 +383,7 @@ export class OpenAIAdapter implements ProviderAdapter {
   }
 
   parseStreamEvent(event: SSEEvent, state?: OpenAIStreamState): StreamEvent[] {
-    const data = JSON.parse(event.data) as Record<string, unknown>;
+    const data = sseJson(event);
 
     // Native moderation arrives on a dedicated chunk (choices empty/absent).
     if (data.moderation) {

@@ -31,6 +31,7 @@ import { isFunctionTool } from '../../types/tools';
 import { buildNativeModeration, parseNativeModeration } from '../../moderation/native';
 import { openaiBilledTier, openaiRequestTier } from './tiers';
 import { extractFinishReason } from '../_shared/response-utils';
+import { sseJson } from '../_shared/sse';
 
 export interface OpenAIResponsesAdapterConfig {
   apiKey: string;
@@ -703,7 +704,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
   }
 
   parseStreamEvent(event: SSEEvent, phaseByItem?: Map<string, AssistantPhase>): StreamEvent[] {
-    const data = JSON.parse(event.data) as Record<string, unknown>;
+    const data = sseJson(event);
     const type = data.type as string;
     const events: StreamEvent[] = [];
 

@@ -30,6 +30,7 @@ import {
   GOOGLE_THINKING_LEVELS,
   googleUsesThinkingBudget,
 } from './constants';
+import { sseJson } from '../_shared/sse';
 
 export interface GoogleAdapterConfig {
   apiKey: string;
@@ -461,7 +462,7 @@ export class GoogleAdapter implements ProviderAdapter {
   }
 
   private streamEvents(event: SSEEvent, state: GoogleStreamState): StreamEvent[] {
-    const data = JSON.parse(event.data) as Record<string, unknown>;
+    const data = sseJson(event);
     const candidates = (data.candidates as Array<Record<string, unknown>>) ?? [];
     const candidate = candidates[0];
 

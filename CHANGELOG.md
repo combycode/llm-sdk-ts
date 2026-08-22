@@ -47,6 +47,19 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Changed
 
+- **Internal cleanups carried over from the 1.0 backlog.**
+  - `buildContext` read `LLMClient`'s private `queueName` / `configName` / `cacheName` through
+    `as unknown as` casts, which compile happily and would silently yield `undefined` the day a
+    field is renamed. The client now exposes them deliberately as `client.routing`, so a rename is
+    a type error.
+  - Telemetry's ten exported types moved from the 1,225-line `telemetry.ts` to
+    `plugins/telemetry/types.ts`, matching the rest of the codebase. Re-exported from the old path,
+    so no import — public or internal — changed.
+  - `sseJson()` in `providers/_shared` replaces the one line every provider's stream parser
+    repeated verbatim.
+
+### Changed
+
 - **`providerOptions` is typed.** It was `Record<string, unknown>` — the one untyped hole in the
   request, and so the one place a typo produced silence rather than an error:
   `promtCacheOptions` type-checked and was simply never sent.

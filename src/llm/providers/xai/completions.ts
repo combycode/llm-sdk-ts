@@ -11,6 +11,7 @@ import type { NormalizedRequest } from '../../types/request';
 import type { CompletionResponse } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
 import { OpenAIAdapter, type OpenAIStreamState } from '../openai/completions';
+import { sseJson } from '../_shared/sse';
 
 export interface XAIAdapterConfig {
   apiKey: string;
@@ -66,7 +67,7 @@ export class XAIAdapter extends OpenAIAdapter {
 
     // Check for reasoning_content in streaming delta
     try {
-      const data = JSON.parse(event.data) as Record<string, unknown>;
+      const data = sseJson(event);
       const choices = (data.choices as Array<Record<string, unknown>>) ?? [];
       const delta = (choices[0]?.delta as Record<string, unknown>) ?? {};
 

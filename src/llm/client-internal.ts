@@ -94,21 +94,27 @@ export function parseStructured<T>(text: string): T {
   }
 }
 
+/** The routing names `buildContext` needs from a client.
+ *
+ *  These were read with `as unknown as { queueName: string }` casts straight into
+ *  LLMClient's privates — which compiles, and silently returns `undefined` the
+ *  day a field is renamed. LLMClient now exposes them deliberately as
+ *  `client.routing`, so a rename is a type error instead. */
+export interface ClientRouting {
+  readonly queueName: string;
+  readonly configName: string;
+  readonly cacheName: string;
+}
+
 export function buildContext(client: LLMClient, options: ExecuteOptions): RequestContext {
   const provided = options.ctx ?? {};
   const ctx: RequestContext = {
     ...provided,
     sessionId: provided.sessionId ?? client.sessionId,
     clientId: provided.clientId ?? client.id,
-    queueName: provided.queueName ?? (client as unknown as { queueName: string }).queueName,
-    configName:
-      options.configName ??
-      provided.configName ??
-      (client as unknown as { configName: string }).configName,
-    cacheName:
-      options.cacheName ??
-      provided.cacheName ??
-      (client as unknown as { cacheName: string }).cacheName,
+    queueName: provided.queueName ?? client.routing.queueName,
+    configName: options.configName ?? provided.configName ?? client.routing.configName,
+    cacheName: options.cacheName ?? provided.cacheName ?? client.routing.cacheName,
     cacheKey: options.cacheKey ?? provided.cacheKey,
   };
   if (!ctx.callId) ctx.callId = `call_${crypto.randomUUID().slice(0, 8)}`;

@@ -60,6 +60,7 @@ import {
   parseStructured,
   resolveAdapter,
   resolveApi,
+  type ClientRouting,
 } from './client-internal';
 import { InvalidFinalOutputError } from './output-errors';
 
@@ -85,6 +86,9 @@ export class LLMClient {
   private readonly queueName: string;
   private readonly configName: string;
   private readonly cacheName: string;
+  /** The routing names this client was configured with, exposed so context
+   *  building does not have to cast into the privates above. */
+  readonly routing: ClientRouting;
   private readonly cacheKeyFn?: (req: NormalizedRequest, ctx: RequestContext) => string;
   private readonly catalog: ModelCatalog;
 
@@ -119,6 +123,11 @@ export class LLMClient {
     this.queueName = config.queueName ?? `${config.provider}/${config.model}`;
     this.configName = config.configName ?? `${config.provider}/${config.model}`;
     this.cacheName = config.cacheName ?? 'default';
+    this.routing = Object.freeze({
+      queueName: this.queueName,
+      configName: this.configName,
+      cacheName: this.cacheName,
+    });
     this.cacheKeyFn = config.cacheKeyFn;
     this.catalog = config.catalog ?? new ModelCatalog();
 

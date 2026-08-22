@@ -25,6 +25,7 @@ import { isFunctionTool } from '../../types/tools';
 import { AUDIO_PCM16_SAMPLE_RATE_HZ } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
 import { GOOGLE_INTERACTION_THINKING_LEVELS } from './constants';
+import { sseJson } from '../_shared/sse';
 
 export interface GoogleInteractionsAdapterConfig {
   apiKey: string;
@@ -344,7 +345,7 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
    *  function call's `arguments_delta` carries no id, so we correlate it to the
    *  currently-open call id held in `state`. */
   private streamEvents(event: SSEEvent, state: InteractionsStreamState): StreamEvent[] {
-    const data = JSON.parse(event.data) as Record<string, unknown>;
+    const data = sseJson(event);
     const type = (data.event_type as string) ?? (data.type as string);
     const events: StreamEvent[] = [];
 
