@@ -43,9 +43,9 @@
     "format": "biome format --write src tests",
     "check": "biome check src tests",
     "check:fix": "biome check --write src tests",
-    "gate": "node ../../quality-gate/gate.mjs",
+    "gate": "bun run scripts/gate.ts",
     "gate:selftest": "node ../../quality-gate/selftest.mjs",
-    "gate:snapshot": "node ../../quality-gate/gate.mjs --only api-snapshot --update"
+    "gate:snapshot": "bun run scripts/gate.ts --only api-snapshot --update"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",

@@ -99,7 +99,7 @@
       }
     ]
   },
-  "_exampleRuns": "G12. The only check that EXECUTES. Everything else reads: types, references, snapshots, compilation — all of which passed while the library sent OpenAI a tool schema the API rejects with a 400. Needs OPENAI_API_KEY / ANTHROPIC_API_KEY in the environment; without them it reports cannot-judge (exit 2), never a pass. The runs are chosen for surfaces the WIRE can reject: function tools, structured output, and real MCP schemas, on both providers.",
+  "_exampleRuns": "G12. The only check that EXECUTES. Everything else reads: types, references, snapshots, compilation — all of which passed while the library sent OpenAI a tool schema the API rejects with a 400. Needs OPENAI_API_KEY / ANTHROPIC_API_KEY in the environment -- `bun run gate` puts them there, resolving them from the OS credential store via official-samples/keys.ts, so the live runs are ON by default. Never invoke quality-gate/gate.mjs directly and then report cannot-judge: the keys are on this machine. The runs are chosen for surfaces the WIRE can reject: function tools, structured output, and real MCP schemas, on both providers.",
   "exampleRuns": {
     "cwd": "../unified-examples-ts",
     "packageName": "@combycode/llm-sdk",
