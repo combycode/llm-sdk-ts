@@ -7,7 +7,7 @@ import {
   googleImagePart,
   googleVeoImage,
   normalizeImageSource,
-} from '../../../plugins/media/source-image';
+} from '../../../util/source-image';
 import { ensurePlayableAudio } from '../../../util/wav';
 import { resolveVoice } from '../../audio/voices';
 import { emptyUsage, type Usage } from '../../types/response';

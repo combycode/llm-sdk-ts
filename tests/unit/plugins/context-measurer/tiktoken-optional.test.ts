@@ -12,7 +12,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { TiktokenCounter, tiktokenUnavailableError } from '../../../../src/plugins/context-measurer/counter/tiktoken';
 import { HybridTokenCounter } from '../../../../src/plugins/context-measurer/counter/hybrid';
-import { ModelCatalog } from '../../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../../src/catalog/catalog';
 
 const SRC = join(import.meta.dir, '../../../../src/plugins/context-measurer/counter/tiktoken.ts');
 

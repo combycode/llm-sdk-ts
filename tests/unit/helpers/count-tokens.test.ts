@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'bun:test';
 import { countTokens } from '../../../src/helpers/count-tokens';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import type { EngineHandle } from '../../../src/helpers/engine';
 
 // ─── Minimal engine stub ──────────────────────────────────────────────────────

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'bun:test';
 import { batch, submitBatch } from '../../../src/helpers/batch';
 import type { EngineHandle } from '../../../src/helpers/engine';
 import { HookBus } from '../../../src/bus/hook-bus';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import type { EngineFetch, HttpResponse } from '../../../src/network/types';
 
 const OUTPUT_JSONL =

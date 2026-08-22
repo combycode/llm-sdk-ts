@@ -21,7 +21,7 @@
 import type { HookBus } from '../bus/hook-bus';
 import { HookBus as HookBusClass } from '../bus/hook-bus';
 import type { EngineFetch, EngineFetchStream, HttpRequest, HttpResponse } from '../network/types';
-import { ModelCatalog } from '../plugins/model-catalog/catalog';
+import { ModelCatalog } from '../catalog/catalog';
 import type { RequestContext } from '../types/request-context';
 import {
   emitModerationZeroCost,

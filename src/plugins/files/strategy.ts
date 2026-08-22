@@ -1,6 +1,6 @@
 /** FileStrategy — pluggable decision maker for how to attach files. */
 
-import type { ModelInfo } from '../model-catalog/catalog';
+import type { ModelInfo } from '../../catalog/catalog';
 import type { FileAttachment } from './attachment';
 
 export interface FileStrategyContext {

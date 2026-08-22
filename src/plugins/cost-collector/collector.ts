@@ -9,7 +9,7 @@ import type {
   CompletionContext,
   CostEntry,
 } from '../../bus/hook-map';
-import type { ModelCatalog } from '../model-catalog/catalog';
+import type { ModelCatalog } from '../../catalog/catalog';
 import {
   applyFilter,
   calculateCost,

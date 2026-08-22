@@ -1,7 +1,7 @@
 /** ToolRegistry — unified access across multiple backends with caching, search, filtering. */
 
 import type { InternalTool, ToolBackend, ToolFilter, SearchOptions } from './types';
-import type { ModelCatalog } from '../model-catalog/catalog';
+import type { ModelCatalog } from '../../catalog/catalog';
 
 export class ToolRegistry {
   private backends: ToolBackend[] = [];

@@ -2,7 +2,7 @@
 
 import type { Message } from '../../../llm/types/messages';
 import type { TokenCountContext, TokenCounter, LearnInput } from '../../../agent/types';
-import type { ModelCatalog } from '../../model-catalog/catalog';
+import type { ModelCatalog } from '../../../catalog/catalog';
 import type { CalibrationStore } from '../types';
 import { CONTEXT_DEFAULTS } from '../types';
 

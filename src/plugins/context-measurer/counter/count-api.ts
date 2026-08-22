@@ -3,7 +3,7 @@
 import type { Message } from '../../../llm/types/messages';
 import type { TokenCountContext, TokenCounter, LearnInput } from '../../../agent/types';
 import type { FetchFn } from '../../../network/types';
-import type { ModelCatalog } from '../../model-catalog/catalog';
+import type { ModelCatalog } from '../../../catalog/catalog';
 import { HeuristicCounter, messageChars } from './heuristic';
 import { ANTHROPIC_API_VERSION } from '../../../llm/providers/anthropic/constants';
 

@@ -6,7 +6,7 @@ import { resolveServerState } from '../../../src/llm/server-state';
 import type { Message } from '../../../src/llm/types/messages';
 import type { ProviderName } from '../../../src/llm/types/provider';
 import type { CompletionResponse } from '../../../src/llm/types/response';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 
 const catalog = new ModelCatalog(); // empty → provider-level defaults
 const NOW = 1_700_000_000_000;

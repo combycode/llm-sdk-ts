@@ -10,7 +10,7 @@ import type { HookBus } from '../../bus/hook-bus';
 import type { MediaOutputPart } from '../../llm/types/messages';
 import { emptyUsage, type Usage } from '../../llm/types/response';
 import type { EngineFetch } from '../../network/types';
-import type { ModelCatalog } from '../model-catalog/catalog';
+import type { ModelCatalog } from '../../catalog/catalog';
 import {
   MEDIA_OUTPUT_DEFAULTS,
   type AudioGenRequest,

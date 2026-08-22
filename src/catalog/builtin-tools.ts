@@ -15,7 +15,7 @@
  *      OpenAI has no separate fetch tool (its web_search does page-open); xAI /
  *      openrouter expose none. */
 
-import type { ProviderName } from '../types/provider';
+import type { ProviderName } from '../llm/types/provider';
 
 export const PROVIDER_BUILTIN_TOOLS: Record<ProviderName, readonly string[]> = {
   anthropic: ['web_search', 'web_fetch', 'code_interpreter'],

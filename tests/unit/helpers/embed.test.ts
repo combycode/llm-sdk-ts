@@ -6,7 +6,7 @@
 import { describe, expect, it } from 'bun:test';
 import { embed } from '../../../src/helpers/embed';
 import { HookBus } from '../../../src/bus/hook-bus';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import type { EngineHandle } from '../../../src/helpers/engine';
 import type { EmbeddingProviderAdapter, EmbedResult } from '../../../src/plugins/embeddings/types';
 import type { CompletionContext } from '../../../src/bus/hook-map';

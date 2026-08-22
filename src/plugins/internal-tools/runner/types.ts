@@ -4,7 +4,7 @@ import type { HookBus } from '../../../bus/hook-bus';
 import type { LLMClientConfig } from '../../../llm/client-config';
 import type { ProviderName } from '../../../llm/types/provider';
 import type { JsonSchema } from '../../../llm/types/tools';
-import type { ModelCatalog } from '../../model-catalog/catalog';
+import type { ModelCatalog } from '../../../catalog/catalog';
 import type { ToolRegistry } from '../registry';
 import type { CompatFile, ModelPreference } from '../types';
 import type { TokenCounter } from '../../../agent/types';

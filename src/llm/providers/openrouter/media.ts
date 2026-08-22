@@ -4,7 +4,7 @@
  *  `message.audio`. Cost is the provider-reported `usage.cost`. */
 
 import type { EngineFetch } from '../../../network/types';
-import { normalizeImageSource, toDataUrl } from '../../../plugins/media/source-image';
+import { normalizeImageSource, toDataUrl } from '../../../util/source-image';
 import type {
   AudioGenRequest,
   ImageEditRequest,

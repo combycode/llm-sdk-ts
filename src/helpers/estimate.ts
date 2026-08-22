@@ -13,7 +13,7 @@
 
 import type { ContentPart, Message } from '../llm/types/messages';
 import type { ProviderName } from '../llm/types/provider';
-import type { ModelPricing } from '../plugins/model-catalog/catalog';
+import type { ModelPricing } from '../catalog/catalog';
 import { HybridTokenCounter } from '../plugins/context-measurer/counter/hybrid';
 import { resolveModel } from './client-resolver';
 import { coreRegistry, type EngineHandle } from './engine';

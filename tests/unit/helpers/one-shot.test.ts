@@ -10,7 +10,7 @@
 import { describe, expect, it } from 'bun:test';
 import { complete } from '../../../src/helpers/one-shot';
 import { HookBus } from '../../../src/bus/hook-bus';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import { BudgetExceededError } from '../../../src/helpers/estimate-types';
 import type { EngineHandle } from '../../../src/helpers/engine';
 import type { EngineFetch, HttpResponse } from '../../../src/network/types';

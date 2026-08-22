@@ -10,7 +10,7 @@ import {
   FALLBACK_MAX_OUTPUT_TOKENS,
   UnknownModelError,
 } from '../../../src/helpers/estimate-types';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 
 // ─── Minimal engine stub ──────────────────────────────────────────────────────
 

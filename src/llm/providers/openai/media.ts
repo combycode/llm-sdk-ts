@@ -6,7 +6,7 @@ import { base64ToBytes } from '../../../util/base64';
 import type { EngineFetch } from '../../../network/types';
 import { resolveVoice } from '../../audio/voices';
 import { emptyUsage, type Usage } from '../../types/response';
-import { normalizeImageSource, openaiImageRef } from '../../../plugins/media/source-image';
+import { normalizeImageSource, openaiImageRef } from '../../../util/source-image';
 import type {
   AudioGenRequest,
   ImageEditRequest,

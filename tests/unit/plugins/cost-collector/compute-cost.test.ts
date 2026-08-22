@@ -3,7 +3,7 @@
 
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { computeCost } from '../../../../src/plugins/cost-collector/cost-collector-internal';
-import { ModelCatalog } from '../../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../../src/catalog/catalog';
 
 let catalog: ModelCatalog;
 

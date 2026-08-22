@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { HookBus } from '../../../../src/bus/hook-bus';
 import type { CompletionContext } from '../../../../src/bus/hook-map';
 import { CostCollector } from '../../../../src/plugins/cost-collector/collector';
-import { ModelCatalog } from '../../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../../src/catalog/catalog';
 
 function makeCompletionCtx(opts: {
   provider: string;

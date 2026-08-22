@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'bun:test';
 import { moderate } from '../../../src/helpers/moderate';
 import { HookBus } from '../../../src/bus/hook-bus';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import type { EngineHandle } from '../../../src/helpers/engine';
 import type { CostEntryContext } from '../../../src/bus/hook-map';
 import type { ModerationRawResponse } from '../../../src/helpers/moderate-types';

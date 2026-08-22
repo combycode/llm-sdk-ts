@@ -1,7 +1,7 @@
 /** CostCollector public types: config, budgets, filters, summaries. */
 
 import type { HookBus } from '../../bus/hook-bus';
-import type { ModelCatalog } from '../model-catalog/catalog';
+import type { ModelCatalog } from '../../catalog/catalog';
 
 export interface CostCollectorConfig {
   hooks: HookBus;

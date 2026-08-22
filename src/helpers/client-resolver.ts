@@ -10,7 +10,7 @@ import type { LLMClientConfig } from '../llm/client-config';
 import type { HookBus } from '../bus/hook-bus';
 import type { ProviderName } from '../llm/types/provider';
 import type { ServiceTier } from '../llm/types/tiers';
-import type { ModelCatalog } from '../plugins/model-catalog/catalog';
+import type { ModelCatalog } from '../catalog/catalog';
 import type { EngineFetch, EngineFetchStream, HttpRequest, HttpResponse } from '../network/types';
 import { ClientPool } from './client-pool';
 

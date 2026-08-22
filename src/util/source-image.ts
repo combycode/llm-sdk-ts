@@ -6,9 +6,9 @@
  *    - xAI:    `{ url }` (data-URL) or `{ file_id }`
  *    - Google: `inline_data {mime_type,data}` or `file_data {file_uri}` */
 
-import type { DataSource } from '../../llm/types/messages';
-import { base64ToBytes, bytesToBase64 } from '../../util/base64';
-import { sniffImageMime } from '../../util/image-mime';
+import type { DataSource } from '../llm/types/messages';
+import { base64ToBytes, bytesToBase64 } from './base64';
+import { sniffImageMime } from './image-mime';
 
 export interface NormalizedImageRef {
   /** Raw base64 (no `data:` prefix), when inline. */

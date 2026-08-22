@@ -6,7 +6,7 @@ import type { HookBus } from '../../bus/hook-bus';
 import type { MessageResolveContext } from '../../bus/hook-map';
 import type { ContentPart, DataSource } from '../../llm/types/messages';
 import type { EngineFetch } from '../../network/types';
-import type { ModelCatalog } from '../model-catalog/catalog';
+import type { ModelCatalog } from '../../catalog/catalog';
 import { FileAttachment, type FileContent } from './attachment';
 import type { FileProviderAdapter, RemoteFileInfo } from './provider-adapter';
 import { DefaultFileStrategy, type FileDecision, type FileStrategy } from './strategy';

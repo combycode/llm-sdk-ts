@@ -1,7 +1,7 @@
 /** select() — tag-DSL model selection over the shipped catalog. */
 
 import { describe, expect, it } from 'bun:test';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import { select, selectModels } from '../../../src/helpers/select-model';
 import type { EngineHandle } from '../../../src/helpers/engine';
 

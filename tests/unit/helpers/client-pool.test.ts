@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'bun:test';
 import { ClientPool } from '../../../src/helpers/client-pool';
 import { LLMClient } from '../../../src/llm/client';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import type { LLMClientConfig } from '../../../src/llm/client-config';
 import { HookBus } from '../../../src/bus/hook-bus';
 

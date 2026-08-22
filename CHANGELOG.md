@@ -29,7 +29,27 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   The name is now derived from the batch contents, so identical submissions produce identical
   requests and differing ones still differ.
 
+### Changed
+
+- **The module graph is now a DAG.** Two dependency cycles between top-level layers were closed:
+  `llm <-> plugins` and `helpers <-> plugins`. They were harmless in TypeScript and are not
+  harmless in Rust, where crates cannot express a cycle, so they blocked the port.
+
+  Shared code moved DOWN rather than sideways: the model catalog and its bundled data now live in
+  `src/catalog/` instead of `src/plugins/model-catalog/` + `src/llm/providers/*/catalog.json`, and
+  image-source normalisation moved from `src/plugins/media/source-image` to `src/util/source-image`.
+  Where a lower layer genuinely needs a capability from a higher one it is now passed down instead
+  of imported up.
+
+  **No public API changed** — the package has a single root export and every moved symbol is
+  re-exported from the same place as before. A new test (`tests/unit/architecture/layers.test.ts`)
+  fails if any cycle returns.
+
 ### Added
+
+- `EngineHandle.createClient(options)` — build an `LLMClient` bound to that engine. Added so
+  `plugins/internal-tools` can obtain a client without importing `createLLM` from the helpers
+  layer. Additive on a handle callers receive rather than implement.
 
 - `util/hash` — FNV-1a 32-bit, deterministic and dependency-free, for deriving stable short ids
   from content instead of from a clock.

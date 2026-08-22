@@ -2,7 +2,7 @@
  *  the class so each is independently testable. */
 
 import type { CostEntry } from '../../bus/hook-map';
-import type { ModelCatalog, ModelPricing } from '../model-catalog/catalog';
+import type { ModelCatalog, ModelPricing } from '../../catalog/catalog';
 import type { CostFilter, CostSummary } from './cost-collector-types';
 
 /** Pull provider-reported cost evidence out of a raw response body. */

@@ -17,7 +17,7 @@ import type { CostEntryContext } from '../../../src/bus/hook-map';
 import { transcribe } from '../../../src/helpers/transcribe';
 import { deriveWavDuration } from '../../../src/helpers/transcribe';
 import { calculateTranscriptionCost, computeCost } from '../../../src/plugins/cost-collector/cost-collector-internal';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import type { EngineHandle } from '../../../src/helpers/engine';
 import type { EngineFetch, HttpResponse } from '../../../src/network/types';
 

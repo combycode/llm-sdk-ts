@@ -25,7 +25,7 @@ import type { NormalizedRequest } from '../llm/types/request';
 import type { CompletionResponse } from '../llm/types/response';
 import type { BatchProviderAdapter, BatchRequest, BatchStatus } from '../plugins/batch/types';
 import type { HookBus } from '../bus/hook-bus';
-import type { ModelCatalog } from '../plugins/model-catalog/catalog';
+import type { ModelCatalog } from '../catalog/catalog';
 import { calculateCost, extractProviderCost } from '../plugins/cost-collector/cost-collector-internal';
 import type { EngineFetch } from '../network/types';
 import { resolveModel } from './client-resolver';

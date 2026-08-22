@@ -21,7 +21,6 @@ import type { TokenCounter } from '../../../agent/types';
 import type { Usage } from '../../../llm/types/response';
 import type { LLMClient } from '../../../llm/client';
 import { HybridTokenCounter } from '../../context-measurer/counter/hybrid';
-import { createLLM } from '../../../helpers/llm';
 
 export class InternalToolRunner {
   private clients = new Map<string, LLMClient>();
@@ -176,14 +175,14 @@ export class InternalToolRunner {
     }
 
     // Pool by provider, or by (provider, model) when catalog flags
-    // requiresDedicatedClient. Built via createLLM so the default adapter is
-    // auto-resolved and the engine's fetch + hooks thread into the client.
+    // requiresDedicatedClient. Built through the ENGINE rather than by importing
+    // createLLM: a plugin must not reach up into the helpers layer (see the
+    // createClient note on EngineHandle).
     const requiresDedicated = !!this.config.catalog?.get(provider, model)?.requiresDedicatedClient;
     const key = requiresDedicated ? `${provider}/${model}` : provider;
     let client = this.clients.get(key);
     if (!client) {
-      client = createLLM({
-        engine,
+      client = engine.createClient({
         provider: provider as ProviderName,
         model,
         apiKey,

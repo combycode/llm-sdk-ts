@@ -10,7 +10,7 @@ import { describe, expect, it } from 'bun:test';
 import { transcribe } from '../../../src/helpers/transcribe';
 import type { EngineHandle } from '../../../src/helpers/engine';
 import { HookBus } from '../../../src/bus/hook-bus';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import { OpenAITranscriptionAdapter } from '../../../src/llm/providers/openai/transcription';
 import type { EngineFetch, HttpRequest, HttpResponse } from '../../../src/network/types';
 

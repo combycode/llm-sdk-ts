@@ -12,7 +12,7 @@
  *  Ranks cheapest-first (tiebreak: newest version); select() returns the single
  *  best, selectModels() the ranked list. Thresholds + custom tags are overridable. */
 
-import type { ModelInfo } from '../plugins/model-catalog/catalog';
+import type { ModelInfo } from '../catalog/catalog';
 import type { ProviderName } from '../llm/types/provider';
 import { coreRegistry, type EngineHandle } from './engine';
 

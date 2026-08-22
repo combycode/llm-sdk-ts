@@ -14,7 +14,7 @@
  *    - the model matches, OR the provider is not model-bound (catalog).
  *  Otherwise we fall back to resending full history (always correct). */
 
-import type { ModelCatalog } from '../plugins/model-catalog/catalog';
+import type { ModelCatalog } from '../catalog/catalog';
 import { parseDurationOrNull } from '../util/duration';
 import type { Message } from './types/messages';
 import type { ProviderName } from './types/provider';

@@ -24,7 +24,7 @@ import {
   P90_HISTOGRAM_BIN_WIDTH,
 } from '../../../src/helpers/calibration-types';
 import { MemoryPersistence } from '../../../src/plugins/persistence/memory';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 
 // ─── Catalog fixture ──────────────────────────────────────────────────────────
 

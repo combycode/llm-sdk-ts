@@ -4,7 +4,6 @@
  *  custom handler or a model id to auto-wire. */
 
 import type { EngineHandle } from '../../helpers/engine';
-import { complete } from '../../helpers/one-shot';
 import type { Content } from '../../llm/types/messages';
 import type { ProviderName } from '../../llm/types/provider';
 import type { Message } from '../../llm/types/messages';
@@ -45,8 +44,27 @@ function toStopReason(finish: string): string {
   return finish;
 }
 
+/** The one thing this module needs from the ergonomic layer: run a completion.
+ *
+ *  Taken as a parameter rather than imported, because `plugins` importing
+ *  `helpers` closed a cycle (`helpers` already imports most of `plugins`). The
+ *  public `samplingHandler` lives in `helpers/mcp` and supplies `complete`; the
+ *  mapping between MCP's message shape and ours stays here, where it belongs. */
+export type McpCompleteFn = (args: {
+  model: string;
+  provider?: ProviderName;
+  engine?: EngineHandle;
+  system?: string;
+  prompt: Message[];
+  maxTokens?: number;
+  temperature?: number;
+}) => Promise<{ text: string; response: { model: string; finishReason: string } }>;
+
 /** Build a sampling handler: pass-through a custom function, or auto-wire a model. */
-export function samplingHandler(config: McpSamplingConfig): McpSamplingHandler {
+export function samplingHandlerWith(
+  complete: McpCompleteFn,
+  config: McpSamplingConfig,
+): McpSamplingHandler {
   if (typeof config === 'function') return config;
   return async (params) => {
     const result = await complete({

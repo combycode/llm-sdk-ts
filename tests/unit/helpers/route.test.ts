@@ -7,7 +7,7 @@ import { HookBus } from '../../../src/bus/hook-bus';
 import type { EngineHandle } from '../../../src/helpers/engine';
 import { route } from '../../../src/helpers/route';
 import { classifyError } from '../../../src/network/errors';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import type { EngineFetch } from '../../../src/network/types';
 
 type Handler = (url: string, body: Record<string, unknown>) => { status: number; body: unknown };

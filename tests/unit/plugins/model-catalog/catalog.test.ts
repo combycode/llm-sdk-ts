@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'bun:test';
-import { ModelCatalog } from '../../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../../src/catalog/catalog';
 
 describe('ModelCatalog', () => {
   it('starts empty', () => {

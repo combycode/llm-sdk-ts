@@ -9,7 +9,7 @@ import type { NormalizedRequest } from '../../../src/llm/types/request';
 import type { CompletionResponse } from '../../../src/llm/types/response';
 import type { StreamEvent } from '../../../src/llm/types/stream';
 import { CostCollector } from '../../../src/plugins/cost-collector/collector';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import type { EngineFetch, EngineFetchStream, HttpResponse, SSEEvent } from '../../../src/network/types';
 
 function streamAdapter(): ProviderAdapter {

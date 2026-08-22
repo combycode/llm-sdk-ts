@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'bun:test';
 import { HookBus } from '../../../../src/bus/hook-bus';
 import { ConversationHistory } from '../../../../src/agent/history';
-import { ModelCatalog } from '../../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../../src/catalog/catalog';
 import { ContextMeasurer } from '../../../../src/plugins/context-measurer/measurer';
 import { ContextGuard } from '../../../../src/plugins/context-guard/guard';
 import { TruncateStrategy } from '../../../../src/plugins/context-guard/strategies/truncate';

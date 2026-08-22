@@ -2,7 +2,7 @@
 
 import type { HookBus } from '../bus/hook-bus';
 import type { EngineFetch, EngineFetchStream } from '../network/types';
-import type { ModelCatalog } from '../plugins/model-catalog/catalog';
+import type { ModelCatalog } from '../catalog/catalog';
 import type { RequestContext } from '../types/request-context';
 import type { ApiType, ProviderAdapter, ProviderName } from './types/provider';
 import type { NormalizedRequest } from './types/request';

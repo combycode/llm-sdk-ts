@@ -13,7 +13,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test';
 import { estimate } from '../../../src/helpers/estimate';
 import type { EstimateOptions } from '../../../src/helpers/estimate';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 
 function makeEngine(catalog: ModelCatalog): EstimateOptions['engine'] {
   return { catalog } as unknown as EstimateOptions['engine'];

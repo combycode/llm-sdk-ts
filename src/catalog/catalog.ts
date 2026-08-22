@@ -1,12 +1,12 @@
 /** ModelCatalog — pricing, capabilities, and model info. Loaded from JSON. */
 
-import anthropicCatalog from '../../llm/providers/anthropic/catalog.json';
-import googleCatalog from '../../llm/providers/google/catalog.json';
-import openaiCatalog from '../../llm/providers/openai/catalog.json';
-import openrouterCatalog from '../../llm/providers/openrouter/catalog.json';
-import xaiCatalog from '../../llm/providers/xai/catalog.json';
-import { PROVIDER_BUILTIN_TOOLS } from '../../llm/providers/builtin-tools';
-import type { ProviderName } from '../../llm/types/provider';
+import anthropicCatalog from './data/anthropic.json';
+import googleCatalog from './data/google.json';
+import openaiCatalog from './data/openai.json';
+import openrouterCatalog from './data/openrouter.json';
+import xaiCatalog from './data/xai.json';
+import { PROVIDER_BUILTIN_TOOLS } from './builtin-tools';
+import type { ProviderName } from '../llm/types/provider';
 
 const PROVIDER_DEFAULT_CATALOGS: Record<string, unknown>[] = [
   anthropicCatalog as Record<string, unknown>,

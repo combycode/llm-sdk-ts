@@ -13,7 +13,20 @@ import { McpClient } from '../plugins/mcp/client';
 import { McpError, McpErrorCode } from '../plugins/mcp/jsonrpc';
 import { type McpAuthProvider, McpOAuth, McpUnauthorizedError } from '../plugins/mcp/oauth';
 import type { SsrfGuardOptions } from '../plugins/mcp/url-guard';
-import { type McpSamplingConfig, samplingHandler } from '../plugins/mcp/sampling';
+import {
+  type McpSamplingConfig,
+  type McpSamplingHandler,
+  samplingHandlerWith,
+} from '../plugins/mcp/sampling';
+import { complete } from './one-shot';
+
+/** Build a sampling handler that fulfils an MCP server's `sampling/createMessage`
+ *  with our own engine. Thin wiring: the MCP-shape mapping lives in
+ *  `plugins/mcp/sampling`, which cannot import this layer without closing a
+ *  dependency cycle, so the completion function is passed down instead. */
+export function samplingHandler(config: McpSamplingConfig): McpSamplingHandler {
+  return samplingHandlerWith(complete, config);
+}
 import { mcpToolToAgentTool } from '../plugins/mcp/tools';
 import type { McpTransport } from '../plugins/mcp/transport';
 import { HttpTransport } from '../plugins/mcp/transport-http';

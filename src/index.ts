@@ -183,8 +183,8 @@ export { OaiServer } from './server/server';
 export type { OaiServerConfig } from './server/server';
 
 // Plugins
-export { ModelCatalog } from './plugins/model-catalog/catalog';
-export type { ApiType as ModelCatalogApiType, MediaParamSpec, ModelCapabilities, ModelInfo, ModelPricing, ModelReasoning, TokenizerInfo } from './plugins/model-catalog/catalog';
+export { ModelCatalog } from './catalog/catalog';
+export type { ApiType as ModelCatalogApiType, MediaParamSpec, ModelCapabilities, ModelInfo, ModelPricing, ModelReasoning, TokenizerInfo } from './catalog/catalog';
 export { CostCollector } from './plugins/cost-collector/collector';
 export type { Budget, CostCollectorConfig, CostFilter, CostSummary } from './plugins/cost-collector/cost-collector-types';
 export { compileGlobs, globToRegex } from './plugins/permissions/glob';
@@ -304,7 +304,7 @@ export type { AuthServerMetadata, McpAuthProvider, McpOAuthClientInfo, McpOAuthC
 export { WsTransport } from './plugins/mcp/transport-ws';
 export type { McpWsConfig } from './plugins/mcp/transport-ws';
 export { mcpContentToResult, mcpPromptToMessages, mcpToolToAgentTool } from './plugins/mcp/tools';
-export { samplingHandler } from './plugins/mcp/sampling';
+export { samplingHandler } from './helpers/mcp';
 export type { McpSamplingConfig, McpSamplingHandler, McpSamplingViaLLM } from './plugins/mcp/sampling';
 export type {
   McpCreateMessageParams,

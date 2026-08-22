@@ -8,7 +8,7 @@ import {
   openaiImageRef,
   toDataUrl,
   xaiImageRef,
-} from '../../../../src/plugins/media/source-image';
+} from '../../../../src/util/source-image';
 import { bytesToBase64 } from '../../../../src/util/base64';
 
 // A JPEG header (FF D8 FF E0 … JFIF), padded to give a long-enough base64 prefix.

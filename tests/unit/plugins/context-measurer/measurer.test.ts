@@ -2,7 +2,7 @@ import { describe, expect, it } from 'bun:test';
 import { HookBus } from '../../../../src/bus/hook-bus';
 import type { CompletionContext, ContextMeasureContext } from '../../../../src/bus/hook-map';
 import { ConversationHistory } from '../../../../src/agent/history';
-import { ModelCatalog } from '../../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../../src/catalog/catalog';
 import { MemoryPersistence } from '../../../../src/plugins/persistence/memory';
 import { ContextMeasurer } from '../../../../src/plugins/context-measurer/measurer';
 import { HeuristicCounter } from '../../../../src/plugins/context-measurer/counter/heuristic';

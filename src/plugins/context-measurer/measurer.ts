@@ -5,7 +5,7 @@ import type { HookBus } from '../../bus/hook-bus';
 import type { Message } from '../../llm/types/messages';
 import type { TokenCounter } from '../../agent/types';
 import type { ConversationHistory } from '../../agent/history';
-import type { ModelCatalog } from '../model-catalog/catalog';
+import type { ModelCatalog } from '../../catalog/catalog';
 import type { Persistence } from '../persistence/types';
 import type { CalibrationStore, ContextThresholds, CalibrationConfig } from './types';
 import { CONTEXT_DEFAULTS } from './types';

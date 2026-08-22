@@ -18,6 +18,8 @@
 
 import { AgentBus } from '../bus/agent-bus';
 import { HookBus } from '../bus/hook-bus';
+import type { LLMClient } from '../llm/client';
+import { createLLM, type CreateLLMOptions } from './llm';
 import type { ProviderName } from '../llm/types/provider';
 import { NetworkEngine, type QueueSettings } from '../network/engine';
 import type { RetryPolicyOverride } from '../network/queue-state-config';
@@ -25,7 +27,7 @@ import type { EngineConnect, EngineFetch, EngineFetchStream, FetchFn } from '../
 import { Cache } from '../plugins/cache/cache';
 import { MemoryCacheStore } from '../plugins/cache/memory-store';
 import { CostCollector } from '../plugins/cost-collector/collector';
-import { ModelCatalog } from '../plugins/model-catalog/catalog';
+import { ModelCatalog } from '../catalog/catalog';
 import { FilePersistence } from '../plugins/persistence/file';
 import { TelemetryAdapter, type TelemetryAdapterOptions } from '../plugins/telemetry/telemetry';
 import { MemoryPersistence } from '../plugins/persistence/memory';
@@ -70,6 +72,15 @@ export interface EngineHandle {
    *  createMediaOutput, complete) read these to wire LLM clients without
    *  the caller passing apiKey explicitly. */
   apiKeys: Partial<Record<ProviderName, string>>;
+  /** Build an LLMClient bound to this engine.
+   *
+   *  Exists so lower layers can obtain a client without importing the helpers
+   *  layer: `plugins/internal-tools` needs one for LLM-backed tools, and
+   *  importing `createLLM` directly made `plugins` depend on `helpers` while
+   *  `helpers` already depended on `plugins` — a cycle that a Rust crate split
+   *  cannot express. The engine is something those plugins already hold, so it
+   *  is the natural place to hand the capability down. */
+  createClient(options: Omit<CreateLLMOptions, 'engine'>): LLMClient;
   /** Tear down all owned plugins. */
   destroy(): void;
 }
@@ -185,6 +196,9 @@ export function createEngine(config: EngineConfig = {}): EngineHandle {
     cost,
     telemetry,
     apiKeys: config.apiKeys ?? {},
+    // Bound inside the literal so the closure captures this handle. The body runs
+    // only when a caller asks for a client, so referencing `handle` here is safe.
+    createClient: (options) => createLLM({ ...options, engine: handle }),
     destroy(): void {
       cost.destroy();
       telemetry?.destroy();

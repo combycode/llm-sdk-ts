@@ -3,7 +3,7 @@
 import { isBrowser } from '../../../runtime/runtime';
 import { base64ToBytes } from '../../../util/base64';
 import { sniffImageMime } from '../../../util/image-mime';
-import { normalizeImageSource, xaiImageRef, xaiVideoRef } from '../../../plugins/media/source-image';
+import { normalizeImageSource, xaiImageRef, xaiVideoRef } from '../../../util/source-image';
 import type { EngineFetch } from '../../../network/types';
 import type {
   AudioGenRequest,

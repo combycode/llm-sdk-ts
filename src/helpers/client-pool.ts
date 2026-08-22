@@ -4,7 +4,7 @@
 
 import { LLMClient } from '../llm/client';
 import type { LLMClientConfig } from '../llm/client-config';
-import type { ModelCatalog } from '../plugins/model-catalog/catalog';
+import type { ModelCatalog } from '../catalog/catalog';
 
 export class ClientPool {
   private clients = new Map<string, LLMClient>();

@@ -10,7 +10,7 @@ import { GoogleAdapter } from '../../../src/llm/providers/google/generate';
 import type { NormalizedRequest } from '../../../src/llm/types/request';
 import { parseModelTier } from '../../../src/helpers/client-resolver';
 import { CostCollector } from '../../../src/plugins/cost-collector/collector';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 
 const req = (over: Partial<NormalizedRequest> = {}): NormalizedRequest => ({
   model: 'm',

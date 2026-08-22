@@ -1,7 +1,7 @@
 /** listModelsLive — enriched by default, raw opt-out, OR built live, 24h cache. */
 
 import { beforeEach, describe, expect, it } from 'bun:test';
-import { ModelCatalog } from '../../../src/plugins/model-catalog/catalog';
+import { ModelCatalog } from '../../../src/catalog/catalog';
 import { clearLiveModelsCache, listModelsLive } from '../../../src/helpers/models';
 import type { EngineHandle } from '../../../src/helpers/engine';
 

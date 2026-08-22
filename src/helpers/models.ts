@@ -10,7 +10,7 @@
  *  (override with `refresh: true`). */
 
 import type { ProviderName } from '../llm/types/provider';
-import type { ModelCapabilities, ModelInfo, ModelPricing } from '../plugins/model-catalog/catalog';
+import type { ModelCapabilities, ModelInfo, ModelPricing } from '../catalog/catalog';
 import { isBrowser } from '../runtime/runtime';
 import { coreRegistry, type EngineHandle } from './engine';
 import { ANTHROPIC_API_VERSION } from '../llm/providers/anthropic/constants';
