@@ -12,6 +12,26 @@ import type {
 
 const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
 
+/** Reduce any form of Google file id to the bare name the REST path wants.
+ *
+ *  Three forms reach this, and only two used to work:
+ *
+ *    https://.../v1beta/files/abc  the `uri` this adapter hands back from
+ *                                 upload() and list() — matched on `/files/`
+ *    abc                          a bare name — passed through
+ *    files/abc                    Google's CANONICAL resource name, the `name`
+ *                                 field its own API returns
+ *
+ *  The third fell through the `/files/` test (no leading slash) and produced
+ *  `/v1beta/files/files/abc` — a 404. It never broke this library's own
+ *  round-trip, because upload() and list() return the `uri`; it broke the
+ *  moment a caller passed the id Google itself gave them. */
+export function googleFileName(remoteId: string): string {
+  if (remoteId.includes('/files/')) return remoteId.split('/files/').pop() ?? remoteId;
+  if (remoteId.startsWith('files/')) return remoteId.slice('files/'.length);
+  return remoteId;
+}
+
 export interface GoogleFileAdapterConfig {
   apiKey: string;
   baseURL?: string;
@@ -96,7 +116,7 @@ export class GoogleFileAdapter implements FileProviderAdapter {
   }
 
   async delete(remoteId: string, fetch: EngineFetch): Promise<void> {
-    const name = remoteId.includes('/files/') ? remoteId.split('/files/').pop() : remoteId;
+    const name = googleFileName(remoteId);
     await fetch({
       url: `${this.baseURL}/v1beta/files/${name}?key=${this.apiKey}`,
       method: 'DELETE',
@@ -109,7 +129,7 @@ export class GoogleFileAdapter implements FileProviderAdapter {
   }
 
   async getInfo(remoteId: string, fetch: EngineFetch): Promise<RemoteFileInfo | null> {
-    const name = remoteId.includes('/files/') ? remoteId.split('/files/').pop() : remoteId;
+    const name = googleFileName(remoteId);
     const res = await fetch({
       url: `${this.baseURL}/v1beta/files/${name}?key=${this.apiKey}`,
       method: 'GET',

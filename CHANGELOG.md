@@ -45,6 +45,18 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   re-exported from the same place as before. A new test (`tests/unit/architecture/layers.test.ts`)
   fails if any cycle returns.
 
+### Fixed
+
+- **`google/files` rejected Google's own resource-name format.** `delete()` and `getInfo()`
+  normalised the file id only when it contained `/files/` *with* a leading slash — true of the
+  full `uri` this adapter returns from `upload()` and `list()`, and false of `files/abc`, the
+  canonical `name` the Google API itself returns. Passing that back produced
+  `/v1beta/files/files/abc` and a 404.
+
+  It never broke the library's own round-trip, which is why it survived: the only way to reach it
+  was to use the provider's own id format. All three forms — full uri, `files/abc`, and a bare
+  name — now normalise to the same request.
+
 ### Changed
 
 - **Internal cleanups carried over from the 1.0 backlog.**
