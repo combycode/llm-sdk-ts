@@ -49,12 +49,18 @@ export class GoogleRealtimeAdapter implements RealtimeProviderAdapter {
     this.base = (config.baseURL ?? GOOGLE_WS_BASE).replace(/^http/, 'ws').replace(/\/$/, '');
   }
 
-  connect(config: RealtimeSessionConfig, connect: EngineConnect): RealtimeSession {
+  /** The WebSocket descriptor. Separated from `connect` so it can be asserted
+   *  without opening a socket. Gemini authenticates with a query-string key and
+   *  does NOT name the model in the URL — that goes in the setup frame. */
+  buildConnectRequest(config: RealtimeSessionConfig): WsRequest {
     const url =
       `${this.base}/ws/google.ai.generativelanguage.${API_VERSION}` +
       `.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
-    const req: WsRequest = { url, provider: 'google', model: config.model };
-    return new GoogleRealtimeSession(connect(req), config);
+    return { url, provider: 'google', model: config.model };
+  }
+
+  connect(config: RealtimeSessionConfig, connect: EngineConnect): RealtimeSession {
+    return new GoogleRealtimeSession(connect(this.buildConnectRequest(config)), config);
   }
 }
 
@@ -63,25 +69,53 @@ function toResponseModalities(mods: RealtimeModality[] | undefined): string[] {
   return (mods ?? ['text']).map((m) => (m === 'audio' ? 'AUDIO' : 'TEXT'));
 }
 
+/** The handshake frame. Pure: a function of the session config, so it can be
+ *  asserted without opening a socket. Gemini Live names the model HERE rather
+ *  than in the URL, which is the opposite of OpenAI. */
+export function buildGoogleSetupFrame(config: RealtimeSessionConfig): Record<string, unknown> {
+  const voice = config.voice;
+  const setup: Record<string, unknown> = {
+    model: config.model.startsWith('models/') ? config.model : `models/${config.model}`,
+    generationConfig: {
+      responseModalities: toResponseModalities(config.modalities),
+      ...(voice
+        ? { speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } }
+        : {}),
+    },
+  };
+  if (config.instructions) {
+    setup.systemInstruction = { parts: [{ text: config.instructions }] };
+  }
+  return { setup };
+}
+
+/** The frames for one turn. Gemini carries turn completion as a FIELD, where
+ *  OpenAI signals it by sending a second frame. */
+export function buildGoogleTurnFrames(
+  input: RealtimeInput,
+  opts?: { turnComplete?: boolean },
+): Array<Record<string, unknown>> {
+  const parts: Array<Record<string, unknown>> = [];
+  if (input.text != null) parts.push({ text: input.text });
+  if (input.audio) {
+    parts.push({ inlineData: { mimeType: 'audio/pcm', data: bytesToBase64(input.audio) } });
+  }
+  return [
+    {
+      clientContent: {
+        turns: [{ role: 'user', parts }],
+        turnComplete: opts?.turnComplete !== false,
+      },
+    },
+  ];
+}
+
 class GoogleRealtimeSession extends BaseRealtimeSession {
   private readonly setupFrame: Record<string, unknown>;
 
   constructor(conn: RealtimeConnection, config: RealtimeSessionConfig) {
     super(conn);
-    const voice = config.voice;
-    const setup: Record<string, unknown> = {
-      model: config.model.startsWith('models/') ? config.model : `models/${config.model}`,
-      generationConfig: {
-        responseModalities: toResponseModalities(config.modalities),
-        ...(voice
-          ? { speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } }
-          : {}),
-      },
-    };
-    if (config.instructions) {
-      setup.systemInstruction = { parts: [{ text: config.instructions }] };
-    }
-    this.setupFrame = { setup };
+    this.setupFrame = buildGoogleSetupFrame(config);
   }
 
   protected onOpen(): void {
@@ -91,17 +125,7 @@ class GoogleRealtimeSession extends BaseRealtimeSession {
 
   send(input: RealtimeInput, opts?: { turnComplete?: boolean }): void {
     this.whenReady(() => {
-      const parts: Array<Record<string, unknown>> = [];
-      if (input.text != null) parts.push({ text: input.text });
-      if (input.audio) {
-        parts.push({ inlineData: { mimeType: 'audio/pcm', data: bytesToBase64(input.audio) } });
-      }
-      this.sendJSON({
-        clientContent: {
-          turns: [{ role: 'user', parts }],
-          turnComplete: opts?.turnComplete !== false,
-        },
-      });
+      for (const frame of buildGoogleTurnFrames(input, opts)) this.sendJSON(frame);
     });
   }
 

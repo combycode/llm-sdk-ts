@@ -47,6 +47,26 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **Request builders on the media and realtime adapters.** These adapters used to assemble each
+  request *inside* the method that also fetched and parsed it, so the only way to see what the SDK
+  would send was to intercept the network. Construction is now separated:
+
+  - `GoogleMediaAdapter`: `buildImageRequest`, `buildEditImageRequest`, `buildAudioRequest`,
+    `buildVideoRequest`, plus the lower-level `buildImagenRequest` / `buildGenerateContentRequest`.
+  - `OpenAIMediaAdapter`: `buildGenerateImageRequest`, `buildEditImageRequest`, `buildAudioRequest`,
+    `buildVideoRequest`.
+  - Realtime: `buildConnectRequest` on both adapters, and free functions
+    `buildOpenAISessionUpdate` / `buildOpenAITurnFrames` and `buildGoogleSetupFrame` /
+    `buildGoogleTurnFrames` for the handshake and per-turn frames.
+
+  The public methods now call these, so the two cannot drift — and a test
+  (`media-request-builders.test.ts`) asserts that what a builder returns is byte-identical to what
+  its method actually sends.
+
+  Additive: no existing signature changed.
+
+### Added
+
 - **The catalog now knows how to TALK to a model, not just what it can do.** `ModelInfo` gains a
   `wire` block carrying per-model wire traits — which `thinking` shape the model accepts, whether
   it takes `top_k` — and `LLMClient` resolves it onto every request as `NormalizedRequest.wire`.

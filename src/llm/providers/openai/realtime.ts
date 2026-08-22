@@ -64,18 +64,63 @@ export class OpenAIRealtimeAdapter implements RealtimeProviderAdapter {
     this.baseURL = config.baseURL ?? 'https://api.openai.com';
   }
 
-  connect(config: RealtimeSessionConfig, connect: EngineConnect): RealtimeSession {
+  /** The WebSocket descriptor. Separated from `connect` so it can be asserted
+   *  without opening a socket. Note the auth: OpenAI carries the key in a
+   *  SUBPROTOCOL, not a header or query param, because browsers cannot set
+   *  WebSocket headers. */
+  buildConnectRequest(config: RealtimeSessionConfig): WsRequest {
     const url = new URL(`${this.baseURL.replace(/\/$/, '')}/v1/realtime`);
     url.protocol = 'wss';
     url.searchParams.set('model', config.model);
-    const req: WsRequest = {
+    return {
       url: url.toString(),
       protocols: ['realtime', `openai-insecure-api-key.${this.apiKey}`],
       provider: 'openai',
       model: config.model,
     };
-    return new OpenAIRealtimeSession(connect(req), config);
   }
+
+  connect(config: RealtimeSessionConfig, connect: EngineConnect): RealtimeSession {
+    return new OpenAIRealtimeSession(connect(this.buildConnectRequest(config)), config);
+  }
+}
+
+// ─── frame builders ──────────────────────────────────────────────────────
+//
+// A realtime session's outbound side is three artifacts: the connection
+// descriptor (built by the adapter above), the handshake frame, and the per-turn
+// frames. Building them is separated from sending them, and they are free
+// functions rather than session methods, so each can be asserted without a
+// socket. Google's equivalents have the same shape.
+
+/** The handshake frame, sent once the socket opens. */
+export function buildOpenAISessionUpdate(
+  config: Pick<RealtimeSessionConfig, 'modalities' | 'instructions' | 'voice'>,
+): Record<string, unknown> {
+  const session: Record<string, unknown> = {
+    type: 'realtime',
+    output_modalities: config.modalities ?? ['text'],
+  };
+  if (config.instructions) session.instructions = config.instructions;
+  if (config.voice) session.audio = { output: { voice: config.voice } };
+  return { type: 'session.update', session };
+}
+
+/** The frames for one turn. `response.create` is what asks the model to reply,
+ *  so `turnComplete: false` withholds it and the turn stays open — where Gemini
+ *  carries the same meaning as a field on its single frame. */
+export function buildOpenAITurnFrames(
+  input: RealtimeInput,
+  opts?: { turnComplete?: boolean },
+): Array<Record<string, unknown>> {
+  const content: Array<Record<string, unknown>> = [];
+  if (input.text != null) content.push({ type: 'input_text', text: input.text });
+  if (input.audio) content.push({ type: 'input_audio', audio: bytesToBase64(input.audio) });
+  const frames: Array<Record<string, unknown>> = [
+    { type: 'conversation.item.create', item: { type: 'message', role: 'user', content } },
+  ];
+  if (opts?.turnComplete !== false) frames.push({ type: 'response.create' });
+  return frames;
 }
 
 class OpenAIRealtimeSession extends BaseRealtimeSession {
@@ -94,27 +139,20 @@ class OpenAIRealtimeSession extends BaseRealtimeSession {
   }
 
   protected onOpen(): void {
-    const session: Record<string, unknown> = {
-      type: 'realtime',
-      output_modalities: this.modalities,
-    };
-    if (this.instructions) session.instructions = this.instructions;
-    if (this.voice) session.audio = { output: { voice: this.voice } };
-    this.sendJSON({ type: 'session.update', session });
+    this.sendJSON(
+      buildOpenAISessionUpdate({
+        modalities: this.modalities as RealtimeSessionConfig['modalities'],
+        instructions: this.instructions,
+        voice: this.voice,
+      }),
+    );
     // OpenAI accepts conversation items immediately after the socket opens.
     this.markReady();
   }
 
   send(input: RealtimeInput, opts?: { turnComplete?: boolean }): void {
     this.whenReady(() => {
-      const content: Array<Record<string, unknown>> = [];
-      if (input.text != null) content.push({ type: 'input_text', text: input.text });
-      if (input.audio) content.push({ type: 'input_audio', audio: bytesToBase64(input.audio) });
-      this.sendJSON({
-        type: 'conversation.item.create',
-        item: { type: 'message', role: 'user', content },
-      });
-      if (opts?.turnComplete !== false) this.sendJSON({ type: 'response.create' });
+      for (const frame of buildOpenAITurnFrames(input, opts)) this.sendJSON(frame);
     });
   }
 

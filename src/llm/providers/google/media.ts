@@ -1,7 +1,7 @@
 /** Google media adapter — Imagen (:predict) + Veo (:predictLongRunning).
  *  All HTTP calls go through an injected EngineFetch (NetworkEngine queue). */
 
-import type { EngineFetch } from '../../../network/types';
+import type { EngineFetch, HttpRequest } from '../../../network/types';
 import { base64ToBytes } from '../../../util/base64';
 import {
   googleImagePart,
@@ -60,23 +60,120 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
     };
   }
 
+  // ─── request builders ────────────────────────────────────────────────
+  //
+  // Split out from the methods that fetch and parse, so a request can be built,
+  // inspected and asserted without performing it. Everything above this line
+  // used to construct its request inline, which meant the only way to see what
+  // the adapter would send was to intercept the network.
+
+  /** Imagen image generation: the Vertex-style `:predict` envelope. */
+  buildImagenRequest(req: ImageGenRequest, model = req.model ?? 'imagen-4.0-generate-001'): HttpRequest {
+    const parameters: Record<string, unknown> = { sampleCount: req.params?.n ?? 1 };
+    if (req.params?.aspectRatio) parameters.aspectRatio = req.params.aspectRatio;
+    if (req.params?.imageSize) parameters.sampleImageSize = req.params.imageSize;
+    return {
+      url: `${this.baseURL}/v1beta/models/${model}:predict?key=${this.apiKey}`,
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: { instances: [{ prompt: req.prompt }], parameters },
+      provider: 'google',
+      model,
+      responseType: 'json',
+    };
+  }
+
+  /** The inline-media path shared by gemini image generation, editing and TTS. */
+  buildGenerateContentRequest(
+    model: string,
+    text: string,
+    generationConfig: Record<string, unknown>,
+    extraParts: Array<Record<string, unknown>> = [],
+  ): HttpRequest {
+    return {
+      url: `${this.baseURL}/v1beta/models/${model}:generateContent?key=${this.apiKey}`,
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: { contents: [{ parts: [{ text }, ...extraParts] }], generationConfig },
+      provider: 'google',
+      model,
+      responseType: 'json',
+    };
+  }
+
+  /** Veo video submission — a long-running operation, hence the endpoint. */
+  buildVideoRequest(req: VideoGenRequest, model = req.model ?? 'veo-3.1-generate-preview'): HttpRequest {
+    const instance: Record<string, unknown> = { prompt: req.prompt };
+    // First-frame image → image-to-video.
+    if (req.sourceImage) instance.image = googleVeoImage(normalizeImageSource(req.sourceImage));
+    const parameters: Record<string, unknown> = {};
+    if (req.params?.duration) parameters.durationSeconds = req.params.duration;
+    if (req.params?.aspectRatio) parameters.aspectRatio = req.params.aspectRatio;
+    if (req.params?.resolution) parameters.resolution = req.params.resolution;
+    return {
+      url: `${this.baseURL}/v1beta/models/${model}:predictLongRunning?key=${this.apiKey}`,
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: { instances: [instance], parameters },
+      provider: 'google',
+      model,
+      responseType: 'json',
+    };
+  }
+
+  /** `generationConfig` for the gemini image paths — generation and editing take
+   *  the same one. */
+  private imageGenerationConfig(params: ImageGenRequest['params']): Record<string, unknown> {
+    const generationConfig: Record<string, unknown> = { responseModalities: ['IMAGE'] };
+    const image: Record<string, unknown> = {};
+    if (params?.aspectRatio) image.aspectRatio = params.aspectRatio;
+    if (params?.imageSize) image.imageSize = params.imageSize;
+    if (Object.keys(image).length) generationConfig.imageConfig = image;
+    return generationConfig;
+  }
+
+  /** The complete image request, whichever of the two Google image paths applies:
+   *  Imagen models use `:predict`, gemini-* models generate inline via
+   *  `:generateContent` steered by responseModalities. */
+  buildImageRequest(req: ImageGenRequest, model = req.model ?? 'imagen-4.0-generate-001'): HttpRequest {
+    return model.startsWith('imagen')
+      ? this.buildImagenRequest(req, model)
+      : this.buildGenerateContentRequest(model, req.prompt, this.imageGenerationConfig(req.params));
+  }
+
+  /** Gemini TTS: the same inline path with an AUDIO modality and a speechConfig. */
+  buildAudioRequest(
+    req: AudioGenRequest,
+    model = req.model ?? 'gemini-2.5-flash-preview-tts',
+  ): HttpRequest {
+    const voiceName = resolveVoice('google', req.params?.voice) ?? 'Kore';
+    return this.buildGenerateContentRequest(model, req.input, {
+      responseModalities: ['AUDIO'],
+      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },
+    });
+  }
+
+  /** Image-to-image edit: image generation plus the source image as a second part. */
+  buildEditImageRequest(
+    req: ImageEditRequest,
+    model = req.model ?? 'gemini-2.5-flash-image',
+  ): HttpRequest {
+    return this.buildGenerateContentRequest(
+      model,
+      req.prompt,
+      this.imageGenerationConfig(req.params),
+      [googleImagePart(normalizeImageSource(req.sourceImage))],
+    );
+  }
+
   async generateImage(req: ImageGenRequest, fetch: EngineFetch): Promise<RawMediaResult[]> {
     const model = req.model ?? 'imagen-4.0-generate-001';
 
     // Two distinct Google image paths: Imagen models use the `:predict` endpoint;
     // gemini-* image models generate inline via `generateContent` + responseModalities.
     if (!model.startsWith('imagen')) {
-      const generationConfig: Record<string, unknown> = { responseModalities: ['IMAGE'] };
-      const image: Record<string, unknown> = {};
-      if (req.params?.aspectRatio) image.aspectRatio = req.params.aspectRatio;
-      if (req.params?.imageSize) image.imageSize = req.params.imageSize;
-      if (Object.keys(image).length) generationConfig.imageConfig = image;
-
-      const { items, usage } = await this.generateContentMedia(
-        model,
-        req.prompt,
-        generationConfig,
-        fetch,
+      const { items, usage } = await this.parseGenerateContent(
+        await fetch(this.buildImageRequest(req, model)),
       );
       return items.map((m, i) => ({
         data: base64ToBytes(m.data),
@@ -85,23 +182,7 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
       }));
     }
 
-    const parameters: Record<string, unknown> = { sampleCount: req.params?.n ?? 1 };
-    if (req.params?.aspectRatio) parameters.aspectRatio = req.params.aspectRatio;
-    if (req.params?.imageSize) parameters.sampleImageSize = req.params.imageSize;
-    const body: Record<string, unknown> = {
-      instances: [{ prompt: req.prompt }],
-      parameters,
-    };
-
-    const res = await fetch({
-      url: `${this.baseURL}/v1beta/models/${model}:predict?key=${this.apiKey}`,
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body,
-      provider: 'google',
-      model,
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildImagenRequest(req, model));
     const data = res.body as Record<string, unknown>;
     const predictions = (data.predictions as Array<Record<string, unknown>>) ?? [];
 
@@ -117,17 +198,7 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
   async generateAudio(req: AudioGenRequest, fetch: EngineFetch): Promise<RawMediaResult> {
     // Gemini TTS is inline generateContent with responseModalities:['AUDIO'] +
     // speechConfig (no separate media endpoint).
-    const model = req.model ?? 'gemini-2.5-flash-preview-tts';
-    const voiceName = resolveVoice('google', req.params?.voice) ?? 'Kore';
-    const media = await this.generateContentMedia(
-      model,
-      req.input,
-      {
-        responseModalities: ['AUDIO'],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },
-      },
-      fetch,
-    );
+    const media = await this.parseGenerateContent(await fetch(this.buildAudioRequest(req)));
     const first = media.items[0];
     if (!first) throw new Error('Google TTS: no audio returned by generateContent');
     // Gemini TTS returns bare little-endian 16-bit PCM (`audio/l16; rate=...`);
@@ -139,20 +210,8 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
   /** Image-to-image edit: gemini generateContent with the source image as an
    *  extra inline/file part next to the instruction. */
   async editImage(req: ImageEditRequest, fetch: EngineFetch): Promise<RawMediaResult[]> {
-    const model = req.model ?? 'gemini-2.5-flash-image';
-    const generationConfig: Record<string, unknown> = { responseModalities: ['IMAGE'] };
-    const image: Record<string, unknown> = {};
-    if (req.params?.aspectRatio) image.aspectRatio = req.params.aspectRatio;
-    if (req.params?.imageSize) image.imageSize = req.params.imageSize;
-    if (Object.keys(image).length) generationConfig.imageConfig = image;
-
-    const imagePart = googleImagePart(normalizeImageSource(req.sourceImage));
-    const { items, usage } = await this.generateContentMedia(
-      model,
-      req.prompt,
-      generationConfig,
-      fetch,
-      [imagePart],
+    const { items, usage } = await this.parseGenerateContent(
+      await fetch(this.buildEditImageRequest(req)),
     );
     return items.map((m, i) => ({
       data: base64ToBytes(m.data),
@@ -161,24 +220,12 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
     }));
   }
 
-  /** Shared inline-media path: POST :generateContent and collect inlineData
-   *  parts + the reported token usage (token-priced media). */
-  private async generateContentMedia(
-    model: string,
-    text: string,
-    generationConfig: Record<string, unknown>,
-    fetch: EngineFetch,
-    extraParts: Array<Record<string, unknown>> = [],
-  ): Promise<{ items: Array<{ mimeType?: string; data: string }>; usage?: Usage }> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1beta/models/${model}:generateContent?key=${this.apiKey}`,
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: { contents: [{ parts: [{ text }, ...extraParts] }], generationConfig },
-      provider: 'google',
-      model,
-      responseType: 'json',
-    });
+  /** Collect inlineData parts + reported usage from a `:generateContent`
+   *  response. The request half is `buildGenerateContentRequest`; keeping the two
+   *  apart is what lets a request be asserted without performing it. */
+  private parseGenerateContent(res: {
+    body: unknown;
+  }): { items: Array<{ mimeType?: string; data: string }>; usage?: Usage } {
     const data = res.body as {
       candidates?: Array<{
         content?: { parts?: Array<{ inlineData?: { mimeType?: string; data?: string } }> };
@@ -194,26 +241,7 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
 
   async submitVideo(req: VideoGenRequest, fetch: EngineFetch): Promise<string> {
     const model = req.model ?? 'veo-3.1-generate-preview';
-    const instance: Record<string, unknown> = { prompt: req.prompt };
-    // First-frame image → image-to-video.
-    if (req.sourceImage) instance.image = googleVeoImage(normalizeImageSource(req.sourceImage));
-    const parameters: Record<string, unknown> = {};
-
-    if (req.params?.duration) parameters.durationSeconds = req.params.duration;
-    if (req.params?.aspectRatio) parameters.aspectRatio = req.params.aspectRatio;
-    if (req.params?.resolution) parameters.resolution = req.params.resolution;
-
-    const body: Record<string, unknown> = { instances: [instance], parameters };
-
-    const res = await fetch({
-      url: `${this.baseURL}/v1beta/models/${model}:predictLongRunning?key=${this.apiKey}`,
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body,
-      provider: 'google',
-      model,
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildVideoRequest(req, model));
     const data = res.body as Record<string, unknown>;
     return (data.name as string) ?? '';
   }

@@ -3,7 +3,7 @@
  *  so they share the NetworkEngine queue, rate-limits, retry, and hooks. */
 
 import { base64ToBytes } from '../../../util/base64';
-import type { EngineFetch } from '../../../network/types';
+import type { EngineFetch, HttpRequest } from '../../../network/types';
 import { resolveVoice } from '../../audio/voices';
 import { emptyUsage, type Usage } from '../../types/response';
 import { normalizeImageSource, openaiImageRef } from '../../../util/source-image';
@@ -58,8 +58,18 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
     return { authorization: `Bearer ${this.apiKey}`, 'content-type': 'application/json' };
   }
 
-  async generateImage(req: ImageGenRequest, fetch: EngineFetch): Promise<RawMediaResult[]> {
-    const model = req.model ?? 'gpt-image-1';
+  // ─── request builders ──────────────────────────────────────────────────
+  //
+  // Separated from the methods that fetch and parse, so a request can be built
+  // and asserted without performing it. Every method below used to assemble its
+  // request inline, which meant the only way to see what the adapter would send
+  // was to intercept the network.
+
+  /** Text-to-image. */
+  buildGenerateImageRequest(
+    req: ImageGenRequest,
+    model = req.model ?? 'gpt-image-1',
+  ): HttpRequest {
     const body: Record<string, unknown> = {
       model,
       prompt: req.prompt,
@@ -75,8 +85,7 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
     if (req.params?.style) body.style = req.params.style;
     if (req.params?.background) body.background = req.params.background;
     if (req.params?.outputFormat) body.output_format = req.params.outputFormat;
-
-    const res = await fetch({
+    return {
       url: `${this.baseURL}/v1/images/generations`,
       method: 'POST',
       headers: this.authHeaders(),
@@ -84,8 +93,76 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
       provider: 'openai',
       model,
       responseType: 'json',
-    });
+    };
+  }
 
+  /** Image-to-image edit. Generation's field set minus `style`, plus the source
+   *  image and an optional mask. */
+  buildEditImageRequest(req: ImageEditRequest, model = req.model ?? 'gpt-image-1'): HttpRequest {
+    const body: Record<string, unknown> = {
+      model,
+      prompt: req.prompt,
+      images: [openaiImageRef(normalizeImageSource(req.sourceImage))],
+      n: req.params?.n ?? 1,
+    };
+    if (req.mask) body.mask = openaiImageRef(normalizeImageSource(req.mask));
+    if (req.params?.size) body.size = req.params.size;
+    if (req.params?.quality) body.quality = req.params.quality;
+    if (req.params?.background) body.background = req.params.background;
+    if (req.params?.outputFormat) body.output_format = req.params.outputFormat;
+    return {
+      url: `${this.baseURL}/v1/images/edits`,
+      method: 'POST',
+      headers: this.authHeaders(),
+      body,
+      provider: 'openai',
+      model,
+      responseType: 'json',
+    };
+  }
+
+  /** TTS. `responseType` is arraybuffer because the response is audio bytes. */
+  buildAudioRequest(req: AudioGenRequest, model: string): HttpRequest {
+    const body: Record<string, unknown> = {
+      model,
+      input: req.input,
+      voice: resolveVoice('openai', req.params?.voice) ?? 'alloy',
+    };
+    if (req.params?.format) body.response_format = req.params.format;
+    if (req.params?.speed) body.speed = req.params.speed;
+    if (req.params?.instructions) body.instructions = req.params.instructions;
+    return {
+      url: `${this.baseURL}/v1/audio/speech`,
+      method: 'POST',
+      headers: this.authHeaders(),
+      body,
+      provider: 'openai',
+      model,
+      responseType: 'arraybuffer',
+    };
+  }
+
+  /** Sora video submission. `seconds` goes on the wire as a string. */
+  buildVideoRequest(req: VideoGenRequest, model = req.model ?? 'sora-2'): HttpRequest {
+    const body: Record<string, unknown> = { model, prompt: req.prompt };
+    if (req.params?.duration) body.seconds = String(req.params.duration);
+    if (req.params?.size) body.size = req.params.size;
+    if (req.sourceImage) {
+      body.input_reference = openaiImageRef(normalizeImageSource(req.sourceImage));
+    }
+    return {
+      url: `${this.baseURL}/v1/videos`,
+      method: 'POST',
+      headers: this.authHeaders(),
+      body,
+      provider: 'openai',
+      model,
+      responseType: 'json',
+    };
+  }
+
+  async generateImage(req: ImageGenRequest, fetch: EngineFetch): Promise<RawMediaResult[]> {
+    const res = await fetch(this.buildGenerateImageRequest(req));
     return this.parseImages(res.body as Record<string, unknown>);
   }
 
@@ -105,28 +182,7 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
   /** Image-to-image edit via `/v1/images/edits` (JSON, base64 data-URL or
    *  file_id references). */
   async editImage(req: ImageEditRequest, fetch: EngineFetch): Promise<RawMediaResult[]> {
-    const model = req.model ?? 'gpt-image-1';
-    const body: Record<string, unknown> = {
-      model,
-      prompt: req.prompt,
-      images: [openaiImageRef(normalizeImageSource(req.sourceImage))],
-      n: req.params?.n ?? 1,
-    };
-    if (req.mask) body.mask = openaiImageRef(normalizeImageSource(req.mask));
-    if (req.params?.size) body.size = req.params.size;
-    if (req.params?.quality) body.quality = req.params.quality;
-    if (req.params?.background) body.background = req.params.background;
-    if (req.params?.outputFormat) body.output_format = req.params.outputFormat;
-
-    const res = await fetch({
-      url: `${this.baseURL}/v1/images/edits`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'openai',
-      model,
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildEditImageRequest(req));
     return this.parseImages(res.body as Record<string, unknown>);
   }
 
@@ -134,24 +190,7 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
     const model = req.model;
     if (!model) throw new Error('OpenAI TTS requires a model (e.g. "tts-1", "gpt-4o-mini-tts")');
 
-    const body: Record<string, unknown> = {
-      model,
-      input: req.input,
-      voice: resolveVoice('openai', req.params?.voice) ?? 'alloy',
-    };
-    if (req.params?.format) body.response_format = req.params.format;
-    if (req.params?.speed) body.speed = req.params.speed;
-    if (req.params?.instructions) body.instructions = req.params.instructions;
-
-    const res = await fetch({
-      url: `${this.baseURL}/v1/audio/speech`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'openai',
-      model,
-      responseType: 'arraybuffer',
-    });
+    const res = await fetch(this.buildAudioRequest(req, model));
 
     const buffer = res.body as Uint8Array;
     const format = req.params?.format ?? 'mp3';
@@ -169,23 +208,7 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
 
   // ─── Sora video (async: create → poll → download) ──────────────────────
   async submitVideo(req: VideoGenRequest, fetch: EngineFetch): Promise<string> {
-    const model = req.model ?? 'sora-2';
-    const body: Record<string, unknown> = { model, prompt: req.prompt };
-    if (req.params?.duration) body.seconds = String(req.params.duration);
-    if (req.params?.size) body.size = req.params.size;
-    if (req.sourceImage) {
-      body.input_reference = openaiImageRef(normalizeImageSource(req.sourceImage));
-    }
-
-    const res = await fetch({
-      url: `${this.baseURL}/v1/videos`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'openai',
-      model,
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildVideoRequest(req));
     const data = res.body as Record<string, unknown>;
     return (data.id as string) ?? '';
   }
