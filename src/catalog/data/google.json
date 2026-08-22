@@ -65,7 +65,8 @@
     "active": true,
     "wire": {
       "thinking": "budget"
-    }
+    },
+    "wireSpec": "google/generate@2.5"
   },
   "google/gemini-3.1-pro": {
     "providerModelName": "gemini-3.1-pro-preview",
@@ -134,7 +135,8 @@
     "active": true,
     "wire": {
       "thinking": "level"
-    }
+    },
+    "wireSpec": "google/generate@3"
   },
   "google/gemini-3.1-pro-customtools": {
     "providerModelName": "gemini-3.1-pro-preview-customtools",
@@ -185,7 +187,8 @@
     "active": true,
     "wire": {
       "thinking": "level"
-    }
+    },
+    "wireSpec": "google/generate@3"
   },
   "google/gemini-2.5-flash": {
     "providerModelName": "gemini-2.5-flash",
@@ -257,7 +260,8 @@
     "active": true,
     "wire": {
       "thinking": "budget"
-    }
+    },
+    "wireSpec": "google/generate@2.5"
   },
   "google/gemini-3-flash": {
     "providerModelName": "gemini-3-flash-preview",
@@ -329,7 +333,8 @@
     "active": true,
     "wire": {
       "thinking": "level"
-    }
+    },
+    "wireSpec": "google/generate@3"
   },
   "google/gemini-3.5-flash": {
     "providerModelName": "gemini-3.5-flash",
@@ -397,7 +402,8 @@
     "active": true,
     "wire": {
       "thinking": "level"
-    }
+    },
+    "wireSpec": "google/generate@3"
   },
   "google/gemini-2.5-flash-lite": {
     "providerModelName": "gemini-2.5-flash-lite",
@@ -469,7 +475,8 @@
     "active": true,
     "wire": {
       "thinking": "budget"
-    }
+    },
+    "wireSpec": "google/generate@2.5"
   },
   "google/gemini-3.1-flash-lite": {
     "providerModelName": "gemini-3.1-flash-lite",
@@ -542,7 +549,8 @@
     "active": true,
     "wire": {
       "thinking": "level"
-    }
+    },
+    "wireSpec": "google/generate@3"
   },
   "google/gemini-2.5-flash-image": {
     "providerModelName": "gemini-2.5-flash-image",
@@ -1445,7 +1453,8 @@
     "active": true,
     "wire": {
       "thinking": "level"
-    }
+    },
+    "wireSpec": "google/generate@3"
   },
   "google/gemma-4-31b": {
     "providerModelName": "gemma-4-31b-it",
@@ -1495,7 +1504,8 @@
     "active": true,
     "wire": {
       "thinking": "level"
-    }
+    },
+    "wireSpec": "google/generate@3"
   },
   "google/imagen-4": {
     "providerModelName": "imagen-4.0-generate-001",
@@ -2557,7 +2567,8 @@
     "active": true,
     "wire": {
       "thinking": "level"
-    }
+    },
+    "wireSpec": "google/generate@3"
   },
   "google/gemini-3.5-flash-lite": {
     "providerModelName": "gemini-3.5-flash-lite",
@@ -2626,6 +2637,7 @@
     "active": true,
     "wire": {
       "thinking": "level"
-    }
+    },
+    "wireSpec": "google/generate@3"
   }
 }

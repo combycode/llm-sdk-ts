@@ -59,7 +59,8 @@
     "wire": {
       "thinking": "budgeted",
       "topK": false
-    }
+    },
+    "wireSpec": "anthropic/messages@4.0"
   },
   "anthropic/claude-opus-4.1": {
     "providerModelName": "claude-opus-4-1-20250805",
@@ -121,7 +122,8 @@
     "wire": {
       "thinking": "budgeted",
       "topK": true
-    }
+    },
+    "wireSpec": "anthropic/messages@4.1"
   },
   "anthropic/claude-opus-4.5": {
     "providerModelName": "claude-opus-4-5-20251101",
@@ -179,7 +181,8 @@
     "wire": {
       "thinking": "budgeted",
       "topK": true
-    }
+    },
+    "wireSpec": "anthropic/messages@4.1"
   },
   "anthropic/claude-opus-4.6": {
     "providerModelName": "claude-opus-4-6",
@@ -241,7 +244,8 @@
     "wire": {
       "thinking": "adaptive",
       "topK": true
-    }
+    },
+    "wireSpec": "anthropic/messages@4.6"
   },
   "anthropic/claude-opus-4.7": {
     "providerModelName": "claude-opus-4-7",
@@ -303,7 +307,8 @@
     "wire": {
       "thinking": "adaptive",
       "topK": false
-    }
+    },
+    "wireSpec": "anthropic/messages@4.7"
   },
   "anthropic/claude-opus-4.8": {
     "providerModelName": "claude-opus-4-8",
@@ -365,7 +370,8 @@
     "wire": {
       "thinking": "adaptive",
       "topK": false
-    }
+    },
+    "wireSpec": "anthropic/messages@4.7"
   },
   "anthropic/claude-sonnet-4": {
     "providerModelName": "claude-sonnet-4-20250514",
@@ -427,7 +433,8 @@
     "wire": {
       "thinking": "budgeted",
       "topK": false
-    }
+    },
+    "wireSpec": "anthropic/messages@4.0"
   },
   "anthropic/claude-sonnet-4.5": {
     "providerModelName": "claude-sonnet-4-5-20250929",
@@ -485,7 +492,8 @@
     "wire": {
       "thinking": "budgeted",
       "topK": true
-    }
+    },
+    "wireSpec": "anthropic/messages@4.1"
   },
   "anthropic/claude-sonnet-4.6": {
     "providerModelName": "claude-sonnet-4-6",
@@ -543,7 +551,8 @@
     "wire": {
       "thinking": "adaptive",
       "topK": true
-    }
+    },
+    "wireSpec": "anthropic/messages@4.6"
   },
   "anthropic/claude-haiku-4.5": {
     "providerModelName": "claude-haiku-4-5-20251001",
@@ -601,7 +610,8 @@
     "wire": {
       "thinking": "budgeted",
       "topK": true
-    }
+    },
+    "wireSpec": "anthropic/messages@4.1"
   },
   "anthropic/claude-fable-5": {
     "providerModelName": "claude-fable-5",
@@ -659,7 +669,8 @@
     "wire": {
       "thinking": "adaptive",
       "topK": false
-    }
+    },
+    "wireSpec": "anthropic/messages@4.7"
   },
   "anthropic/claude-sonnet-5": {
     "providerModelName": "claude-sonnet-5",
@@ -717,7 +728,8 @@
     "wire": {
       "thinking": "adaptive",
       "topK": false
-    }
+    },
+    "wireSpec": "anthropic/messages@4.7"
   },
   "anthropic/claude-mythos-5": {
     "providerModelName": "claude-mythos-5",
@@ -772,7 +784,8 @@
     "wire": {
       "thinking": "adaptive",
       "topK": false
-    }
+    },
+    "wireSpec": "anthropic/messages@4.7"
   },
   "anthropic/claude-opus-5": {
     "providerModelName": "claude-opus-5",
@@ -834,6 +847,7 @@
     "wire": {
       "thinking": "adaptive",
       "topK": false
-    }
+    },
+    "wireSpec": "anthropic/messages@4.7"
   }
 }

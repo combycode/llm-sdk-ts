@@ -47,6 +47,22 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **Every catalogued chat model is pinned to a wire spec.** `ModelInfo.wireSpec` names the spec
+  that builds that model's requests — `anthropic/messages@4.7`, `google/generate@2.5`,
+  `openai/responses`, and so on. All 289 chat models across five providers carry one.
+
+  The pin is what lets this SDK and the Python and Rust ports agree on a model without each
+  re-deriving its wire shape from the model id — the derivation that produced the 2.2.1 and 2.2.2
+  bugs.
+
+  Carried and validated, not yet authoritative: the hand-written adapters still build requests
+  from `wire` traits. Because that is two representations of one fact, and two representations
+  drift, a test drives the PINNED SPEC and asserts the request it produces matches what the traits
+  say the model takes. When the adapters become spec-driven in 3.0.0, `wire` goes away and that
+  test is what makes the swap safe.
+
+### Added
+
 - **Wire specs ship in the repo** (`src/wire/`). 71 JSON specs describe how to talk to each
   provider API — field names, enum values, defaults, versioned tool-type strings, which shape a
   model version takes — covering every adapter the SDK has: chat, interactions, media, realtime,

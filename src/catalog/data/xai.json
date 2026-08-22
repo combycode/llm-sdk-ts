@@ -52,7 +52,8 @@
     "family": "grok",
     "version": "4.20",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/responses"
   },
   "xai/grok-4.20-non-reasoning": {
     "providerModelName": "grok-4.20-0309-non-reasoning",
@@ -106,7 +107,8 @@
     "version": "4.20",
     "status": "stable",
     "active": true,
-    "contextWindow": 2000000
+    "contextWindow": 2000000,
+    "wireSpec": "openai/responses"
   },
   "xai/grok-4.20-multi-agent": {
     "providerModelName": "grok-4.20-multi-agent-0309",
@@ -159,7 +161,8 @@
     "family": "grok",
     "version": "4.20",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/responses"
   },
   "xai/grok-4.3": {
     "providerModelName": "grok-4.3",
@@ -214,7 +217,8 @@
     "family": "grok",
     "version": "4.3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/responses"
   },
   "xai/grok-build-0.1": {
     "providerModelName": "grok-build-0.1",
@@ -622,6 +626,7 @@
     "family": "grok",
     "version": "4.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/responses"
   }
 }

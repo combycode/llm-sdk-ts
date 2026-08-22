@@ -142,6 +142,17 @@ export interface ModelInfo {
   aliases?: string[];
   /** Per-model wire traits — see ModelWire. */
   wire?: ModelWire;
+  /** Which wire spec builds this model's requests, e.g. `anthropic/messages@4.7`.
+   *
+   *  The specs live in `src/wire/specs` and are the artifact the Python and Rust
+   *  ports consume, so the pin is what lets all three agree on a model without
+   *  each re-deriving it from the model id.
+   *
+   *  Today the pin is carried and validated but the hand-written adapters still
+   *  build requests, reading `wire` above. Driving them from the pinned spec is
+   *  the 3.0.0 step, at which point `wire` goes away — the spec already encodes
+   *  the same knowledge, which is why a test asserts the two agree. */
+  wireSpec?: string;
   /** Model role/modality: chat | code | image | video | tts | stt | embedding | … */
   type?: string;
   /** Content kinds the model ACCEPTS as input: text | image | audio | video |
@@ -249,6 +260,7 @@ export class ModelCatalog {
       requiresDedicatedClient: info.requiresDedicatedClient,
       supportsPreviousResponseId: info.supportsPreviousResponseId,
       wire: info.wire,
+      wireSpec: info.wireSpec,
       stateRetentionDuration: info.stateRetentionDuration,
       stateModelBound: info.stateModelBound,
       providerModelName: info.providerModelName,

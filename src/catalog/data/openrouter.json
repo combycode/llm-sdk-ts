@@ -532,7 +532,8 @@
     "family": "claude-fable",
     "version": "5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-opus-4": {
     "providerModelName": "anthropic/claude-opus-4",
@@ -579,7 +580,8 @@
     "family": "claude-opus",
     "version": "4",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-opus-4.1": {
     "providerModelName": "anthropic/claude-opus-4.1",
@@ -626,7 +628,8 @@
     "family": "claude-opus",
     "version": "4.1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-opus-4.5": {
     "providerModelName": "anthropic/claude-opus-4.5",
@@ -673,7 +676,8 @@
     "family": "claude-opus",
     "version": "4.5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-opus-4.6": {
     "providerModelName": "anthropic/claude-opus-4.6",
@@ -720,7 +724,8 @@
     "family": "claude-opus",
     "version": "4.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-opus-4.6-fast": {
     "providerModelName": "anthropic/claude-opus-4.6-fast",
@@ -771,7 +776,8 @@
     "deprecation": {
       "shutdownDate": "2026-06-29",
       "source": "openrouter"
-    }
+    },
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-opus-4.7": {
     "providerModelName": "anthropic/claude-opus-4.7",
@@ -818,7 +824,8 @@
     "family": "claude-opus",
     "version": "4.7",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-opus-4.7-fast": {
     "providerModelName": "anthropic/claude-opus-4.7-fast",
@@ -865,7 +872,8 @@
     "family": "claude-opus",
     "version": "4.7",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-opus-4.8": {
     "providerModelName": "anthropic/claude-opus-4.8",
@@ -912,7 +920,8 @@
     "family": "claude-opus",
     "version": "4.8",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-opus-4.8-fast": {
     "providerModelName": "anthropic/claude-opus-4.8-fast",
@@ -959,7 +968,8 @@
     "family": "claude-opus",
     "version": "4.8",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-sonnet-4": {
     "providerModelName": "anthropic/claude-sonnet-4",
@@ -1006,7 +1016,8 @@
     "family": "claude-sonnet",
     "version": "4",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-sonnet-4.5": {
     "providerModelName": "anthropic/claude-sonnet-4.5",
@@ -1053,7 +1064,8 @@
     "family": "claude-sonnet",
     "version": "4.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-sonnet-4.6": {
     "providerModelName": "anthropic/claude-sonnet-4.6",
@@ -1100,7 +1112,8 @@
     "family": "claude-sonnet",
     "version": "4.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-haiku-3": {
     "providerModelName": "anthropic/claude-3-haiku",
@@ -1147,7 +1160,8 @@
     "family": "claude-haiku",
     "version": "3",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-haiku-3.5": {
     "providerModelName": "anthropic/claude-3.5-haiku",
@@ -1194,7 +1208,8 @@
     "family": "claude-haiku",
     "version": "3.5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-haiku-4.5": {
     "providerModelName": "anthropic/claude-haiku-4.5",
@@ -1241,7 +1256,8 @@
     "family": "claude-haiku",
     "version": "4.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-3.5-turbo": {
     "providerModelName": "openai/gpt-3.5-turbo",
@@ -1288,7 +1304,8 @@
     "family": "gpt",
     "version": "3.5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-4": {
     "providerModelName": "openai/gpt-4",
@@ -1333,7 +1350,8 @@
     "family": "gpt",
     "version": "4",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-4-turbo": {
     "providerModelName": "openai/gpt-4-turbo",
@@ -1380,7 +1398,8 @@
     "family": "gpt",
     "version": "4",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-4.1": {
     "providerModelName": "openai/gpt-4.1",
@@ -1427,7 +1446,8 @@
     "family": "gpt",
     "version": "4.1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5": {
     "providerModelName": "openai/gpt-5",
@@ -1474,7 +1494,8 @@
     "family": "gpt",
     "version": "5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.1": {
     "providerModelName": "openai/gpt-5.1",
@@ -1521,7 +1542,8 @@
     "family": "gpt",
     "version": "5.1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.2": {
     "providerModelName": "openai/gpt-5.2",
@@ -1568,7 +1590,8 @@
     "family": "gpt",
     "version": "5.2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.4": {
     "providerModelName": "openai/gpt-5.4",
@@ -1615,7 +1638,8 @@
     "family": "gpt",
     "version": "5.4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.5": {
     "providerModelName": "openai/gpt-5.5",
@@ -1662,7 +1686,8 @@
     "family": "gpt",
     "version": "5.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5-chat": {
     "providerModelName": "openai/gpt-5-chat",
@@ -1709,7 +1734,8 @@
     "family": "gpt-chat",
     "version": "5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.1-chat": {
     "providerModelName": "openai/gpt-5.1-chat",
@@ -1756,7 +1782,8 @@
     "family": "gpt-chat",
     "version": "5.1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.2-chat": {
     "providerModelName": "openai/gpt-5.2-chat",
@@ -1807,7 +1834,8 @@
     "deprecation": {
       "shutdownDate": "2026-08-10",
       "source": "openrouter"
-    }
+    },
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.3-chat": {
     "providerModelName": "openai/gpt-5.3-chat",
@@ -1858,7 +1886,8 @@
     "deprecation": {
       "shutdownDate": "2026-08-10",
       "source": "openrouter"
-    }
+    },
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5-codex": {
     "providerModelName": "openai/gpt-5-codex",
@@ -2187,7 +2216,8 @@
     "family": "gpt-mini",
     "version": "4.1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5-mini": {
     "providerModelName": "openai/gpt-5-mini",
@@ -2234,7 +2264,8 @@
     "family": "gpt-mini",
     "version": "5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.4-mini": {
     "providerModelName": "openai/gpt-5.4-mini",
@@ -2281,7 +2312,8 @@
     "family": "gpt-mini",
     "version": "5.4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-4.1-nano": {
     "providerModelName": "openai/gpt-4.1-nano",
@@ -2328,7 +2360,8 @@
     "family": "gpt-nano",
     "version": "4.1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5-nano": {
     "providerModelName": "openai/gpt-5-nano",
@@ -2375,7 +2408,8 @@
     "family": "gpt-nano",
     "version": "5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.4-nano": {
     "providerModelName": "openai/gpt-5.4-nano",
@@ -2422,7 +2456,8 @@
     "family": "gpt-nano",
     "version": "5.4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5-pro": {
     "providerModelName": "openai/gpt-5-pro",
@@ -2468,7 +2503,8 @@
     "family": "gpt-pro",
     "version": "5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.2-pro": {
     "providerModelName": "openai/gpt-5.2-pro",
@@ -2514,7 +2550,8 @@
     "family": "gpt-pro",
     "version": "5.2",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.4-pro": {
     "providerModelName": "openai/gpt-5.4-pro",
@@ -2560,7 +2597,8 @@
     "family": "gpt-pro",
     "version": "5.4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.5-pro": {
     "providerModelName": "openai/gpt-5.5-pro",
@@ -2606,7 +2644,8 @@
     "family": "gpt-pro",
     "version": "5.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-4o": {
     "providerModelName": "openai/gpt-4o",
@@ -2655,7 +2694,8 @@
     ],
     "family": "gpt-4o",
     "version": "4o",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-4o-mini": {
     "providerModelName": "openai/gpt-4o-mini",
@@ -2703,7 +2743,8 @@
     ],
     "family": "gpt-4o",
     "version": "4o",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-4o-search": {
     "providerModelName": "openai/gpt-4o-search-preview",
@@ -3055,7 +3096,8 @@
     "family": "gpt-oss",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-oss-120b": {
     "providerModelName": "openai/gpt-oss-120b",
@@ -3101,7 +3143,8 @@
     "family": "gpt-oss",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-oss-safeguard-20b": {
     "providerModelName": "openai/gpt-oss-safeguard-20b",
@@ -3285,7 +3328,8 @@
     ],
     "family": "o-series",
     "version": "1",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/o1-pro": {
     "providerModelName": "openai/o1-pro",
@@ -3330,7 +3374,8 @@
     ],
     "family": "o-series",
     "version": "1",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/o3": {
     "providerModelName": "openai/o3",
@@ -3376,7 +3421,8 @@
     ],
     "family": "o-series",
     "version": "3",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/o3-mini": {
     "providerModelName": "openai/o3-mini",
@@ -3422,7 +3468,8 @@
     ],
     "family": "o-series",
     "version": "3",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/o3-pro": {
     "providerModelName": "openai/o3-pro",
@@ -3467,7 +3514,8 @@
     ],
     "family": "o-series",
     "version": "3",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/o3-deep-research": {
     "providerModelName": "openai/o3-deep-research",
@@ -3513,7 +3561,8 @@
     ],
     "family": "o-series",
     "version": "3",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/o4-mini": {
     "providerModelName": "openai/o4-mini",
@@ -3560,7 +3609,8 @@
     ],
     "family": "o-series",
     "version": "4",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/o4-mini-deep-research": {
     "providerModelName": "openai/o4-mini-deep-research",
@@ -3606,7 +3656,8 @@
     ],
     "family": "o-series",
     "version": "4",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-3.5-turbo-instruct": {
     "providerModelName": "openai/gpt-3.5-turbo-instruct",
@@ -3700,7 +3751,8 @@
     "family": "gemini-pro",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemini-3.1-pro": {
     "providerModelName": "google/gemini-3.1-pro-preview",
@@ -3748,7 +3800,8 @@
     "family": "gemini-pro",
     "version": "3.1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemini-3.1-pro-customtools": {
     "providerModelName": "google/gemini-3.1-pro-preview-customtools",
@@ -3796,7 +3849,8 @@
     "family": "gemini-pro",
     "version": "3.1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemini-2.5-flash": {
     "providerModelName": "google/gemini-2.5-flash",
@@ -3844,7 +3898,8 @@
     "family": "gemini-flash",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemini-3-flash": {
     "providerModelName": "google/gemini-3-flash-preview",
@@ -3892,7 +3947,8 @@
     "family": "gemini-flash",
     "version": "3",
     "status": "preview",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemini-3.5-flash": {
     "providerModelName": "google/gemini-3.5-flash",
@@ -3940,7 +3996,8 @@
     "family": "gemini-flash",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemini-2.5-flash-lite": {
     "providerModelName": "google/gemini-2.5-flash-lite",
@@ -3989,7 +4046,8 @@
     "family": "gemini-flash-lite",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemini-3.1-flash-lite": {
     "providerModelName": "google/gemini-3.1-flash-lite",
@@ -4038,7 +4096,8 @@
     "family": "gemini-flash-lite",
     "version": "3.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemini-2.5-flash-image": {
     "providerModelName": "google/gemini-2.5-flash-image",
@@ -4300,7 +4359,8 @@
     "family": "gemma",
     "version": "2",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemma-3-4b": {
     "providerModelName": "google/gemma-3-4b-it",
@@ -4346,7 +4406,8 @@
     "family": "gemma",
     "version": "3",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemma-3-12b": {
     "providerModelName": "google/gemma-3-12b-it",
@@ -4392,7 +4453,8 @@
     "family": "gemma",
     "version": "3",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemma-3-27b": {
     "providerModelName": "google/gemma-3-27b-it",
@@ -4439,7 +4501,8 @@
     "family": "gemma",
     "version": "3",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemma-3n-e4b": {
     "providerModelName": "google/gemma-3n-e4b-it",
@@ -4483,7 +4546,8 @@
     "family": "gemma",
     "version": "3",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemma-4-26b-a4b": {
     "providerModelName": "google/gemma-4-26b-a4b-it",
@@ -4530,7 +4594,8 @@
     "family": "gemma",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemma-4-31b": {
     "providerModelName": "google/gemma-4-31b-it",
@@ -4578,7 +4643,8 @@
     "family": "gemma",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/lyria-3-clip": {
     "providerModelName": "google/lyria-3-clip-preview",
@@ -4716,7 +4782,8 @@
     "family": "grok",
     "version": "4.20",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/grok-4.20-multi-agent": {
     "providerModelName": "x-ai/grok-4.20-multi-agent",
@@ -4762,7 +4829,8 @@
     "family": "grok",
     "version": "4.20",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/grok-4.3": {
     "providerModelName": "x-ai/grok-4.3",
@@ -4808,7 +4876,8 @@
     "family": "grok",
     "version": "4.3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/grok-build-0.1": {
     "providerModelName": "x-ai/grok-build-0.1",
@@ -4899,7 +4968,8 @@
     "family": "deepseek-chat",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/deepseek-v3": {
     "providerModelName": "deepseek/deepseek-chat-v3-0324",
@@ -4945,7 +5015,8 @@
     "family": "deepseek-chat",
     "version": "3",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/deepseek-v3.1": {
     "providerModelName": "deepseek/deepseek-chat-v3.1",
@@ -4992,7 +5063,8 @@
     "family": "deepseek-chat",
     "version": "3.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/deepseek-v3.2": {
     "providerModelName": "deepseek/deepseek-v3.2",
@@ -5039,7 +5111,8 @@
     "family": "deepseek-chat",
     "version": "3.2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/deepseek-v4-flash": {
     "providerModelName": "deepseek/deepseek-v4-flash",
@@ -5084,7 +5157,8 @@
     "family": "deepseek-chat",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/deepseek-v4-pro": {
     "providerModelName": "deepseek/deepseek-v4-pro",
@@ -5130,7 +5204,8 @@
     "family": "deepseek-chat",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/deepseek-r1": {
     "providerModelName": "deepseek/deepseek-r1",
@@ -5176,7 +5251,8 @@
     "family": "deepseek-r1",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/deepseek-r1-distill-llama-70b": {
     "providerModelName": "deepseek/deepseek-r1-distill-llama-70b",
@@ -5221,7 +5297,8 @@
     "family": "deepseek-r1",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/deepseek-r1-distill-qwen-32b": {
     "providerModelName": "deepseek/deepseek-r1-distill-qwen-32b",
@@ -5266,7 +5343,8 @@
     "family": "deepseek-r1",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-2.5-7b": {
     "providerModelName": "qwen/qwen-2.5-7b-instruct",
@@ -5311,7 +5389,8 @@
     "family": "qwen",
     "version": "2.5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-2.5-72b": {
     "providerModelName": "qwen/qwen-2.5-72b-instruct",
@@ -5356,7 +5435,8 @@
     "family": "qwen",
     "version": "2.5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-2.5-vl-72b": {
     "providerModelName": "qwen/qwen2.5-vl-72b-instruct",
@@ -5449,7 +5529,8 @@
     "family": "qwen",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3-14b": {
     "providerModelName": "qwen/qwen3-14b",
@@ -5494,7 +5575,8 @@
     "family": "qwen",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3-30b-a3b": {
     "providerModelName": "qwen/qwen3-30b-a3b",
@@ -5541,7 +5623,8 @@
     "family": "qwen",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3-32b": {
     "providerModelName": "qwen/qwen3-32b",
@@ -5586,7 +5669,8 @@
     "family": "qwen",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3-235b-a22b": {
     "providerModelName": "qwen/qwen3-235b-a22b",
@@ -5633,7 +5717,8 @@
     "family": "qwen",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3-next-80b-a3b": {
     "providerModelName": "qwen/qwen3-next-80b-a3b-instruct",
@@ -5681,7 +5766,8 @@
     "family": "qwen",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.5-9b": {
     "providerModelName": "qwen/qwen3.5-9b",
@@ -5727,7 +5813,8 @@
     "family": "qwen",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.5-27b": {
     "providerModelName": "qwen/qwen3.5-27b",
@@ -5773,7 +5860,8 @@
     "family": "qwen",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.5-35b-a3b": {
     "providerModelName": "qwen/qwen3.5-35b-a3b",
@@ -5820,7 +5908,8 @@
     "family": "qwen",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.5-122b-a10b": {
     "providerModelName": "qwen/qwen3.5-122b-a10b",
@@ -5866,7 +5955,8 @@
     "family": "qwen",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.5-397b-a17b": {
     "providerModelName": "qwen/qwen3.5-397b-a17b",
@@ -5913,7 +6003,8 @@
     "family": "qwen",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.6-27b": {
     "providerModelName": "qwen/qwen3.6-27b",
@@ -5960,7 +6051,8 @@
     "family": "qwen",
     "version": "3.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.6-35b-a3b": {
     "providerModelName": "qwen/qwen3.6-35b-a3b",
@@ -6007,7 +6099,8 @@
     "family": "qwen",
     "version": "3.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-plus": {
     "providerModelName": "qwen/qwen-plus",
@@ -6055,7 +6148,8 @@
     "family": "qwen-plus",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.5-plus": {
     "providerModelName": "qwen/qwen3.5-plus-20260420",
@@ -6102,7 +6196,8 @@
     "family": "qwen-plus",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.6-plus": {
     "providerModelName": "qwen/qwen3.6-plus",
@@ -6148,7 +6243,8 @@
     "family": "qwen-plus",
     "version": "3.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.7-plus": {
     "providerModelName": "qwen/qwen3.7-plus",
@@ -6195,7 +6291,8 @@
     "family": "qwen-plus",
     "version": "3.7",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3-max": {
     "providerModelName": "qwen/qwen3-max",
@@ -6242,7 +6339,8 @@
     "family": "qwen-max",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.6-max": {
     "providerModelName": "qwen/qwen3.6-max-preview",
@@ -6287,7 +6385,8 @@
     "family": "qwen-max",
     "version": "3.6",
     "status": "preview",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.7-max": {
     "providerModelName": "qwen/qwen3.7-max",
@@ -6333,7 +6432,8 @@
     "family": "qwen-max",
     "version": "3.7",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.5-flash": {
     "providerModelName": "qwen/qwen3.5-flash-02-23",
@@ -6379,7 +6479,8 @@
     "family": "qwen-flash",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-3.6-flash": {
     "providerModelName": "qwen/qwen3.6-flash",
@@ -6425,7 +6526,8 @@
     "family": "qwen-flash",
     "version": "3.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/qwen-2.5-coder-32b": {
     "providerModelName": "qwen/qwen-2.5-coder-32b-instruct",
@@ -6797,7 +6899,8 @@
     "family": "llama",
     "version": "3",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/llama-3-70b": {
     "providerModelName": "meta-llama/llama-3-70b-instruct",
@@ -6846,7 +6949,8 @@
     "deprecation": {
       "shutdownDate": "2026-06-19",
       "source": "openrouter"
-    }
+    },
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/llama-3.1-8b": {
     "providerModelName": "meta-llama/llama-3.1-8b-instruct",
@@ -6892,7 +6996,8 @@
     "family": "llama",
     "version": "3.1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/llama-3.1-70b": {
     "providerModelName": "meta-llama/llama-3.1-70b-instruct",
@@ -6937,7 +7042,8 @@
     "family": "llama",
     "version": "3.1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/llama-3.2-1b": {
     "providerModelName": "meta-llama/llama-3.2-1b-instruct",
@@ -6982,7 +7088,8 @@
     "family": "llama",
     "version": "3.2",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/llama-3.2-3b": {
     "providerModelName": "meta-llama/llama-3.2-3b-instruct",
@@ -7028,7 +7135,8 @@
     "family": "llama",
     "version": "3.2",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/llama-3.2-11b-vision": {
     "providerModelName": "meta-llama/llama-3.2-11b-vision-instruct",
@@ -7124,7 +7232,8 @@
     "family": "llama",
     "version": "3.3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/llama-4-scout": {
     "providerModelName": "meta-llama/llama-4-scout",
@@ -7170,7 +7279,8 @@
     "family": "llama",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/llama-4-maverick": {
     "providerModelName": "meta-llama/llama-4-maverick",
@@ -7216,7 +7326,8 @@
     "family": "llama",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/llama-guard-3-8b": {
     "providerModelName": "meta-llama/llama-guard-3-8b",
@@ -7351,7 +7462,8 @@
     "family": "mistral",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/mistral-medium-3": {
     "providerModelName": "mistralai/mistral-medium-3",
@@ -7399,7 +7511,8 @@
     "family": "mistral",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/mistral-small": {
     "providerModelName": "mistralai/mistral-small-24b-instruct-2501",
@@ -7447,7 +7560,8 @@
     "family": "mistral",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/ministral-3b": {
     "providerModelName": "mistralai/ministral-3b-2512",
@@ -7494,7 +7608,8 @@
     "family": "mistral",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/ministral-8b": {
     "providerModelName": "mistralai/ministral-8b-2512",
@@ -7541,7 +7656,8 @@
     "family": "mistral",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/ministral-14b": {
     "providerModelName": "mistralai/ministral-14b-2512",
@@ -7588,7 +7704,8 @@
     "family": "mistral",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/mistral-nemo": {
     "providerModelName": "mistralai/mistral-nemo",
@@ -7632,7 +7749,8 @@
     "family": "mistral",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/mistral-saba": {
     "providerModelName": "mistralai/mistral-saba",
@@ -7677,7 +7795,8 @@
     "family": "mistral",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/mixtral-8x22b": {
     "providerModelName": "mistralai/mixtral-8x22b-instruct",
@@ -7723,7 +7842,8 @@
     "family": "mistral",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/voxtral-small-24b": {
     "providerModelName": "mistralai/voxtral-small-24b-2507",
@@ -7907,7 +8027,8 @@
     "family": "kimi",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/kimi-k2.5": {
     "providerModelName": "moonshotai/kimi-k2.5",
@@ -7954,7 +8075,8 @@
     "family": "kimi",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/kimi-k2.6": {
     "providerModelName": "moonshotai/kimi-k2.6",
@@ -8001,7 +8123,8 @@
     "family": "kimi",
     "version": "2.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/glm-4.5": {
     "providerModelName": "z-ai/glm-4.5",
@@ -8053,7 +8176,8 @@
     "deprecation": {
       "shutdownDate": "2026-12-31",
       "source": "openrouter"
-    }
+    },
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/glm-4.6": {
     "providerModelName": "z-ai/glm-4.6",
@@ -8100,7 +8224,8 @@
     "family": "glm",
     "version": "4.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/glm-4.7": {
     "providerModelName": "z-ai/glm-4.7",
@@ -8147,7 +8272,8 @@
     "family": "glm",
     "version": "4.7",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/glm-5": {
     "providerModelName": "z-ai/glm-5",
@@ -8194,7 +8320,8 @@
     "family": "glm",
     "version": "5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/glm-5.1": {
     "providerModelName": "z-ai/glm-5.1",
@@ -8240,7 +8367,8 @@
     "version": "5.1",
     "status": "stable",
     "active": true,
-    "maxOutput": 128000
+    "maxOutput": 128000,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/minimax-01": {
     "providerModelName": "minimax/minimax-01",
@@ -8286,7 +8414,8 @@
     "family": "minimax",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/minimax-m1": {
     "providerModelName": "minimax/minimax-m1",
@@ -8331,7 +8460,8 @@
     "family": "minimax",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/minimax-m2": {
     "providerModelName": "minimax/minimax-m2",
@@ -8379,7 +8509,8 @@
     "family": "minimax",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/minimax-m2.5": {
     "providerModelName": "minimax/minimax-m2.5",
@@ -8425,7 +8556,8 @@
     "family": "minimax",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/minimax-m2.7": {
     "providerModelName": "minimax/minimax-m2.7",
@@ -8471,7 +8603,8 @@
     "family": "minimax",
     "version": "2.7",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/minimax-m3": {
     "providerModelName": "minimax/minimax-m3",
@@ -8518,7 +8651,8 @@
     "family": "minimax",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nemotron-nano-9b-v2": {
     "providerModelName": "nvidia/nemotron-nano-9b-v2:free",
@@ -8562,7 +8696,8 @@
     "family": "nemotron",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nemotron-nano-12b-v2-vl": {
     "providerModelName": "nvidia/nemotron-nano-12b-v2-vl:free",
@@ -8657,7 +8792,8 @@
     "deprecation": {
       "shutdownDate": "2026-07-17",
       "source": "openrouter"
-    }
+    },
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nemotron-3-nano-30b-a3b": {
     "providerModelName": "nvidia/nemotron-3-nano-30b-a3b",
@@ -8704,7 +8840,8 @@
     "family": "nemotron",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nemotron-3-super-120b-a12b": {
     "providerModelName": "nvidia/nemotron-3-super-120b-a12b",
@@ -8749,7 +8886,8 @@
     "family": "nemotron",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nemotron-3-ultra-550b-a55b": {
     "providerModelName": "nvidia/nemotron-3-ultra-550b-a55b",
@@ -8796,7 +8934,8 @@
     "family": "nemotron",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nemotron-3.5-content-safety": {
     "providerModelName": "nvidia/nemotron-3.5-content-safety:free",
@@ -8887,7 +9026,8 @@
     "family": "nova",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nova-lite": {
     "providerModelName": "amazon/nova-lite-v1",
@@ -8933,7 +9073,8 @@
     "family": "nova",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nova-2-lite": {
     "providerModelName": "amazon/nova-2-lite-v1",
@@ -8979,7 +9120,8 @@
     "family": "nova",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nova-pro": {
     "providerModelName": "amazon/nova-pro-v1",
@@ -9025,7 +9167,8 @@
     "family": "nova",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nova-premier": {
     "providerModelName": "amazon/nova-premier-v1",
@@ -9072,7 +9215,8 @@
     "family": "nova",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/command-r7b": {
     "providerModelName": "cohere/command-r7b-12-2024",
@@ -9117,7 +9261,8 @@
     "family": "command",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/command-r": {
     "providerModelName": "cohere/command-r-08-2024",
@@ -9162,7 +9307,8 @@
     "family": "command",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/command-r-plus": {
     "providerModelName": "cohere/command-r-plus-08-2024",
@@ -9207,7 +9353,8 @@
     "family": "command",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/command-a": {
     "providerModelName": "cohere/command-a",
@@ -9252,7 +9399,8 @@
     "family": "command",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/phi-4": {
     "providerModelName": "microsoft/phi-4",
@@ -9297,7 +9445,8 @@
     "family": "phi",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/phi-4-mini": {
     "providerModelName": "microsoft/phi-4-mini-instruct",
@@ -9343,7 +9492,8 @@
     "family": "phi",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/wizardlm-2-8x22b": {
     "providerModelName": "microsoft/wizardlm-2-8x22b",
@@ -9387,7 +9537,8 @@
     ],
     "family": "wizardlm",
     "version": "2",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/sonar": {
     "providerModelName": "perplexity/sonar",
@@ -9617,7 +9768,8 @@
     "family": "hermes",
     "version": "3",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/hermes-3-405b": {
     "providerModelName": "nousresearch/hermes-3-llama-3.1-405b",
@@ -9663,7 +9815,8 @@
     "family": "hermes",
     "version": "3",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/hermes-4-70b": {
     "providerModelName": "nousresearch/hermes-4-70b",
@@ -9707,7 +9860,8 @@
     "family": "hermes",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/hermes-4-405b": {
     "providerModelName": "nousresearch/hermes-4-405b",
@@ -9751,7 +9905,8 @@
     "family": "hermes",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/seed-1.6": {
     "providerModelName": "bytedance-seed/seed-1.6",
@@ -9798,7 +9953,8 @@
     "family": "seed",
     "version": "1.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/seed-2.0-lite": {
     "providerModelName": "bytedance-seed/seed-2.0-lite",
@@ -9844,7 +10000,8 @@
     "family": "seed",
     "version": "2.0",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/seed-2.0-mini": {
     "providerModelName": "bytedance-seed/seed-2.0-mini",
@@ -9890,7 +10047,8 @@
     "family": "seed",
     "version": "2.0",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/ui-tars-1.5-7b": {
     "providerModelName": "bytedance/ui-tars-1.5-7b",
@@ -9982,7 +10140,8 @@
     "family": "jamba",
     "version": "1.7",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/aion-1.0": {
     "providerModelName": "aion-labs/aion-1.0",
@@ -10028,7 +10187,8 @@
     "family": "aion",
     "version": "1.0",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/aion-2.0": {
     "providerModelName": "aion-labs/aion-2.0",
@@ -10074,7 +10234,8 @@
     "family": "aion",
     "version": "2.0",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/olmo-3-32b-think": {
     "providerModelName": "allenai/olmo-3-32b-think",
@@ -10119,7 +10280,8 @@
     "family": "olmo",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/trinity-large-thinking": {
     "providerModelName": "arcee-ai/trinity-large-thinking",
@@ -10165,7 +10327,8 @@
     "family": "trinity",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/trinity-mini": {
     "providerModelName": "arcee-ai/trinity-mini",
@@ -10210,7 +10373,8 @@
     "family": "trinity",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/virtuoso-large": {
     "providerModelName": "arcee-ai/virtuoso-large",
@@ -10255,7 +10419,8 @@
     "family": "virtuoso",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/coder-large": {
     "providerModelName": "arcee-ai/coder-large",
@@ -10389,7 +10554,8 @@
     "family": "cogito",
     "version": "2.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/rnj-1": {
     "providerModelName": "essentialai/rnj-1-instruct",
@@ -10433,7 +10599,8 @@
     "family": "rnj",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/granite-4.0-h-micro": {
     "providerModelName": "ibm-granite/granite-4.0-h-micro",
@@ -10478,7 +10645,8 @@
     "family": "granite",
     "version": "4.0",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/granite-4.1-8b": {
     "providerModelName": "ibm-granite/granite-4.1-8b",
@@ -10524,7 +10692,8 @@
     "family": "granite",
     "version": "4.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/mercury-2": {
     "providerModelName": "inception/mercury-2",
@@ -10570,7 +10739,8 @@
     "family": "mercury",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/ling-2.6-1t": {
     "providerModelName": "inclusionai/ling-2.6-1t",
@@ -10616,7 +10786,8 @@
     "family": "ling",
     "version": "2.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/ling-2.6-flash": {
     "providerModelName": "inclusionai/ling-2.6-flash",
@@ -10662,7 +10833,8 @@
     "family": "ling",
     "version": "2.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/ring-2.6-1t": {
     "providerModelName": "inclusionai/ring-2.6-1t",
@@ -10708,7 +10880,8 @@
     "family": "ring",
     "version": "2.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/inflection-3-pi": {
     "providerModelName": "inflection/inflection-3-pi",
@@ -10753,7 +10926,8 @@
     "family": "inflection",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/inflection-3-productivity": {
     "providerModelName": "inflection/inflection-3-productivity",
@@ -10798,7 +10972,8 @@
     "family": "inflection",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/lfm-2-24b-a2b": {
     "providerModelName": "liquid/lfm-2-24b-a2b",
@@ -10842,7 +11017,8 @@
     "family": "lfm",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/lfm-2.5-1.2b": {
     "providerModelName": "liquid/lfm-2.5-1.2b-instruct:free",
@@ -10887,7 +11063,8 @@
     "family": "lfm",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/perceptron-mk1": {
     "providerModelName": "perceptron/perceptron-mk1",
@@ -10933,7 +11110,8 @@
     "family": "perceptron",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/intellect-3": {
     "providerModelName": "prime-intellect/intellect-3",
@@ -10978,7 +11156,8 @@
     "family": "intellect",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/reka-edge": {
     "providerModelName": "rekaai/reka-edge",
@@ -11024,7 +11203,8 @@
     "family": "reka",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/reka-flash-3": {
     "providerModelName": "rekaai/reka-flash-3",
@@ -11069,7 +11249,8 @@
     "family": "reka",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/step-3.5-flash": {
     "providerModelName": "stepfun/step-3.5-flash",
@@ -11115,7 +11296,8 @@
     "family": "step",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/step-3.7-flash": {
     "providerModelName": "stepfun/step-3.7-flash",
@@ -11162,7 +11344,8 @@
     "family": "step",
     "version": "3.7",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/hunyuan-a13b": {
     "providerModelName": "tencent/hunyuan-a13b-instruct",
@@ -11207,7 +11390,8 @@
     "family": "hunyuan",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/hunyuan-hy3": {
     "providerModelName": "tencent/hy3",
@@ -11254,7 +11438,8 @@
     "family": "hunyuan",
     "version": "3",
     "status": "preview",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/solar-pro-3": {
     "providerModelName": "upstage/solar-pro-3",
@@ -11299,7 +11484,8 @@
     "family": "solar",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/palmyra-x5": {
     "providerModelName": "writer/palmyra-x5",
@@ -11344,7 +11530,8 @@
     "family": "palmyra",
     "version": "5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/mimo-v2-flash": {
     "providerModelName": "xiaomi/mimo-v2-flash",
@@ -11390,7 +11577,8 @@
     "family": "mimo",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/mimo-v2.5": {
     "providerModelName": "xiaomi/mimo-v2.5",
@@ -11438,7 +11626,8 @@
     "family": "mimo",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/mimo-v2.5-pro": {
     "providerModelName": "xiaomi/mimo-v2.5-pro",
@@ -11484,7 +11673,8 @@
     "family": "mimo",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nex-n2-pro": {
     "providerModelName": "nex-agi/nex-n2-pro:free",
@@ -11532,7 +11722,8 @@
     "family": "nex",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/kat-coder-pro-v2": {
     "providerModelName": "kwaipilot/kat-coder-pro-v2",
@@ -11718,7 +11909,8 @@
     "family": "roleplay-finetunes",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/magnum-v4-72b": {
     "providerModelName": "anthracite-org/magnum-v4-72b",
@@ -11763,7 +11955,8 @@
     "family": "roleplay-finetunes",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/dolphin-mistral-24b-venice": {
     "providerModelName": "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
@@ -11813,7 +12006,8 @@
       "shutdownDate": "2026-07-19",
       "source": "openrouter"
     },
-    "maxOutput": 8192
+    "maxOutput": 8192,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/mythomax-l2-13b": {
     "providerModelName": "gryphe/mythomax-l2-13b",
@@ -11858,7 +12052,8 @@
     "family": "roleplay-finetunes",
     "version": "2",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/weaver": {
     "providerModelName": "mancer/weaver",
@@ -11903,7 +12098,8 @@
     "family": "roleplay-finetunes",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/lunaris-8b": {
     "providerModelName": "sao10k/l3-lunaris-8b",
@@ -11948,7 +12144,8 @@
     "family": "roleplay-finetunes",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/euryale-70b": {
     "providerModelName": "sao10k/l3.1-euryale-70b",
@@ -11995,7 +12192,8 @@
     "family": "roleplay-finetunes",
     "version": "3.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/cydonia-24b-v4.1": {
     "providerModelName": "thedrummer/cydonia-24b-v4.1",
@@ -12041,7 +12239,8 @@
     "family": "roleplay-finetunes",
     "version": "4.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/rocinante-12b": {
     "providerModelName": "thedrummer/rocinante-12b",
@@ -12086,7 +12285,8 @@
     "family": "roleplay-finetunes",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/skyfall-36b-v2": {
     "providerModelName": "thedrummer/skyfall-36b-v2",
@@ -12132,7 +12332,8 @@
     "family": "roleplay-finetunes",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/unslopnemo-12b": {
     "providerModelName": "thedrummer/unslopnemo-12b",
@@ -12177,7 +12378,8 @@
     "family": "roleplay-finetunes",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/remm-slerp-l2-13b": {
     "providerModelName": "undi95/remm-slerp-l2-13b",
@@ -12222,7 +12424,8 @@
     "family": "roleplay-finetunes",
     "version": "2",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-sonnet-5": {
     "providerModelName": "anthropic/claude-sonnet-5",
@@ -12269,7 +12472,8 @@
     "family": "claude-sonnet",
     "version": "5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.6-luna": {
     "providerModelName": "openai/gpt-5.6-luna",
@@ -12316,7 +12520,8 @@
     "family": "gpt",
     "version": "5.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.6-terra": {
     "providerModelName": "openai/gpt-5.6-terra",
@@ -12363,7 +12568,8 @@
     "family": "gpt",
     "version": "5.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.6-sol": {
     "providerModelName": "openai/gpt-5.6-sol",
@@ -12410,7 +12616,8 @@
     "family": "gpt",
     "version": "5.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.6-luna-pro": {
     "providerModelName": "openai/gpt-5.6-luna-pro",
@@ -12457,7 +12664,8 @@
     "family": "gpt-pro",
     "version": "5.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.6-terra-pro": {
     "providerModelName": "openai/gpt-5.6-terra-pro",
@@ -12504,7 +12712,8 @@
     "family": "gpt-pro",
     "version": "5.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gpt-5.6-sol-pro": {
     "providerModelName": "openai/gpt-5.6-sol-pro",
@@ -12551,7 +12760,8 @@
     "family": "gpt-pro",
     "version": "5.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemini-3.1-flash-lite-image": {
     "providerModelName": "google/gemini-3.1-flash-lite-image",
@@ -12668,7 +12878,8 @@
     "family": "grok",
     "version": "4.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/glm-5.2": {
     "providerModelName": "z-ai/glm-5.2",
@@ -12714,7 +12925,8 @@
     "family": "glm",
     "version": "5.2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/glm-5v-turbo": {
     "providerModelName": "z-ai/glm-5v-turbo",
@@ -12811,7 +13023,8 @@
     "family": "aion",
     "version": "3.0",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/aion-3.0": {
     "providerModelName": "aion-labs/aion-3.0",
@@ -12857,7 +13070,8 @@
     "family": "aion",
     "version": "3.0",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/nex-n2-mini": {
     "providerModelName": "nex-agi/nex-n2-mini",
@@ -12904,7 +13118,8 @@
     "family": "nex",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/laguna-xs.2.1": {
     "providerModelName": "poolside/laguna-xs-2.1",
@@ -12999,7 +13214,8 @@
     "family": "fugu",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/north-mini-code": {
     "providerModelName": "cohere/north-mini-code:free",
@@ -13182,7 +13398,8 @@
     "family": "claude-opus",
     "version": "5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/claude-opus-5": {
     "providerModelName": "anthropic/claude-opus-5",
@@ -13229,7 +13446,8 @@
     "family": "claude-opus",
     "version": "5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemini-3.6-flash": {
     "providerModelName": "google/gemini-3.6-flash",
@@ -13277,7 +13495,8 @@
     "family": "gemini-flash",
     "version": "3.6",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/gemini-3.5-flash-lite": {
     "providerModelName": "google/gemini-3.5-flash-lite",
@@ -13325,7 +13544,8 @@
     "family": "gemini-flash-lite",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/kimi-k3": {
     "providerModelName": "moonshotai/kimi-k3",
@@ -13371,7 +13591,8 @@
     "family": "kimi",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/ling-3.0-flash": {
     "providerModelName": "inclusionai/ling-3.0-flash:free",
@@ -13416,7 +13637,8 @@
     "family": "ling",
     "version": "3.0",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/kat-coder-air-v2.5": {
     "providerModelName": "kwaipilot/kat-coder-air-v2.5",
@@ -13601,7 +13823,8 @@
     "family": "longcat",
     "version": "2.0",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/inkling": {
     "providerModelName": "thinkingmachines/inkling",
@@ -13648,7 +13871,8 @@
     "family": "inkling",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "wireSpec": "openai/chat-completions"
   },
   "openrouter/muse-spark-1.1": {
     "providerModelName": "meta/muse-spark-1.1",
