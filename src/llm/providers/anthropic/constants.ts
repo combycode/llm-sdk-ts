@@ -51,8 +51,15 @@ export function anthropicThinkingShape(model: string): 'adaptive' | 'budgeted' {
   const id = model.toLowerCase().replace(/^anthropic\//, '');
 
   // Current ids put the family before the version: claude-sonnet-4-6, claude-opus-5,
-  // claude-haiku-4-5-20251001 (the date suffix falls outside the match).
-  const modern = /^claude-[a-z]+-(\d+)(?:[-.](\d+))?/.exec(id);
+  // claude-haiku-4-5-20251001.
+  //
+  // The minor is bounded to one or two digits AND must not be followed by another
+  // digit, so a trailing release date cannot be read as a version. Without that
+  // bound, `claude-opus-4-20250514` parsed as major 4 / minor 20250514 and came out
+  // `adaptive` — a 4.0 model given the 4.6+ shape, contradicting the boundary
+  // constant right above. Both affected ids are retired, so it never shipped a
+  // failure, but it is the same class of bug as the 2.2.1 regression.
+  const modern = /^claude-[a-z]+-(\d+)(?:[-.](\d{1,2})(?!\d))?/.exec(id);
   if (modern) {
     const major = Number(modern[1]);
     const minor = modern[2] === undefined ? 0 : Number(modern[2]);

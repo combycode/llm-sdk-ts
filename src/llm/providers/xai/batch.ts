@@ -8,10 +8,26 @@ import type {
   BatchResult,
   BatchStatus,
 } from '../../../plugins/batch/types';
+import { fnv1a32Hex } from '../../../util/hash';
 
 export interface XAIBatchAdapterConfig {
   apiKey: string;
   baseURL?: string;
+}
+
+/** Name the batch from its CONTENTS, never from a clock.
+ *
+ *  This used to be `batch_${Date.now()}`, which made the request the only one in
+ *  the provider surface that was not a pure function of its input: it could not
+ *  be asserted in a test or reproduced from a log, and a retried create produced
+ *  a second, differently-named batch that nothing could deduplicate.
+ *
+ *  Deriving it from the custom ids keeps identical submissions identical, so a
+ *  retry is idempotent from the caller's point of view, while two different
+ *  batches still get different names. */
+function batchName(requests: BatchRequest[]): string {
+  const digest = fnv1a32Hex(requests.map((r) => r.customId).join('\u0000'));
+  return `batch_${requests.length}_${digest}`;
 }
 
 export class XAIBatchAdapter implements BatchProviderAdapter {
@@ -33,7 +49,7 @@ export class XAIBatchAdapter implements BatchProviderAdapter {
       url: `${this.baseURL}/v1/batches`,
       method: 'POST',
       headers: { ...this.bearer(), 'content-type': 'application/json' },
-      body: { name: `batch_${Date.now()}` },
+      body: { name: batchName(requests) },
       provider: 'xai',
       model: 'batch',
       responseType: 'json',

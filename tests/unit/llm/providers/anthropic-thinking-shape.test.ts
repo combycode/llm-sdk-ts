@@ -28,6 +28,29 @@ const req = (model: string, extra: Partial<NormalizedRequest> = {}): NormalizedR
 });
 
 describe('anthropicThinkingShape', () => {
+  /** A dated id with NO minor version used to parse its release date as the minor
+   *  (`claude-opus-4-20250514` -> major 4, minor 20250514) and so came out `adaptive`
+   *  — a 4.0 model handed the 4.6+ shape, contradicting ANTHROPIC_ADAPTIVE_THINKING_MIN.
+   *  Both ids are retired so it never shipped a failure, but the parse was wrong. */
+  it('does not read a release date as the minor version', () => {
+    expect(anthropicThinkingShape('claude-opus-4-20250514')).toBe('budgeted');
+    expect(anthropicThinkingShape('claude-sonnet-4-20250514')).toBe('budgeted');
+  });
+
+  it('still reads a real minor that is followed by a date', () => {
+    // The bound must not break the ids that DO carry both, which is most of them.
+    expect(anthropicThinkingShape('claude-haiku-4-5-20251001')).toBe('budgeted');
+    expect(anthropicThinkingShape('claude-opus-4-1-20250805')).toBe('budgeted');
+    expect(anthropicThinkingShape('claude-sonnet-4-5-20250929')).toBe('budgeted');
+    expect(anthropicThinkingShape('claude-opus-4-5-20251101')).toBe('budgeted');
+  });
+
+  it('handles a two-digit minor and a dated major-only id above the boundary', () => {
+    expect(anthropicThinkingShape('claude-opus-4-10')).toBe('adaptive');
+    // major 5 clears the boundary regardless of how the rest parses
+    expect(anthropicThinkingShape('claude-opus-5-20260601')).toBe('adaptive');
+  });
+
   it('sends adaptive to 4.6 and later', () => {
     for (const model of [
       'claude-sonnet-5',
