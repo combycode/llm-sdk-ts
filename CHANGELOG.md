@@ -4,6 +4,37 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- **The chat adapters build their requests from the wire specs.** All five —
+  `anthropic/messages`, `google/generateContent`, `google/interactions`,
+  `openai/responses` and `openai/chat-completions`, the last two also covering the xAI
+  and OpenRouter flavors — now interpret the spec the catalog pins the model to, instead
+  of assembling the body by hand. 806 lines of request-building code became 147.
+
+  The three OpenAI-compatible subclasses are the clearest case: xAI and OpenRouter each
+  overrode `buildRequest` to call `super`, then rename `max_tokens`, strip `reasoning`,
+  remap the service tier and merge routing options. Every one of those edits is already
+  the flavor overlay in the shared spec, so naming the flavor is now the entire override.
+
+  **The wire did not move.** A corpus frozen from 2.3.0 — 290 subjects x 22 request
+  shapes, both the pinned and the id-derived route — is compared on every CI run, and all
+  12,760 comparisons are byte-identical to what 2.3.0 sent. Verified live against all five
+  providers as well; the specs are proven, not assumed.
+
+  Two supporting moves: `wire-transforms` left `src/wire/` (it imports from `src/llm`, and
+  the new edge would otherwise have made a cycle), and the runtime loads a chat-only spec
+  set rather than the full 71-spec index, so nothing is bundled that nothing executes.
+  Cost: +15 KB packed, and ~5 microseconds per request against a network call.
+
+### Added
+
+- `NormalizedRequest.wireSpec` — the catalog's pin, resolved by `LLMClient` and read by
+  the adapter. Absent for an uncatalogued model or an engine with no catalog, in which
+  case the adapter derives the spec the way it always derived the shape.
+
 ## [2.3.0] — 2026-08-23
 
 ### Added
