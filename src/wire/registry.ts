@@ -149,6 +149,7 @@ import spec_xai_retrieval_createCorpus from './specs/retrieval/xai.createCorpus.
 import spec_xai_retrieval_deleteCorpus from './specs/retrieval/xai.deleteCorpus.json';
 import spec_xai_retrieval_indexStatus from './specs/retrieval/xai.indexStatus.json';
 import spec_xai_retrieval_listCorpora from './specs/retrieval/xai.listCorpora.json';
+import spec_xai_retrieval_listDocuments from './specs/retrieval/xai.listDocuments.json';
 import spec_xai_retrieval_management from './specs/retrieval/xai.management.json';
 import spec_xai_retrieval_removeDocument from './specs/retrieval/xai.removeDocument.json';
 import spec_xai_retrieval_search from './specs/retrieval/xai.search.json';
@@ -297,6 +298,7 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['xai/retrieval.deleteCorpus', spec_xai_retrieval_deleteCorpus as unknown as SpecDelta],
   ['xai/retrieval.indexStatus', spec_xai_retrieval_indexStatus as unknown as SpecDelta],
   ['xai/retrieval.listCorpora', spec_xai_retrieval_listCorpora as unknown as SpecDelta],
+  ['xai/retrieval.listDocuments', spec_xai_retrieval_listDocuments as unknown as SpecDelta],
   ['xai/retrieval.management', spec_xai_retrieval_management as unknown as SpecDelta],
   ['xai/retrieval.removeDocument', spec_xai_retrieval_removeDocument as unknown as SpecDelta],
   ['xai/retrieval.search', spec_xai_retrieval_search as unknown as SpecDelta],

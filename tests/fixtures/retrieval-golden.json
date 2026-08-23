@@ -1,6 +1,6 @@
 {
   "_doc": "What the hosted retrieval backends sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed.",
-  "frozenAtCommit": "18cb58eea9d9a2649dab1d3b5abdc50d596b2675",
+  "frozenAtCommit": "3576a1be2a9cc1b08cb32e23fa1b65dc018ba254",
   "counts": {
     "cases": 32,
     "requests": 41
@@ -587,7 +587,7 @@
       "model": "collections",
       "provider": "xai",
       "responseType": "json",
-      "url": "https://management-api.x.ai/v1/collections/col_abc123"
+      "url": "https://management-api.x.ai/v1/collections/col_abc123/documents"
     },
     "retrieval/xai/removeDocument.remove": {
       "headers": {

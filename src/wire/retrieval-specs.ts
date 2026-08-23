@@ -45,6 +45,7 @@ import xaiCreateCorpus from './specs/retrieval/xai.createCorpus.json' with { typ
 import xaiUploadFile from './specs/retrieval/xai.uploadFile.json' with { type: 'json' };
 import xaiAttachDocument from './specs/retrieval/xai.attachDocument.json' with { type: 'json' };
 import xaiIndexStatus from './specs/retrieval/xai.indexStatus.json' with { type: 'json' };
+import xaiListDocuments from './specs/retrieval/xai.listDocuments.json' with { type: 'json' };
 import xaiRemoveDocument from './specs/retrieval/xai.removeDocument.json' with { type: 'json' };
 import xaiDeleteCorpus from './specs/retrieval/xai.deleteCorpus.json' with { type: 'json' };
 import xaiListCorpora from './specs/retrieval/xai.listCorpora.json' with { type: 'json' };
@@ -59,7 +60,7 @@ const RETRIEVAL_SPECS = new Map<string, SpecDelta>(
       googlePollOperation, googleIndexStatus, googleRemoveDocument, googleDeleteCorpus,
       googleListCorpora,
       xaiBase, xaiManagement, xaiStandard, xaiStandardJson, xaiCreateCorpus, xaiUploadFile, xaiAttachDocument,
-      xaiIndexStatus, xaiRemoveDocument, xaiDeleteCorpus, xaiListCorpora, xaiSearch,
+      xaiIndexStatus, xaiListDocuments, xaiRemoveDocument, xaiDeleteCorpus, xaiListCorpora, xaiSearch,
     ] as unknown as SpecDelta[]
   ).map((s) => [(s as { id: string }).id, s]),
 );

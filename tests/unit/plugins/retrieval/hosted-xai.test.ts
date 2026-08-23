@@ -3,7 +3,7 @@
  *  No real network calls. All HTTP is stubbed via a fake EngineFetch. Tests:
  *    - createCorpus issues POST to MANAGEMENT base with management bearer + collection_name
  *    - addDocument does std-files-upload (std bearer) then mgmt-attach (mgmt bearer), maps metadata->fields
- *    - indexStatus normalises documents_count (incl. string-typed count) to ready/pending
+ *    - indexStatus reads PER-DOCUMENT status, so ready means searchable
  *    - search posts to {std}/documents/search with right body; parses chunk_content JSON
  *    - search defensive fallback when chunk_content is not the expected JSON shape
  *    - asTool emits exact {type:'file_search', vector_store_ids, max_num_results} spec
@@ -188,61 +188,84 @@ describe('hostedXai -- addDocument', () => {
 describe('hostedXai -- indexStatus', () => {
   const corpus: CorpusRef = { id: 'col_abc', name: 'my-col', backend: 'hostedXai' };
 
-  it('returns "ready" when documents_count > 0 (number)', async () => {
-    const backend = makeBackend([{
-      status: 200,
-      body: { collection_id: 'col_abc', documents_count: 3 },
-    }]);
-    const s = await backend.indexStatus(corpus);
-    expect(s.state).toBe('ready');
-    expect(s.counts?.total).toBe(3);
-    expect(s.counts?.indexed).toBe(3);
-    expect(s.counts?.failed).toBe(0);
+  /** The real document record, trimmed. Captured from the live API on
+   *  2026-08-23 — the previous fakes here were invented (`documents_count` on the
+   *  collection, and a bare array from list), and both hid a defect: readiness
+   *  was reported from a count that goes to 1 the moment a document is ATTACHED,
+   *  about five seconds before it can be searched. A caller that polled properly
+   *  still searched an empty index. */
+  const doc = (status: string) => ({
+    file_metadata: { file_id: 'file_1', name: 'z.txt', upload_status: 'Complete' },
+    fields: {},
+    status,
+    last_indexed_at: status.endsWith('PROCESSED') ? '2026-08-23T18:08:14.789638Z' : null,
+    chunks_processed_count: status.endsWith('PROCESSED') ? '1' : '0',
   });
 
-  it('returns "ready" when documents_count is a string (e.g. "5")', async () => {
-    const backend = makeBackend([{
-      status: 200,
-      body: { collection_id: 'col_abc', documents_count: '5' },
-    }]);
+  it('is INDEXING while a document is still processing', async () => {
+    const backend = makeBackend([
+      { status: 200, body: { documents: [doc('DOCUMENT_STATUS_PROCESSING')] } },
+    ]);
     const s = await backend.indexStatus(corpus);
-    expect(s.state).toBe('ready');
-    expect(s.counts?.total).toBe(5);
+    expect(s.state).toBe('indexing');
+    expect(s.counts).toEqual({ total: 1, indexed: 0, failed: 0 });
   });
 
-  it('returns "pending" when documents_count is 0', async () => {
-    const backend = makeBackend([{
-      status: 200,
-      body: { collection_id: 'col_abc', documents_count: 0 },
-    }]);
+  it('is READY only when every document is processed', async () => {
+    const backend = makeBackend([
+      {
+        status: 200,
+        body: { documents: [doc('DOCUMENT_STATUS_PROCESSED'), doc('DOCUMENT_STATUS_PROCESSED')] },
+      },
+    ]);
+    const s = await backend.indexStatus(corpus);
+    expect(s.state).toBe('ready');
+    expect(s.counts).toEqual({ total: 2, indexed: 2, failed: 0 });
+  });
+
+  it('is still INDEXING when only some are done', async () => {
+    const backend = makeBackend([
+      {
+        status: 200,
+        body: { documents: [doc('DOCUMENT_STATUS_PROCESSED'), doc('DOCUMENT_STATUS_PROCESSING')] },
+      },
+    ]);
+    const s = await backend.indexStatus(corpus);
+    expect(s.state).toBe('indexing');
+    expect(s.counts).toEqual({ total: 2, indexed: 1, failed: 0 });
+  });
+
+  it('reports a partial failure as an error rather than as ready', async () => {
+    // Searching without a document the caller supplied answers from less than it
+    // was given, which is worse than saying so.
+    const backend = makeBackend([
+      {
+        status: 200,
+        body: { documents: [doc('DOCUMENT_STATUS_PROCESSED'), doc('DOCUMENT_STATUS_FAILED')] },
+      },
+    ]);
+    const s = await backend.indexStatus(corpus);
+    expect(s.state).toBe('error');
+    expect(s.counts).toEqual({ total: 2, indexed: 1, failed: 1 });
+  });
+
+  it('returns "pending" for an empty collection', async () => {
+    const backend = makeBackend([{ status: 200, body: { documents: [] } }]);
     const s = await backend.indexStatus(corpus);
     expect(s.state).toBe('pending');
     expect(s.counts?.total).toBe(0);
   });
 
-  it('returns "pending" when documents_count is "0"', async () => {
-    const backend = makeBackend([{
-      status: 200,
-      body: { collection_id: 'col_abc', documents_count: '0' },
-    }]);
-    const s = await backend.indexStatus(corpus);
-    expect(s.state).toBe('pending');
-  });
-
   it('returns "error" state on HTTP error', async () => {
     const backend = makeBackend([{ status: 404, body: {} }]);
-    const s = await backend.indexStatus(corpus);
-    expect(s.state).toBe('error');
+    expect((await backend.indexStatus(corpus)).state).toBe('error');
   });
 
-  it('issues GET to management base with management bearer', async () => {
+  it('reads the DOCUMENTS endpoint on the management plane', async () => {
     const log: RequestLog = [];
-    const backend = makeBackend(
-      [{ status: 200, body: { documents_count: 1 } }],
-      log,
-    );
+    const backend = makeBackend([{ status: 200, body: { documents: [] } }], log);
     await backend.indexStatus(corpus);
-    expect(log[0].req.url).toBe(`${MGMT_BASE}/collections/col_abc`);
+    expect(log[0].req.url).toBe(`${MGMT_BASE}/collections/col_abc/documents`);
     expect(log[0].req.headers?.authorization).toBe(`Bearer ${MGMT_KEY}`);
   });
 });
@@ -482,10 +505,14 @@ describe('hostedXai -- delete and list', () => {
     const log: RequestLog = [];
     const backend = makeBackend([{
       status: 200,
-      body: [
-        { collection_id: 'col_1', collection_name: 'store-1', documents_count: 2 },
-        { collection_id: 'col_2', collection_name: 'store-2', documents_count: 0 },
-      ],
+      // `{ collections: [...] }` — the real shape. Reading it as a bare array threw
+      // a TypeError on every live response, and the fake array here hid it.
+      body: {
+        collections: [
+          { collection_id: 'col_1', collection_name: 'store-1', documents_count: 2 },
+          { collection_id: 'col_2', collection_name: 'store-2', documents_count: 0 },
+        ],
+      },
     }], log);
 
     const list = await backend.listCorpora();

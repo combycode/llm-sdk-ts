@@ -218,23 +218,33 @@ export class HostedXaiRetrievalBackend implements RetrievalBackend {
   }
 
   async indexStatus(corpus: CorpusRef): Promise<IndexStatus> {
+    // Read the DOCUMENTS, not the collection. `documents_count` goes to 1 the
+    // moment a document is attached, several seconds before that document can be
+    // searched — measured at ~5s — so reporting `ready` from it meant a caller
+    // that dutifully polled still searched an empty index and got nothing back,
+    // with no error to explain it. Each document carries its own status.
     const res = await this.fetch(
-      this.request('xai/retrieval.indexStatus', { corpusId: corpus.id }),
+      this.request('xai/retrieval.listDocuments', { corpusId: corpus.id }),
     );
 
     if (res.status >= 400) {
       return { state: 'error' };
     }
 
-    const data = res.body as Record<string, unknown>;
-    // xAI gives no granular indexing status per document (no pending/failed counts).
-    // Normalise: any documents present -> 'ready', empty collection -> 'pending'.
-    const count = Number(data.documents_count);
-    const total = Number.isFinite(count) ? count : 0;
-    const state = total > 0 ? 'ready' : 'pending';
-    const counts: IndexCounts = { total, indexed: total, failed: 0 };
+    const docs =
+      ((res.body as { documents?: Array<Record<string, unknown>> } | undefined)?.documents) ?? [];
+    const total = docs.length;
+    if (total === 0) return { state: 'pending', counts: { total: 0, indexed: 0, failed: 0 } };
 
-    return { state, counts };
+    const statusOf = (d: Record<string, unknown>) => String(d.status ?? '');
+    const indexed = docs.filter((d) => statusOf(d).endsWith('PROCESSED')).length;
+    const failed = docs.filter((d) => /FAILED|ERROR/.test(statusOf(d))).length;
+    const counts: IndexCounts = { total, indexed, failed };
+
+    // A partial failure is still an error: the caller asked for these documents,
+    // and searching without them silently answers from less than it was given.
+    if (failed > 0) return { state: 'error', counts };
+    return { state: indexed === total ? 'ready' : 'indexing', counts };
   }
 
   async removeDocument(corpus: CorpusRef, fileId: string): Promise<void> {
@@ -258,7 +268,11 @@ export class HostedXaiRetrievalBackend implements RetrievalBackend {
 
     if (res.status >= 400) return [];
 
-    const items = (res.body as Array<Record<string, unknown>>) ?? [];
+    // `{ collections: [...] }`, not a bare array — reading it as one threw a
+    // TypeError on every real response, which no test caught because the fake
+    // ones were arrays.
+    const body = res.body as { collections?: Array<Record<string, unknown>> } | undefined;
+    const items = body?.collections ?? [];
     return items.map((item) => ({
       id: item.collection_id as string,
       name: (item.collection_name as string) ?? '',

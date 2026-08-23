@@ -547,6 +547,7 @@ const RETRIEVAL_DRIVES: Drive[] = [
   { id: 'xai/retrieval.uploadFile', input: {}, config: XAI_R },
   { id: 'xai/retrieval.attachDocument', input: { corpusId: 'c_1', fileId: 'f_1', label: 'a.txt', metadata: { a: 1 } }, config: XAI_R },
   { id: 'xai/retrieval.indexStatus', input: { corpusId: 'c_1' }, config: XAI_R },
+  { id: 'xai/retrieval.listDocuments', input: { corpusId: 'c_1' }, config: XAI_R },
   { id: 'xai/retrieval.removeDocument', input: { corpusId: 'c_1', docId: 'f_1' }, config: XAI_R },
   { id: 'xai/retrieval.deleteCorpus', input: { corpusId: 'c_1' }, config: XAI_R },
   { id: 'xai/retrieval.listCorpora', input: {}, config: XAI_R },

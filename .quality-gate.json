@@ -121,6 +121,7 @@
       { "file": "official-comparision/29-mcp-tools.ts", "apiKeyEnv": "ANTHROPIC_API_KEY", "env": { "LLM_MODEL": "anthropic/claude-haiku-4-5" }, "expect": "result" },
       { "file": "official-comparision/31-hosted-retrieval.ts", "apiKeyEnv": "OPENAI_API_KEY", "env": { "LLM_MODEL": "openai/gpt-5.4-nano" }, "expect": "4217" },
       { "file": "official-comparision/31-hosted-retrieval.ts", "apiKeyEnv": "GOOGLE_AI_API_KEY", "env": { "LLM_MODEL": "google/gemini-3.1-flash-lite" }, "expect": "4217" },
+      { "file": "official-comparision/31-hosted-retrieval.ts", "apiKeyEnv": "XAI_API_KEY", "env": { "LLM_MODEL": "xai/grok-4-1-fast" }, "expect": "4217" },
       { "file": "official-comparision/29b-mcp-protocol.ts", "expect": "negotiated" },
       { "file": "features-highlight/exact-token-count.ts", "apiKeyEnv": "ANTHROPIC_API_KEY", "env": { "LLM_MODEL": "anthropic/claude-haiku-4-5" }, "expect": "exact" },
       { "file": "features-highlight/exact-token-count.ts", "apiKeyEnv": "GOOGLE_AI_API_KEY", "env": { "LLM_MODEL": "google/gemini-3.1-flash-lite" }, "expect": "exact" }

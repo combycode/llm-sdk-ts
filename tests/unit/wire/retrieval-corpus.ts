@@ -192,7 +192,14 @@ function responseFor(c: RetrievalCase, callIndex: number): unknown {
     return { data: [], fileSearchStores: [] };
   }
   if (c.op === 'search') return { matches: [] };
-  return { id: 'x', name: 'x', status: 'completed', documents_count: 1 };
+  // xAI's indexStatus reads the DOCUMENTS listing; the others read the corpus.
+  return {
+    id: 'x',
+    name: 'x',
+    status: 'completed',
+    documents_count: 1,
+    documents: [{ status: 'DOCUMENT_STATUS_PROCESSED', chunks_processed_count: '1' }],
+  };
 }
 
 function backendFor(c: RetrievalCase, fetch: never) {

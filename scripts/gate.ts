@@ -28,6 +28,10 @@ const NEEDED: Array<{ env: string; keyring: string }> = [
   { env: 'OPENAI_API_KEY', keyring: 'openai' },
   { env: 'ANTHROPIC_API_KEY', keyring: 'claude' },
   { env: 'GOOGLE_AI_API_KEY', keyring: 'gemini' },
+  { env: 'XAI_API_KEY', keyring: 'grok' },
+  // xAI Collections runs on a second plane with its own credential; without it the
+  // hosted-retrieval run cannot reach a collection at all.
+  { env: 'XAI_MANAGEMENT_API_KEY', keyring: 'grokManagement' },
 ];
 
 const env: Record<string, string> = { ...(process.env as Record<string, string>) };

@@ -142,6 +142,21 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **xAI hosted retrieval said "ready" before anything was searchable.** `indexStatus()` derived
+  readiness from the collection's `documents_count`, which reaches 1 the moment a document is
+  ATTACHED — measured at about five seconds before that document can actually be found. A caller
+  that polled exactly as the guide instructs still searched an empty index, and the model answered
+  from its own knowledge with nothing to say why.
+
+  It now reads the per-document status the API actually exposes (`DOCUMENT_STATUS_PROCESSING` ->
+  `PROCESSED`), so `ready` means searchable, and a partial failure reports `error` instead of a
+  quietly smaller corpus. xAI now passes the live hosted-retrieval scenario.
+
+  Found with it: `listCorpora()` threw a `TypeError` on every real response — the API returns
+  `{ collections: [...] }` and the code expected a bare array, as did the test fake. Both defects
+  survived because the unit tests were written against invented response shapes; they now use the
+  ones captured from the live API.
+
 - **The Google API key no longer travels in the URL.** Twelve endpoints — files, batch, media
   generation, Imagen, Veo and the long-running-operation polls — sent it as `?key=`, so the
   credential was copied into every access log, proxy log and telemetry span the request passed
