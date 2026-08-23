@@ -349,6 +349,19 @@ export class ModelCatalog {
     }
   }
 
+  /** A catalog with every bundled provider entry already loaded.
+   *
+   *  This is what the engine and the client build when nobody says otherwise. A
+   *  fresh instance each time rather than a shared one: the catalog is mutable
+   *  (`set()` is public and examples use it), so sharing would let one engine's
+   *  edit reach another's request. Indexing all 427 entries costs about a
+   *  millisecond, against a network call. */
+  static withProviderDefaults(): ModelCatalog {
+    const c = new ModelCatalog();
+    c.loadProviderDefaults();
+    return c;
+  }
+
   /** Load every provider's `catalog.json` shipped with the SDK. Synchronous —
    *  the JSON files are bundled via static import so no I/O at runtime. */
   loadProviderDefaults(): void {

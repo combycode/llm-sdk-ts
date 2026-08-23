@@ -34,6 +34,29 @@ catalog.set('anthropic', 'my-model', { pricing: {}, wireSpec: 'anthropic/message
 in 2.3.0 — checked on every CI run against a corpus frozen from the 2.3.0 tag: 290 subjects across
 23 request shapes, on both the pinned and the id-derived route.
 
+## The catalog is loaded by default
+
+`createEngine()` and `LLMClient` now start with the bundled provider catalogs instead of an empty
+one. **Almost certainly no source change** — and if you were already passing `catalog: 'defaults'`,
+that still works and now says the same thing twice.
+
+What changes if you were NOT passing it: prices become known, token counts can use the exact
+strategies, and requests are built from the model's wire-spec pin rather than from a rule over its
+id. All three were falling back before, silently.
+
+```ts
+// before — an empty catalog unless you asked
+const engine = createEngine({ apiKeys });            // no pricing, no pins
+const engine = createEngine({ apiKeys, catalog: 'defaults' });  // the data
+
+// after — the data, unless you opt out
+const engine = createEngine({ apiKeys });            // the data
+const engine = createEngine({ apiKeys, catalog: false });       // no entries, on purpose
+```
+
+If you relied on an empty catalog — to be certain no bundled price was used, say — pass
+`catalog: false` (or `'empty'`).
+
 ## The token-count APIs need the engine's fetch
 
 `AnthropicCountApi` and `GoogleCountApi` used to default their second argument to

@@ -87,7 +87,7 @@ try {
 
 ### Step 4 -- live tracking with `CostCollector`
 
-`engine.cost` is a `CostCollector` instance wired automatically when you call `createEngine()` with `catalog: 'defaults'`. Every completion fires the `onCompletion` hook and the collector records a `CostEntry` in its in-process ledger.
+`engine.cost` is a `CostCollector` instance wired automatically by `createEngine()`. It prices from the catalog, which is loaded by default -- pass `catalog: false` and every entry becomes an honest zero with a note saying the model is unpriced. Every completion fires the `onCompletion` hook and the collector records a `CostEntry` in its in-process ledger.
 
 ```ts
 import { createEngine, complete } from '@combycode/llm-sdk';

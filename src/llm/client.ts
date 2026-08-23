@@ -129,7 +129,11 @@ export class LLMClient {
       cacheName: this.cacheName,
     });
     this.cacheKeyFn = config.cacheKeyFn;
-    this.catalog = config.catalog ?? new ModelCatalog();
+    // The bundled catalog, not an empty one: this is where the model's wire-spec
+    // pin comes from, and without it every request falls back to deriving the
+    // spec from the model id — which is the fallback for models this build has
+    // never heard of, not the normal path.
+    this.catalog = config.catalog ?? ModelCatalog.withProviderDefaults();
 
     this.hooks.emitSync('onClientCreate', {
       clientId: this.id,

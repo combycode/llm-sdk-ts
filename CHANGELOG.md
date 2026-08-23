@@ -58,6 +58,19 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Changed
 
+- **The catalog is loaded by default** (BREAKING, behaviour). `createEngine()` and `LLMClient` used
+  to start with an EMPTY catalog unless the caller passed `catalog: 'defaults'`. Three things fell
+  back silently as a result: the wire spec was derived from the model id instead of read from its
+  pin, every price was unknown, and every token count was the 4-chars-per-token estimate. Each is
+  the right answer for a model this build has never heard of, which is why nothing looked wrong.
+
+  This is the prerequisite the 3.0.0 design named (report 037, R1): the adapters can only be driven
+  by per-model data if that data is actually there. The bundled catalogs are statically imported
+  either way, so leaving them unloaded never saved a byte — it cost about a millisecond of indexing
+  per engine and bought silence.
+
+  Opting out is now the explicit act: `catalog: false` or `catalog: 'empty'`.
+
 - **`AnthropicCountApi` and `GoogleCountApi` take an `EngineFetch`, and it is required** (BREAKING).
   They defaulted to `globalThis.fetch`, so every exact token count for Anthropic and Google went out
   AROUND the NetworkEngine: no queue, no rate limiting, no retry, no telemetry span — while every

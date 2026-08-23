@@ -112,12 +112,19 @@ export interface EngineConfig {
   /** Custom low-level fetch transport — forwarded to the NetworkEngine's queue
    *  (so retry/rate-limit/hooks still apply). Defaults to globalThis.fetch. */
   fetch?: FetchFn;
-  /** Catalog wiring. Pass:
-   *    - `true` / 'defaults' → load every bundled provider catalog.json
+  /** Catalog wiring. **Defaults to the bundled provider catalogs.**
+   *
+   *  The catalog is what the adapters read per model: which wire spec builds the
+   *  request, what the model costs, which tokenizer counts it. Starting empty
+   *  meant every one of those silently fell back — the id-derived spec, an
+   *  unknown price, an estimated token count — and nothing said so. The data is
+   *  statically imported either way, so leaving it unloaded saved no bytes.
+   *
+   *    - undefined (default) / `true` / 'defaults' → every bundled catalog.json
    *    - existing ModelCatalog instance → use as-is
-   *    - `{ entries: {...} }` → build empty + load() the entries
-   *    - undefined → empty catalog */
-  catalog?: ModelCatalog | true | 'defaults' | { entries: Record<string, unknown> };
+   *    - `{ entries: {...} }` → the given entries only
+   *    - `false` / 'empty' → no entries. Everything falls back; say so on purpose. */
+  catalog?: ModelCatalog | boolean | 'defaults' | 'empty' | { entries: Record<string, unknown> };
   /** Per-provider API keys. Helpers consult this when no apiKey is passed
    *  alongside `model: 'provider/...'`. */
   apiKeys?: Partial<Record<ProviderName, string>>;
@@ -214,18 +221,17 @@ export function createEngine(config: EngineConfig = {}): EngineHandle {
 }
 
 function resolveCatalog(config: EngineConfig['catalog']): ModelCatalog {
-  const c = new ModelCatalog();
-  if (!config) return c;
   if (config instanceof ModelCatalog) return config;
-  if (config === true || config === 'defaults') {
-    c.loadProviderDefaults();
-    return c;
-  }
-  if (typeof config === 'object' && 'entries' in config) {
+  // Opting OUT is explicit. Absent means the defaults, because an empty catalog
+  // is not a neutral choice — it silently downgrades pinning, pricing and
+  // counting all at once.
+  if (config === false || config === 'empty') return new ModelCatalog();
+  if (config && typeof config === 'object' && 'entries' in config) {
+    const c = new ModelCatalog();
     c.load(config.entries);
     return c;
   }
-  return c;
+  return ModelCatalog.withProviderDefaults();
 }
 
 function resolvePersistence(config: PersistenceConfig | Persistence | undefined): Persistence {

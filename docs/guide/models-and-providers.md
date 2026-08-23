@@ -71,6 +71,19 @@ network required.
 
 ### Reading the catalog
 
+**The catalog is loaded for you.** `createEngine()` builds it from the bundled provider data unless
+you say otherwise -- the examples below pass `catalog: 'defaults'` explicitly, which is the same
+thing spelled out.
+
+It is not decoration. The catalog is where an adapter reads, per model, which wire spec builds the
+request, what the model costs, and which tokenizer counts it. With an empty one all three fall back
+at once -- the spec is derived from the model id, the price is unknown, the count is a 4-chars-per-
+token estimate -- and each of those is silent, because each is the correct answer for a model this
+build has never heard of.
+
+To opt out, say so: `catalog: false` (or `'empty'`). To supply your own, pass a `ModelCatalog` or
+`{ entries }`.
+
 ```ts
 import { listModels, createEngine } from '@combycode/llm-sdk';
 
