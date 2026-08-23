@@ -1,37 +1,29 @@
 /** Do the spec chains cover every model GENERATION, not just the catalogued ones?
  *
- *  The chains replaced version arithmetic. `anthropicAdaptiveThinking` — the one
- *  code escape hatch, which computed the thinking shape from the id at build time —
- *  is referenced by none of the 71 shipped specs any more (proved mechanically by
- *  `scripts/audit-wire-coverage.ts`, across all five reference forms). Chain nodes
- *  do that job now.
+ *  Every catalogued model carries an explicit `wireSpec`, and the golden corpus
+ *  checks all 289 of them. The ids that exercise the FALLBACK are the ones the
+ *  catalog does not have: a dated snapshot, a legacy family-last name, or a model
+ *  released after this build. That path is not an edge case — it is how the SDK
+ *  behaves on the day a provider ships something new.
  *
- *  That replacement is only safe if the node an id lands on produces the SAME wire
- *  the arithmetic would have. The golden corpus checks catalogued models, which is
- *  289 of them but every one a model we already knew about. The ids that actually
- *  exercise the fallback are the ones the catalog does NOT have: a dated snapshot,
- *  a legacy family-last name, a release newer than this build.
+ *  ── why the expectations are written out ───────────────────────────────────
+ *  This test used to compare the spec's output against `anthropicThinkingShape()`
+ *  — the same arithmetic the adapter called. Two derivations of one rule agreeing
+ *  says almost nothing; it is a tautology wearing a test's clothes. The rule now
+ *  lives in `src/wire/pins/*.json` as data, and the expectations below are written
+ *  out by hand from the documented API behaviour, so the test and the thing it
+ *  tests have genuinely independent sources.
  *
- *  So this drives the ids the corpus cannot: every alias and snapshot in the
- *  catalog, the retired ids, the boundary either side of 4.6, plausible future
- *  releases, and the legacy `claude-3-*` form — and requires the spec the adapter
- *  selects to agree with the rules the official SDK documents:
- *
+ *  The rules themselves, from the pinned SDK clone:
  *    thinking  `{type:'adaptive'}` from 4.6 up, `{type:'enabled', budget_tokens}`
  *              below it. Anthropic's SDK carries both as distinct types.
- *    top_k     "Models released after Claude Opus 4.6 do not accept top_k; any
- *              value will be rejected with a 400 error" — @deprecated, verbatim
- *              from the pinned SDK clone.
+ *    top_k     "Deprecated. Models released after Claude Opus 4.6 do not accept
+ *              top_k; any value will be rejected with a 400 error."
  */
 
 import { describe, expect, it } from 'bun:test';
 import { AnthropicAdapter } from '../../../src/llm/providers/anthropic/messages';
 import { GoogleAdapter } from '../../../src/llm/providers/google/generate';
-import {
-  anthropicAcceptsTopK,
-  anthropicThinkingShape,
-} from '../../../src/llm/providers/anthropic/constants';
-import { googleUsesThinkingBudget } from '../../../src/llm/providers/google/constants';
 import type { NormalizedRequest } from '../../../src/llm/types/request';
 
 const anthropic = new AnthropicAdapter({ apiKey: 'k' });
@@ -43,144 +35,140 @@ const req = (model: string, extra: Record<string, unknown>): NormalizedRequest =
 const body = (a: { buildRequest: (r: NormalizedRequest) => unknown }, r: NormalizedRequest) =>
   (a.buildRequest(r) as { body: Record<string, unknown> }).body;
 
-/** Ids across every Anthropic generation this SDK can be pointed at.
- *
- *  Catalogued slugs are covered by the golden corpus; what matters here is
- *  everything else — the forms a caller can legitimately send that the catalog has
- *  no row for. */
-const ANTHROPIC_IDS = [
-  // dated snapshots (callable, and how the API names releases)
-  'claude-opus-4-20250514',
-  'claude-sonnet-4-20250514',
-  'claude-opus-4-1-20250805',
-  'claude-sonnet-4-5-20250929',
-  'claude-opus-4-5-20251101',
-  'claude-haiku-4-5-20251001',
-  // the 4.6 boundary, from both sides
-  'claude-opus-4-5',
-  'claude-opus-4-6',
-  'claude-sonnet-4-6',
-  'claude-opus-4-7',
-  // dotted forms
-  'claude-opus-4.5',
-  'claude-opus-4.6',
-  'claude-opus-4.7',
-  'claude-sonnet-4.6',
-  // current generation
-  'claude-sonnet-5',
-  'claude-opus-5',
-  'claude-fable-5',
-  'claude-mythos-5',
-  // releases newer than this build — the fallback's real job
-  'claude-opus-6',
-  'claude-sonnet-6-1',
-  'claude-opus-4-10',
-  'claude-haiku-7',
-  'claude-sonnet-6-1-20270101',
-  // legacy family-last ids, all of which predate extended thinking
-  'claude-3-5-sonnet-latest',
-  'claude-3-opus-20240229',
-  'claude-3-haiku-20240307',
-  // namespaced, as a caller may pass it
-  'anthropic/claude-sonnet-5',
+type Thinking = 'adaptive' | 'budgeted';
+
+/** id -> what the API accepts for it. Written from the provider's own rules, not
+ *  derived from library code. */
+const ANTHROPIC: Array<{ id: string; thinking: Thinking; topK: boolean; note?: string }> = [
+  // 4.0: no minor, or a release DATE that must not be read as one
+  { id: 'claude-opus-4', thinking: 'budgeted', topK: false },
+  { id: 'claude-sonnet-4', thinking: 'budgeted', topK: false },
+  { id: 'claude-opus-4-20250514', thinking: 'budgeted', topK: false, note: 'date, not minor 20250514' },
+  { id: 'claude-sonnet-4-20250514', thinking: 'budgeted', topK: false },
+  // 4.1 - 4.5: budgeted, and these are the ids the top_k allow-list names
+  { id: 'claude-opus-4-1', thinking: 'budgeted', topK: true },
+  { id: 'claude-opus-4-1-20250805', thinking: 'budgeted', topK: true },
+  { id: 'claude-opus-4-5', thinking: 'budgeted', topK: true },
+  { id: 'claude-opus-4-5-20251101', thinking: 'budgeted', topK: true },
+  { id: 'claude-sonnet-4-5', thinking: 'budgeted', topK: true },
+  { id: 'claude-sonnet-4-5-20250929', thinking: 'budgeted', topK: true },
+  { id: 'claude-haiku-4-5', thinking: 'budgeted', topK: true },
+  { id: 'claude-haiku-4-5-20251001', thinking: 'budgeted', topK: true },
+  // a 4.x minor the allow-list does not name: budgeted, and top_k withheld
+  { id: 'claude-opus-4-2', thinking: 'budgeted', topK: false },
+  { id: 'claude-haiku-4-3', thinking: 'budgeted', topK: false },
+  // 4.6 exactly: the boundary, and the only band that is adaptive AND takes top_k
+  { id: 'claude-opus-4-6', thinking: 'adaptive', topK: true },
+  { id: 'claude-sonnet-4-6', thinking: 'adaptive', topK: true },
+  // above 4.6: adaptive, top_k retired
+  { id: 'claude-opus-4-7', thinking: 'adaptive', topK: false },
+  { id: 'claude-opus-4-8', thinking: 'adaptive', topK: false },
+  { id: 'claude-opus-4-10', thinking: 'adaptive', topK: false, note: 'two-digit minor, not a date' },
+  { id: 'claude-sonnet-5', thinking: 'adaptive', topK: false },
+  { id: 'claude-opus-5', thinking: 'adaptive', topK: false },
+  { id: 'claude-fable-5', thinking: 'adaptive', topK: false },
+  { id: 'claude-mythos-5', thinking: 'adaptive', topK: false },
+  // newer than this build: treated as newer, which is the fail-safe direction
+  { id: 'claude-opus-6', thinking: 'adaptive', topK: false },
+  { id: 'claude-sonnet-6-1', thinking: 'adaptive', topK: false },
+  { id: 'claude-haiku-7', thinking: 'adaptive', topK: false },
+  { id: 'claude-sonnet-6-1-20270101', thinking: 'adaptive', topK: false },
+  { id: 'claude-something-entirely-new', thinking: 'adaptive', topK: false },
+  // legacy family-last ids: all predate extended thinking
+  { id: 'claude-3-5-sonnet-latest', thinking: 'budgeted', topK: false },
+  { id: 'claude-3-opus-20240229', thinking: 'budgeted', topK: false },
+  { id: 'claude-3-haiku-20240307', thinking: 'budgeted', topK: false },
+  // namespaced and upper-cased forms a caller may legitimately send
+  { id: 'anthropic/claude-sonnet-5', thinking: 'adaptive', topK: false },
+  { id: 'CLAUDE-OPUS-4-6', thinking: 'adaptive', topK: true, note: 'case must not change the band' },
+  // DOTTED slugs below 4.6 withhold top_k where the hyphenated form allows it.
+  // Deliberate: the allow-list only ever matched hyphens, omitting top_k is a
+  // no-op, and sending it to a model that retired it is a hard 400.
+  { id: 'claude-opus-4.5', thinking: 'budgeted', topK: false },
+  { id: 'claude-sonnet-4.5', thinking: 'budgeted', topK: false },
+  { id: 'claude-opus-4.6', thinking: 'adaptive', topK: false },
+  { id: 'claude-opus-4.8', thinking: 'adaptive', topK: false },
 ];
 
 describe('the anthropic chain covers every generation', () => {
   it('drives a meaningful spread of ids', () => {
-    expect(ANTHROPIC_IDS.length).toBeGreaterThanOrEqual(25);
+    expect(ANTHROPIC.length).toBeGreaterThanOrEqual(35);
   });
 
-  it('thinking shape matches what the id implies, for every id', () => {
+  it('the thinking shape matches what the model accepts', () => {
     const wrong: string[] = [];
-    for (const id of ANTHROPIC_IDS) {
-      const b = body(anthropic, req(id, { thinking: { mode: 'on', effort: 'high' } }));
-      const thinking = b.thinking as { type?: string; budget_tokens?: number } | undefined;
-      const got = thinking?.type === 'adaptive' ? 'adaptive' : 'budgeted';
-      const want = anthropicThinkingShape(id);
-      if (got !== want) wrong.push(`${id}: want ${want}, spec produced ${JSON.stringify(thinking)}`);
-      // The budgeted shape is worthless without the budget: Anthropic requires
-      // budget_tokens >= 1024 and < max_tokens.
-      if (want === 'budgeted') {
-        if (typeof thinking?.budget_tokens !== 'number' || thinking.budget_tokens < 1024) {
-          wrong.push(`${id}: budgeted thinking without a valid budget_tokens`);
+    for (const c of ANTHROPIC) {
+      const b = body(anthropic, req(c.id, { thinking: { mode: 'on', effort: 'high' } }));
+      const t = b.thinking as { type?: string; budget_tokens?: number } | undefined;
+      const got: Thinking = t?.type === 'adaptive' ? 'adaptive' : 'budgeted';
+      if (got !== c.thinking) wrong.push(`${c.id}: want ${c.thinking}, got ${JSON.stringify(t)}`);
+      if (c.thinking === 'budgeted') {
+        // The budgeted shape is worthless without its budget: Anthropic requires
+        // budget_tokens >= 1024 and strictly less than max_tokens.
+        if (typeof t?.budget_tokens !== 'number' || t.budget_tokens < 1024) {
+          wrong.push(`${c.id}: budgeted thinking without a valid budget_tokens`);
         }
-        if ((b.max_tokens as number) <= (thinking?.budget_tokens ?? 0)) {
-          wrong.push(`${id}: max_tokens (${b.max_tokens}) must exceed budget_tokens`);
+        if ((b.max_tokens as number) <= (t?.budget_tokens ?? 0)) {
+          wrong.push(`${c.id}: max_tokens (${b.max_tokens}) must exceed budget_tokens`);
         }
       }
     }
     expect(wrong).toEqual([]);
   });
 
-  it('top_k is sent only to ids that still accept it', () => {
+  it('top_k is sent only to models that still accept it', () => {
     const wrong: string[] = [];
-    for (const id of ANTHROPIC_IDS) {
-      const sent = body(anthropic, req(id, { topK: 20 })).top_k !== undefined;
-      const want = anthropicAcceptsTopK(id);
-      if (sent !== want) wrong.push(`${id}: accepts=${want} but spec ${sent ? 'sent' : 'omitted'} top_k`);
+    for (const c of ANTHROPIC) {
+      const sent = body(anthropic, req(c.id, { topK: 20 })).top_k !== undefined;
+      if (sent !== c.topK) wrong.push(`${c.id}: accepts=${c.topK} but ${sent ? 'sent' : 'omitted'}`);
     }
     expect(wrong).toEqual([]);
-  });
-
-  it('an unknown id fails SAFE: adaptive thinking, no top_k', () => {
-    // Omitting top_k is a no-op; sending it to a model released after 4.6 is a hard
-    // 400. The asymmetry is what decides the default for anything unrecognised.
-    const b = body(anthropic, req('claude-something-entirely-new', { topK: 20, thinking: { mode: 'on' } }));
-    expect((b.thinking as { type: string }).type).toBe('adaptive');
-    expect(b.top_k).toBeUndefined();
   });
 
   it('thinking off is honoured across generations', () => {
     for (const id of ['claude-opus-4-20250514', 'claude-opus-4-6', 'claude-sonnet-5']) {
-      const b = body(anthropic, req(id, { thinking: { mode: 'off' } }));
-      expect(b.thinking).toBeUndefined();
+      expect(body(anthropic, req(id, { thinking: { mode: 'off' } })).thinking).toBeUndefined();
     }
   });
 });
 
-const GOOGLE_IDS = [
-  'gemini-2.5-pro',
-  'gemini-2.5-flash',
-  'gemini-2.5-flash-lite',
-  'gemini-3-flash',
-  'gemini-3-flash-preview',
-  'gemini-3.1-pro',
-  'gemini-3.1-pro-preview',
-  'gemini-3.1-flash-lite',
-  'gemini-3.5-flash',
-  'gemini-3.6-flash',
-  'gemini-flash-latest',
-  'gemini-pro-latest',
-  // newer than this build
-  'gemini-4-pro',
-  'gemini-3.9-flash',
-  'google/gemini-3-flash',
+/** 2.5 takes a token budget and rejects the level; 3.x takes the level. Nothing
+ *  else about the id changes the control. */
+const GOOGLE: Array<{ id: string; control: 'budget' | 'level' }> = [
+  { id: 'gemini-2.5-pro', control: 'budget' },
+  { id: 'gemini-2.5-flash', control: 'budget' },
+  { id: 'gemini-2.5-flash-lite', control: 'budget' },
+  { id: 'gemini-3-flash', control: 'level' },
+  { id: 'gemini-3-flash-preview', control: 'level' },
+  { id: 'gemini-3.1-pro', control: 'level' },
+  { id: 'gemini-3.1-pro-preview', control: 'level' },
+  { id: 'gemini-3.1-flash-lite', control: 'level' },
+  { id: 'gemini-3.5-flash', control: 'level' },
+  { id: 'gemini-3.6-flash', control: 'level' },
+  { id: 'gemini-flash-latest', control: 'level' },
+  { id: 'gemini-pro-latest', control: 'level' },
+  { id: 'gemini-4-pro', control: 'level' },
+  { id: 'gemini-3.9-flash', control: 'level' },
+  { id: 'gemini-99-ultra', control: 'level' },
+  { id: 'google/gemini-3-flash', control: 'level' },
 ];
 
 describe('the google chain covers every generation', () => {
-  it('thinking control matches what the id implies, for every id', () => {
+  it('the thinking control matches what the model accepts', () => {
     const wrong: string[] = [];
-    for (const id of GOOGLE_IDS) {
-      const b = body(google, req(id, { thinking: { mode: 'on', effort: 'high' } }));
+    for (const c of GOOGLE) {
+      const b = body(google, req(c.id, { thinking: { mode: 'on', effort: 'high' } }));
       const cfg = (b.generationConfig as Record<string, unknown>)?.thinkingConfig as
         | Record<string, unknown>
         | undefined;
       const got = cfg?.thinkingBudget !== undefined ? 'budget' : 'level';
-      const want = googleUsesThinkingBudget(id) ? 'budget' : 'level';
-      if (got !== want) wrong.push(`${id}: want ${want}, spec produced ${JSON.stringify(cfg)}`);
+      if (got !== c.control) wrong.push(`${c.id}: want ${c.control}, got ${JSON.stringify(cfg)}`);
       // 2.5 rejects thinkingLevel and 3.x rejects thinkingBudget, so exactly one
-      // of the two must ever be present.
-      if (cfg && cfg.thinkingBudget !== undefined && cfg.thinkingLevel !== undefined) {
-        wrong.push(`${id}: sent BOTH thinkingBudget and thinkingLevel`);
+      // of the two may ever be present.
+      if (cfg?.thinkingBudget !== undefined && cfg?.thinkingLevel !== undefined) {
+        wrong.push(`${c.id}: sent BOTH thinkingBudget and thinkingLevel`);
       }
     }
     expect(wrong).toEqual([]);
-  });
-
-  it('an unknown gemini id takes the newer control', () => {
-    const b = body(google, req('gemini-99-ultra', { thinking: { mode: 'on' } }));
-    const cfg = (b.generationConfig as Record<string, unknown>).thinkingConfig as Record<string, unknown>;
-    expect(cfg.thinkingLevel).toBeDefined();
-    expect(cfg.thinkingBudget).toBeUndefined();
   });
 });

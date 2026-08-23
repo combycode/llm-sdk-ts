@@ -35,6 +35,37 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   the adapter. Absent for an uncatalogued model or an engine with no catalog, in which
   case the adapter derives the spec the way it always derived the shape.
 
+## [Unreleased]
+
+### Removed
+
+- **`ModelInfo.wire`, `NormalizedRequest.wire` and the `ModelWire` type** (BREAKING, type-level
+  only). These carried per-model wire traits; `ModelInfo.wireSpec` carries the same knowledge and
+  carries it once. Two
+  representations of one fact drift, and this library has shipped two bugs from exactly that. See
+  MIGRATION.md — behaviour is unchanged and most codebases need no edit.
+
+  Removed with them, and never reachable from the package entry point: `anthropicThinkingShape`,
+  `anthropicAcceptsTopK`, `ANTHROPIC_ADAPTIVE_THINKING_MIN`, `ANTHROPIC_THINKING_BUDGETS`,
+  `DEFAULT_ANTHROPIC_THINKING_BUDGET`, `googleUsesThinkingBudget`, `GOOGLE_THINKING_BUDGETS`,
+  `GOOGLE_THINKING_LEVELS`.
+
+### Changed
+
+- **Model-band selection is data, not code.** Which chain node an UNPINNED model uses now comes
+  from `src/wire/pins/*.json` — ordered regex rules plus a default — instead of version arithmetic
+  written in TypeScript. The Python and Rust ports read the same file rather than each
+  re-implementing the rule and drifting from it, which is how 2.2.1 happened.
+
+  The fallback itself is unchanged and still matters: it is how the SDK behaves for a model
+  released after this build, and for any engine run without a catalog. Verified against every id
+  the previous code handled, plus dated snapshots, legacy family-last ids, and plausible future
+  releases.
+
+  One deliberate fix came out of it: the old pair of helpers disagreed on case — one lower-cased
+  the model id and the other did not — so `CLAUDE-OPUS-4-6` lost a `top_k` that model accepts. The
+  pin table lower-cases consistently.
+
 ## [2.3.0] — 2026-08-23
 
 ### Added

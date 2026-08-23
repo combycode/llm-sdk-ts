@@ -20,14 +20,13 @@ import {
 import { buildFromSpec } from '../../../wire/interpreter';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec, isChatSpec } from '../../../wire/chat-specs';
+import { pinFor, ANTHROPIC_MESSAGE_PINS } from '../../../wire/pins';
 import { makeRegistry } from '../../wire-transforms';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
 import { extractFinishReason } from '../_shared/response-utils';
 import {
   ANTHROPIC_API_VERSION,
-  anthropicThinkingShape,
-  anthropicAcceptsTopK,
 } from './constants';
 import { sseJson } from '../_shared/sse';
 
@@ -153,22 +152,14 @@ export class AnthropicAdapter implements ProviderAdapter {
 
   /** The spec that builds this model's request.
    *
-   *  The catalog pin decides when there is one. Without it — an engine running with
-   *  no catalog, or a model released after we last shipped — the band is derived
-   *  from the id, which is what this adapter did for every model before the specs
-   *  existed. Both questions the Anthropic chain is keyed on are asked here, so an
-   *  unpinned model lands on the same node its hand-written path used. */
+   *  The catalog pin decides when there is one. Without it — an engine running
+   *  with no catalog, or a model released after this build — the band comes from
+   *  the pin TABLE, which is data (`src/wire/pins/`) rather than version
+   *  arithmetic in TypeScript, so the Python and Rust ports derive the same node
+   *  from the same file instead of each re-implementing it. */
   private specIdFor(req: NormalizedRequest): string {
     if (isChatSpec(req.wireSpec) && req.wireSpec.startsWith('anthropic/')) return req.wireSpec;
-    // No pin. Fall back the way this adapter always has: per-model traits from the
-    // catalog beat the id, and the id decides only what the catalog does not say.
-    // A catalog can carry `wire` without a `wireSpec` — one built by hand through
-    // `catalog.set()` — and dropping to the id there would silently discard the
-    // very override the catalog exists to provide.
-    const adaptive = (req.wire?.thinking ?? anthropicThinkingShape(req.model)) === 'adaptive';
-    const topK = req.wire?.topK ?? anthropicAcceptsTopK(req.model);
-    if (adaptive) return topK ? 'anthropic/messages@4.6' : 'anthropic/messages@4.7';
-    return topK ? 'anthropic/messages@4.1' : 'anthropic/messages@4.0';
+    return pinFor(req.model, ANTHROPIC_MESSAGE_PINS);
   }
 
   buildRequest(req: NormalizedRequest): ProviderHttpRequest {

@@ -14,6 +14,7 @@ import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider'
 import { buildFromSpec } from '../../../wire/interpreter';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec, isChatSpec } from '../../../wire/chat-specs';
+import { pinFor, GOOGLE_GENERATE_PINS } from '../../../wire/pins';
 import { makeRegistry } from '../../wire-transforms';
 import { googleBilledTier } from './tiers';
 import type { NormalizedRequest } from '../../types/request';
@@ -27,9 +28,6 @@ import {
 import type { StreamEvent } from '../../types/stream';
 import { AUDIO_PCM16_SAMPLE_RATE_HZ } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
-import {
-  googleUsesThinkingBudget,
-} from './constants';
 import { sseJson } from '../_shared/sse';
 
 export interface GoogleAdapterConfig {
@@ -81,14 +79,11 @@ export class GoogleAdapter implements ProviderAdapter {
    *
    *  Two nodes, keyed on the one thing that differs on the wire: 2.5 takes a token
    *  `thinkingBudget` and 400s on `thinkingLevel`, 3.x takes the level. Catalog pin
-   *  first, then the catalog's per-model trait, then the id — the same order the
-   *  hand-written path used, so an unpinned or uncatalogued model is unaffected. */
+   *  first, then the pin TABLE — data rather than a regex in TypeScript, so the
+   *  ports read the same rule. */
   private specIdFor(req: NormalizedRequest): string {
     if (isChatSpec(req.wireSpec) && req.wireSpec.startsWith('google/generate')) return req.wireSpec;
-    const usesBudget = req.wire?.thinking
-      ? req.wire.thinking === 'budget'
-      : googleUsesThinkingBudget(req.model);
-    return usesBudget ? 'google/generate@2.5' : 'google/generate@3';
+    return pinFor(req.model, GOOGLE_GENERATE_PINS);
   }
 
   buildRequest(req: NormalizedRequest): ProviderHttpRequest {

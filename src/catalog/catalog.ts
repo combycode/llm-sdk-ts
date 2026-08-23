@@ -97,27 +97,6 @@ export interface TokenizerInfo {
   tiktokenEncoding?: string;
 }
 
-/** Per-model WIRE traits: how to say a thing to this model, as opposed to
- *  `capabilities` / `reasoning`, which say what the model can do.
- *
- *  This is the gap that produced two shipped bugs. The catalog knew a model
- *  supported reasoning; nothing knew which of two incompatible `thinking` shapes
- *  it accepted, so adapters parsed the model id with regexes and got it wrong
- *  twice (2.2.1, and the 4.0 date-suffix defect fixed in 039 A1).
- *
- *  Adapters read these through `NormalizedRequest.wire`, which `LLMClient`
- *  resolves from the catalog. When the catalog has no entry the adapters fall
- *  back to parsing the id, so a catalog-less engine still works — the fallback
- *  is what a future release removes once every model is pinned. */
-export interface ModelWire {
-  /** Which `thinking` shape the wire accepts.
-   *  Anthropic: `adaptive` (4.6+) vs `budgeted` (pre-4.6, needs budget_tokens).
-   *  Google: `level` (3.x, thinkingLevel enum) vs `budget` (2.5, token count). */
-  thinking?: 'adaptive' | 'budgeted' | 'budget' | 'level';
-  /** Whether the model accepts a top-k sampling parameter. Anthropic retired it
-   *  after Opus 4.6 and 400s on models that no longer take it. */
-  topK?: boolean;
-}
 
 export interface ModelInfo {
   provider: string;
@@ -140,8 +119,6 @@ export interface ModelInfo {
   /** Other callable ids that resolve to this model (dated snapshots, the bare
    *  callable form). Indexed for lookup + accepted as model strings. */
   aliases?: string[];
-  /** Per-model wire traits — see ModelWire. */
-  wire?: ModelWire;
   /** Which wire spec builds this model's requests, e.g. `anthropic/messages@4.7`.
    *
    *  The specs live in `src/wire/specs` and are the artifact the Python and Rust
@@ -259,7 +236,6 @@ export class ModelCatalog {
       tokenizer: info.tokenizer,
       requiresDedicatedClient: info.requiresDedicatedClient,
       supportsPreviousResponseId: info.supportsPreviousResponseId,
-      wire: info.wire,
       wireSpec: info.wireSpec,
       stateRetentionDuration: info.stateRetentionDuration,
       stateModelBound: info.stateModelBound,

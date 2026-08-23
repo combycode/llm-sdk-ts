@@ -85,55 +85,75 @@ describe('catalog wire-spec pins', () => {
   });
 });
 
-describe('the pin agrees with the wire traits', () => {
-  /** Drive the pinned spec and read back the shape it chose, so a mismatch
-   *  between the two representations fails here rather than in production. */
-  const thinkingShapeFromSpec = (m: {
-    provider: string;
-    wireSpec?: string;
-    model: string;
-    providerModelName?: string;
-  }) => {
-    const spec = resolveSpec(m.wireSpec as string, byId);
-    const id = m.providerModelName ?? m.model;
-    const body = buildFromSpec(spec, req(id, { thinking: { mode: 'on' } }), reg).body as any;
-    if (m.provider === 'anthropic') {
-      return body.thinking?.type === 'adaptive' ? 'adaptive' : 'budgeted';
-    }
-    const cfg = body.generationConfig?.thinkingConfig;
-    if (!cfg) return undefined;
-    return cfg.thinkingBudget !== undefined ? 'budget' : 'level';
-  };
+/** What each chain node promises, written out.
+ *
+ *  This block used to compare the pin against `ModelInfo.wire` — a second copy of
+ *  the same knowledge. With the traits gone there is only one representation, so
+ *  the independent side has to be an explicit table: drive every catalogued
+ *  model's PINNED spec and require the node it lands on to produce the shape that
+ *  node is defined to produce.
+ */
+const NODE_SHAPE: Record<string, { thinking: 'adaptive' | 'budgeted'; topK: boolean }> = {
+  'anthropic/messages@4.0': { thinking: 'budgeted', topK: false },
+  'anthropic/messages@4.1': { thinking: 'budgeted', topK: true },
+  'anthropic/messages@4.6': { thinking: 'adaptive', topK: true },
+  'anthropic/messages@4.7': { thinking: 'adaptive', topK: false },
+};
+const GOOGLE_NODE: Record<string, 'budget' | 'level'> = {
+  'google/generate@2.5': 'budget',
+  'google/generate@3': 'level',
+};
 
-  const withThinking = () =>
-    chatModels().filter((m) => m.wire?.thinking && (m.provider === 'anthropic' || m.provider === 'google'));
+describe('every pinned model lands on a node that behaves as that node should', () => {
+  const anthropicModels = () => chatModels().filter((m) => m.provider === 'anthropic');
+  const googleModels = () => chatModels().filter((m) => m.provider === 'google');
 
   it('covers a meaningful number of models', () => {
-    // Guards against the assertions below passing because the set is empty.
-    expect(withThinking().length).toBeGreaterThanOrEqual(26);
+    // Guards against the assertions below passing over an empty set.
+    expect(anthropicModels().length + googleModels().length).toBeGreaterThanOrEqual(26);
   });
 
-  it('the thinking shape the pinned spec produces matches the trait', () => {
+  it('anthropic: thinking shape and top_k match the pinned node', () => {
     const mismatches: string[] = [];
-    for (const m of withThinking()) {
-      const fromSpec = thinkingShapeFromSpec(m);
-      if (fromSpec !== m.wire?.thinking) {
-        mismatches.push(`${m.provider}/${m.model}: trait=${m.wire?.thinking} spec=${fromSpec}`);
+    for (const m of anthropicModels()) {
+      const want = NODE_SHAPE[m.wireSpec as string];
+      if (!want) {
+        mismatches.push(`${m.model}: pinned to ${m.wireSpec}, which this table does not describe`);
+        continue;
+      }
+      const spec = resolveSpec(m.wireSpec as string, byId);
+      const id = m.providerModelName ?? m.model;
+      const think = (buildFromSpec(spec, req(id, { thinking: { mode: 'on' } }), reg).body as any)
+        .thinking;
+      const got = think?.type === 'adaptive' ? 'adaptive' : 'budgeted';
+      if (got !== want.thinking) {
+        mismatches.push(`${m.model} (${m.wireSpec}): want ${want.thinking}, got ${JSON.stringify(think)}`);
+      }
+      const sent =
+        (buildFromSpec(spec, req(id, { topK: 20 }), reg).body as any).top_k !== undefined;
+      if (sent !== want.topK) {
+        mismatches.push(`${m.model} (${m.wireSpec}): top_k want ${want.topK}, got ${sent}`);
       }
     }
     expect(mismatches).toEqual([]);
   });
 
-  it('top_k acceptance matches the trait (anthropic)', () => {
+  it('google: the thinking control matches the pinned node', () => {
     const mismatches: string[] = [];
-    for (const m of chatModels()) {
-      if (m.provider !== 'anthropic' || m.wire?.topK === undefined) continue;
+    for (const m of googleModels()) {
+      const want = GOOGLE_NODE[m.wireSpec as string];
+      if (!want) {
+        mismatches.push(`${m.model}: pinned to ${m.wireSpec}, which this table does not describe`);
+        continue;
+      }
       const spec = resolveSpec(m.wireSpec as string, byId);
-      const body = buildFromSpec(spec, req(m.providerModelName ?? m.model, { topK: 20 }), reg)
-        .body as any;
-      const sent = body.top_k !== undefined;
-      if (sent !== m.wire.topK) {
-        mismatches.push(`${m.provider}/${m.model}: trait=${m.wire.topK} spec=${sent}`);
+      const cfg = (
+        buildFromSpec(spec, req(m.providerModelName ?? m.model, { thinking: { mode: 'on' } }), reg)
+          .body as any
+      ).generationConfig?.thinkingConfig;
+      const got = cfg?.thinkingBudget !== undefined ? 'budget' : 'level';
+      if (got !== want) {
+        mismatches.push(`${m.model} (${m.wireSpec}): want ${want}, got ${JSON.stringify(cfg)}`);
       }
     }
     expect(mismatches).toEqual([]);

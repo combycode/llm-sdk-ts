@@ -5,7 +5,6 @@
  *  this `NormalizedRequest` from (input, options, this.model, this.system). */
 
 import type { ModerationRequest } from '../moderation/types';
-import type { ModelWire } from '../../catalog/catalog';
 import type { AudioOptions } from './audio';
 import type { Message } from './messages';
 import type { ServiceTier } from './tiers';
@@ -121,11 +120,6 @@ export interface NormalizedRequest {
 
   // Provider-specific passthrough — see ProviderOptions.
   providerOptions?: ProviderOptions;
-  /** Wire traits for THIS model, resolved from the catalog by `LLMClient`.
-   *  Adapters prefer this over parsing the model id. Absent when the engine runs
-   *  without a catalog or the model is not catalogued, in which case adapters
-   *  fall back to the id. */
-  wire?: ModelWire;
   /** Which wire spec builds this request, from the catalog's `ModelInfo.wireSpec`
    *  and resolved by `LLMClient`. Absent when the engine runs without a catalog or
    *  the model is not catalogued, in which case the adapter derives the spec from

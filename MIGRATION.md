@@ -1,3 +1,48 @@
+# Migrating to 3.0.0
+
+**Almost certainly no source changes.** One type member was removed, and it was one the SDK
+set for its own adapters to read — not something an application was ever expected to write.
+
+## `ModelInfo.wire`, `NormalizedRequest.wire` and the `ModelWire` type are gone
+
+`wire` carried per-model traits (`{ thinking, topK }`) that told an adapter which shape a model
+takes. `ModelInfo.wireSpec` — which names the wire spec that builds the request — now carries the
+same knowledge, and it carries it exactly once.
+
+That duplication was the point of removing it. Two representations of one fact drift apart, and
+this library has already shipped two bugs from precisely that: 2.2.1 sent Anthropic the retired
+`thinking` shape, and 2.2.2 sent Gemini tool schemas on the wrong field. Keeping `wire` alongside
+`wireSpec` would have been the same mistake with better tests.
+
+**What to do:** nothing, unless you read `.wire` off a catalog entry. If you did:
+
+```ts
+// before
+const shape = catalog.get('anthropic', model)?.wire?.thinking;   // 'adaptive' | 'budgeted'
+
+// after — the pin names the spec, and the spec defines the shape
+const spec = catalog.get('anthropic', model)?.wireSpec;          // 'anthropic/messages@4.7'
+```
+
+If you were SETTING `wire` on a custom catalog entry to steer an adapter, set `wireSpec` instead:
+
+```ts
+catalog.set('anthropic', 'my-model', { pricing: {}, wireSpec: 'anthropic/messages@4.1' });
+```
+
+**Behaviour is unchanged.** Every catalogued model produces the byte-identical request it produced
+in 2.3.0 — checked on every CI run against a corpus frozen from the 2.3.0 tag: 290 subjects across
+23 request shapes, on both the pinned and the id-derived route.
+
+## Nothing else was removed
+
+The band helpers that went with it — `anthropicThinkingShape`, `anthropicAcceptsTopK`,
+`googleUsesThinkingBudget`, and the thinking-budget tables — were never exported from the package
+entry point, and the `exports` map has always blocked deep imports, so no application could reach
+them. They now live as data in `src/wire/pins/`, which is what the Python and Rust ports read.
+
+---
+
 # Migrating to 2.0.0
 
 **Most codebases need no source changes.** The point of this library is that provider churn is our
