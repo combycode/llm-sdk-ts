@@ -117,6 +117,30 @@ console.log(response.text);
 
 To distinguish an `AgentTool` from a `ProviderToolSpec` at runtime check `'execute' in searchTool`.
 
+#### Handing a HOSTED corpus to a call
+
+A hosted backend returns the provider's own tool object, so it goes in as the `params` of a
+`file_search` builtin rather than as a tool in its own right. Passing the spec directly is the one
+mistake worth calling out: OpenAI rejects it with `Missing required parameter:
+'tools[0].vector_store_ids'`, because the ids sit at a level the tool entry does not read.
+
+```ts
+const spec = retrieval.asTool([corpus]) as Record<string, never>;
+
+// OpenAI and xAI emit { type: 'file_search', vector_store_ids: [...] };
+// Google emits { fileSearch: { fileSearchStoreNames: [...] } }.
+const params = backend === 'hostedGoogle' ? spec.fileSearch : spec;
+
+const { text } = await complete({
+  model,
+  prompt: 'What is the return window for purchases?',
+  tools: [{ type: 'file_search', params }],
+});
+```
+
+Indexing is asynchronous, so poll `indexStatus` first (step 4) — a call made before the store is
+`ready` returns an answer the model invented rather than one the corpus supports.
+
 ### Step 5b -- search directly without an agent
 
 When you only need the ranked hits (pipeline scripts, pre-processing, custom UI):

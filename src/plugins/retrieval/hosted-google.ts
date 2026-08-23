@@ -26,7 +26,12 @@
  *  The fileSearchStore ITSELF persists until deleted. This asymmetry is provider-managed;
  *  callers should not depend on re-downloading the source file from Files API after 48h. */
 
-import type { EngineFetch } from '../../network/types';
+import type { EngineFetch, HttpRequest } from '../../network/types';
+import { buildFromSpec, type MultipartField, type Registry } from '../../wire/interpreter';
+import { retrievalSpec } from '../../wire/retrieval-specs';
+import { makeRegistry } from '../../llm/wire-transforms';
+import { toFormData, type MultipartFile } from '../../llm/wire-multipart';
+import { documentFile } from './document-file';
 import type {
   AddDocumentOptions,
   AsToolOptions,
@@ -50,18 +55,6 @@ const GOOGLE_BASE_URL = 'https://generativelanguage.googleapis.com';
 const GOOGLE_PROVIDER_TAG = 'google';
 const GOOGLE_RETRIEVAL_MODEL_TAG = 'fileSearchStores';
 const HOSTED_BACKEND_NAME: 'hostedGoogle' = 'hostedGoogle';
-
-/** Default embedding model for new file search stores. Caller-overridable via CreateCorpusOptions.embeddingModel. */
-const DEFAULT_EMBEDDING_MODEL = 'models/gemini-embedding-2';
-
-/** Default maximum tokens per chunk for importFile chunking config. */
-const DEFAULT_CHUNK_MAX_TOKENS = 512;
-
-/** Default overlap tokens for importFile chunking config. */
-const DEFAULT_CHUNK_OVERLAP_TOKENS = 64;
-
-/** Maximum page size for listCorpora requests (API cap: 20). */
-const LIST_PAGE_SIZE = 20;
 
 /** Gemini generateContent tool type field for file search. */
 const GEMINI_FILE_SEARCH_TOOL_KEY = 'fileSearch';
@@ -122,33 +115,36 @@ export class HostedGoogleRetrievalBackend implements RetrievalBackend {
     this.baseURL = config.baseURL ?? GOOGLE_BASE_URL;
   }
 
-  private authHeaders(): Record<string, string> {
+  /** File-search rules need no adapter handles. */
+  private readonly wireRegistry: Registry = makeRegistry({});
+
+  /** Build one file-search request from its spec, then add the engine metadata.
+   *
+   *  `provider` / `model` / `responseType` route and queue the call inside the
+   *  NetworkEngine; they are not part of the wire, so they wrap the spec's output
+   *  rather than being described by it. */
+  private request(specId: string, input: object, file?: MultipartFile): HttpRequest {
+    const built = buildFromSpec(
+      retrievalSpec(specId),
+      input as never,
+      this.wireRegistry,
+      GOOGLE_PROVIDER_TAG,
+      undefined,
+      { baseURL: this.baseURL, apiKey: this.apiKey },
+    ) as unknown as Record<string, unknown>;
+    const { noBody, body, multipart, ...rest } = built;
+    const form = multipart && file ? toFormData(multipart as MultipartField[], file) : undefined;
     return {
-      'x-goog-api-key': this.apiKey,
-      'content-type': 'application/json',
-    };
-  }
-
-  /** Auth headers for multipart/form-data file upload (no content-type override). */
-  private authHeadersNoContentType(): Record<string, string> {
-    return { 'x-goog-api-key': this.apiKey };
-  }
-
-  async createCorpus(opts: CreateCorpusOptions): Promise<CorpusRef> {
-    const body: Record<string, unknown> = {
-      displayName: opts.name,
-      embeddingModel: opts.embeddingModel ?? DEFAULT_EMBEDDING_MODEL,
-    };
-
-    const res = await this.fetch({
-      url: `${this.baseURL}/v1beta/fileSearchStores`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
+      ...rest,
+      ...(form ? { body: form, rawBody: true } : noBody ? {} : { body }),
       provider: GOOGLE_PROVIDER_TAG,
       model: GOOGLE_RETRIEVAL_MODEL_TAG,
       responseType: 'json',
-    });
+    } as HttpRequest;
+  }
+
+  async createCorpus(opts: CreateCorpusOptions): Promise<CorpusRef> {
+    const res = await this.fetch(this.request('google/retrieval.createCorpus', opts));
 
     if (res.status >= 400) {
       throw new Error(`hostedGoogle: createCorpus failed (${res.status}): ${JSON.stringify(res.body)}`);
@@ -169,21 +165,9 @@ export class HostedGoogleRetrievalBackend implements RetrievalBackend {
   ): Promise<DocumentRef> {
     // Step 1: Upload bytes via the Files API (text/plain).
     // The upload endpoint uses the same base URL under /upload/v1beta/files.
-    const blob = new Blob([source.text], { type: 'text/plain' });
-    const filename = source.label ?? `doc-${crypto.randomUUID().slice(0, 8)}.txt`;
-    const form = new FormData();
-    form.append('file', blob, filename);
-
-    const uploadRes = await this.fetch({
-      url: `${this.baseURL}/upload/v1beta/files`,
-      method: 'POST',
-      headers: this.authHeadersNoContentType(),
-      body: form,
-      rawBody: true,
-      provider: GOOGLE_PROVIDER_TAG,
-      model: GOOGLE_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+    const uploadRes = await this.fetch(
+      this.request('google/retrieval.uploadFile', {}, documentFile(source)),
+    );
 
     if (uploadRes.status >= 400) {
       throw new Error(`hostedGoogle: file upload failed (${uploadRes.status}): ${JSON.stringify(uploadRes.body)}`);
@@ -194,34 +178,14 @@ export class HostedGoogleRetrievalBackend implements RetrievalBackend {
     const fileName = fileObj.name as string;
 
     // Step 2: Import the uploaded file into the file search store.
-    const importBody: Record<string, unknown> = { fileName };
-
-    const metadata = opts?.metadata ?? source.metadata;
-    if (metadata) {
-      importBody.customMetadata = Object.entries(metadata).map(([key, value]) => ({
-        key,
-        value: String(value),
-      }));
-    }
-
-    if (source.text) {
-      importBody.chunkingConfig = {
-        whiteSpaceConfig: {
-          maxTokensPerChunk: DEFAULT_CHUNK_MAX_TOKENS,
-          maxOverlapTokens: DEFAULT_CHUNK_OVERLAP_TOKENS,
-        },
-      };
-    }
-
-    const importRes = await this.fetch({
-      url: `${this.baseURL}/v1beta/${corpus.id}:importFile`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body: importBody,
-      provider: GOOGLE_PROVIDER_TAG,
-      model: GOOGLE_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+    const importRes = await this.fetch(
+      this.request('google/retrieval.importFile', {
+        corpusId: corpus.id,
+        fileName,
+        metadata: opts?.metadata ?? source.metadata,
+        text: source.text,
+      }),
+    );
 
     if (importRes.status >= 400) {
       throw new Error(`hostedGoogle: importFile failed (${importRes.status}): ${JSON.stringify(importRes.body)}`);
@@ -243,15 +207,9 @@ export class HostedGoogleRetrievalBackend implements RetrievalBackend {
    *  Returns the operation body when complete. */
   async pollOperation(operationName: string): Promise<Record<string, unknown>> {
     for (;;) {
-      const res = await this.fetch({
-        url: `${this.baseURL}/v1beta/${operationName}`,
-        method: 'GET',
-        headers: this.authHeaders(),
-        body: undefined,
-        provider: GOOGLE_PROVIDER_TAG,
-        model: GOOGLE_RETRIEVAL_MODEL_TAG,
-        responseType: 'json',
-      });
+      const res = await this.fetch(
+        this.request('google/retrieval.pollOperation', { operationName }),
+      );
 
       if (res.status >= 400) {
         throw new Error(`hostedGoogle: operation poll failed (${res.status}): ${JSON.stringify(res.body)}`);
@@ -266,15 +224,9 @@ export class HostedGoogleRetrievalBackend implements RetrievalBackend {
   }
 
   async indexStatus(corpus: CorpusRef): Promise<IndexStatus> {
-    const res = await this.fetch({
-      url: `${this.baseURL}/v1beta/${corpus.id}`,
-      method: 'GET',
-      headers: this.authHeaders(),
-      body: undefined,
-      provider: GOOGLE_PROVIDER_TAG,
-      model: GOOGLE_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+    const res = await this.fetch(
+      this.request('google/retrieval.indexStatus', { corpusId: corpus.id }),
+    );
 
     if (res.status >= 400) {
       return { state: 'error' };
@@ -297,30 +249,16 @@ export class HostedGoogleRetrievalBackend implements RetrievalBackend {
 
   async removeDocument(corpus: CorpusRef, docId: string): Promise<void> {
     // docId is the Files API file name (e.g. "files/xxx").
-    await this.fetch({
-      url: `${this.baseURL}/v1beta/${docId}`,
-      method: 'DELETE',
-      headers: this.authHeaders(),
-      body: undefined,
-      provider: GOOGLE_PROVIDER_TAG,
-      model: GOOGLE_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+    await this.fetch(this.request('google/retrieval.removeDocument', { docId }));
     // Suppress errors — the file may have already expired (~48h provider TTL).
     void corpus;
   }
 
   async deleteCorpus(corpus: CorpusRef): Promise<void> {
     // force=true cascades deletion of all contained documents.
-    const res = await this.fetch({
-      url: `${this.baseURL}/v1beta/${corpus.id}?force=true`,
-      method: 'DELETE',
-      headers: this.authHeaders(),
-      body: undefined,
-      provider: GOOGLE_PROVIDER_TAG,
-      model: GOOGLE_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+    const res = await this.fetch(
+      this.request('google/retrieval.deleteCorpus', { corpusId: corpus.id }),
+    );
 
     if (res.status >= 400) {
       throw new Error(`hostedGoogle: deleteCorpus failed (${res.status}): ${JSON.stringify(res.body)}`);
@@ -332,19 +270,7 @@ export class HostedGoogleRetrievalBackend implements RetrievalBackend {
     let pageToken: string | undefined;
 
     do {
-      const url = pageToken
-        ? `${this.baseURL}/v1beta/fileSearchStores?pageSize=${LIST_PAGE_SIZE}&pageToken=${encodeURIComponent(pageToken)}`
-        : `${this.baseURL}/v1beta/fileSearchStores?pageSize=${LIST_PAGE_SIZE}`;
-
-      const res = await this.fetch({
-        url,
-        method: 'GET',
-        headers: this.authHeaders(),
-        body: undefined,
-        provider: GOOGLE_PROVIDER_TAG,
-        model: GOOGLE_RETRIEVAL_MODEL_TAG,
-        responseType: 'json',
-      });
+      const res = await this.fetch(this.request('google/retrieval.listCorpora', { pageToken }));
 
       if (res.status >= 400) break;
 

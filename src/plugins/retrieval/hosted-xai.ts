@@ -21,7 +21,12 @@
  *  ALL HTTP flows through the injected EngineFetch (NetworkEngine queue).
  *  Never globalThis.fetch. */
 
-import type { EngineFetch } from '../../network/types';
+import type { EngineFetch, HttpRequest } from '../../network/types';
+import { buildFromSpec, type MultipartField, type Registry } from '../../wire/interpreter';
+import { retrievalSpec } from '../../wire/retrieval-specs';
+import { makeRegistry } from '../../llm/wire-transforms';
+import { toFormData, type MultipartFile } from '../../llm/wire-multipart';
+import { documentFile } from './document-file';
 import type {
   AddDocumentOptions,
   AsToolOptions,
@@ -46,18 +51,8 @@ const XAI_PROVIDER_TAG = 'xai';
 const XAI_RETRIEVAL_MODEL_TAG = 'collections';
 const HOSTED_BACKEND_NAME: 'hostedXai' = 'hostedXai';
 
-/** Purpose field for xAI file uploads (same value as OpenAI assistants uploads). */
-const XAI_FILE_PURPOSE = 'assistants';
-
 /** Tool spec type field: xAI /responses is OpenAI-compatible for file_search. */
 const FILE_SEARCH_TOOL_TYPE = 'file_search';
-
-/** Default retrieval mode for POST /documents/search. */
-const DEFAULT_RETRIEVAL_MODE = 'hybrid';
-
-/** Valid search mode values accepted by the xAI search API. */
-const XAI_SEARCH_MODES = ['hybrid', 'keyword', 'semantic'] as const;
-type XaiSearchMode = (typeof XAI_SEARCH_MODES)[number];
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -95,14 +90,6 @@ function parseChunkContent(raw: string): string {
     // Not JSON — fall through to raw string.
   }
   return raw;
-}
-
-/** Resolve the search mode: validate against known values, fall back to default. */
-function resolveSearchMode(mode?: string): XaiSearchMode {
-  if (mode && (XAI_SEARCH_MODES as readonly string[]).includes(mode)) {
-    return mode as XaiSearchMode;
-  }
-  return DEFAULT_RETRIEVAL_MODE;
 }
 
 /** Build a collections:// citation URI from result fields. */
@@ -144,30 +131,41 @@ export class HostedXaiRetrievalBackend implements RetrievalBackend {
     this.managementBaseURL = config.managementBaseURL ?? XAI_MANAGEMENT_BASE_URL;
   }
 
-  private stdBearer(): Record<string, string> {
-    return {
-      authorization: `Bearer ${this.apiKey}`,
-      'content-type': 'application/json',
-    };
-  }
+  /** Collection rules need no adapter handles. */
+  private readonly wireRegistry: Registry = makeRegistry({});
 
-  private mgmtBearer(): Record<string, string> {
+  /** Build one collections request from its spec, then add the engine metadata.
+   *
+   *  BOTH planes are handed to every spec: which host and which key a call uses is
+   *  a property of the ENDPOINT, so the spec decides it rather than the caller
+   *  picking a bearer helper and hoping it matches the URL it typed. */
+  private request(specId: string, input: object, file?: MultipartFile): HttpRequest {
+    const built = buildFromSpec(
+      retrievalSpec(specId),
+      input as never,
+      this.wireRegistry,
+      XAI_PROVIDER_TAG,
+      undefined,
+      {
+        baseURL: this.baseURL,
+        managementBaseURL: this.managementBaseURL,
+        apiKey: this.apiKey,
+        managementApiKey: this.managementApiKey,
+      },
+    ) as unknown as Record<string, unknown>;
+    const { noBody, body, multipart, ...rest } = built;
+    const form = multipart && file ? toFormData(multipart as MultipartField[], file) : undefined;
     return {
-      authorization: `Bearer ${this.managementApiKey}`,
-      'content-type': 'application/json',
-    };
-  }
-
-  async createCorpus(opts: CreateCorpusOptions): Promise<CorpusRef> {
-    const res = await this.fetch({
-      url: `${this.managementBaseURL}/collections`,
-      method: 'POST',
-      headers: this.mgmtBearer(),
-      body: { collection_name: opts.name },
+      ...rest,
+      ...(form ? { body: form, rawBody: true } : noBody ? {} : { body }),
       provider: XAI_PROVIDER_TAG,
       model: XAI_RETRIEVAL_MODEL_TAG,
       responseType: 'json',
-    });
+    } as HttpRequest;
+  }
+
+  async createCorpus(opts: CreateCorpusOptions): Promise<CorpusRef> {
+    const res = await this.fetch(this.request('xai/retrieval.createCorpus', opts));
 
     if (res.status >= 400) {
       throw new Error(`hostedXai: createCorpus failed (${res.status}): ${JSON.stringify(res.body)}`);
@@ -187,22 +185,9 @@ export class HostedXaiRetrievalBackend implements RetrievalBackend {
     opts?: AddDocumentOptions,
   ): Promise<DocumentRef> {
     // Step 1: upload file via POST {std}/files (multipart, standard bearer).
-    const blob = new Blob([source.text], { type: 'text/plain' });
-    const filename = source.label ?? `doc-${crypto.randomUUID().slice(0, 8)}.txt`;
-    const form = new FormData();
-    form.append('file', blob, filename);
-    form.append('purpose', XAI_FILE_PURPOSE);
-
-    const uploadRes = await this.fetch({
-      url: `${this.baseURL}/files`,
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.apiKey}` },
-      body: form,
-      rawBody: true,
-      provider: XAI_PROVIDER_TAG,
-      model: XAI_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+    const uploadRes = await this.fetch(
+      this.request('xai/retrieval.uploadFile', {}, documentFile(source)),
+    );
 
     if (uploadRes.status >= 400) {
       throw new Error(`hostedXai: file upload failed (${uploadRes.status}): ${JSON.stringify(uploadRes.body)}`);
@@ -212,20 +197,14 @@ export class HostedXaiRetrievalBackend implements RetrievalBackend {
     const fileId = file.id as string;
 
     // Step 2: attach file to collection via POST {mgmt}/collections/{id}/documents/{file_id}.
-    const attachBody: Record<string, unknown> = {};
-    if (source.label) attachBody.name = source.label;
-    const metadata = opts?.metadata ?? source.metadata;
-    if (metadata) attachBody.fields = metadata;
-
-    const attachRes = await this.fetch({
-      url: `${this.managementBaseURL}/collections/${corpus.id}/documents/${fileId}`,
-      method: 'POST',
-      headers: this.mgmtBearer(),
-      body: attachBody,
-      provider: XAI_PROVIDER_TAG,
-      model: XAI_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+    const attachRes = await this.fetch(
+      this.request('xai/retrieval.attachDocument', {
+        corpusId: corpus.id,
+        fileId,
+        label: source.label,
+        metadata: opts?.metadata ?? source.metadata,
+      }),
+    );
 
     if (attachRes.status >= 400) {
       throw new Error(`hostedXai: attach document failed (${attachRes.status}): ${JSON.stringify(attachRes.body)}`);
@@ -239,15 +218,9 @@ export class HostedXaiRetrievalBackend implements RetrievalBackend {
   }
 
   async indexStatus(corpus: CorpusRef): Promise<IndexStatus> {
-    const res = await this.fetch({
-      url: `${this.managementBaseURL}/collections/${corpus.id}`,
-      method: 'GET',
-      headers: this.mgmtBearer(),
-      body: undefined,
-      provider: XAI_PROVIDER_TAG,
-      model: XAI_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+    const res = await this.fetch(
+      this.request('xai/retrieval.indexStatus', { corpusId: corpus.id }),
+    );
 
     if (res.status >= 400) {
       return { state: 'error' };
@@ -265,27 +238,15 @@ export class HostedXaiRetrievalBackend implements RetrievalBackend {
   }
 
   async removeDocument(corpus: CorpusRef, fileId: string): Promise<void> {
-    await this.fetch({
-      url: `${this.managementBaseURL}/collections/${corpus.id}/documents/${fileId}`,
-      method: 'DELETE',
-      headers: this.mgmtBearer(),
-      body: undefined,
-      provider: XAI_PROVIDER_TAG,
-      model: XAI_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+    await this.fetch(
+      this.request('xai/retrieval.removeDocument', { corpusId: corpus.id, docId: fileId }),
+    );
   }
 
   async deleteCorpus(corpus: CorpusRef): Promise<void> {
-    const res = await this.fetch({
-      url: `${this.managementBaseURL}/collections/${corpus.id}`,
-      method: 'DELETE',
-      headers: this.mgmtBearer(),
-      body: undefined,
-      provider: XAI_PROVIDER_TAG,
-      model: XAI_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+    const res = await this.fetch(
+      this.request('xai/retrieval.deleteCorpus', { corpusId: corpus.id }),
+    );
 
     if (res.status >= 400) {
       throw new Error(`hostedXai: deleteCorpus failed (${res.status}): ${JSON.stringify(res.body)}`);
@@ -293,15 +254,7 @@ export class HostedXaiRetrievalBackend implements RetrievalBackend {
   }
 
   async listCorpora(): Promise<CorpusRef[]> {
-    const res = await this.fetch({
-      url: `${this.managementBaseURL}/collections`,
-      method: 'GET',
-      headers: this.mgmtBearer(),
-      body: undefined,
-      provider: XAI_PROVIDER_TAG,
-      model: XAI_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+    const res = await this.fetch(this.request('xai/retrieval.listCorpora', {}));
 
     if (res.status >= 400) return [];
 
@@ -318,21 +271,13 @@ export class HostedXaiRetrievalBackend implements RetrievalBackend {
     query: string,
     opts?: RetrievalSearchOptions,
   ): Promise<RetrievalHit[]> {
-    const mode = resolveSearchMode(opts?.searchMode);
-
-    const res = await this.fetch({
-      url: `${this.baseURL}/documents/search`,
-      method: 'POST',
-      headers: this.stdBearer(),
-      body: {
+    const res = await this.fetch(
+      this.request('xai/retrieval.search', {
         query,
-        source: { collection_ids: corpora.map((c) => c.id) },
-        retrieval_mode: { type: mode },
-      },
-      provider: XAI_PROVIDER_TAG,
-      model: XAI_RETRIEVAL_MODEL_TAG,
-      responseType: 'json',
-    });
+        corpusIds: corpora.map((c) => c.id),
+        searchMode: opts?.searchMode,
+      }),
+    );
 
     if (res.status >= 400) {
       throw new Error(`hostedXai: search failed (${res.status}): ${JSON.stringify(res.body)}`);

@@ -99,6 +99,15 @@ export interface WireSpec {
      *  method and headers; only the payload comes from outside. */
     bodyKind?: 'json' | 'multipart' | 'none' | 'raw';
     headers?: { name: string; value: Json; when?: Cond }[];
+    /** Query parameters, appended to `url` (or `path`) in declaration order.
+     *
+     *  Splicing them into the URL with `$join` works only while every parameter is
+     *  present: `$join` propagates an omitted part, so one absent `pageToken` takes
+     *  the whole URL with it. Declaring them separately lets a parameter drop out
+     *  on its own, and puts the encoding in ONE place — the hand-written adapters
+     *  disagreed about whether to call `encodeURIComponent`, which is how a page
+     *  token with a `+` in it silently paged from the wrong place. */
+    query?: { name: string; value: Json; when?: Cond }[];
   };
   /** Model-id → variant flags. The migration target is a catalog pin; the
    *  `idMatch` form is what today's regex helpers do, expressed as data.
@@ -284,6 +293,16 @@ function evalTemplate(tpl: Json, ctx: Ctx, reg: Registry): Json | typeof OMIT {
   if (Array.isArray(tpl)) {
     const out: Json[] = [];
     for (const el of tpl) {
+      // `$each` splices an evaluated array INTO this array — the array analogue of
+      // `$spread`. Needed wherever a `$map` has to sit beside literal entries: a
+      // bare `$map` there nests one level down, and a nested array is a different
+      // request, not a formatting detail. (Google's `tools` is exactly that shape:
+      // fixed entries for the builtins, mapped entries for the rest.)
+      if (isObj(el) && '$each' in (el as Record<string, unknown>)) {
+        const many = evalTemplate((el as Record<string, Json>).$each, ctx, reg);
+        if (many !== OMIT && Array.isArray(many)) out.push(...many);
+        continue;
+      }
       const v = evalTemplate(el, ctx, reg);
       if (v !== OMIT) out.push(v);
     }
@@ -559,6 +578,22 @@ export function buildFromSpec(
   if (spec.envelope?.path !== undefined) {
     const p = evalTemplate(spec.envelope.path, ctx, reg);
     if (p !== OMIT && p !== undefined) out.path = String(p);
+  }
+
+  // 5. query parameters, each able to drop out on its own.
+  const params: string[] = [];
+  for (const q of spec.envelope?.query ?? []) {
+    if (!evalCond(q.when, ctx, reg)) continue;
+    const v = evalTemplate(q.value, ctx, reg);
+    if (v === OMIT || v === undefined) continue;
+    params.push(`${encodeURIComponent(q.name)}=${encodeURIComponent(String(v))}`);
+    onUse?.('header', `query:${q.name}`);
+  }
+  if (params.length) {
+    const target = out.url !== undefined ? 'url' : 'path';
+    const base = out[target];
+    if (base === undefined) throw new Error(`${spec.id}: query parameters with no url or path to attach to`);
+    out[target] = `${base}${base.includes('?') ? '&' : '?'}${params.join('&')}`;
   }
   return out;
 }

@@ -160,6 +160,7 @@ const runOrMedia = (c: OrMediaCase, fetch: never): Promise<unknown> =>
       : orMedia.generateAudio(c.req as AudioGenRequest, fetch);
 import { mediaSpec } from '../src/wire/media-specs';
 import { serviceSpec } from '../src/wire/service-specs';
+import { retrievalSpec } from '../src/wire/retrieval-specs';
 
 const MEDIA_BASE: Record<string, string> = {
   openai: 'https://api.openai.com',
@@ -499,6 +500,66 @@ for (const d of SERVICE_DRIVES) {
   }
 }
 
+
+// ── also drive every RETRIEVAL spec DIRECTLY ─────────────────────────────────
+//
+// Same reason as the service specs: the hosted backends build their own registry,
+// so a transform firing inside one is invisible here. The inputs deliberately
+// reach the GUARDED rules — a chunking object, an expiry, metadata (the only
+// caller of googleCustomMetadata), a page token, and each search mode.
+const XAI_MGMT_B = 'https://management-api.x.ai/v1';
+const XAI_STD_B = 'https://api.x.ai/v1';
+const OA_R = { baseURL: OPENAI_B, apiKey: 'k' };
+const GG_R = { baseURL: GOOGLE_B, apiKey: 'k' };
+const XAI_R = { baseURL: XAI_STD_B, managementBaseURL: XAI_MGMT_B, apiKey: 'k', managementApiKey: 'mk' };
+
+const RETRIEVAL_DRIVES: Drive[] = [
+  { id: 'openai/retrieval.createCorpus', input: { name: 'docs' }, config: OA_R },
+  { id: 'openai/retrieval.createCorpus', input: { name: 'docs', chunking: { maxTokens: 400, overlapTokens: 100 }, expiresAfter: { anchor: 'last_active_at', days: 7 } }, config: OA_R },
+  { id: 'openai/retrieval.uploadFile', input: {}, config: OA_R },
+  { id: 'openai/retrieval.attachDocument', input: { corpusId: 'vs_1', fileId: 'f_1', metadata: { a: 1 } }, config: OA_R },
+  { id: 'openai/retrieval.indexStatus', input: { corpusId: 'vs_1' }, config: OA_R },
+  { id: 'openai/retrieval.removeDocument', input: { corpusId: 'vs_1', docId: 'f_1' }, config: OA_R },
+  { id: 'openai/retrieval.deleteCorpus', input: { corpusId: 'vs_1' }, config: OA_R },
+  { id: 'openai/retrieval.listCorpora', input: {}, config: OA_R },
+
+  { id: 'google/retrieval.createCorpus', input: { name: 'docs' }, config: GG_R },
+  { id: 'google/retrieval.createCorpus', input: { name: 'docs', embeddingModel: 'models/x' }, config: GG_R },
+  { id: 'google/retrieval.uploadFile', input: {}, config: GG_R },
+  { id: 'google/retrieval.importFile', input: { corpusId: 'fileSearchStores/s', fileName: 'files/f', metadata: { a: 1 }, text: 'hi' }, config: GG_R },
+  { id: 'google/retrieval.pollOperation', input: { operationName: 'op/1' }, config: GG_R },
+  { id: 'google/retrieval.indexStatus', input: { corpusId: 'fileSearchStores/s' }, config: GG_R },
+  { id: 'google/retrieval.removeDocument', input: { docId: 'files/f' }, config: GG_R },
+  { id: 'google/retrieval.deleteCorpus', input: { corpusId: 'fileSearchStores/s' }, config: GG_R },
+  { id: 'google/retrieval.listCorpora', input: {}, config: GG_R },
+  { id: 'google/retrieval.listCorpora', input: { pageToken: 'tok+1' }, config: GG_R },
+
+  { id: 'xai/retrieval.createCorpus', input: { name: 'docs' }, config: XAI_R },
+  { id: 'xai/retrieval.uploadFile', input: {}, config: XAI_R },
+  { id: 'xai/retrieval.attachDocument', input: { corpusId: 'c_1', fileId: 'f_1', label: 'a.txt', metadata: { a: 1 } }, config: XAI_R },
+  { id: 'xai/retrieval.indexStatus', input: { corpusId: 'c_1' }, config: XAI_R },
+  { id: 'xai/retrieval.removeDocument', input: { corpusId: 'c_1', docId: 'f_1' }, config: XAI_R },
+  { id: 'xai/retrieval.deleteCorpus', input: { corpusId: 'c_1' }, config: XAI_R },
+  { id: 'xai/retrieval.listCorpora', input: {}, config: XAI_R },
+  { id: 'xai/retrieval.search', input: { query: 'q', corpusIds: ['c_1'] }, config: XAI_R },
+  { id: 'xai/retrieval.search', input: { query: 'q', corpusIds: ['c_1'], searchMode: 'keyword' }, config: XAI_R },
+  { id: 'xai/retrieval.search', input: { query: 'q', corpusIds: ['c_1'], searchMode: 'semantic' }, config: XAI_R },
+  { id: 'xai/retrieval.search', input: { query: 'q', corpusIds: ['c_1'], searchMode: 'telepathy' }, config: XAI_R },
+];
+
+let retrievalBuilds = 0;
+const retrievalFailures: string[] = [];
+for (const d of RETRIEVAL_DRIVES) {
+  const spec = retrievalSpec(d.id);
+  const note = (kind: string, name: string) => rulesFired.add(`${d.id}|${kind}|${name}`);
+  try {
+    buildFromSpec(spec, d.input as never, recorded, d.flavor ?? spec.provider, note, d.config);
+    retrievalBuilds++;
+  } catch (e) {
+    retrievalFailures.push(`${d.id}: ${(e as Error).message}`);
+  }
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 const CHAT = new Set(subjects.map((s) => s.specId));
 const line = (s: string) => console.log(s);
@@ -510,6 +571,8 @@ line(`chat builds          : ${builds}  (${subjects.length} subjects x ${SHAPES.
 line(`media builds         : ${mediaBuilds}  (${mediaSpecIds.size} media specs driven)`);
 line(`service builds       : ${serviceBuilds}/${SERVICE_DRIVES.length} service specs driven`);
 for (const f of serviceFailures) line(`  DRIVE FAILED  ${f}`);
+line(`retrieval builds     : ${retrievalBuilds}/${RETRIEVAL_DRIVES.length} retrieval specs driven`);
+for (const f of retrievalFailures) line(`  DRIVE FAILED  ${f}`);
 line('');
 
 if (missing.length) {

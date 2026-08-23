@@ -17,7 +17,12 @@
  *  the divergence point for xAI will be the base URL and any auth differences.
  *  // future: hostedXai — subclass or factory: pass baseURL, different auth header. */
 
-import type { EngineFetch } from '../../network/types';
+import type { EngineFetch, HttpRequest } from '../../network/types';
+import { buildFromSpec, type MultipartField, type Registry } from '../../wire/interpreter';
+import { retrievalSpec } from '../../wire/retrieval-specs';
+import { makeRegistry } from '../../llm/wire-transforms';
+import { toFormData, type MultipartFile } from '../../llm/wire-multipart';
+import { documentFile } from './document-file';
 import type {
   AddDocumentOptions,
   AsToolOptions,
@@ -41,12 +46,6 @@ const OPENAI_BASE_URL = 'https://api.openai.com';
 const OPENAI_PROVIDER_TAG = 'openai';
 const OPENAI_MODEL_TAG = 'vector_stores';
 const HOSTED_BACKEND_NAME: 'hostedOpenAI' = 'hostedOpenAI';
-
-/** Default static chunking strategy sent to the API (max_chunk_size_tokens). */
-const DEFAULT_CHUNK_MAX_TOKENS = 800;
-
-/** Default static overlap sent to the API (chunk_overlap_tokens). */
-const DEFAULT_CHUNK_OVERLAP_TOKENS = 400;
 
 /** Tool spec type field for OpenAI (and xAI-compat) Responses API. */
 const FILE_SEARCH_TOOL_TYPE = 'file_search';
@@ -94,42 +93,37 @@ export class HostedOpenAIRetrievalBackend implements RetrievalBackend {
     this.baseURL = config.baseURL ?? OPENAI_BASE_URL;
   }
 
-  private bearer(): Record<string, string> {
+  /** Vector-store rules need no adapter handles. */
+  private readonly wireRegistry: Registry = makeRegistry({});
+
+  /** Build one vector-store request from its spec, then add the engine metadata.
+   *
+   *  `provider` / `model` / `responseType` are how the NetworkEngine routes and
+   *  queues the call — they are not part of the wire, so they are wrapped around
+   *  the spec's output rather than described by it. A multipart spec names the
+   *  fields but not the bytes, so an upload passes its file in here. */
+  private request(specId: string, input: object, file?: MultipartFile): HttpRequest {
+    const built = buildFromSpec(
+      retrievalSpec(specId),
+      input as never,
+      this.wireRegistry,
+      OPENAI_PROVIDER_TAG,
+      undefined,
+      { baseURL: this.baseURL, apiKey: this.apiKey },
+    ) as unknown as Record<string, unknown>;
+    const { noBody, body, multipart, ...rest } = built;
+    const form = multipart && file ? toFormData(multipart as MultipartField[], file) : undefined;
     return {
-      authorization: `Bearer ${this.apiKey}`,
-      'content-type': 'application/json',
-    };
-  }
-
-  async createCorpus(opts: CreateCorpusOptions): Promise<CorpusRef> {
-    const body: Record<string, unknown> = { name: opts.name };
-
-    if (opts.chunking) {
-      body.chunking_strategy = {
-        type: 'static',
-        static: {
-          max_chunk_size_tokens: opts.chunking.maxTokens ?? DEFAULT_CHUNK_MAX_TOKENS,
-          chunk_overlap_tokens: opts.chunking.overlapTokens ?? DEFAULT_CHUNK_OVERLAP_TOKENS,
-        },
-      };
-    }
-
-    if (opts.expiresAfter) {
-      body.expires_after = {
-        anchor: opts.expiresAfter.anchor,
-        days: opts.expiresAfter.days,
-      };
-    }
-
-    const res = await this.fetch({
-      url: `${this.baseURL}/v1/vector_stores`,
-      method: 'POST',
-      headers: this.bearer(),
-      body,
+      ...rest,
+      ...(form ? { body: form, rawBody: true } : noBody ? {} : { body }),
       provider: OPENAI_PROVIDER_TAG,
       model: OPENAI_MODEL_TAG,
       responseType: 'json',
-    });
+    } as HttpRequest;
+  }
+
+  async createCorpus(opts: CreateCorpusOptions): Promise<CorpusRef> {
+    const res = await this.fetch(this.request('openai/retrieval.createCorpus', opts));
 
     if (res.status >= 400) {
       throw new Error(`hostedOpenAI: createCorpus failed (${res.status}): ${JSON.stringify(res.body)}`);
@@ -149,22 +143,9 @@ export class HostedOpenAIRetrievalBackend implements RetrievalBackend {
     opts?: AddDocumentOptions,
   ): Promise<DocumentRef> {
     // Step 1: upload file via POST /v1/files
-    const blob = new Blob([source.text], { type: 'text/plain' });
-    const filename = source.label ?? `doc-${crypto.randomUUID().slice(0, 8)}.txt`;
-    const form = new FormData();
-    form.append('file', blob, filename);
-    form.append('purpose', 'assistants');
-
-    const uploadRes = await this.fetch({
-      url: `${this.baseURL}/v1/files`,
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.apiKey}` },
-      body: form,
-      rawBody: true,
-      provider: OPENAI_PROVIDER_TAG,
-      model: OPENAI_MODEL_TAG,
-      responseType: 'json',
-    });
+    const uploadRes = await this.fetch(
+      this.request('openai/retrieval.uploadFile', {}, documentFile(source)),
+    );
 
     if (uploadRes.status >= 400) {
       throw new Error(`hostedOpenAI: file upload failed (${uploadRes.status}): ${JSON.stringify(uploadRes.body)}`);
@@ -174,18 +155,13 @@ export class HostedOpenAIRetrievalBackend implements RetrievalBackend {
     const fileId = file.id as string;
 
     // Step 2: attach file to vector store via POST /v1/vector_stores/{id}/files
-    const attachBody: Record<string, unknown> = { file_id: fileId };
-    if (opts?.metadata) attachBody.attributes = opts.metadata;
-
-    const attachRes = await this.fetch({
-      url: `${this.baseURL}/v1/vector_stores/${corpus.id}/files`,
-      method: 'POST',
-      headers: this.bearer(),
-      body: attachBody,
-      provider: OPENAI_PROVIDER_TAG,
-      model: OPENAI_MODEL_TAG,
-      responseType: 'json',
-    });
+    const attachRes = await this.fetch(
+      this.request('openai/retrieval.attachDocument', {
+        corpusId: corpus.id,
+        fileId,
+        metadata: opts?.metadata,
+      }),
+    );
 
     if (attachRes.status >= 400) {
       throw new Error(`hostedOpenAI: attach file failed (${attachRes.status}): ${JSON.stringify(attachRes.body)}`);
@@ -200,15 +176,9 @@ export class HostedOpenAIRetrievalBackend implements RetrievalBackend {
   }
 
   async indexStatus(corpus: CorpusRef): Promise<IndexStatus> {
-    const res = await this.fetch({
-      url: `${this.baseURL}/v1/vector_stores/${corpus.id}`,
-      method: 'GET',
-      headers: this.bearer(),
-      body: undefined,
-      provider: OPENAI_PROVIDER_TAG,
-      model: OPENAI_MODEL_TAG,
-      responseType: 'json',
-    });
+    const res = await this.fetch(
+      this.request('openai/retrieval.indexStatus', { corpusId: corpus.id }),
+    );
 
     if (res.status >= 400) {
       return { state: 'error' };
@@ -229,39 +199,17 @@ export class HostedOpenAIRetrievalBackend implements RetrievalBackend {
   }
 
   async removeDocument(corpus: CorpusRef, docId: string): Promise<void> {
-    await this.fetch({
-      url: `${this.baseURL}/v1/vector_stores/${corpus.id}/files/${docId}`,
-      method: 'DELETE',
-      headers: this.bearer(),
-      body: undefined,
-      provider: OPENAI_PROVIDER_TAG,
-      model: OPENAI_MODEL_TAG,
-      responseType: 'json',
-    });
+    await this.fetch(
+      this.request('openai/retrieval.removeDocument', { corpusId: corpus.id, docId }),
+    );
   }
 
   async deleteCorpus(corpus: CorpusRef): Promise<void> {
-    await this.fetch({
-      url: `${this.baseURL}/v1/vector_stores/${corpus.id}`,
-      method: 'DELETE',
-      headers: this.bearer(),
-      body: undefined,
-      provider: OPENAI_PROVIDER_TAG,
-      model: OPENAI_MODEL_TAG,
-      responseType: 'json',
-    });
+    await this.fetch(this.request('openai/retrieval.deleteCorpus', { corpusId: corpus.id }));
   }
 
   async listCorpora(): Promise<CorpusRef[]> {
-    const res = await this.fetch({
-      url: `${this.baseURL}/v1/vector_stores`,
-      method: 'GET',
-      headers: this.bearer(),
-      body: undefined,
-      provider: OPENAI_PROVIDER_TAG,
-      model: OPENAI_MODEL_TAG,
-      responseType: 'json',
-    });
+    const res = await this.fetch(this.request('openai/retrieval.listCorpora', {}));
 
     if (res.status >= 400) return [];
 

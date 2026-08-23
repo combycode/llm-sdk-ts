@@ -149,6 +149,9 @@
           },
           {
             "hasTool": "web_fetch"
+          },
+          {
+            "hasTool": "file_search"
           }
         ]
       },
@@ -205,6 +208,27 @@
           },
           "$value": {
             "urlContext": {}
+          }
+        },
+        {
+          "$note": "Gemini's hosted corpus tool. Shape from the official SDK: Tool.fileSearch = { fileSearchStoreNames, metadataFilter? }. Mapped through $each because the params come from the CALLER's tool entry, not from a constant like googleSearch.",
+          "$each": {
+            "$map": "tools",
+            "$dropUnmatched": true,
+            "$case": [
+              {
+                "when": {
+                  "builtin": "file_search"
+                },
+                "value": {
+                  "fileSearch": {
+                    "$spread": {
+                      "$": "@params"
+                    }
+                  }
+                }
+              }
+            ]
           }
         }
       ]

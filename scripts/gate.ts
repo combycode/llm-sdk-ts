@@ -1,7 +1,7 @@
 /** `bun run gate` — the quality gate, with the live-run keys already resolved.
  *
  *  G12 is the only check that actually sends a request to a provider, and it reports
- *  `cannot-judge` when `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` are missing from the
+ *  `cannot-judge` when the provider keys are missing from the
  *  environment. They are never in the environment on this machine — the keys live in
  *  the OS credential store and the sample runners fetch them per run.
  *
@@ -27,6 +27,7 @@ const GATE = resolve(import.meta.dir, '../../../quality-gate/gate.mjs');
 const NEEDED: Array<{ env: string; keyring: string }> = [
   { env: 'OPENAI_API_KEY', keyring: 'openai' },
   { env: 'ANTHROPIC_API_KEY', keyring: 'claude' },
+  { env: 'GOOGLE_AI_API_KEY', keyring: 'gemini' },
 ];
 
 const env: Record<string, string> = { ...(process.env as Record<string, string>) };

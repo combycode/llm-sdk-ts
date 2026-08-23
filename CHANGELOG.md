@@ -6,6 +6,29 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+### Added
+
+- `NormalizedRequest.wireSpec` — the catalog's pin, resolved by `LLMClient` and read by
+  the adapter. Absent for an uncatalogued model or an engine with no catalog, in which
+  case the adapter derives the spec the way it always derived the shape.
+
+- **`envelope.query` in the wire spec** — query parameters as data, each able to drop out on its
+  own. Splicing them into a `$join` URL only works while every parameter is present, and it left
+  the encoding to each caller: the hand-written backends disagreed about `encodeURIComponent`, so a
+  page token containing `+` paged from the wrong place and the API answered 200.
+
+- **`$each` in array templates** — the array analogue of `$spread`, for a `$map` that has to sit
+  beside literal entries. Google's `tools` array is exactly that shape.
+
+- **`scripts/gen-wire-registry.ts` (`bun run gen:registry`)** — regenerates the spec index from the
+  files on disk, with `--check` for CI. Specs have landed without their registry entry three times
+  now, and it fails silently: the spec becomes invisible to `WIRE_SPECS`, so the chain tests skip it
+  and the coverage audit reports it as neither referenced nor executed.
+
+- **A live hosted-retrieval example** (`31-hosted-retrieval`), run on OpenAI and Google by the
+  quality gate. Hosted retrieval had unit tests and documentation but had never once been executed
+  against a provider, which is how both defects below survived.
+
 ### Changed
 
 - **The chat adapters build their requests from the wire specs.** All five —
@@ -29,29 +52,6 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   set rather than the full 71-spec index, so nothing is bundled that nothing executes.
   Cost: +15 KB packed, and ~5 microseconds per request against a network call.
 
-### Added
-
-- `NormalizedRequest.wireSpec` — the catalog's pin, resolved by `LLMClient` and read by
-  the adapter. Absent for an uncatalogued model or an engine with no catalog, in which
-  case the adapter derives the spec the way it always derived the shape.
-
-## [Unreleased]
-
-### Removed
-
-- **`ModelInfo.wire`, `NormalizedRequest.wire` and the `ModelWire` type** (BREAKING, type-level
-  only). These carried per-model wire traits; `ModelInfo.wireSpec` carries the same knowledge and
-  carries it once. Two
-  representations of one fact drift, and this library has shipped two bugs from exactly that. See
-  MIGRATION.md — behaviour is unchanged and most codebases need no edit.
-
-  Removed with them, and never reachable from the package entry point: `anthropicThinkingShape`,
-  `anthropicAcceptsTopK`, `ANTHROPIC_ADAPTIVE_THINKING_MIN`, `ANTHROPIC_THINKING_BUDGETS`,
-  `DEFAULT_ANTHROPIC_THINKING_BUDGET`, `googleUsesThinkingBudget`, `GOOGLE_THINKING_BUDGETS`,
-  `GOOGLE_THINKING_LEVELS`.
-
-### Changed
-
 - **Model-band selection is data, not code.** Which chain node an UNPINNED model uses now comes
   from `src/wire/pins/*.json` — ordered regex rules plus a default — instead of version arithmetic
   written in TypeScript. The Python and Rust ports read the same file rather than each
@@ -65,6 +65,50 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   One deliberate fix came out of it: the old pair of helpers disagreed on case — one lower-cased
   the model id and the other did not — so `CLAUDE-OPUS-4-6` lost a `top_k` that model accepts. The
   pin table lower-cases consistently.
+
+- **The hosted retrieval backends build their requests from wire specs.** OpenAI vector stores,
+  Google file search stores and xAI Grok collections — 23 hand-assembled requests across three
+  files — now come from 24 specs. This was the largest remaining block of request construction
+  written three times over, once per provider.
+
+  xAI shows why it matters: collections span two hosts with two separate credentials, and which
+  pair a call used was decided by whichever bearer helper the author typed next to the URL. It is
+  now a property of the endpoint, declared in the spec.
+
+  Verified against a corpus frozen from the pre-migration commit — 41 requests, byte-identical —
+  and by a live end-to-end run on both providers.
+
+### Fixed
+
+- **A Google hosted corpus was silently ignored.** `{ type: 'file_search' }` had no mapping in the
+  Gemini chain spec, so the tool was dropped from the request and the model answered from its own
+  knowledge, with no error anywhere. The live example asks a question only the uploaded document
+  can answer and got a plausible wrong number back. `fileSearch` is now mapped from the tool's
+  params, matching `Tool.fileSearch` in Google's own SDK.
+
+  The same call on OpenAI failed loudly instead (`Missing required parameter:
+  'tools[0].vector_store_ids'`): a hosted `asTool()` result has to be passed as the `params` of a
+  `file_search` builtin. The retrieval guide now shows that, having previously said "splice into
+  the provider's native call" without saying how.
+
+- **Hosted document uploads are reproducible.** A document with no `label` was named
+  `doc-<random-uuid>.txt`, so the same upload produced a different request every time: it could not
+  be asserted in a test, frozen in a fixture, or matched against a log, and a retried upload
+  arrived under a new name. The fallback is now derived from the document's content — the same fix
+  the xAI batch name got.
+
+### Removed
+
+- **`ModelInfo.wire`, `NormalizedRequest.wire` and the `ModelWire` type** (BREAKING, type-level
+  only). These carried per-model wire traits; `ModelInfo.wireSpec` carries the same knowledge and
+  carries it once. Two
+  representations of one fact drift, and this library has shipped two bugs from exactly that. See
+  MIGRATION.md — behaviour is unchanged and most codebases need no edit.
+
+  Removed with them, and never reachable from the package entry point: `anthropicThinkingShape`,
+  `anthropicAcceptsTopK`, `ANTHROPIC_ADAPTIVE_THINKING_MIN`, `ANTHROPIC_THINKING_BUDGETS`,
+  `DEFAULT_ANTHROPIC_THINKING_BUDGET`, `googleUsesThinkingBudget`, `GOOGLE_THINKING_BUDGETS`,
+  `GOOGLE_THINKING_LEVELS`.
 
 ## [2.3.0] — 2026-08-23
 

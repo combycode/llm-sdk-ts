@@ -139,6 +139,15 @@ export function makeRegistry(a: AdapterHandles): Registry {
       return `batch_${reqs.length}_${fnv1a32Hex(ids)}`;
     },
 
+    /** Google file-search metadata is a LIST of {key,value} pairs with STRING
+     *  values — an object is rejected, and so is a numeric value, which is why
+     *  the coercion belongs to the rule rather than to the caller. */
+    googleCustomMetadata: (v) =>
+      Object.entries((v ?? {}) as Record<string, unknown>).map(([key, value]) => ({
+        key,
+        value: String(value),
+      })),
+
     /** Embeddings: `input` is always an array on the wire. */
     asArray: (v) => (Array.isArray(v) ? v : [v]),
     /** Google batch names itself after the request count — deterministic, unlike xAI's. */
