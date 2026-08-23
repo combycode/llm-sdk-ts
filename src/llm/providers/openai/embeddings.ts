@@ -1,7 +1,11 @@
 /** OpenAI embeddings adapter — POST /v1/embeddings. Also the base for the
  *  OpenAI-compatible OpenRouter adapter. */
 
-import type { EngineFetch } from '../../../network/types';
+import type { EngineFetch, HttpRequest } from '../../../network/types';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { serviceSpec } from '../../../wire/service-specs';
+import { makeRegistry } from '../../wire-transforms';
 import type {
   EmbedRequest,
   EmbedResult,
@@ -23,21 +27,43 @@ export class OpenAIEmbeddingAdapter implements EmbeddingProviderAdapter {
     this._baseURL = config.baseURL ?? 'https://api.openai.com';
   }
 
+  /** Named code the spec cannot express as data — the array coercion. */
+  protected readonly wireRegistry: Registry = makeRegistry({});
+
   protected embeddingsPath(): string {
     return '/v1/embeddings';
   }
 
-  async embed(req: EmbedRequest, fetch: EngineFetch): Promise<EmbedResult> {
-    const input = Array.isArray(req.input) ? req.input : [req.input];
-    const res = await fetch({
-      url: `${this._baseURL}${this.embeddingsPath()}`,
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.apiKey}`, 'content-type': 'application/json' },
-      body: { model: req.model, input },
+  /** Which spec builds the request. OpenRouter is the same wire on a different
+   *  host and path, expressed as a one-line override of this spec. */
+  protected specId(): string {
+    return 'openai/embeddings';
+  }
+
+  /** The request, built and inspectable without performing it.
+   *
+   *  `input` is always an array on the wire even when the caller passes one
+   *  string, which is the sort of rule that belongs in data rather than in a
+   *  ternary nobody re-reads. */
+  buildEmbedRequest(req: EmbedRequest): HttpRequest {
+    const built = buildFromSpec(
+      serviceSpec(this.specId()),
+      req as never,
+      this.wireRegistry,
+      this.name,
+      undefined,
+      { baseURL: this._baseURL, apiKey: this.apiKey },
+    );
+    return {
+      ...(built as object),
       provider: this.name,
       model: req.model,
       responseType: 'json',
-    });
+    } as HttpRequest;
+  }
+
+  async embed(req: EmbedRequest, fetch: EngineFetch): Promise<EmbedResult> {
+    const res = await fetch(this.buildEmbedRequest(req));
     const data = res.body as {
       data?: Array<{ embedding: number[] }>;
       usage?: { prompt_tokens?: number };

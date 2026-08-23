@@ -12,4 +12,10 @@ export class OpenRouterEmbeddingAdapter extends OpenAIEmbeddingAdapter {
   protected override embeddingsPath(): string {
     return '/api/v1/embeddings';
   }
+
+  /** The whole OpenRouter delta is the URL, so the spec that carries it is the
+   *  whole override. */
+  protected override specId(): string {
+    return 'openrouter/embeddings';
+  }
 }

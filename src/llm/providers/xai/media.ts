@@ -3,8 +3,11 @@
 import { isBrowser } from '../../../runtime/runtime';
 import { base64ToBytes } from '../../../util/base64';
 import { sniffImageMime } from '../../../util/image-mime';
-import { normalizeImageSource, xaiImageRef, xaiVideoRef } from '../../../util/source-image';
-import type { EngineFetch } from '../../../network/types';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { serviceSpec } from '../../../wire/service-specs';
+import { makeRegistry } from '../../wire-transforms';
+import type { EngineFetch, HttpRequest } from '../../../network/types';
 import type {
   AudioGenRequest,
   ImageEditRequest,
@@ -42,30 +45,62 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
     };
   }
 
-  private authHeaders(): Record<string, string> {
-    return { authorization: `Bearer ${this.apiKey}`, 'content-type': 'application/json' };
+  /** Named code the specs cannot express as data — image/video source refs. */
+  private readonly wireRegistry: Registry = makeRegistry({});
+
+  /** Build one request from its spec, then add the engine metadata.
+   *
+   *  `provider`, `model` and `responseType` are routing and decoding concerns that
+   *  never reach xAI, so the specs do not model them. */
+  private fromSpec(
+    specId: string,
+    req: object,
+    model: string,
+    responseType: 'json' | 'arraybuffer' = 'json',
+  ): HttpRequest {
+    const built = buildFromSpec(
+      serviceSpec(specId),
+      { ...req, model } as never,
+      this.wireRegistry,
+      'xai',
+      undefined,
+      { baseURL: this.baseURL, apiKey: this.apiKey },
+    );
+    return { ...(built as object), provider: 'xai', model, responseType } as HttpRequest;
+  }
+
+  /** Text-to-image. */
+  buildImageRequest(req: ImageGenRequest, model = req.model ?? 'grok-imagine-image'): HttpRequest {
+    return this.fromSpec('xai/images.generations', req, model);
+  }
+
+  /** Image-to-image edit — JSON with a data-URL or file_id, no multipart, no mask. */
+  buildEditImageRequest(req: ImageEditRequest, model = req.model ?? 'grok-imagine-image'): HttpRequest {
+    return this.fromSpec('xai/images.edits', req, model);
+  }
+
+  /** TTS. arraybuffer because the response is audio bytes. */
+  buildAudioRequest(req: AudioGenRequest, model = req.model ?? ''): HttpRequest {
+    return this.fromSpec('xai/tts', req, model, 'arraybuffer');
+  }
+
+  /** Video submission, routed by input and mode:
+   *    no sourceVideo                  -> /v1/videos/generations
+   *    sourceVideo + videoMode extend  -> /v1/videos/extensions  (duration only)
+   *    sourceVideo + videoMode edit    -> /v1/videos/edits       (prompt + video)
+   *  Three endpoints with three different field sets, so three specs. */
+  buildVideoRequest(req: VideoGenRequest, model = req.model ?? 'grok-imagine-video'): HttpRequest {
+    const id = !req.sourceVideo
+      ? 'xai/videos.generations'
+      : (req.params?.videoMode ?? 'extend') === 'edit'
+        ? 'xai/videos.edits'
+        : 'xai/videos.extensions';
+    return this.fromSpec(id, req, model);
   }
 
   async generateImage(req: ImageGenRequest, fetch: EngineFetch): Promise<RawMediaResult[]> {
     const model = req.model ?? 'grok-imagine-image';
-    const body: Record<string, unknown> = {
-      model,
-      prompt: req.prompt,
-      n: req.params?.n ?? 1,
-      response_format: req.params?.responseFormat ?? 'b64_json',
-    };
-    if (req.params?.aspectRatio) body.aspect_ratio = req.params.aspectRatio;
-    if (req.params?.resolution) body.resolution = req.params.resolution;
-
-    const res = await fetch({
-      url: `${this.baseURL}/v1/images/generations`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'xai',
-      model,
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildImageRequest(req, model));
     return this.parseImages(res.body as Record<string, unknown>, model, fetch);
   }
 
@@ -73,24 +108,7 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
    *  file_id, no multipart, no mask). */
   async editImage(req: ImageEditRequest, fetch: EngineFetch): Promise<RawMediaResult[]> {
     const model = req.model ?? 'grok-imagine-image';
-    const body: Record<string, unknown> = {
-      model,
-      prompt: req.prompt,
-      image: xaiImageRef(normalizeImageSource(req.sourceImage)),
-      response_format: req.params?.responseFormat ?? 'b64_json',
-    };
-    if (req.params?.aspectRatio) body.aspect_ratio = req.params.aspectRatio;
-    if (req.params?.resolution) body.resolution = req.params.resolution;
-
-    const res = await fetch({
-      url: `${this.baseURL}/v1/images/edits`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'xai',
-      model,
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildEditImageRequest(req, model));
     return this.parseImages(res.body as Record<string, unknown>, model, fetch);
   }
 
@@ -136,23 +154,7 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
 
   async generateAudio(req: AudioGenRequest, fetch: EngineFetch): Promise<RawMediaResult> {
     const model = req.model ?? '';
-    const body: Record<string, unknown> = {
-      text: req.input,
-      voice: req.params?.voice ?? 'eve',
-      language: req.params?.language ?? 'en',
-    };
-    if (req.params?.format) body.codec = req.params.format;
-    if (req.params?.sampleRate) body.sample_rate = req.params.sampleRate;
-
-    const res = await fetch({
-      url: `${this.baseURL}/v1/tts`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'xai',
-      model,
-      responseType: 'arraybuffer',
-    });
+    const res = await fetch(this.buildAudioRequest(req, model));
 
     const buffer = res.body as Uint8Array;
     const format = req.params?.format ?? 'mp3';
@@ -169,49 +171,9 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
 
   async submitVideo(req: VideoGenRequest, fetch: EngineFetch): Promise<string> {
     const model = req.model ?? 'grok-imagine-video';
-    const { url, body } = this.buildVideoSubmit(req, model);
-
-    const res = await fetch({
-      url,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'xai',
-      model,
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildVideoRequest(req, model));
     const data = res.body as Record<string, unknown>;
     return (data.request_id as string) ?? (data.id as string) ?? '';
-  }
-
-  /** Route a video request to the right xAI endpoint by input + mode:
-   *   - no `sourceVideo` → `/v1/videos/generations` (text/image-to-video)
-   *   - `sourceVideo` + `videoMode:'extend'` (default) → `/v1/videos/extensions`
-   *     — continues from the last frame; takes `duration`, NOT aspect/resolution.
-   *   - `sourceVideo` + `videoMode:'edit'` → `/v1/videos/edits` — prompt + video
-   *     only (no duration/aspect/resolution).
-   *  All three return a `request_id` polled via the same status endpoint. */
-  private buildVideoSubmit(
-    req: VideoGenRequest,
-    model: string,
-  ): { url: string; body: Record<string, unknown> } {
-    if (req.sourceVideo) {
-      const video = xaiVideoRef(req.sourceVideo);
-      if ((req.params?.videoMode ?? 'extend') === 'edit') {
-        return { url: `${this.baseURL}/v1/videos/edits`, body: { model, prompt: req.prompt, video } };
-      }
-      const body: Record<string, unknown> = { model, prompt: req.prompt, video };
-      if (req.params?.duration) body.duration = req.params.duration;
-      return { url: `${this.baseURL}/v1/videos/extensions`, body };
-    }
-
-    const body: Record<string, unknown> = { model, prompt: req.prompt };
-    if (req.params?.duration) body.duration = req.params.duration;
-    if (req.params?.aspectRatio) body.aspect_ratio = req.params.aspectRatio;
-    if (req.params?.resolution) body.resolution = req.params.resolution;
-    // First-frame image → image-to-video.
-    if (req.sourceImage) body.image = xaiImageRef(normalizeImageSource(req.sourceImage));
-    return { url: `${this.baseURL}/v1/videos/generations`, body };
   }
 
   async getVideoStatus(operationId: string, fetch: EngineFetch): Promise<VideoStatus> {

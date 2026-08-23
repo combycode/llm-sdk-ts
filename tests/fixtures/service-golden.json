@@ -1,0 +1,385 @@
+{
+  "_doc": "What the embeddings and seamless-media adapters sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed.",
+  "frozenAtCommit": "1c8e69f3259e49f0216dd68bed4bfe89ca89dcfe",
+  "counts": {
+    "cases": 18
+  },
+  "index": {
+    "embeddings/openai/single": {
+      "body": {
+        "input": [
+          "hello"
+        ],
+        "model": "text-embedding-3-small"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "text-embedding-3-small",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/embeddings"
+    },
+    "embeddings/openai/batch": {
+      "body": {
+        "input": [
+          "a",
+          "b",
+          "c"
+        ],
+        "model": "text-embedding-3-small"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "text-embedding-3-small",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/embeddings"
+    },
+    "embeddings/openrouter/single": {
+      "body": {
+        "input": [
+          "hello"
+        ],
+        "model": "openai/text-embedding-3-small"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "openai/text-embedding-3-small",
+      "provider": "openrouter",
+      "responseType": "json",
+      "url": "https://openrouter.ai/api/v1/embeddings"
+    },
+    "embeddings/openrouter/batch": {
+      "body": {
+        "input": [
+          "a",
+          "b"
+        ],
+        "model": "openai/text-embedding-3-small"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "openai/text-embedding-3-small",
+      "provider": "openrouter",
+      "responseType": "json",
+      "url": "https://openrouter.ai/api/v1/embeddings"
+    },
+    "embeddings/google/bare": {
+      "body": {
+        "content": {
+          "parts": [
+            {
+              "text": "hello"
+            }
+          ]
+        },
+        "model": "models/gemini-embedding-001"
+      },
+      "headers": {
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
+      },
+      "method": "POST",
+      "model": "gemini-embedding-001",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent"
+    },
+    "embeddings/google/prefixed": {
+      "body": {
+        "content": {
+          "parts": [
+            {
+              "text": "hello"
+            }
+          ]
+        },
+        "model": "models/gemini-embedding-001"
+      },
+      "headers": {
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
+      },
+      "method": "POST",
+      "model": "models/gemini-embedding-001",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-embedding-001:embedContent"
+    },
+    "xai-media/image.minimal": {
+      "body": {
+        "model": "grok-imagine-image",
+        "n": 1,
+        "prompt": "a cat",
+        "response_format": "b64_json"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "grok-imagine-image",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/images/generations"
+    },
+    "xai-media/image.params": {
+      "body": {
+        "model": "grok-imagine-image",
+        "n": 2,
+        "prompt": "a cat",
+        "response_format": "b64_json"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "grok-imagine-image",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/images/generations"
+    },
+    "xai-media/imageEdit": {
+      "body": {
+        "image": {
+          "url": "data:image/png;base64,aGk="
+        },
+        "model": "grok-imagine-image",
+        "prompt": "add a hat",
+        "response_format": "b64_json"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "grok-imagine-image",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/images/edits"
+    },
+    "xai-media/audio": {
+      "body": {
+        "codec": "wav",
+        "language": "en",
+        "text": "hello",
+        "voice": "alloy"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "",
+      "provider": "xai",
+      "responseType": "arraybuffer",
+      "url": "https://api.x.ai/v1/tts"
+    },
+    "xai-media/video": {
+      "body": {
+        "model": "grok-imagine-video",
+        "prompt": "a wave"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "grok-imagine-video",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/videos/generations"
+    },
+    "xai-media/video.fromImage": {
+      "body": {
+        "image": {
+          "url": "data:image/png;base64,aGk="
+        },
+        "model": "grok-imagine-video",
+        "prompt": "animate"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "grok-imagine-video",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/videos/generations"
+    },
+    "xai-media/video.extend": {
+      "body": {
+        "model": "grok-imagine-video",
+        "prompt": "keep going",
+        "video": {
+          "url": "data:video/mp4;base64,AAAAGGZ0"
+        }
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "grok-imagine-video",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/videos/extensions"
+    },
+    "xai-media/video.edit": {
+      "body": {
+        "model": "grok-imagine-video",
+        "prompt": "make it night",
+        "video": {
+          "url": "data:video/mp4;base64,AAAAGGZ0"
+        }
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "grok-imagine-video",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/videos/edits"
+    },
+    "openrouter-media/image.minimal": {
+      "body": {
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "a cat",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "modalities": [
+          "image",
+          "text"
+        ],
+        "model": ""
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "",
+      "provider": "openrouter",
+      "responseType": "json",
+      "url": "https://openrouter.ai/api/v1/chat/completions"
+    },
+    "openrouter-media/image.config": {
+      "body": {
+        "image_config": {
+          "aspect_ratio": "16:9"
+        },
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "a cat",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "modalities": [
+          "image",
+          "text"
+        ],
+        "model": ""
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "",
+      "provider": "openrouter",
+      "responseType": "json",
+      "url": "https://openrouter.ai/api/v1/chat/completions"
+    },
+    "openrouter-media/imageEdit": {
+      "body": {
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "add a hat",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "url": "data:image/png;base64,aGk="
+                },
+                "type": "image_url"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "modalities": [
+          "image",
+          "text"
+        ],
+        "model": ""
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "",
+      "provider": "openrouter",
+      "responseType": "json",
+      "url": "https://openrouter.ai/api/v1/chat/completions"
+    },
+    "openrouter-media/audio": {
+      "body": {
+        "audio": {
+          "format": "mp3",
+          "voice": "Kore"
+        },
+        "messages": [
+          {
+            "content": "hello",
+            "role": "user"
+          }
+        ],
+        "modalities": [
+          "audio",
+          "text"
+        ],
+        "model": ""
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "",
+      "provider": "openrouter",
+      "responseType": "json",
+      "url": "https://openrouter.ai/api/v1/chat/completions"
+    }
+  }
+}
