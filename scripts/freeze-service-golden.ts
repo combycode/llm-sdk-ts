@@ -24,6 +24,11 @@ import { AnthropicBatchAdapter } from '../src/llm/providers/anthropic/batch';
 import { OpenAIBatchAdapter } from '../src/llm/providers/openai/batch';
 import { GoogleBatchAdapter } from '../src/llm/providers/google/batch';
 import { XAIBatchAdapter } from '../src/llm/providers/xai/batch';
+import { AnthropicFileAdapter } from '../src/llm/providers/anthropic/files';
+import { OpenAIFileAdapter } from '../src/llm/providers/openai/files';
+import { GoogleFileAdapter } from '../src/llm/providers/google/files';
+import { XAIFileAdapter } from '../src/llm/providers/xai/files';
+import { FileAttachment } from '../src/plugins/files/attachment';
 import {
   EMBED_CASES,
   OPENROUTER_MEDIA_CASES,
@@ -34,6 +39,8 @@ import {
   BATCH_CASES,
   BATCH_REQUESTS,
   BATCH_ID,
+  FILE_CASES,
+  FILE_REMOTE_ID,
 } from '../tests/unit/wire/service-corpus';
 import type { ImageEditRequest, ImageGenRequest, AudioGenRequest, VideoGenRequest } from '../src/plugins/media/types';
 import {
@@ -239,6 +246,60 @@ for (const c of BATCH_CASES) {
   // Some operations make MORE than one call (OpenAI uploads then creates, xAI
   // creates then adds). Freeze every one of them, in order.
   seen.forEach((r, i) => record(`batch/${c.provider}/${c.op}${i ? `.${i}` : ''}`, r));
+}
+
+// ── files ────────────────────────────────────────────────────────────────────
+const FILE_ADAPTERS = {
+  anthropic: new AnthropicFileAdapter({ apiKey: K }),
+  openai: new OpenAIFileAdapter({ apiKey: K }),
+  google: new GoogleFileAdapter({ apiKey: K }),
+  xai: new XAIFileAdapter({ apiKey: K }),
+};
+// `FileContent` is a discriminated union on `type`, with the bytes under `data`.
+// Getting that wrong does not throw for OpenAI-style uploads — `toBuffer()` just
+// returns undefined and the Blob comes out empty — so three of the four uploads
+// froze silently malformed before this was corrected.
+const ATTACHMENT = new FileAttachment({
+  filename: 'note.txt',
+  mimeType: 'text/plain',
+  sizeBytes: 5,
+  content: { type: 'buffer', mimeType: 'text/plain', data: new Uint8Array([104, 101, 108, 108, 111]) },
+});
+// Google's resumable upload reads the upload URL out of a RESPONSE HEADER, so the
+// fake response has to carry one or the second call never happens.
+const FILE_RESPONSE = {
+  id: 'file_abc',
+  uri: 'https://generativelanguage.googleapis.com/v1beta/files/abc',
+  file: { uri: 'https://generativelanguage.googleapis.com/v1beta/files/abc' },
+  data: [],
+  files: [],
+};
+for (const c of FILE_CASES) {
+  const a = FILE_ADAPTERS[c.provider] as unknown as Record<
+    string,
+    (...x: never[]) => Promise<unknown>
+  >;
+  const seenAll: unknown[] = [];
+  const fetch = (async (r: unknown) => {
+    seenAll.push(r);
+    return {
+      status: 200,
+      headers: { 'x-goog-upload-url': 'https://upload.example/session' },
+      body: FILE_RESPONSE,
+    };
+  }) as never;
+  try {
+    if (c.op === 'upload') await a.upload(ATTACHMENT as never, fetch);
+    else if (c.op === 'list') await a.list(fetch);
+    else await a[c.op]?.(FILE_REMOTE_ID[c.provider] as never, fetch);
+  } catch {
+    /* the fake response may not parse; the requests are already captured */
+  }
+  if (!seenAll.length) {
+    console.error(`files/${c.provider}/${c.op}: no request captured`);
+    continue;
+  }
+  seenAll.forEach((r, i) => record(`files/${c.provider}/${c.op}${i ? `.${i}` : ''}`, r));
 }
 
 const sha = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();

@@ -21,6 +21,11 @@ import { AnthropicBatchAdapter } from '../../../src/llm/providers/anthropic/batc
 import { OpenAIBatchAdapter } from '../../../src/llm/providers/openai/batch';
 import { GoogleBatchAdapter } from '../../../src/llm/providers/google/batch';
 import { XAIBatchAdapter } from '../../../src/llm/providers/xai/batch';
+import { AnthropicFileAdapter } from '../../../src/llm/providers/anthropic/files';
+import { OpenAIFileAdapter } from '../../../src/llm/providers/openai/files';
+import { GoogleFileAdapter } from '../../../src/llm/providers/google/files';
+import { XAIFileAdapter } from '../../../src/llm/providers/xai/files';
+import { FileAttachment } from '../../../src/plugins/files/attachment';
 import {
   EMBED_CASES,
   OPENROUTER_MEDIA_CASES,
@@ -31,6 +36,8 @@ import {
   BATCH_CASES,
   BATCH_REQUESTS,
   BATCH_ID,
+  FILE_CASES,
+  FILE_REMOTE_ID,
 } from './service-corpus';
 import type {
   AudioGenRequest,
@@ -294,6 +301,69 @@ describe('batch still sends what was frozen', () => {
       // creates the batch, xAI creates an empty batch then adds requests to it.
       seen.forEach((r, i) => {
         const key = `batch/${c.provider}/${c.op}${i ? `.${i}` : ''}`;
+        compared++;
+        const now = onWire(r);
+        const was = onWire(index[key]);
+        if (now !== was) drift.push(`${key}:\n    frozen: ${was}\n    now:    ${now}`);
+      });
+    }
+    expect({ compared: compared > 0, drift: drift.slice(0, 3) }).toEqual({ compared: true, drift: [] });
+  });
+});
+
+const FILE_ADAPTERS = {
+  anthropic: new AnthropicFileAdapter({ apiKey: K }),
+  openai: new OpenAIFileAdapter({ apiKey: K }),
+  google: new GoogleFileAdapter({ apiKey: K }),
+  xai: new XAIFileAdapter({ apiKey: K }),
+};
+const ATTACHMENT = new FileAttachment({
+  filename: 'note.txt',
+  mimeType: 'text/plain',
+  sizeBytes: 5,
+  content: { type: 'buffer', mimeType: 'text/plain', data: new Uint8Array([104, 101, 108, 108, 111]) },
+});
+const FILE_RESPONSE = {
+  id: 'file_abc',
+  uri: 'https://generativelanguage.googleapis.com/v1beta/files/abc',
+  file: { uri: 'https://generativelanguage.googleapis.com/v1beta/files/abc' },
+  data: [],
+  files: [],
+};
+
+describe('files still send what was frozen', () => {
+  it('four providers, including google two-step resumable upload', async () => {
+    const drift: string[] = [];
+    let compared = 0;
+    for (const c of FILE_CASES) {
+      const a = FILE_ADAPTERS[c.provider] as unknown as Record<
+        string,
+        (...x: never[]) => Promise<unknown>
+      >;
+      const seenAll: unknown[] = [];
+      // Google reads the upload URL out of a RESPONSE HEADER, so the fake response
+      // has to carry one or its second call never happens.
+      const fetch = (async (r: unknown) => {
+        seenAll.push(r);
+        return {
+          status: 200,
+          headers: { 'x-goog-upload-url': 'https://upload.example/session' },
+          body: FILE_RESPONSE,
+        };
+      }) as never;
+      try {
+        if (c.op === 'upload') await a.upload(ATTACHMENT as never, fetch);
+        else if (c.op === 'list') await a.list(fetch);
+        else await a[c.op]?.(FILE_REMOTE_ID[c.provider] as never, fetch);
+      } catch {
+        /* the fake response may not parse; the requests are already captured */
+      }
+      if (!seenAll.length) {
+        drift.push(`files/${c.provider}/${c.op}: no request made`);
+        continue;
+      }
+      seenAll.forEach((r, i) => {
+        const key = `files/${c.provider}/${c.op}${i ? `.${i}` : ''}`;
         compared++;
         const now = onWire(r);
         const was = onWire(index[key]);

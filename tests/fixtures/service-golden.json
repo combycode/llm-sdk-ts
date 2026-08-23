@@ -1,8 +1,8 @@
 {
   "_doc": "What the embeddings and seamless-media adapters sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed.",
-  "frozenAtCommit": "fdf886fc2e1dc5c9a0083270b49ec622d88af571",
+  "frozenAtCommit": "5f7f6ab05cf044072327f75033888bc250f64ac3",
   "counts": {
-    "cases": 48
+    "cases": 66
   },
   "index": {
     "embeddings/openai/single": {
@@ -723,6 +723,37 @@
       "responseType": "json",
       "url": "https://api.openai.com/v1/batches/batch_abc"
     },
+    "batch/openai/getResults": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "GET",
+      "model": "batch",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/batches/batch_abc"
+    },
+    "batch/openai/getResults.1": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "GET",
+      "model": "batch",
+      "provider": "openai",
+      "responseType": "text",
+      "url": "https://api.openai.com/v1/files/file_out/content"
+    },
+    "batch/openai/cancel": {
+      "body": {},
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "POST",
+      "model": "batch",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/batches/batch_abc/cancel"
+    },
     "batch/google/submit": {
       "body": {
         "batch": {
@@ -773,6 +804,14 @@
       "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:batchGenerateContent?key=k"
     },
     "batch/google/getStatus": {
+      "headers": {},
+      "method": "GET",
+      "model": "gemini-3-flash",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/batch_abc?key=k"
+    },
+    "batch/google/getResults": {
       "headers": {},
       "method": "GET",
       "model": "gemini-3-flash",
@@ -878,6 +917,204 @@
       "provider": "xai",
       "responseType": "json",
       "url": "https://api.x.ai/v1/batches/batch_abc/cancel"
+    },
+    "files/anthropic/upload": {
+      "body": {
+        "__formData": [
+          {
+            "filename": "note.txt",
+            "name": "file",
+            "size": 5,
+            "type": "text/plain;charset=utf-8"
+          }
+        ]
+      },
+      "headers": {
+        "anthropic-beta": "files-api-2025-04-14",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": "k"
+      },
+      "method": "POST",
+      "model": "files",
+      "provider": "anthropic",
+      "rawBody": true,
+      "responseType": "json",
+      "url": "https://api.anthropic.com/v1/files"
+    },
+    "files/anthropic/delete": {
+      "headers": {
+        "anthropic-beta": "files-api-2025-04-14",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": "k"
+      },
+      "method": "DELETE",
+      "model": "files",
+      "provider": "anthropic",
+      "responseType": "json",
+      "url": "https://api.anthropic.com/v1/files/file_abc"
+    },
+    "files/anthropic/getInfo": {
+      "headers": {
+        "anthropic-beta": "files-api-2025-04-14",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": "k"
+      },
+      "method": "GET",
+      "model": "files",
+      "provider": "anthropic",
+      "responseType": "json",
+      "url": "https://api.anthropic.com/v1/files/file_abc"
+    },
+    "files/anthropic/list": {
+      "headers": {
+        "anthropic-beta": "files-api-2025-04-14",
+        "anthropic-version": "2023-06-01",
+        "x-api-key": "k"
+      },
+      "method": "GET",
+      "model": "files",
+      "provider": "anthropic",
+      "responseType": "json",
+      "url": "https://api.anthropic.com/v1/files"
+    },
+    "files/openai/upload": {
+      "body": {
+        "__formData": [
+          {
+            "filename": "note.txt",
+            "name": "file",
+            "size": 5,
+            "type": "text/plain;charset=utf-8"
+          },
+          {
+            "name": "purpose",
+            "value": "user_data"
+          }
+        ]
+      },
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "POST",
+      "model": "files",
+      "provider": "openai",
+      "rawBody": true,
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/files"
+    },
+    "files/openai/delete": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "DELETE",
+      "model": "files",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/files/file-abc"
+    },
+    "files/openai/getInfo": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "GET",
+      "model": "files",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/files/file-abc"
+    },
+    "files/openai/list": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "GET",
+      "model": "files",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/files"
+    },
+    "files/google/upload": {
+      "body": {
+        "file": {
+          "display_name": "note.txt"
+        }
+      },
+      "headers": {
+        "Content-Type": "application/json",
+        "X-Goog-Upload-Command": "start",
+        "X-Goog-Upload-Header-Content-Length": "5",
+        "X-Goog-Upload-Header-Content-Type": "text/plain",
+        "X-Goog-Upload-Protocol": "resumable"
+      },
+      "method": "POST",
+      "model": "files",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/upload/v1beta/files?key=k"
+    },
+    "files/google/upload.1": {
+      "body": {
+        "__bytes": 5
+      },
+      "headers": {
+        "Content-Type": "text/plain",
+        "X-Goog-Upload-Command": "upload, finalize",
+        "X-Goog-Upload-Offset": "0"
+      },
+      "method": "POST",
+      "model": "files",
+      "provider": "google",
+      "rawBody": true,
+      "responseType": "json",
+      "url": "https://upload.example/session"
+    },
+    "files/google/delete": {
+      "headers": {},
+      "method": "DELETE",
+      "model": "files",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/files/abc?key=k"
+    },
+    "files/google/getInfo": {
+      "headers": {},
+      "method": "GET",
+      "model": "files",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/files/abc?key=k"
+    },
+    "files/google/list": {
+      "headers": {},
+      "method": "GET",
+      "model": "files",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/files?key=k&pageSize=100"
+    },
+    "files/xai/upload": {
+      "body": {
+        "__formData": [
+          {
+            "filename": "note.txt",
+            "name": "file",
+            "size": 5,
+            "type": "text/plain;charset=utf-8"
+          },
+          {
+            "name": "purpose",
+            "value": "assistants"
+          }
+        ]
+      },
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "POST",
+      "model": "files",
+      "provider": "xai",
+      "rawBody": true,
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/files"
     }
   }
 }

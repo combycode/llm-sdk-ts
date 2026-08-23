@@ -1,7 +1,12 @@
 /** Google file adapter — resumable upload to Files API. 48h auto-delete.
  *  All HTTP flows through the injected EngineFetch (NetworkEngine queue). */
 
-import type { EngineFetch } from '../../../network/types';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { MultipartField, Registry } from '../../../wire/interpreter';
+import { serviceSpec } from '../../../wire/service-specs';
+import { makeRegistry } from '../../wire-transforms';
+import { toFormData, type MultipartFile } from '../../wire-multipart';
+import type { EngineFetch, HttpRequest } from '../../../network/types';
 import { header } from '../../../util/http';
 import type { FileAttachment } from '../../../plugins/files/attachment';
 import type {
@@ -51,24 +56,50 @@ export class GoogleFileAdapter implements FileProviderAdapter {
     this.baseURL = config.baseURL ?? 'https://generativelanguage.googleapis.com';
   }
 
-  async upload(file: FileAttachment, fetch: EngineFetch): Promise<FileUploadResult> {
-    const data = await file.toBuffer();
+  /** File rules need no adapter handles. */
+  private readonly wireRegistry: Registry = makeRegistry({});
 
-    const startRes = await fetch({
-      url: `${this.baseURL}/upload/v1beta/files?key=${this.apiKey}`,
-      method: 'POST',
-      headers: {
-        'X-Goog-Upload-Protocol': 'resumable',
-        'X-Goog-Upload-Command': 'start',
-        'X-Goog-Upload-Header-Content-Length': String(data.length),
-        'X-Goog-Upload-Header-Content-Type': file.mimeType,
-        'Content-Type': 'application/json',
-      },
-      body: { file: { display_name: file.filename } },
+  /** Build one file request from its spec, then add the engine metadata.
+   *
+   *  A multipart spec describes the FIELDS but not the bytes, so an upload passes
+   *  its attachment in and the descriptor is filled here. `bodyKind: none` arrives
+   *  as `noBody`; the engine wants the field simply absent. */
+  private fromSpec(specId: string, input: object, file?: MultipartFile): HttpRequest {
+    const built = buildFromSpec(serviceSpec(specId), input as never, this.wireRegistry, 'google', undefined, { baseURL: this.baseURL, apiKey: this.apiKey }) as unknown as Record<string, unknown>;
+    const { noBody, body, multipart, ...rest } = built;
+    const form = multipart && file ? toFormData(multipart as MultipartField[], file) : undefined;
+    return {
+      ...rest,
+      ...(form ? { body: form, rawBody: true } : noBody ? {} : { body }),
       provider: 'google',
       model: 'files',
       responseType: 'json',
+    } as HttpRequest;
+  }
+
+  /** Step ONE of the resumable upload. The second call goes to a URL the server
+   *  returns in a response header, so no spec can describe it — it stays here. */
+  buildStartUploadRequest(file: FileAttachment, byteLength: number): HttpRequest {
+    return this.fromSpec('google/files.startUpload', {
+      filename: file.filename,
+      mimeType: file.mimeType,
+      byteLength,
     });
+  }
+  buildDeleteRequest(remoteId: string): HttpRequest {
+    return this.fromSpec('google/files.delete', { name: googleFileName(remoteId) });
+  }
+  buildGetInfoRequest(remoteId: string): HttpRequest {
+    return this.fromSpec('google/files.getInfo', { name: googleFileName(remoteId) });
+  }
+  buildListRequest(): HttpRequest {
+    return this.fromSpec('google/files.list', {});
+  }
+
+  async upload(file: FileAttachment, fetch: EngineFetch): Promise<FileUploadResult> {
+    const data = await file.toBuffer();
+
+    const startRes = await fetch(this.buildStartUploadRequest(file, data.length));
 
     if (startRes.status >= 400) {
       throw new Error(
@@ -116,29 +147,13 @@ export class GoogleFileAdapter implements FileProviderAdapter {
   }
 
   async delete(remoteId: string, fetch: EngineFetch): Promise<void> {
-    const name = googleFileName(remoteId);
-    await fetch({
-      url: `${this.baseURL}/v1beta/files/${name}?key=${this.apiKey}`,
-      method: 'DELETE',
-      headers: {},
-      body: undefined,
-      provider: 'google',
-      model: 'files',
-      responseType: 'json',
-    });
+    const _name = googleFileName(remoteId);
+    await fetch(this.buildDeleteRequest(remoteId));
   }
 
   async getInfo(remoteId: string, fetch: EngineFetch): Promise<RemoteFileInfo | null> {
-    const name = googleFileName(remoteId);
-    const res = await fetch({
-      url: `${this.baseURL}/v1beta/files/${name}?key=${this.apiKey}`,
-      method: 'GET',
-      headers: {},
-      body: undefined,
-      provider: 'google',
-      model: 'files',
-      responseType: 'json',
-    });
+    const _name = googleFileName(remoteId);
+    const res = await fetch(this.buildGetInfoRequest(remoteId));
     if (res.status >= 400) return null;
     const body = (res.body as Record<string, unknown>) ?? {};
     return {
@@ -153,15 +168,7 @@ export class GoogleFileAdapter implements FileProviderAdapter {
   }
 
   async list(fetch: EngineFetch): Promise<RemoteFileInfo[]> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1beta/files?key=${this.apiKey}&pageSize=100`,
-      method: 'GET',
-      headers: {},
-      body: undefined,
-      provider: 'google',
-      model: 'files',
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildListRequest());
     if (res.status >= 400) return [];
     const body = (res.body as Record<string, unknown>) ?? {};
     const files = (body.files as Array<Record<string, unknown>>) ?? [];

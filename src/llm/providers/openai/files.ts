@@ -1,7 +1,12 @@
 /** OpenAI file adapter — POST /v1/files.
  *  All HTTP flows through the injected EngineFetch (NetworkEngine queue). */
 
-import type { EngineFetch } from '../../../network/types';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { MultipartField, Registry } from '../../../wire/interpreter';
+import { serviceSpec } from '../../../wire/service-specs';
+import { makeRegistry } from '../../wire-transforms';
+import { toFormData, type MultipartFile } from '../../wire-multipart';
+import type { EngineFetch, HttpRequest } from '../../../network/types';
 import type { FileAttachment } from '../../../plugins/files/attachment';
 import type {
   FileProviderAdapter,
@@ -28,26 +33,53 @@ export class OpenAIFileAdapter implements FileProviderAdapter {
     this.baseURL = config.baseURL ?? 'https://api.openai.com';
   }
 
-  private bearer(): Record<string, string> {
-    return { authorization: `Bearer ${this.apiKey}` };
+
+  /** File rules need no adapter handles. */
+  private readonly wireRegistry: Registry = makeRegistry({});
+
+  /** Build one file request from its spec, then add the engine metadata.
+   *
+   *  A multipart spec describes the FIELDS but not the bytes, so an upload passes
+   *  its attachment in and the descriptor is filled here. `bodyKind: none` arrives
+   *  as `noBody`; the engine wants the field simply absent. */
+  private async fromSpec(
+    specId: string,
+    input: object,
+    file?: MultipartFile,
+  ): Promise<HttpRequest> {
+    const built = buildFromSpec(serviceSpec(specId), input as never, this.wireRegistry, 'openai', undefined, { baseURL: this.baseURL, apiKey: this.apiKey }) as unknown as Record<string, unknown>;
+    const { noBody, body, multipart, ...rest } = built;
+    const form =
+      multipart && file ? toFormData(multipart as MultipartField[], file) : undefined;
+    return {
+      ...rest,
+      ...(form ? { body: form, rawBody: true } : noBody ? {} : { body }),
+      provider: 'openai',
+      model: 'files',
+      responseType: 'json',
+    } as HttpRequest;
+  }
+
+  buildUploadRequest(file: FileAttachment, data: Uint8Array): Promise<HttpRequest> {
+    return this.fromSpec('openai/files.upload', {}, {
+      data,
+      filename: file.filename,
+      mimeType: file.mimeType,
+    });
+  }
+  buildDeleteRequest(remoteId: string): Promise<HttpRequest> {
+    return this.fromSpec('openai/files.delete', { remoteId });
+  }
+  buildGetInfoRequest(remoteId: string): Promise<HttpRequest> {
+    return this.fromSpec('openai/files.getInfo', { remoteId });
+  }
+  buildListRequest(): Promise<HttpRequest> {
+    return this.fromSpec('openai/files.list', {});
   }
 
   async upload(file: FileAttachment, fetch: EngineFetch): Promise<FileUploadResult> {
     const data = await file.toBuffer();
-    const form = new FormData();
-    form.append('file', new Blob([data as BlobPart], { type: file.mimeType }), file.filename);
-    form.append('purpose', 'user_data');
-
-    const res = await fetch({
-      url: `${this.baseURL}/v1/files`,
-      method: 'POST',
-      headers: this.bearer(),
-      body: form,
-      rawBody: true,
-      provider: 'openai',
-      model: 'files',
-      responseType: 'json',
-    });
+    const res = await fetch(await this.buildUploadRequest(file, data));
 
     if (res.status >= 400) {
       throw new Error(`OpenAI file upload failed (${res.status}): ${JSON.stringify(res.body)}`);
@@ -59,27 +91,11 @@ export class OpenAIFileAdapter implements FileProviderAdapter {
   }
 
   async delete(remoteId: string, fetch: EngineFetch): Promise<void> {
-    await fetch({
-      url: `${this.baseURL}/v1/files/${remoteId}`,
-      method: 'DELETE',
-      headers: this.bearer(),
-      body: undefined,
-      provider: 'openai',
-      model: 'files',
-      responseType: 'json',
-    });
+    await fetch(await this.buildDeleteRequest(remoteId));
   }
 
   async getInfo(remoteId: string, fetch: EngineFetch): Promise<RemoteFileInfo | null> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1/files/${remoteId}`,
-      method: 'GET',
-      headers: this.bearer(),
-      body: undefined,
-      provider: 'openai',
-      model: 'files',
-      responseType: 'json',
-    });
+    const res = await fetch(await this.buildGetInfoRequest(remoteId));
     if (res.status >= 400) return null;
     const body = (res.body as Record<string, unknown>) ?? {};
     return {
@@ -92,15 +108,7 @@ export class OpenAIFileAdapter implements FileProviderAdapter {
   }
 
   async list(fetch: EngineFetch): Promise<RemoteFileInfo[]> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1/files`,
-      method: 'GET',
-      headers: this.bearer(),
-      body: undefined,
-      provider: 'openai',
-      model: 'files',
-      responseType: 'json',
-    });
+    const res = await fetch(await this.buildListRequest());
     if (res.status >= 400) return [];
     const body = (res.body as Record<string, unknown>) ?? {};
     const data = (body.data as Array<Record<string, unknown>>) ?? [];

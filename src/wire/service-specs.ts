@@ -56,6 +56,26 @@ import batchXaiCreate from './specs/batch/xai.create.json' with { type: 'json' }
 import batchXaiAdd from './specs/batch/xai.addRequests.json' with { type: 'json' };
 import batchXaiStatus from './specs/batch/xai.getStatus.json' with { type: 'json' };
 import batchXaiResults from './specs/batch/xai.getResults.json' with { type: 'json' };
+import batchOpenaiCancel from './specs/batch/openai.cancel.json' with { type: 'json' };
+import batchOpenaiResults from './specs/batch/openai.getResults.json' with { type: 'json' };
+import batchGoogleResults from './specs/batch/google.getResults.json' with { type: 'json' };
+
+// ── files ────────────────────────────────────────────────────────────────────
+import filesAnthropicBase from './specs/files/anthropic.base.json' with { type: 'json' };
+import filesAnthropicUpload from './specs/files/anthropic.upload.json' with { type: 'json' };
+import filesAnthropicDelete from './specs/files/anthropic.delete.json' with { type: 'json' };
+import filesAnthropicGetInfo from './specs/files/anthropic.getInfo.json' with { type: 'json' };
+import filesAnthropicList from './specs/files/anthropic.list.json' with { type: 'json' };
+import filesOpenaiBase from './specs/files/openai.base.json' with { type: 'json' };
+import filesOpenaiUpload from './specs/files/openai.upload.json' with { type: 'json' };
+import filesOpenaiDelete from './specs/files/openai.delete.json' with { type: 'json' };
+import filesOpenaiGetInfo from './specs/files/openai.getInfo.json' with { type: 'json' };
+import filesOpenaiList from './specs/files/openai.list.json' with { type: 'json' };
+import filesGoogleStartUpload from './specs/files/google.startUpload.json' with { type: 'json' };
+import filesGoogleDelete from './specs/files/google.delete.json' with { type: 'json' };
+import filesGoogleGetInfo from './specs/files/google.getInfo.json' with { type: 'json' };
+import filesGoogleList from './specs/files/google.list.json' with { type: 'json' };
+import filesXaiUpload from './specs/files/xai.upload.json' with { type: 'json' };
 
 const DELTAS = new Map<string, SpecDelta>(
   (
@@ -93,6 +113,24 @@ const DELTAS = new Map<string, SpecDelta>(
       batchXaiAdd,
       batchXaiStatus,
       batchXaiResults,
+      batchOpenaiCancel,
+      batchOpenaiResults,
+      batchGoogleResults,
+      filesAnthropicBase,
+      filesAnthropicUpload,
+      filesAnthropicDelete,
+      filesAnthropicGetInfo,
+      filesAnthropicList,
+      filesOpenaiBase,
+      filesOpenaiUpload,
+      filesOpenaiDelete,
+      filesOpenaiGetInfo,
+      filesOpenaiList,
+      filesGoogleStartUpload,
+      filesGoogleDelete,
+      filesGoogleGetInfo,
+      filesGoogleList,
+      filesXaiUpload,
     ] as unknown as SpecDelta[]
   ).map((s) => [s.id, s]),
 );
@@ -104,6 +142,8 @@ const ABSTRACT = new Set([
   'anthropic/batch.base',
   'openai/batch.base',
   'xai/batch.base',
+  'anthropic/files.base',
+  'openai/files.base',
 ]);
 
 const resolved = new Map<string, WireSpec>();

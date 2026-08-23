@@ -194,11 +194,52 @@ export const BATCH_CASES: BatchCase[] = [
   { provider: 'anthropic', op: 'cancel' },
   { provider: 'openai', op: 'submit' },
   { provider: 'openai', op: 'getStatus' },
+  // getResults is TWO calls on OpenAI: read the batch for its output_file_id,
+  // then fetch that file. Both are captured, in order.
+  { provider: 'openai', op: 'getResults' },
+  { provider: 'openai', op: 'cancel' },
   { provider: 'google', op: 'submit' },
   { provider: 'google', op: 'getStatus' },
+  { provider: 'google', op: 'getResults' },
   { provider: 'google', op: 'cancel' },
   { provider: 'xai', op: 'submit' },
   { provider: 'xai', op: 'getStatus' },
   { provider: 'xai', op: 'getResults' },
   { provider: 'xai', op: 'cancel' },
 ];
+
+// ── files ────────────────────────────────────────────────────────────────────
+//
+// Four providers, four upload shapes: OpenAI and Anthropic post multipart, xAI
+// borrows OpenAI's, and Google runs a two-step resumable upload where the first
+// call carries only headers. `remoteId` is deliberately given in the awkward form
+// each provider actually hands back.
+export interface FileCase {
+  provider: 'anthropic' | 'openai' | 'google' | 'xai';
+  op: 'upload' | 'delete' | 'getInfo' | 'list';
+}
+
+export const FILE_CASES: FileCase[] = [
+  { provider: 'anthropic', op: 'upload' },
+  { provider: 'anthropic', op: 'delete' },
+  { provider: 'anthropic', op: 'getInfo' },
+  { provider: 'anthropic', op: 'list' },
+  { provider: 'openai', op: 'upload' },
+  { provider: 'openai', op: 'delete' },
+  { provider: 'openai', op: 'getInfo' },
+  { provider: 'openai', op: 'list' },
+  { provider: 'google', op: 'upload' },
+  { provider: 'google', op: 'delete' },
+  { provider: 'google', op: 'getInfo' },
+  { provider: 'google', op: 'list' },
+  { provider: 'xai', op: 'upload' },
+];
+
+/** The id each provider hands back, in its own format. Google's is a full uri,
+ *  which `googleFileName` has to reduce to a bare name. */
+export const FILE_REMOTE_ID: Record<string, string> = {
+  anthropic: 'file_abc',
+  openai: 'file-abc',
+  google: 'https://generativelanguage.googleapis.com/v1beta/files/abc',
+  xai: 'file_abc',
+};

@@ -65,6 +65,14 @@ export class OpenAIBatchAdapter implements BatchProviderAdapter {
   buildStatusRequest(batchId: string): HttpRequest {
     return this.fromSpec('openai/batch.getStatus', { batchId });
   }
+  buildCancelRequest(batchId: string): HttpRequest {
+    return this.fromSpec('openai/batch.cancel', { batchId });
+  }
+  /** The SECOND call of the results flow: the output file is JSONL, so it decodes
+   *  as text. The first call is buildStatusRequest, which yields the file id. */
+  buildResultsFileRequest(fileId: string): HttpRequest {
+    return this.fromSpec('openai/batch.getResults', { fileId }, 'text');
+  }
 
   async submit(requests: BatchRequest[], fetch: EngineFetch): Promise<string> {
     const jsonl = requests
@@ -142,28 +150,12 @@ export class OpenAIBatchAdapter implements BatchProviderAdapter {
   }
 
   async getResults(batchId: string, fetch: EngineFetch): Promise<BatchResult[]> {
-    const batchRes = await fetch({
-      url: `${this.baseURL}/v1/batches/${batchId}`,
-      method: 'GET',
-      headers: this.bearer(),
-      body: undefined,
-      provider: 'openai',
-      model: 'batch',
-      responseType: 'json',
-    });
+    const batchRes = await fetch(this.buildStatusRequest(batchId));
     const batch = (batchRes.body as Record<string, unknown>) ?? {};
     const outputFileId = batch.output_file_id as string;
     if (!outputFileId) return [];
 
-    const fileRes = await fetch({
-      url: `${this.baseURL}/v1/files/${outputFileId}/content`,
-      method: 'GET',
-      headers: this.bearer(),
-      body: undefined,
-      provider: 'openai',
-      model: 'batch',
-      responseType: 'text',
-    });
+    const fileRes = await fetch(this.buildResultsFileRequest(outputFileId));
     const text = (fileRes.body as string) ?? '';
     const lines = text
       .trim()
@@ -183,14 +175,6 @@ export class OpenAIBatchAdapter implements BatchProviderAdapter {
   }
 
   async cancel(batchId: string, fetch: EngineFetch): Promise<void> {
-    await fetch({
-      url: `${this.baseURL}/v1/batches/${batchId}/cancel`,
-      method: 'POST',
-      headers: this.bearer(),
-      body: {},
-      provider: 'openai',
-      model: 'batch',
-      responseType: 'json',
-    });
+    await fetch(this.buildCancelRequest(batchId));
   }
 }

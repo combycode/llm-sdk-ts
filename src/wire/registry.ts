@@ -29,6 +29,7 @@ import spec_anthropic_messages_4_1 from './specs/anthropic-chain/messages@4.1.js
 import spec_anthropic_messages_4_6 from './specs/anthropic-chain/messages@4.6.json';
 import spec_anthropic_messages_4_7 from './specs/anthropic-chain/messages@4.7.json';
 import spec_google_batch_cancel from './specs/batch/google.cancel.json';
+import spec_google_batch_getResults from './specs/batch/google.getResults.json';
 import spec_google_batch_getStatus from './specs/batch/google.getStatus.json';
 import spec_google_batch_submit from './specs/batch/google.submit.json';
 import spec_google_embeddings from './specs/embeddings/google.json';
@@ -49,6 +50,8 @@ import spec_google_realtime from './specs/realtime/google.json';
 import spec_google_veo_predictLongRunning from './specs/google-media/veo.json';
 import spec_openai_audio_speech from './specs/openai-media/audio.speech.json';
 import spec_openai_batch_base from './specs/batch/openai.base.json';
+import spec_openai_batch_cancel from './specs/batch/openai.cancel.json';
+import spec_openai_batch_getResults from './specs/batch/openai.getResults.json';
 import spec_openai_batch_getStatus from './specs/batch/openai.getStatus.json';
 import spec_openai_batch_uploadJsonl from './specs/batch/openai.uploadJsonl.json';
 import spec_openai_chat_completions from './specs/openai-completions.json';
@@ -103,6 +106,7 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['anthropic/messages@4.6', spec_anthropic_messages_4_6 as unknown as SpecDelta],
   ['anthropic/messages@4.7', spec_anthropic_messages_4_7 as unknown as SpecDelta],
   ['google/batch.cancel', spec_google_batch_cancel as unknown as SpecDelta],
+  ['google/batch.getResults', spec_google_batch_getResults as unknown as SpecDelta],
   ['google/batch.getStatus', spec_google_batch_getStatus as unknown as SpecDelta],
   ['google/batch.submit', spec_google_batch_submit as unknown as SpecDelta],
   ['google/embeddings', spec_google_embeddings as unknown as SpecDelta],
@@ -123,6 +127,8 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['google/veo@predictLongRunning', spec_google_veo_predictLongRunning as unknown as SpecDelta],
   ['openai/audio.speech', spec_openai_audio_speech as unknown as SpecDelta],
   ['openai/batch.base', spec_openai_batch_base as unknown as SpecDelta],
+  ['openai/batch.cancel', spec_openai_batch_cancel as unknown as SpecDelta],
+  ['openai/batch.getResults', spec_openai_batch_getResults as unknown as SpecDelta],
   ['openai/batch.getStatus', spec_openai_batch_getStatus as unknown as SpecDelta],
   ['openai/batch.uploadJsonl', spec_openai_batch_uploadJsonl as unknown as SpecDelta],
   ['openai/chat-completions', spec_openai_chat_completions as unknown as SpecDelta],

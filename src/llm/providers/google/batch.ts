@@ -88,6 +88,11 @@ export class GoogleBatchAdapter implements BatchProviderAdapter {
   buildCancelRequest(batchId: string): HttpRequest {
     return this.fromSpec('google/batch.cancel', { batchId });
   }
+  /** Google returns results inline on the batch resource, so this is the same
+   *  wire as getStatus - two operations that happen to share one request. */
+  buildResultsRequest(batchId: string): HttpRequest {
+    return this.fromSpec('google/batch.getResults', { batchId });
+  }
 
   async submit(requests: BatchRequest[], fetch: EngineFetch): Promise<string> {
     // Gemini inline batch wire shape (from @google/genai): each request is
@@ -143,15 +148,7 @@ export class GoogleBatchAdapter implements BatchProviderAdapter {
   }
 
   async getResults(batchId: string, fetch: EngineFetch): Promise<BatchResult[]> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1beta/${batchId}?key=${this.apiKey}`,
-      method: 'GET',
-      headers: {},
-      body: undefined,
-      provider: 'google',
-      model: this.model,
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildResultsRequest(batchId));
     if (res.status >= 400) return [];
 
     const data = (res.body as Record<string, unknown>) ?? {};

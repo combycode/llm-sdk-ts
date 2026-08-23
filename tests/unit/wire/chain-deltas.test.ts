@@ -106,7 +106,7 @@ describe('a chain delta cannot remove something that is not there', () => {
       }
     }
     expect(broken).toEqual([]);
-    expect(WIRE_SPECS.size).toBe(71);
+    expect(WIRE_SPECS.size).toBe(74);
   });
 });
 
@@ -129,7 +129,7 @@ describe('every name a spec uses resolves to real code', () => {
     for (const v of Object.values(o)) namesIn(v, out);
   }
 
-  it('resolves every named reference across all 71 specs', () => {
+  it('resolves every named reference across all 74 specs', () => {
     const known = new Set([
       ...Object.keys(reg.transforms),
       ...Object.keys(reg.builders),
