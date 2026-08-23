@@ -17,6 +17,10 @@ import { OpenRouterEmbeddingAdapter } from '../../../src/llm/providers/openroute
 import { GoogleEmbeddingAdapter } from '../../../src/llm/providers/google/embeddings';
 import { XAIMediaAdapter } from '../../../src/llm/providers/xai/media';
 import { OpenRouterMediaAdapter } from '../../../src/llm/providers/openrouter/media';
+import { AnthropicBatchAdapter } from '../../../src/llm/providers/anthropic/batch';
+import { OpenAIBatchAdapter } from '../../../src/llm/providers/openai/batch';
+import { GoogleBatchAdapter } from '../../../src/llm/providers/google/batch';
+import { XAIBatchAdapter } from '../../../src/llm/providers/xai/batch';
 import {
   EMBED_CASES,
   OPENROUTER_MEDIA_CASES,
@@ -24,6 +28,9 @@ import {
   type OrMediaCase,
   type XaiMediaCase,
   REALTIME_CASES,
+  BATCH_CASES,
+  BATCH_REQUESTS,
+  BATCH_ID,
 } from './service-corpus';
 import type {
   AudioGenRequest,
@@ -54,7 +61,28 @@ function capturing(response: unknown = {}) {
   return { fetch, seen };
 }
 
+/** FormData does not JSON-serialise in any stable way - depending on the runtime
+ *  it comes out as `{}` or as its own enumerable properties, which made a
+ *  multipart upload compare unequal to itself across two runs of the same code.
+ *  So it is converted explicitly: field order preserved, and a file part reduced
+ *  to the things that actually describe it on the wire. */
+const fromForm = (f: FormData): unknown => ({
+  __formData: [...f.entries()].map(([name, v]) =>
+    typeof v === 'string'
+      ? { name, value: v }
+      : {
+          name,
+          filename: (v as File).name,
+          type: (v as File).type,
+          size: (v as File).size,
+        },
+  ),
+});
+
 const canon = (v: unknown): unknown => {
+  // Re-enter canon so the converted entries get key-sorted like everything else.
+  if (typeof FormData !== 'undefined' && v instanceof FormData) return canon(fromForm(v));
+  if (v instanceof Uint8Array) return { __bytes: v.length };
   if (Array.isArray(v)) return v.map(canon);
   if (v && typeof v === 'object') {
     const src = v as Record<string, unknown>;
@@ -64,7 +92,9 @@ const canon = (v: unknown): unknown => {
   }
   return v;
 };
-const onWire = (v: unknown) => JSON.stringify(canon(JSON.parse(JSON.stringify(v ?? null))));
+// canon FIRST: JSON.stringify would flatten a FormData to `{}` before canon ever
+// saw it, which is how a multipart upload managed to compare unequal to itself.
+const onWire = (v: unknown) => JSON.stringify(canon(v ?? null));
 
 const index = golden.index as Record<string, unknown>;
 
@@ -218,6 +248,57 @@ describe('realtime still produces what was frozen', () => {
       for (const t of c.turns) {
         check(`${base}/turn.${t.name}`, rt.turn(t.input as never, { turnComplete: t.turnComplete }));
       }
+    }
+    expect({ compared: compared > 0, drift: drift.slice(0, 3) }).toEqual({ compared: true, drift: [] });
+  });
+});
+
+const BATCH_ADAPTERS = {
+  anthropic: new AnthropicBatchAdapter({ apiKey: K }),
+  openai: new OpenAIBatchAdapter({ apiKey: K }),
+  google: new GoogleBatchAdapter({ apiKey: K, model: 'gemini-3-flash' }),
+  xai: new XAIBatchAdapter({ apiKey: K }),
+};
+const BATCH_RESPONSE = {
+  id: BATCH_ID,
+  name: BATCH_ID,
+  batch: { name: BATCH_ID },
+  output_file_id: 'file_out',
+  results_url: 'https://x/results',
+  request_counts: {},
+  metadata: {},
+  data: [],
+};
+
+describe('batch still sends what was frozen', () => {
+  it('four providers, four different batching shapes', async () => {
+    const drift: string[] = [];
+    let compared = 0;
+    for (const c of BATCH_CASES) {
+      const a = BATCH_ADAPTERS[c.provider] as unknown as Record<
+        string,
+        (...x: never[]) => Promise<unknown>
+      >;
+      const { fetch, seen } = capturing(BATCH_RESPONSE);
+      try {
+        if (c.op === 'submit') await a.submit(BATCH_REQUESTS as never, fetch);
+        else await a[c.op]?.(BATCH_ID as never, fetch);
+      } catch {
+        /* the fake response may not parse; the requests are already captured */
+      }
+      if (!seen.length) {
+        drift.push(`batch/${c.provider}/${c.op}: no request made`);
+        continue;
+      }
+      // Some operations make more than one call: OpenAI uploads a JSONL file then
+      // creates the batch, xAI creates an empty batch then adds requests to it.
+      seen.forEach((r, i) => {
+        const key = `batch/${c.provider}/${c.op}${i ? `.${i}` : ''}`;
+        compared++;
+        const now = onWire(r);
+        const was = onWire(index[key]);
+        if (now !== was) drift.push(`${key}:\n    frozen: ${was}\n    now:    ${now}`);
+      });
     }
     expect({ compared: compared > 0, drift: drift.slice(0, 3) }).toEqual({ compared: true, drift: [] });
   });

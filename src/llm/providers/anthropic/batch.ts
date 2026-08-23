@@ -1,8 +1,11 @@
 /** Anthropic batch adapter — POST /v1/messages/batches with inline requests.
  *  All HTTP flows through the injected EngineFetch (NetworkEngine queue). */
 
-import { isBrowser } from '../../../runtime/runtime';
-import type { EngineFetch } from '../../../network/types';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { serviceSpec } from '../../../wire/service-specs';
+import { makeRegistry } from '../../wire-transforms';
+import type { EngineFetch, HttpRequest } from '../../../network/types';
 import type {
   BatchProviderAdapter,
   BatchRequest,
@@ -26,33 +29,51 @@ export class AnthropicBatchAdapter implements BatchProviderAdapter {
     this.baseURL = config.baseURL ?? 'https://api.anthropic.com';
   }
 
-  private authHeaders(): Record<string, string> {
-    const headers: Record<string, string> = {
-      'x-api-key': this.apiKey,
-      'anthropic-version': ANTHROPIC_API_VERSION,
-      'content-type': 'application/json',
-    };
-    if (isBrowser()) headers['anthropic-dangerous-direct-browser-access'] = 'true';
-    return headers;
+  /** Batch rules need no adapter handles: the requests are mapped by the spec. */
+  private readonly wireRegistry: Registry = makeRegistry({});
+
+  /** Build one batch request from its spec, then add the engine metadata.
+   *  Every batch call is routed under the `batch` model name for queueing. */
+  private fromSpec(
+    specId: string,
+    input: object,
+    responseType: 'json' | 'text' = 'json',
+  ): HttpRequest {
+    const built = buildFromSpec(serviceSpec(specId), input as never, this.wireRegistry, 'anthropic', undefined, {
+      baseURL: this.baseURL,
+      apiKey: this.apiKey,
+      apiVersion: ANTHROPIC_API_VERSION,
+    }) as unknown as Record<string, unknown>;
+    // `bodyKind: none` in a spec means the request carries no body at all. The
+    // interpreter says so with `noBody`; the engine wants the field simply absent.
+    const { noBody, body, ...rest } = built;
+    return {
+      ...rest,
+      ...(noBody ? {} : { body }),
+      provider: 'anthropic',
+      model: 'batch',
+      responseType,
+    } as HttpRequest;
+  }
+
+  buildSubmitRequest(requests: BatchRequest[]): HttpRequest {
+    return this.fromSpec('anthropic/batch.submit', { requests });
+  }
+  buildStatusRequest(batchId: string): HttpRequest {
+    return this.fromSpec('anthropic/batch.getStatus', { batchId });
+  }
+  /** Results stream back as JSONL, so this one decodes as TEXT. Forcing `json`
+   *  here would have broken every batch read — caught by the frozen corpus, not
+   *  by any type. */
+  buildResultsRequest(batchId: string): HttpRequest {
+    return this.fromSpec('anthropic/batch.getResults', { batchId }, 'text');
+  }
+  buildCancelRequest(batchId: string): HttpRequest {
+    return this.fromSpec('anthropic/batch.cancel', { batchId });
   }
 
   async submit(requests: BatchRequest[], fetch: EngineFetch): Promise<string> {
-    const body = {
-      requests: requests.map((r) => ({
-        custom_id: r.customId,
-        params: r.body,
-      })),
-    };
-
-    const res = await fetch({
-      url: `${this.baseURL}/v1/messages/batches`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'anthropic',
-      model: 'batch',
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildSubmitRequest(requests));
 
     if (res.status >= 400)
       throw new Error(`Anthropic batch submit failed (${res.status}): ${JSON.stringify(res.body)}`);
@@ -61,15 +82,7 @@ export class AnthropicBatchAdapter implements BatchProviderAdapter {
   }
 
   async getStatus(batchId: string, fetch: EngineFetch): Promise<BatchStatus> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1/messages/batches/${batchId}`,
-      method: 'GET',
-      headers: this.authHeaders(),
-      body: undefined,
-      provider: 'anthropic',
-      model: 'batch',
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildStatusRequest(batchId));
     const data = (res.body as Record<string, unknown>) ?? {};
     const counts = (data.request_counts as Record<string, number>) ?? {};
 
@@ -96,15 +109,7 @@ export class AnthropicBatchAdapter implements BatchProviderAdapter {
   }
 
   async getResults(batchId: string, fetch: EngineFetch): Promise<BatchResult[]> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1/messages/batches/${batchId}/results`,
-      method: 'GET',
-      headers: this.authHeaders(),
-      body: undefined,
-      provider: 'anthropic',
-      model: 'batch',
-      responseType: 'text',
-    });
+    const res = await fetch(this.buildResultsRequest(batchId));
     const text = (res.body as string) ?? '';
     const lines = text
       .trim()
@@ -124,14 +129,6 @@ export class AnthropicBatchAdapter implements BatchProviderAdapter {
   }
 
   async cancel(batchId: string, fetch: EngineFetch): Promise<void> {
-    await fetch({
-      url: `${this.baseURL}/v1/messages/batches/${batchId}/cancel`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body: {},
-      provider: 'anthropic',
-      model: 'batch',
-      responseType: 'json',
-    });
+    await fetch(this.buildCancelRequest(batchId));
   }
 }

@@ -168,3 +168,37 @@ export const REALTIME_CASES: RealtimeCase[] = [
     turns: [{ name: 'audio', input: { audio: PCM } }],
   },
 ];
+
+// ── batch ────────────────────────────────────────────────────────────────────
+//
+// Every provider does batching differently: Anthropic posts the requests inline,
+// OpenAI uploads a JSONL file first and references it, xAI creates an empty batch
+// then adds requests to it, and Google submits inline under a model-scoped URL.
+// Four shapes, one interface.
+export interface BatchCase {
+  provider: 'anthropic' | 'openai' | 'google' | 'xai';
+  op: 'submit' | 'getStatus' | 'getResults' | 'cancel';
+}
+
+export const BATCH_REQUESTS = [
+  { customId: 'r1', body: { model: 'm', messages: [{ role: 'user', content: 'hi' }] } },
+  { customId: 'r2', body: { model: 'm', messages: [{ role: 'user', content: 'yo' }] } },
+];
+
+export const BATCH_ID = 'batch_abc';
+
+export const BATCH_CASES: BatchCase[] = [
+  { provider: 'anthropic', op: 'submit' },
+  { provider: 'anthropic', op: 'getStatus' },
+  { provider: 'anthropic', op: 'getResults' },
+  { provider: 'anthropic', op: 'cancel' },
+  { provider: 'openai', op: 'submit' },
+  { provider: 'openai', op: 'getStatus' },
+  { provider: 'google', op: 'submit' },
+  { provider: 'google', op: 'getStatus' },
+  { provider: 'google', op: 'cancel' },
+  { provider: 'xai', op: 'submit' },
+  { provider: 'xai', op: 'getStatus' },
+  { provider: 'xai', op: 'getResults' },
+  { provider: 'xai', op: 'cancel' },
+];

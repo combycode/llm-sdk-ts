@@ -1,8 +1,8 @@
 {
   "_doc": "What the embeddings and seamless-media adapters sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed.",
-  "frozenAtCommit": "626487b1111155ba85ebbed5a8f82b33ba83044d",
+  "frozenAtCommit": "fdf886fc2e1dc5c9a0083270b49ec622d88af571",
   "counts": {
-    "cases": 33
+    "cases": 48
   },
   "index": {
     "embeddings/openai/single": {
@@ -594,6 +594,290 @@
           ]
         }
       }
-    ]
+    ],
+    "batch/anthropic/submit": {
+      "body": {
+        "requests": [
+          {
+            "custom_id": "r1",
+            "params": {
+              "messages": [
+                {
+                  "content": "hi",
+                  "role": "user"
+                }
+              ],
+              "model": "m"
+            }
+          },
+          {
+            "custom_id": "r2",
+            "params": {
+              "messages": [
+                {
+                  "content": "yo",
+                  "role": "user"
+                }
+              ],
+              "model": "m"
+            }
+          }
+        ]
+      },
+      "headers": {
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+        "x-api-key": "k"
+      },
+      "method": "POST",
+      "model": "batch",
+      "provider": "anthropic",
+      "responseType": "json",
+      "url": "https://api.anthropic.com/v1/messages/batches"
+    },
+    "batch/anthropic/getStatus": {
+      "headers": {
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+        "x-api-key": "k"
+      },
+      "method": "GET",
+      "model": "batch",
+      "provider": "anthropic",
+      "responseType": "json",
+      "url": "https://api.anthropic.com/v1/messages/batches/batch_abc"
+    },
+    "batch/anthropic/getResults": {
+      "headers": {
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+        "x-api-key": "k"
+      },
+      "method": "GET",
+      "model": "batch",
+      "provider": "anthropic",
+      "responseType": "text",
+      "url": "https://api.anthropic.com/v1/messages/batches/batch_abc/results"
+    },
+    "batch/anthropic/cancel": {
+      "body": {},
+      "headers": {
+        "anthropic-version": "2023-06-01",
+        "content-type": "application/json",
+        "x-api-key": "k"
+      },
+      "method": "POST",
+      "model": "batch",
+      "provider": "anthropic",
+      "responseType": "json",
+      "url": "https://api.anthropic.com/v1/messages/batches/batch_abc/cancel"
+    },
+    "batch/openai/submit": {
+      "body": {
+        "__formData": [
+          {
+            "filename": "batch_input.jsonl",
+            "name": "file",
+            "size": 243,
+            "type": "application/jsonl"
+          },
+          {
+            "name": "purpose",
+            "value": "batch"
+          }
+        ]
+      },
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "POST",
+      "model": "batch",
+      "provider": "openai",
+      "rawBody": true,
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/files"
+    },
+    "batch/openai/submit.1": {
+      "body": {
+        "completion_window": "24h",
+        "endpoint": "/v1/responses",
+        "input_file_id": "batch_abc"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "batch",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/batches"
+    },
+    "batch/openai/getStatus": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "GET",
+      "model": "batch",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/batches/batch_abc"
+    },
+    "batch/google/submit": {
+      "body": {
+        "batch": {
+          "displayName": "orxa-batch-2",
+          "inputConfig": {
+            "requests": {
+              "requests": [
+                {
+                  "metadata": {
+                    "key": "r1"
+                  },
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "hi",
+                        "role": "user"
+                      }
+                    ],
+                    "model": "m"
+                  }
+                },
+                {
+                  "metadata": {
+                    "key": "r2"
+                  },
+                  "request": {
+                    "messages": [
+                      {
+                        "content": "yo",
+                        "role": "user"
+                      }
+                    ],
+                    "model": "m"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "headers": {
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "gemini-3-flash",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:batchGenerateContent?key=k"
+    },
+    "batch/google/getStatus": {
+      "headers": {},
+      "method": "GET",
+      "model": "gemini-3-flash",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/batch_abc?key=k"
+    },
+    "batch/google/cancel": {
+      "body": {},
+      "headers": {},
+      "method": "POST",
+      "model": "gemini-3-flash",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/batch_abc:cancel?key=k"
+    },
+    "batch/xai/submit": {
+      "body": {
+        "name": "batch_2_01602c10"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "batch",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/batches"
+    },
+    "batch/xai/submit.1": {
+      "body": {
+        "batch_requests": [
+          {
+            "batch_request": {
+              "body": {
+                "messages": [
+                  {
+                    "content": "hi",
+                    "role": "user"
+                  }
+                ],
+                "model": "m"
+              },
+              "endpoint": "responses"
+            },
+            "batch_request_id": "r1"
+          },
+          {
+            "batch_request": {
+              "body": {
+                "messages": [
+                  {
+                    "content": "yo",
+                    "role": "user"
+                  }
+                ],
+                "model": "m"
+              },
+              "endpoint": "responses"
+            },
+            "batch_request_id": "r2"
+          }
+        ]
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "batch",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/batches/batch_abc/requests"
+    },
+    "batch/xai/getStatus": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "GET",
+      "model": "batch",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/batches/batch_abc"
+    },
+    "batch/xai/getResults": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "GET",
+      "model": "batch",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/batches/batch_abc/results"
+    },
+    "batch/xai/cancel": {
+      "body": {},
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "POST",
+      "model": "batch",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/batches/batch_abc/cancel"
+    }
   }
 }

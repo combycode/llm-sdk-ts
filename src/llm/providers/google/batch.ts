@@ -1,7 +1,11 @@
 /** Google batch adapter — inline batchGenerateContent.
  *  All HTTP flows through the injected EngineFetch (NetworkEngine queue). */
 
-import type { EngineFetch } from '../../../network/types';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { serviceSpec } from '../../../wire/service-specs';
+import { makeRegistry } from '../../wire-transforms';
+import type { EngineFetch, HttpRequest } from '../../../network/types';
 import type {
   BatchProviderAdapter,
   BatchRequest,
@@ -42,30 +46,60 @@ export class GoogleBatchAdapter implements BatchProviderAdapter {
     this.baseURL = config.baseURL ?? 'https://generativelanguage.googleapis.com';
   }
 
+  /** Batch rules need no adapter handles: the request list is mapped by the spec. */
+  private readonly wireRegistry: Registry = makeRegistry({});
+
+  /** Build one batch request from its spec, then add the engine metadata.
+   *
+   *  `bodyKind: none` in a spec means no body at all: the interpreter reports that
+   *  as `noBody`, and the engine wants the field simply absent. */
+  private fromSpec(
+    specId: string,
+    input: object,
+    responseType: 'json' | 'text' = 'json',
+  ): HttpRequest {
+    const built = buildFromSpec(
+      serviceSpec(specId),
+      input as never,
+      this.wireRegistry,
+      'google',
+      undefined,
+      { baseURL: this.baseURL, apiKey: this.apiKey, model: this.model },
+    ) as unknown as Record<string, unknown>;
+    const { noBody, body, ...rest } = built;
+    return {
+      ...rest,
+      ...(noBody ? {} : { body }),
+      provider: 'google',
+      // Google's batch calls are routed under the REAL model, not a literal
+      // 'batch': the endpoint is model-scoped, and queueing and cost attribution
+      // both key off this.
+      model: this.model,
+      responseType,
+    } as HttpRequest;
+  }
+
+  buildSubmitRequest(requests: BatchRequest[]): HttpRequest {
+    return this.fromSpec('google/batch.submit', { requests });
+  }
+  buildStatusRequest(batchId: string): HttpRequest {
+    return this.fromSpec('google/batch.getStatus', { batchId });
+  }
+  buildCancelRequest(batchId: string): HttpRequest {
+    return this.fromSpec('google/batch.cancel', { batchId });
+  }
+
   async submit(requests: BatchRequest[], fetch: EngineFetch): Promise<string> {
     // Gemini inline batch wire shape (from @google/genai): each request is
     // { request: <generateContent body>, metadata: { key } }, nested under
     // batch.inputConfig.requests.requests. (The old `{ requests: [...] }` was
     // rejected with "Unknown name 'requests'".)
-    const inlinedRequests = requests.map((r) => ({
+    const _inlinedRequests = requests.map((r) => ({
       request: r.body,
       metadata: { key: r.customId },
     }));
 
-    const res = await fetch({
-      url: `${this.baseURL}/v1beta/models/${this.model}:batchGenerateContent?key=${this.apiKey}`,
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: {
-        batch: {
-          displayName: `orxa-batch-${requests.length}`,
-          inputConfig: { requests: { requests: inlinedRequests } },
-        },
-      },
-      provider: 'google',
-      model: this.model,
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildSubmitRequest(requests));
 
     if (res.status >= 400)
       throw new Error(`Google batch submit failed (${res.status}): ${JSON.stringify(res.body)}`);
@@ -74,15 +108,7 @@ export class GoogleBatchAdapter implements BatchProviderAdapter {
   }
 
   async getStatus(batchId: string, fetch: EngineFetch): Promise<BatchStatus> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1beta/${batchId}?key=${this.apiKey}`,
-      method: 'GET',
-      headers: {},
-      body: undefined,
-      provider: 'google',
-      model: this.model,
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildStatusRequest(batchId));
     if (res.status >= 400)
       return { id: batchId, status: 'failed', total: 0, completed: 0, failed: 0, pending: 0 };
 
@@ -141,14 +167,6 @@ export class GoogleBatchAdapter implements BatchProviderAdapter {
   }
 
   async cancel(batchId: string, fetch: EngineFetch): Promise<void> {
-    await fetch({
-      url: `${this.baseURL}/v1beta/${batchId}:cancel?key=${this.apiKey}`,
-      method: 'POST',
-      headers: {},
-      body: {},
-      provider: 'google',
-      model: this.model,
-      responseType: 'json',
-    });
+    await fetch(this.buildCancelRequest(batchId));
   }
 }

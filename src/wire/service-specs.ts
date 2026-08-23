@@ -39,6 +39,24 @@ import orMediaImage from './specs/openrouter-media/image.json' with { type: 'jso
 import orMediaImageEdit from './specs/openrouter-media/image.edit.json' with { type: 'json' };
 import orMediaAudio from './specs/openrouter-media/audio.json' with { type: 'json' };
 
+// ── batch ────────────────────────────────────────────────────────────────────
+import batchAnthropicBase from './specs/batch/anthropic.base.json' with { type: 'json' };
+import batchAnthropicSubmit from './specs/batch/anthropic.submit.json' with { type: 'json' };
+import batchAnthropicStatus from './specs/batch/anthropic.getStatus.json' with { type: 'json' };
+import batchAnthropicResults from './specs/batch/anthropic.getResults.json' with { type: 'json' };
+import batchAnthropicCancel from './specs/batch/anthropic.cancel.json' with { type: 'json' };
+import batchOpenaiBase from './specs/batch/openai.base.json' with { type: 'json' };
+import batchOpenaiUpload from './specs/batch/openai.uploadJsonl.json' with { type: 'json' };
+import batchOpenaiStatus from './specs/batch/openai.getStatus.json' with { type: 'json' };
+import batchGoogleSubmit from './specs/batch/google.submit.json' with { type: 'json' };
+import batchGoogleStatus from './specs/batch/google.getStatus.json' with { type: 'json' };
+import batchGoogleCancel from './specs/batch/google.cancel.json' with { type: 'json' };
+import batchXaiBase from './specs/batch/xai.base.json' with { type: 'json' };
+import batchXaiCreate from './specs/batch/xai.create.json' with { type: 'json' };
+import batchXaiAdd from './specs/batch/xai.addRequests.json' with { type: 'json' };
+import batchXaiStatus from './specs/batch/xai.getStatus.json' with { type: 'json' };
+import batchXaiResults from './specs/batch/xai.getResults.json' with { type: 'json' };
+
 const DELTAS = new Map<string, SpecDelta>(
   (
     [
@@ -59,11 +77,34 @@ const DELTAS = new Map<string, SpecDelta>(
       orMediaImage,
       orMediaImageEdit,
       orMediaAudio,
+      batchAnthropicBase,
+      batchAnthropicSubmit,
+      batchAnthropicStatus,
+      batchAnthropicResults,
+      batchAnthropicCancel,
+      batchOpenaiBase,
+      batchOpenaiUpload,
+      batchOpenaiStatus,
+      batchGoogleSubmit,
+      batchGoogleStatus,
+      batchGoogleCancel,
+      batchXaiBase,
+      batchXaiCreate,
+      batchXaiAdd,
+      batchXaiStatus,
+      batchXaiResults,
     ] as unknown as SpecDelta[]
   ).map((s) => [s.id, s]),
 );
 
-const ABSTRACT = new Set(['xai/media.base', 'xai/images.base', 'openrouter/media.base']);
+const ABSTRACT = new Set([
+  'xai/media.base',
+  'xai/images.base',
+  'openrouter/media.base',
+  'anthropic/batch.base',
+  'openai/batch.base',
+  'xai/batch.base',
+]);
 
 const resolved = new Map<string, WireSpec>();
 

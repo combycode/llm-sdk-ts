@@ -1,7 +1,11 @@
 /** OpenAI batch adapter — upload JSONL file, create batch, poll, download results.
  *  All HTTP flows through the injected EngineFetch (NetworkEngine queue). */
 
-import type { EngineFetch } from '../../../network/types';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { serviceSpec } from '../../../wire/service-specs';
+import { makeRegistry } from '../../wire-transforms';
+import type { EngineFetch, HttpRequest } from '../../../network/types';
 import type {
   BatchProviderAdapter,
   BatchRequest,
@@ -26,6 +30,40 @@ export class OpenAIBatchAdapter implements BatchProviderAdapter {
 
   private bearer(): Record<string, string> {
     return { authorization: `Bearer ${this.apiKey}` };
+  }
+
+  /** Batch rules need no adapter handles: the request list is mapped by the spec. */
+  private readonly wireRegistry: Registry = makeRegistry({});
+
+  /** Build one batch request from its spec, then add the engine metadata.
+   *
+   *  `bodyKind: none` in a spec means no body at all: the interpreter reports that
+   *  as `noBody`, and the engine wants the field simply absent. */
+  private fromSpec(
+    specId: string,
+    input: object,
+    responseType: 'json' | 'text' = 'json',
+  ): HttpRequest {
+    const built = buildFromSpec(
+      serviceSpec(specId),
+      input as never,
+      this.wireRegistry,
+      'openai',
+      undefined,
+      { baseURL: this.baseURL, apiKey: this.apiKey },
+    ) as unknown as Record<string, unknown>;
+    const { noBody, body, ...rest } = built;
+    return {
+      ...rest,
+      ...(noBody ? {} : { body }),
+      provider: 'openai',
+      model: 'batch',
+      responseType,
+    } as HttpRequest;
+  }
+
+  buildStatusRequest(batchId: string): HttpRequest {
+    return this.fromSpec('openai/batch.getStatus', { batchId });
   }
 
   async submit(requests: BatchRequest[], fetch: EngineFetch): Promise<string> {
@@ -78,15 +116,7 @@ export class OpenAIBatchAdapter implements BatchProviderAdapter {
   }
 
   async getStatus(batchId: string, fetch: EngineFetch): Promise<BatchStatus> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1/batches/${batchId}`,
-      method: 'GET',
-      headers: this.bearer(),
-      body: undefined,
-      provider: 'openai',
-      model: 'batch',
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildStatusRequest(batchId));
     const data = (res.body as Record<string, unknown>) ?? {};
     const counts = (data.request_counts as Record<string, number>) ?? {};
 
