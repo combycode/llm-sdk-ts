@@ -27,7 +27,7 @@ import { ModelCatalog, type ModelInfo } from '../../../src/catalog/catalog';
 import { WIRE_SPECS } from '../../../src/wire/registry';
 import { resolveSpec, type SpecDelta } from '../../../src/wire/inherit';
 import { buildFromSpec, type WireSpec } from '../../../src/wire/interpreter';
-import { makeRegistry } from '../../../src/wire/transforms';
+import { makeRegistry } from '../../../src/llm/wire-transforms';
 import { AnthropicAdapter } from '../../../src/llm/providers/anthropic/messages';
 import { GoogleAdapter } from '../../../src/llm/providers/google/generate';
 import { GoogleInteractionsAdapter } from '../../../src/llm/providers/google/interactions';

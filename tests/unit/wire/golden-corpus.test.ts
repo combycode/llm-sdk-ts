@@ -98,6 +98,20 @@ describe('the frozen corpus is intact', () => {
   });
 });
 
+/** Both ways a spec-driven adapter can pick its spec must land on the same wire.
+ *
+ *  `pinned`   the catalog resolved `wireSpec` and the client put it on the request.
+ *  `unpinned` no catalog, or a model newer than ours: the adapter derives the band
+ *             from the model id, exactly as it did before the specs existed.
+ *
+ *  Checking only the pinned path would leave the fallback — the route every
+ *  uncatalogued model takes — entirely unmeasured, and it is the half more likely
+ *  to be wrong. */
+const ROUTES = [
+  { name: 'unpinned', pin: false },
+  { name: 'pinned', pin: true },
+] as const;
+
 describe('every catalogued chat model still sends what 2.3.0 sent', () => {
   for (const provider of Object.keys(FLOOR)) {
     it(provider, () => {
@@ -113,16 +127,23 @@ describe('every catalogued chat model still sends what 2.3.0 sent', () => {
             drift.push(`${key} ${shape.name}: not in the frozen corpus`);
             continue;
           }
-          compared++;
-          let now: string;
-          try {
-            now = onWire(s.adapter.buildRequest(shape.req(s.model) as never));
-          } catch (e) {
-            drift.push(`${key} ${shape.name}: threw ${(e as Error).message}`);
-            continue;
-          }
-          if (now !== was) {
-            drift.push(`${key} ${shape.name}:\n    2.3.0: ${was}\n    now:   ${now}`);
+          for (const route of ROUTES) {
+            compared++;
+            const req = route.pin
+              ? { ...shape.req(s.model), wireSpec: s.specId }
+              : shape.req(s.model);
+            let now: string;
+            try {
+              now = onWire(s.adapter.buildRequest(req as never));
+            } catch (e) {
+              drift.push(`${key} ${shape.name} [${route.name}]: threw ${(e as Error).message}`);
+              continue;
+            }
+            if (now !== was) {
+              drift.push(
+                `${key} ${shape.name} [${route.name}]:\n    2.3.0: ${was}\n    now:   ${now}`,
+              );
+            }
           }
         }
       }

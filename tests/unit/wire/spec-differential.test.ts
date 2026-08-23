@@ -23,7 +23,7 @@ import { OpenRouterAdapter } from '../../../src/llm/providers/openrouter/complet
 import { OpenRouterResponsesAdapter } from '../../../src/llm/providers/openrouter/responses';
 import { buildFromSpec, type WireSpec } from '../../../src/wire/interpreter';
 import { resolveSpec, type SpecDelta } from '../../../src/wire/inherit';
-import { makeRegistry } from '../../../src/wire/transforms';
+import { makeRegistry } from '../../../src/llm/wire-transforms';
 import { WIRE_SPECS } from '../../../src/wire/registry';
 import type { NormalizedRequest } from '../../../src/llm/types/request';
 

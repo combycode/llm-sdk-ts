@@ -8,14 +8,14 @@
  *  structural message/content transformation, schema-shape rules, and one
  *  variant rule that is arithmetic rather than a pattern.
  */
-import type { Ctx, Registry } from './interpreter';
-import { ensureAdditionalProperties, strictSupport } from '../llm/types/schema-utils';
-import { resolveVoice } from '../llm/audio/voices';
-import { buildNativeModeration } from '../llm/moderation/native';
-import { anthropicThinkingShape } from '../llm/providers/anthropic/constants';
-import { googleRequestTier } from '../llm/providers/google/tiers';
-import { openaiRequestTier } from '../llm/providers/openai/tiers';
-import { xaiRequestTier } from '../llm/providers/xai/tiers';
+import type { Ctx, Registry } from '../wire/interpreter';
+import { ensureAdditionalProperties, strictSupport } from './types/schema-utils';
+import { resolveVoice } from './audio/voices';
+import { buildNativeModeration } from './moderation/native';
+import { anthropicThinkingShape } from './providers/anthropic/constants';
+import { googleRequestTier } from './providers/google/tiers';
+import { openaiRequestTier } from './providers/openai/tiers';
+import { xaiRequestTier } from './providers/xai/tiers';
 import { bytesToBase64 } from '../util/base64';
 import { fnv1a32Hex } from '../util/hash';
 import {
@@ -32,11 +32,17 @@ const isFunctionToolValue = (t: any): boolean => !t?.type || t.type === 'functio
 
 /** Adapters whose private message builders we reuse. Instantiated once; the
  *  builders are pure with respect to the request. */
+/** The hand-written adapter methods the specs cannot express as data.
+ *
+ *  All optional: a registry built by ONE adapter to drive its own spec carries only
+ *  its own handle, and each transform below is reached only from that provider's
+ *  spec. Requiring the full set would force every adapter to import every other
+ *  adapter just to build its own request. */
 export interface AdapterHandles {
-  anthropic: any;
-  google: any;
-  openaiResponses: any;
-  openaiCompletions: any;
+  anthropic?: any;
+  google?: any;
+  openaiResponses?: any;
+  openaiCompletions?: any;
   googleInteractions?: any;
   openrouterMedia?: any;
 }

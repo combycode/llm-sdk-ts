@@ -17,18 +17,16 @@ import {
   type FileOutput,
   type Usage,
 } from '../../types/response';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { chatSpec, isChatSpec } from '../../../wire/chat-specs';
+import { makeRegistry } from '../../wire-transforms';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
-import { ensureAdditionalProperties } from '../../types/schema-utils';
-import type { ServiceTier } from '../../types/tiers';
-import { isFunctionTool } from '../../types/tools';
-import { DEFAULT_MAX_TOKENS } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
 import {
   ANTHROPIC_API_VERSION,
   anthropicThinkingShape,
-  ANTHROPIC_THINKING_BUDGETS,
-  DEFAULT_ANTHROPIC_THINKING_BUDGET,
   anthropicAcceptsTopK,
 } from './constants';
 import { sseJson } from '../_shared/sse';
@@ -39,20 +37,10 @@ export interface AnthropicAdapterConfig {
 }
 
 // ─── service tiers (provider-specific, kept local) ───
-//  Anthropic's REQUEST param is allow/forbid priority, not a selector:
-//    service_tier: 'auto' (may use priority) | 'standard_only' (force standard).
-//  The RESPONSE reports what actually billed: usage.service_tier ∈ standard|priority|batch.
-const ANTHROPIC_REQUEST_TIER: Record<string, string> = {
-  auto: 'auto',
-  standard: 'standard_only',
-  priority: 'auto',
-  flex: 'standard_only', // no Flex tier → standard
-  scale: 'auto', // no Scale tier → auto
-};
-function anthropicRequestTier(t?: ServiceTier): string | undefined {
-  if (!t) return undefined;
-  return ANTHROPIC_REQUEST_TIER[t] ?? 'auto';
-}
+//  The REQUEST mapping moved into the spec: Anthropic's param is allow/forbid
+//  priority rather than a selector, and that is a table, which is data.
+//  The RESPONSE side stays here — it reads what actually billed
+//  (usage.service_tier ∈ standard|priority|batch), which no spec describes.
 /** Billed tier (response usage.service_tier) → {raw, catalog key}. Identity:
  *  the catalog is keyed by Anthropic's own billed names (standard|priority|batch). */
 function anthropicBilledTier(raw: unknown): { serviceTier?: string; pricingTier?: string } {
@@ -155,211 +143,48 @@ export class AnthropicAdapter implements ProviderAdapter {
     return this._baseURL ?? 'https://api.anthropic.com';
   }
 
+  /** Named code the spec cannot express as data — message and content assembly.
+   *  Built once, carrying only this adapter, since only Anthropic rules run. */
+  private readonly wireRegistry: Registry = makeRegistry({ anthropic: this });
+
   completionPath(): string {
     return '/v1/messages';
   }
 
+  /** The spec that builds this model's request.
+   *
+   *  The catalog pin decides when there is one. Without it — an engine running with
+   *  no catalog, or a model released after we last shipped — the band is derived
+   *  from the id, which is what this adapter did for every model before the specs
+   *  existed. Both questions the Anthropic chain is keyed on are asked here, so an
+   *  unpinned model lands on the same node its hand-written path used. */
+  private specIdFor(req: NormalizedRequest): string {
+    if (isChatSpec(req.wireSpec) && req.wireSpec.startsWith('anthropic/')) return req.wireSpec;
+    // No pin. Fall back the way this adapter always has: per-model traits from the
+    // catalog beat the id, and the id decides only what the catalog does not say.
+    // A catalog can carry `wire` without a `wireSpec` — one built by hand through
+    // `catalog.set()` — and dropping to the id there would silently discard the
+    // very override the catalog exists to provide.
+    const adaptive = (req.wire?.thinking ?? anthropicThinkingShape(req.model)) === 'adaptive';
+    const topK = req.wire?.topK ?? anthropicAcceptsTopK(req.model);
+    if (adaptive) return topK ? 'anthropic/messages@4.6' : 'anthropic/messages@4.7';
+    return topK ? 'anthropic/messages@4.1' : 'anthropic/messages@4.0';
+  }
+
   buildRequest(req: NormalizedRequest): ProviderHttpRequest {
-    // cache:'auto' also caches the conversation prefix by putting a breakpoint on
-    // the LAST message's last block (Anthropic caches everything up to it) — this
-    // covers a large trailing user / RAG context, not just system + tools.
-    const cacheAutoLast = req.cache === 'auto';
-    const lastIdx = req.messages.length - 1;
-    const body: Record<string, unknown> = {
-      model: req.model,
-      max_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
-      messages: req.messages.map((m, i) =>
-        this.buildMessage(m, req, cacheAutoLast && i === lastIdx),
-      ),
-    };
-
-    if (req.system) {
-      const shouldCache =
-        req.cache === 'auto' || (typeof req.cache === 'object' && req.cache.system);
-      body.system = shouldCache
-        ? [{ type: 'text', text: req.system, cache_control: { type: 'ephemeral' } }]
-        : req.system;
-    }
-
-    if (req.temperature !== undefined) body.temperature = req.temperature;
-    if (req.topP !== undefined) body.top_p = req.topP;
-    // Wire traits come from the CATALOG when the model is catalogued, and fall back
-    // to parsing the id otherwise. The fallback is what a catalog-less engine uses;
-    // it is also what got this wrong twice, so the catalog wins whenever it speaks.
-    //
-    // `top_k` is DEPRECATED on Anthropic: models released after Claude Opus 4.6 reject it
-    // outright (400 "`top_k` is deprecated for this model"), so sending it breaks the call.
-    if (req.topK !== undefined && (req.wire?.topK ?? anthropicAcceptsTopK(req.model))) body.top_k = req.topK;
-    // No `seed` — Anthropic rejects it (live 2026-07-28: 400 "seed: Extra inputs are not permitted").
-    if (req.stop) body.stop_sequences = req.stop;
-    const tier = anthropicRequestTier(req.serviceTier);
-    if (tier) body.service_tier = tier;
-
-    if (req.tools?.length) {
-      const shouldCacheTools =
-        req.cache === 'auto' || (typeof req.cache === 'object' && req.cache.tools);
-
-      body.tools = req.tools
-        .map((t, i) => {
-          // Map unified builtins to Anthropic's hosted server tools. web_search is GA;
-          // code_execution is a BETA feature — it needs the beta endpoint (`?beta=true`,
-          // set below) for its file outputs to surface. Unsupported builtins are skipped.
-          if (!isFunctionTool(t)) {
-            if (t.type === 'web_search') {
-              // Current GA version. Unlike 20250305, it defaults to *programmatic*
-              // tool calling (via code execution), which many chat models (e.g. haiku)
-              // reject — so default allowed_callers to ['direct'] to preserve the classic
-              // direct-call behaviour. Forward the unified params (allowed_domains,
-              // blocked_domains, user_location, response_inclusion, max_uses,
-              // allowed_callers) verbatim like the OpenAI adapter; the caller overrides
-              // any default.
-              return {
-                type: 'web_search_20260318',
-                name: 'web_search',
-                max_uses: 5,
-                allowed_callers: ['direct'],
-                ...t.params,
-              };
-            }
-            if (t.type === 'web_fetch') {
-              // Current GA version. Like web_search it defaults to programmatic tool
-              // calling, so default allowed_callers to ['direct']; forward params
-              // (allowed_domains, blocked_domains, citations, max_content_tokens, max_uses).
-              return {
-                type: 'web_fetch_20260318',
-                name: 'web_fetch',
-                allowed_callers: ['direct'],
-                ...t.params,
-              };
-            }
-            if (t.type === 'code_interpreter') {
-              return { type: 'code_execution_20260521', name: 'code_execution' };
-            }
-            return null;
-          }
-          // Strict is OPT-IN here, and stays that way. It was briefly defaulted on,
-          // because it is the one thing that stops this model calling a tool that was
-          // never declared (10/10 undeclared without it, 0/10 with it). That benefit is
-          // real but conditional — it only matters when something puts an undeclared
-          // tool in front of the model, which normal use does not do — and the cost is
-          // that Anthropic's strict mode carries limits no per-schema check can predict:
-          //
-          //   · at most 20 strict tools per request
-          //   · at most 24 OPTIONAL parameters summed across all strict schemas,
-          //     counting nested ones
-          //   · an opaque complexity limit on top: 24 optional parameters spread over
-          //     four tools compiles, the same 24 in ONE tool answers "Schema is too
-          //     complex for compilation"
-          //
-          // The first two are aggregate, so they cannot live in a per-schema predicate;
-          // the third has no published formula at all. Twelve ordinary tools with five
-          // optional parameters each already exceed the second, so defaulting strict on
-          // broke realistic tool sets. Callers who want the guarantee ask for it, and
-          // the provider's error is then about a schema they chose.
-          const strict = t.strict === true;
-          const params = ensureAdditionalProperties(t.parameters);
-          const tool: Record<string, unknown> = {
-            name: t.name,
-            description: t.description,
-            // Only the strict path was measured with `additionalProperties: false`
-            // applied; without strict the schema goes out untouched, as before.
-            input_schema: strict ? params : t.parameters,
-          };
-          if (strict) tool.strict = true;
-          if ((t.cache || shouldCacheTools) && i === req.tools!.length - 1) {
-            tool.cache_control = { type: 'ephemeral' };
-          }
-          return tool;
-        })
-        .filter((t): t is Record<string, unknown> => t !== null);
-    }
-
-    if (req.toolChoice) {
-      if (req.toolChoice === 'auto') body.tool_choice = { type: 'auto' };
-      else if (req.toolChoice === 'none') body.tool_choice = { type: 'none' };
-      else if (req.toolChoice === 'required') body.tool_choice = { type: 'any' };
-      else body.tool_choice = { type: 'tool', name: req.toolChoice.name };
-    }
-
-    if (req.thinking) {
-      if (req.thinking.mode === 'off') {
-        /* no thinking param */
-      } else if ((req.wire?.thinking ?? anthropicThinkingShape(req.model)) === 'adaptive') {
-        // 4.6 and later. `budget_tokens` is REJECTED here with a 400 — the model decides
-        // its own depth, and `effort` is how you steer it.
-        const thinking: Record<string, unknown> = { type: 'adaptive' };
-        // `hidden` redacts thinking from the output (a signature is kept for
-        // multi-turn continuity); full/summary leave it summarized (the default).
-        if (req.thinking.visibility === 'hidden') thinking.display = 'omitted';
-        body.thinking = thinking;
-        if (req.thinking.effort) {
-          // Merged, not assigned: `structured` writes its format into the same object
-          // further down, and it reads what is already there.
-          body.output_config = {
-            ...((body.output_config as Record<string, unknown>) ?? {}),
-            effort: req.thinking.effort,
-          };
-        }
-        // No max_tokens lifting: there is no budget for it to have to exceed.
-      } else {
-        // Pre-4.6. `adaptive` does not exist on these models, and thinking without a
-        // budget is not enabled at all, so the budget is mandatory. Map the unified
-        // effort to a token budget.
-        const budget = req.thinking.effort
-          ? (ANTHROPIC_THINKING_BUDGETS[req.thinking.effort] ?? DEFAULT_ANTHROPIC_THINKING_BUDGET)
-          : DEFAULT_ANTHROPIC_THINKING_BUDGET;
-        const thinking: Record<string, unknown> = { type: 'enabled', budget_tokens: budget };
-        if (req.thinking.visibility === 'hidden') thinking.display = 'omitted';
-        body.thinking = thinking;
-        // Anthropic requires max_tokens > budget_tokens — lift it transparently.
-        if ((body.max_tokens as number) <= budget) body.max_tokens = budget + 1024;
-      }
-    }
-
-    if (req.structured) {
-      body.output_config = {
-        ...((body.output_config as Record<string, unknown>) ?? {}),
-        format: { type: 'json_schema', schema: ensureAdditionalProperties(req.structured.schema) },
-      };
-    }
-
-    // Check if any content part uses file references — need beta header
-    const hasFileRef = req.messages.some((m) => {
-      if (typeof m.content === 'string') return false;
-      return m.content.some((p) => {
-        const s = (p as { source?: { type?: string } }).source;
-        return s?.type === 'provider_ref' || s?.type === 'file';
-      });
-    });
-
-    const headers: Record<string, string> = {};
-    if (hasFileRef) headers['anthropic-beta'] = 'files-api-2025-04-14';
-
-    // user_profile_id: forward a providerOptions.userProfileId to the
-    // `anthropic-user-profile-id` header (identifies the end user a request acts on
-    // behalf of; needs the account-level `user-profiles` beta). Mirrors the official
-    // SDK, which sets only this header.
-    const userProfileId = req.providerOptions?.userProfileId;
-    if (typeof userProfileId === 'string' && userProfileId) {
-      headers['anthropic-user-profile-id'] = userProfileId;
-    }
-
-    // Hosted code execution is a beta feature: its output files (container files,
-    // returned as bash_code_execution_output.file_id) only surface on the beta
-    // endpoint. `client.beta.messages` hits `/v1/messages?beta=true`; mirror that
-    // when the code_interpreter builtin is used.
-    const usesCodeExec = req.tools?.some(
-      (t) => !isFunctionTool(t) && t.type === 'code_interpreter',
-    );
-
-    return { body, headers, ...(usesCodeExec ? { path: '/v1/messages?beta=true' } : {}) };
+    return buildFromSpec(
+      chatSpec(this.specIdFor(req)),
+      req,
+      this.wireRegistry,
+    ) as ProviderHttpRequest;
   }
 
   enableStreaming(providerReq: ProviderHttpRequest, _req: NormalizedRequest): void {
     (providerReq.body as Record<string, unknown>).stream = true;
   }
 
-  private buildMessage(
+  /** Reached through the wire registry while building this adapter's own request. */
+  buildMessage(
     msg: { role: string; content: string | ContentPart[]; cache?: boolean },
     _req: NormalizedRequest,
     forceCache = false,

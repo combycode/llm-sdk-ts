@@ -252,6 +252,7 @@ export class LLMClient {
     const normalized: NormalizedRequest = {
       model: this.model,
       wire: this.catalog.get(this.provider, this.model)?.wire,
+      wireSpec: this.catalog.get(this.provider, this.model)?.wireSpec,
       messages,
       system: composedSystem,
       maxTokens: options.maxTokens,
@@ -477,6 +478,7 @@ export class LLMClient {
     const normalized: NormalizedRequest = {
       model: this.model,
       wire: this.catalog.get(this.provider, this.model)?.wire,
+      wireSpec: this.catalog.get(this.provider, this.model)?.wireSpec,
       messages,
       system: composedSystem,
       maxTokens: options.maxTokens,
