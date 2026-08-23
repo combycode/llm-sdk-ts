@@ -258,25 +258,54 @@ describe('countTokens() — count-API honest zero', () => {
     const hooks = new HookBus();
     hooks.on('onCostEntry', (ctx) => { entries.push(ctx); });
 
-    // Patch globalThis.fetch to intercept the Anthropic count_tokens call
-    const origFetch = globalThis.fetch;
-    let fetchCalled = false;
-    globalThis.fetch = (async () => {
-      fetchCalled = true;
-      return { ok: true, json: async () => ({ input_tokens: 3 }), text: async () => '' } as unknown as Response;
-    }) as unknown as typeof fetch;
-    try {
-      const engine = { apiKeys: { anthropic: 'test-key' }, fetch: null as unknown as EngineFetch, hooks, catalog } as unknown as EngineHandle;
-      const n = await countTokens({ model: 'anthropic/claude-3-haiku', input: 'hi', exact: true, engine });
-      expect(n).toBe(3);
-      expect(fetchCalled).toBe(true);
-      expect(entries).toHaveLength(1);
-      expect(entries[0].entry.cost.total).toBe(0);
-      expect(entries[0].entry.cost.source).toBe('calculated');
-      expect(entries[0].entry.providerEvidence.note).toBe('free: provider does not bill count endpoint');
-    } finally {
-      globalThis.fetch = origFetch;
-    }
+    // The count endpoint is intercepted on the ENGINE's fetch. This test used to
+    // patch `globalThis.fetch` and hand the engine a null one, which passed only
+    // because the count APIs went around the engine — the defect that arrangement
+    // was quietly describing.
+    let seen: { url?: string } | undefined;
+    const fetch = (async (req: { url?: string }) => {
+      seen = req;
+      return { status: 200, headers: {}, body: { input_tokens: 3 } };
+    }) as unknown as EngineFetch;
+
+    const engine = { apiKeys: { anthropic: 'test-key' }, fetch, hooks, catalog } as unknown as EngineHandle;
+    const n = await countTokens({ model: 'anthropic/claude-3-haiku', input: 'hi', exact: true, engine });
+    expect(n).toBe(3);
+    expect(seen?.url).toContain('/v1/messages/count_tokens');
+    expect(entries).toHaveLength(1);
+    expect(entries[0].entry.cost.total).toBe(0);
+    expect(entries[0].entry.cost.source).toBe('calculated');
+    expect(entries[0].entry.providerEvidence.note).toBe('free: provider does not bill count endpoint');
+  });
+
+  it('emits NOTHING when the counter never called the provider', async () => {
+    const { countTokens } = await import('../../../src/helpers/count-tokens');
+
+    // A catalogue entry with no `tokenizer.strategy` — which is every entry the
+    // library ships today. The counter falls back to the heuristic and no request
+    // leaves the process, so a ledger entry would be recording a call that never
+    // happened. That is what this used to do.
+    const catalog = new ModelCatalog();
+    catalog.set('anthropic', 'claude-3-haiku', {
+      pricing: { inputPerMTok: 0.25, outputPerMTok: 1.25 },
+    } as never);
+
+    const entries: CostEntryContext[] = [];
+    const hooks = new HookBus();
+    hooks.on('onCostEntry', (ctx) => { entries.push(ctx); });
+
+    let calls = 0;
+    const fetch = (async () => {
+      calls++;
+      return { status: 200, headers: {}, body: { input_tokens: 3 } };
+    }) as unknown as EngineFetch;
+
+    const engine = { apiKeys: { anthropic: 'test-key' }, fetch, hooks, catalog } as unknown as EngineHandle;
+    const n = await countTokens({ model: 'anthropic/claude-3-haiku', input: 'hi', exact: true, engine });
+
+    expect(calls).toBe(0);
+    expect(entries).toEqual([]);
+    expect(n).toBeGreaterThan(0); // the heuristic still answers
   });
 });
 

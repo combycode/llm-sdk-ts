@@ -36,11 +36,10 @@ export async function countTokens(opts: CountTokensOptions): Promise<number> {
   const apiKey = opts.apiKey ?? engine.apiKeys[provider];
 
   const countApiKeys: { anthropic?: string; google?: string } = {};
-  const usesCountApi = apiKey && (provider === 'anthropic' || provider === 'google');
   if (apiKey && provider === 'anthropic') countApiKeys.anthropic = apiKey;
   if (apiKey && provider === 'google') countApiKeys.google = apiKey;
 
-  const counter = new HybridTokenCounter({ catalog: engine.catalog, countApiKeys });
+  const counter = new HybridTokenCounter({ catalog: engine.catalog, countApiKeys, fetch: engine.fetch });
   const ctx = { provider, model };
   const exact = opts.exact ?? true;
 
@@ -55,9 +54,14 @@ export async function countTokens(opts: CountTokensOptions): Promise<number> {
   }
 
   // Count-API paths (Anthropic /v1/messages/count_tokens, Google :countTokens)
-  // hit a provider endpoint but are explicitly free — emit an honest zero so
-  // the cost ledger has a record of the call rather than silent absence.
-  if (usesCountApi && exact) {
+  // hit a provider endpoint but are explicitly free — emit an honest zero so the
+  // cost ledger has a record of the call rather than silent absence.
+  //
+  // Gated on the strategy that ACTUALLY ran. It used to be gated on the provider
+  // plus the presence of a key, which is intent: with no `tokenizer.strategy` in
+  // the catalog the counter falls back to the heuristic and never calls anything,
+  // and the ledger was recording a provider call that never happened.
+  if (exact && apiKey && counter.strategyNameFor(ctx) === 'count_api') {
     emitCountApiZero(engine, provider, model);
   }
 

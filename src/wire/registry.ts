@@ -21,7 +21,9 @@ import spec_anthropic_batch_cancel from './specs/batch/anthropic.cancel.json';
 import spec_anthropic_batch_getResults from './specs/batch/anthropic.getResults.json';
 import spec_anthropic_batch_getStatus from './specs/batch/anthropic.getStatus.json';
 import spec_anthropic_batch_submit from './specs/batch/anthropic.submit.json';
+import spec_anthropic_count_messages from './specs/count/anthropic.json';
 import spec_anthropic_files_base from './specs/files/anthropic.base.json';
+import spec_anthropic_files_content from './specs/files/anthropic.content.json';
 import spec_anthropic_files_delete from './specs/files/anthropic.delete.json';
 import spec_anthropic_files_getInfo from './specs/files/anthropic.getInfo.json';
 import spec_anthropic_files_list from './specs/files/anthropic.list.json';
@@ -30,11 +32,15 @@ import spec_anthropic_messages_4_0 from './specs/anthropic-chain/messages@4.0.js
 import spec_anthropic_messages_4_1 from './specs/anthropic-chain/messages@4.1.json';
 import spec_anthropic_messages_4_6 from './specs/anthropic-chain/messages@4.6.json';
 import spec_anthropic_messages_4_7 from './specs/anthropic-chain/messages@4.7.json';
+import spec_anthropic_models_list from './specs/models/anthropic.json';
+import spec_files_download_byUrl from './specs/files/download.byUrl.json';
 import spec_google_batch_cancel from './specs/batch/google.cancel.json';
 import spec_google_batch_getResults from './specs/batch/google.getResults.json';
 import spec_google_batch_getStatus from './specs/batch/google.getStatus.json';
 import spec_google_batch_submit from './specs/batch/google.submit.json';
+import spec_google_count_tokens from './specs/count/google.json';
 import spec_google_embeddings from './specs/embeddings/google.json';
+import spec_google_files_content from './specs/files/google.content.json';
 import spec_google_files_delete from './specs/files/google.delete.json';
 import spec_google_files_finishUpload from './specs/files/google.finishUpload.json';
 import spec_google_files_getInfo from './specs/files/google.getInfo.json';
@@ -52,6 +58,7 @@ import spec_google_media_generateContent from './specs/google-media/generateCont
 import spec_google_media_operation_cancel from './specs/google-media/operation.cancel.json';
 import spec_google_media_operation_status from './specs/google-media/operation.status.json';
 import spec_google_media_predict from './specs/google-media/predict.base.json';
+import spec_google_models_list from './specs/models/google.json';
 import spec_google_realtime from './specs/realtime/google.json';
 import spec_google_retrieval_base from './specs/retrieval/google.base.json';
 import spec_google_retrieval_createCorpus from './specs/retrieval/google.createCorpus.json';
@@ -88,6 +95,8 @@ import spec_openai_batch_uploadJsonl from './specs/batch/openai.uploadJsonl.json
 import spec_openai_chat_completions from './specs/openai-completions.json';
 import spec_openai_embeddings from './specs/embeddings/openai.json';
 import spec_openai_files_base from './specs/files/openai.base.json';
+import spec_openai_files_content from './specs/files/openai.content.json';
+import spec_openai_files_content_container from './specs/files/openai.content.container.json';
 import spec_openai_files_delete from './specs/files/openai.delete.json';
 import spec_openai_files_getInfo from './specs/files/openai.getInfo.json';
 import spec_openai_files_list from './specs/files/openai.list.json';
@@ -97,7 +106,9 @@ import spec_openai_images_generations from './specs/openai-media/images.generati
 import spec_openai_images_generations_dall_e from './specs/openai-media/images.generations.dalle.json';
 import spec_openai_media_base from './specs/openai-media/media.base.json';
 import spec_openai_media_images from './specs/openai-media/images.base.json';
+import spec_openai_models_list from './specs/models/openai.json';
 import spec_openai_moderations from './specs/moderation/openai.json';
+import spec_openai_provenance_check from './specs/provenance/openai.json';
 import spec_openai_realtime from './specs/realtime/openai.json';
 import spec_openai_responses from './specs/openai-responses.json';
 import spec_openai_retrieval_attachDocument from './specs/retrieval/openai.attachDocument.json';
@@ -118,6 +129,7 @@ import spec_openrouter_media_audio from './specs/openrouter-media/audio.json';
 import spec_openrouter_media_base from './specs/openrouter-media/base.json';
 import spec_openrouter_media_image from './specs/openrouter-media/image.json';
 import spec_openrouter_media_imageEdit from './specs/openrouter-media/image.edit.json';
+import spec_openrouter_models_list from './specs/models/openrouter.json';
 import spec_xai_batch_addRequests from './specs/batch/xai.addRequests.json';
 import spec_xai_batch_base from './specs/batch/xai.base.json';
 import spec_xai_batch_cancel from './specs/batch/xai.cancel.json';
@@ -130,6 +142,7 @@ import spec_xai_images_edits from './specs/xai-media/images.edits.json';
 import spec_xai_images_generations from './specs/xai-media/images.generations.json';
 import spec_xai_media_base from './specs/xai-media/base.json';
 import spec_xai_media_download from './specs/xai-media/download.json';
+import spec_xai_models_list from './specs/models/xai.json';
 import spec_xai_retrieval_attachDocument from './specs/retrieval/xai.attachDocument.json';
 import spec_xai_retrieval_base from './specs/retrieval/xai.base.json';
 import spec_xai_retrieval_createCorpus from './specs/retrieval/xai.createCorpus.json';
@@ -156,7 +169,9 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['anthropic/batch.getResults', spec_anthropic_batch_getResults as unknown as SpecDelta],
   ['anthropic/batch.getStatus', spec_anthropic_batch_getStatus as unknown as SpecDelta],
   ['anthropic/batch.submit', spec_anthropic_batch_submit as unknown as SpecDelta],
+  ['anthropic/count.messages', spec_anthropic_count_messages as unknown as SpecDelta],
   ['anthropic/files.base', spec_anthropic_files_base as unknown as SpecDelta],
+  ['anthropic/files.content', spec_anthropic_files_content as unknown as SpecDelta],
   ['anthropic/files.delete', spec_anthropic_files_delete as unknown as SpecDelta],
   ['anthropic/files.getInfo', spec_anthropic_files_getInfo as unknown as SpecDelta],
   ['anthropic/files.list', spec_anthropic_files_list as unknown as SpecDelta],
@@ -165,11 +180,15 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['anthropic/messages@4.1', spec_anthropic_messages_4_1 as unknown as SpecDelta],
   ['anthropic/messages@4.6', spec_anthropic_messages_4_6 as unknown as SpecDelta],
   ['anthropic/messages@4.7', spec_anthropic_messages_4_7 as unknown as SpecDelta],
+  ['anthropic/models.list', spec_anthropic_models_list as unknown as SpecDelta],
+  ['files/download.byUrl', spec_files_download_byUrl as unknown as SpecDelta],
   ['google/batch.cancel', spec_google_batch_cancel as unknown as SpecDelta],
   ['google/batch.getResults', spec_google_batch_getResults as unknown as SpecDelta],
   ['google/batch.getStatus', spec_google_batch_getStatus as unknown as SpecDelta],
   ['google/batch.submit', spec_google_batch_submit as unknown as SpecDelta],
+  ['google/count.tokens', spec_google_count_tokens as unknown as SpecDelta],
   ['google/embeddings', spec_google_embeddings as unknown as SpecDelta],
+  ['google/files.content', spec_google_files_content as unknown as SpecDelta],
   ['google/files.delete', spec_google_files_delete as unknown as SpecDelta],
   ['google/files.finishUpload', spec_google_files_finishUpload as unknown as SpecDelta],
   ['google/files.getInfo', spec_google_files_getInfo as unknown as SpecDelta],
@@ -187,6 +206,7 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['google/media.operation.cancel', spec_google_media_operation_cancel as unknown as SpecDelta],
   ['google/media.operation.status', spec_google_media_operation_status as unknown as SpecDelta],
   ['google/media.predict', spec_google_media_predict as unknown as SpecDelta],
+  ['google/models.list', spec_google_models_list as unknown as SpecDelta],
   ['google/realtime', spec_google_realtime as unknown as SpecDelta],
   ['google/retrieval.base', spec_google_retrieval_base as unknown as SpecDelta],
   ['google/retrieval.createCorpus', spec_google_retrieval_createCorpus as unknown as SpecDelta],
@@ -223,6 +243,8 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['openai/chat-completions', spec_openai_chat_completions as unknown as SpecDelta],
   ['openai/embeddings', spec_openai_embeddings as unknown as SpecDelta],
   ['openai/files.base', spec_openai_files_base as unknown as SpecDelta],
+  ['openai/files.content', spec_openai_files_content as unknown as SpecDelta],
+  ['openai/files.content.container', spec_openai_files_content_container as unknown as SpecDelta],
   ['openai/files.delete', spec_openai_files_delete as unknown as SpecDelta],
   ['openai/files.getInfo', spec_openai_files_getInfo as unknown as SpecDelta],
   ['openai/files.list', spec_openai_files_list as unknown as SpecDelta],
@@ -232,7 +254,9 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['openai/images.generations@dall-e', spec_openai_images_generations_dall_e as unknown as SpecDelta],
   ['openai/media.base', spec_openai_media_base as unknown as SpecDelta],
   ['openai/media.images', spec_openai_media_images as unknown as SpecDelta],
+  ['openai/models.list', spec_openai_models_list as unknown as SpecDelta],
   ['openai/moderations', spec_openai_moderations as unknown as SpecDelta],
+  ['openai/provenance.check', spec_openai_provenance_check as unknown as SpecDelta],
   ['openai/realtime', spec_openai_realtime as unknown as SpecDelta],
   ['openai/responses', spec_openai_responses as unknown as SpecDelta],
   ['openai/retrieval.attachDocument', spec_openai_retrieval_attachDocument as unknown as SpecDelta],
@@ -253,6 +277,7 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['openrouter/media.base', spec_openrouter_media_base as unknown as SpecDelta],
   ['openrouter/media.image', spec_openrouter_media_image as unknown as SpecDelta],
   ['openrouter/media.imageEdit', spec_openrouter_media_imageEdit as unknown as SpecDelta],
+  ['openrouter/models.list', spec_openrouter_models_list as unknown as SpecDelta],
   ['xai/batch.addRequests', spec_xai_batch_addRequests as unknown as SpecDelta],
   ['xai/batch.base', spec_xai_batch_base as unknown as SpecDelta],
   ['xai/batch.cancel', spec_xai_batch_cancel as unknown as SpecDelta],
@@ -265,6 +290,7 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['xai/images.generations', spec_xai_images_generations as unknown as SpecDelta],
   ['xai/media.base', spec_xai_media_base as unknown as SpecDelta],
   ['xai/media.download', spec_xai_media_download as unknown as SpecDelta],
+  ['xai/models.list', spec_xai_models_list as unknown as SpecDelta],
   ['xai/retrieval.attachDocument', spec_xai_retrieval_attachDocument as unknown as SpecDelta],
   ['xai/retrieval.base', spec_xai_retrieval_base as unknown as SpecDelta],
   ['xai/retrieval.createCorpus', spec_xai_retrieval_createCorpus as unknown as SpecDelta],

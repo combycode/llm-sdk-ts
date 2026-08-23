@@ -13,6 +13,10 @@ import { base64ToBytes } from '../../util/base64';
 import { header } from '../../util/http';
 import type { EngineFetch } from '../../network/types';
 import type { ProviderName } from '../types/provider';
+import { buildFromSpec } from '../../wire/interpreter';
+import { utilitySpec } from '../../wire/utility-specs';
+import { makeRegistry } from '../wire-transforms';
+import { ANTHROPIC_API_VERSION } from '../providers/anthropic/constants';
 import type { FileOutput } from '../types/response';
 
 export interface RetrieveContext {
@@ -55,58 +59,44 @@ const DEFAULT_BASE: Record<ProviderName, string> = {
 
 const OCTET_STREAM = 'application/octet-stream';
 
-/** Build the authenticated content-download request for a file fetched by id. */
-function contentRequest(
-  ctx: RetrieveContext,
-  file: FileOutput,
-): { url: string; headers: Record<string, string> } {
-  const base = ctx.baseURL ?? DEFAULT_BASE[ctx.provider];
-  const id = file.id as string;
-  if (ctx.provider === 'anthropic') {
-    return {
-      url: `${base}/v1/files/${id}/content?beta=true`,
-      headers: {
-        'x-api-key': ctx.apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-beta': 'files-api-2025-04-14',
-        accept: 'application/binary',
-        // Enable CORS for direct browser requests (same header the completion
-        // adapter sets); harmless on Node/Bun. Without it the browser blocks the
-        // file download by CORS.
-        ...(isBrowser() ? { 'anthropic-dangerous-direct-browser-access': 'true' } : {}),
-      },
-    };
-  }
+/** Which spec builds the content request for a file fetched by id. */
+function contentSpecFor(ctx: RetrieveContext, file: FileOutput): string {
+  if (ctx.provider === 'anthropic') return 'anthropic/files.content';
+  if (ctx.provider === 'google') return 'google/files.content';
   if (ctx.provider === 'openai' || ctx.provider === 'xai' || ctx.provider === 'openrouter') {
     // Code-execution output files live inside a container.
-    const containerId = file.ref?.containerId as string | undefined;
-    const path = containerId
-      ? `/v1/containers/${containerId}/files/${id}/content`
-      : `/v1/files/${id}/content`;
-    return { url: `${base}${path}`, headers: { authorization: `Bearer ${ctx.apiKey}` } };
-  }
-  if (ctx.provider === 'google') {
-    return {
-      url: `${base}/v1beta/files/${id}:download?alt=media`,
-      headers: { 'x-goog-api-key': ctx.apiKey },
-    };
+    return file.ref?.containerId ? 'openai/files.content.container' : 'openai/files.content';
   }
   throw new Error(`retrieveFile: no file-content endpoint for provider "${ctx.provider}"`);
 }
 
-/** Only send the provider's credentials to the provider's own host. */
-function providerAuth(ctx: RetrieveContext, url: string): Record<string, string> {
-  const base = ctx.baseURL ?? DEFAULT_BASE[ctx.provider];
-  if (!url.startsWith(base)) return {};
-  if (ctx.provider === 'anthropic') {
-    return {
-      'x-api-key': ctx.apiKey,
-      'anthropic-version': '2023-06-01',
-      ...(isBrowser() ? { 'anthropic-dangerous-direct-browser-access': 'true' } : {}),
-    };
-  }
-  if (ctx.provider === 'google') return { 'x-goog-api-key': ctx.apiKey };
-  return { authorization: `Bearer ${ctx.apiKey}` };
+/** Build one file request from its spec.
+ *
+ *  Two facts the spec cannot work out for itself are passed IN: whether this is a
+ *  browser (an Anthropic download needs a CORS opt-in header there and nowhere
+ *  else) and whether the url is on the provider's OWN host. The second is decided
+ *  here on purpose — sending a credential to whatever host a response named is the
+ *  risk this guard exists for, and that decision should be readable as code. */
+function buildFileRequest(
+  specId: string,
+  ctx: RetrieveContext,
+  input: Record<string, unknown>,
+  responseType: 'arraybuffer' | 'stream',
+): Record<string, unknown> {
+  const built = buildFromSpec(
+    utilitySpec(specId),
+    { ...input, browser: isBrowser(), provider: ctx.provider } as never,
+    makeRegistry({}),
+    ctx.provider,
+    undefined,
+    {
+      baseURL: ctx.baseURL ?? DEFAULT_BASE[ctx.provider],
+      apiKey: ctx.apiKey,
+      apiVersion: ANTHROPIC_API_VERSION,
+    },
+  ) as unknown as Record<string, unknown>;
+  const { noBody: _noBody, body: _body, ...rest } = built;
+  return { ...rest, provider: ctx.provider, model: 'files', responseType };
 }
 
 async function fetchFileResponse(
@@ -115,27 +105,25 @@ async function fetchFileResponse(
   responseType: 'arraybuffer' | 'stream',
 ) {
   if (file.url) {
-    return ctx.fetch({
-      url: file.url,
-      method: 'GET',
-      headers: providerAuth(ctx, file.url),
-      body: undefined,
-      provider: ctx.provider,
-      model: 'files',
-      responseType,
-    });
+    const base = ctx.baseURL ?? DEFAULT_BASE[ctx.provider];
+    return ctx.fetch(
+      buildFileRequest(
+        'files/download.byUrl',
+        ctx,
+        { url: file.url, sameHost: file.url.startsWith(base) },
+        responseType,
+      ) as never,
+    );
   }
   if (file.id) {
-    const { url, headers } = contentRequest(ctx, file);
-    return ctx.fetch({
-      url,
-      method: 'GET',
-      headers,
-      body: undefined,
-      provider: ctx.provider,
-      model: 'files',
-      responseType,
-    });
+    return ctx.fetch(
+      buildFileRequest(
+        contentSpecFor(ctx, file),
+        ctx,
+        { id: file.id, containerId: file.ref?.containerId },
+        responseType,
+      ) as never,
+    );
   }
   throw new Error('retrieveFile: FileOutput has neither `data`, `url`, nor `id`');
 }

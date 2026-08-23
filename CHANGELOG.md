@@ -8,6 +8,11 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **The last four hand-built surfaces are spec-driven**: exact token counting, live model listing,
+  file-content retrieval and the provenance check. With those, **every request the library sends
+  comes from a spec** — 145 of them. Nothing in `src/` assembles a URL, a header set or a body by
+  hand any more.
+
 - **MCP is spec-driven too, transport and OAuth.** The Streamable-HTTP transport's five requests
   (call, notification, long-lived subscription, event stream, session delete) and the OAuth flow's
   five (two discovery probes, dynamic client registration, code exchange, refresh) now come from 13
@@ -52,6 +57,17 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   against a provider, which is how both defects below survived.
 
 ### Changed
+
+- **`AnthropicCountApi` and `GoogleCountApi` take an `EngineFetch`, and it is required** (BREAKING).
+  They defaulted to `globalThis.fetch`, so every exact token count for Anthropic and Google went out
+  AROUND the NetworkEngine: no queue, no rate limiting, no retry, no telemetry span — while every
+  other file in the library states that all HTTP goes through the injected fetch. `countTokens()`
+  passes `engine.fetch` for you, so the documented path needs no change; a `HybridTokenCounter`
+  built with `countApiKeys` but no `fetch` now says so and falls back to the heuristic instead of
+  silently leaving the engine.
+
+  The default is gone rather than replaced, because a default that silently bypasses the engine is
+  what produced this.
 
 - **MCP header assembly is one ordered list instead of three helpers.** Which headers a call
   carries — session, protocol version, the modern `Mcp-Method` / `Mcp-Name` routing pair — was
@@ -112,6 +128,16 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   and by a live end-to-end run on both providers.
 
 ### Fixed
+
+- **The cost ledger recorded a provider call that never happened.** `countTokens()` emitted its
+  zero-cost count-API entry whenever the provider was Anthropic or Google and a key was present —
+  that is INTENT. The counter picks its strategy from the catalog's `tokenizer.strategy`, and no
+  catalogued model declares one, so the heuristic answered and nothing was called. The entry is now
+  gated on the strategy that actually ran.
+
+- **A test that was describing the bug.** The count-API cost test stubbed `globalThis.fetch` and
+  handed the engine a `null` one — it could only pass while the count APIs bypassed the engine. It
+  now intercepts the engine's fetch and asserts the endpoint that was called.
 
 - **A Google hosted corpus was silently ignored.** `{ type: 'file_search' }` had no mapping in the
   Gemini chain spec, so the tool was dropped from the request and the model answered from its own

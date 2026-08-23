@@ -162,6 +162,7 @@ import { mediaSpec } from '../src/wire/media-specs';
 import { serviceSpec } from '../src/wire/service-specs';
 import { retrievalSpec } from '../src/wire/retrieval-specs';
 import { mcpSpec } from '../src/wire/mcp-specs';
+import { utilitySpec } from '../src/wire/utility-specs';
 import { mcpWireRegistry } from '../src/plugins/mcp/wire-rules';
 
 const MEDIA_BASE: Record<string, string> = {
@@ -626,6 +627,52 @@ for (const d of [...MCP_DRIVES, ...OAUTH_DRIVES]) {
   }
 }
 
+
+// ── also drive every UTILITY spec DIRECTLY ───────────────────────────────────
+//
+// Token counting, model listing, file content and provenance. The inputs reach
+// the guarded rules: a system prompt, a model id that already carries its
+// `models/` prefix, a container-scoped file, a browser download, and a url on a
+// third-party host (where the credential must NOT go).
+const A_VER = { apiKey: 'k', apiVersion: '2023-06-01' };
+const UTILITY_DRIVES: Drive[] = [
+  { id: 'anthropic/count.messages', input: { model: 'm', messages: [{ role: 'user', content: 'hi' }] }, config: { baseURL: ANTHROPIC_B, ...A_VER } },
+  { id: 'anthropic/count.messages', input: { model: 'm', messages: [{ role: 'user', content: 'hi' }], system: 's' }, config: { baseURL: ANTHROPIC_B, ...A_VER } },
+  { id: 'google/count.tokens', input: { model: 'm', text: 'hi' }, config: { baseURL: GOOGLE_B, apiKey: 'k' } },
+  { id: 'google/count.tokens', input: { model: 'models/m', text: 'hi' }, config: { baseURL: GOOGLE_B, apiKey: 'k' } },
+
+  { id: 'openai/models.list', input: {}, config: { apiKey: 'k' } },
+  { id: 'anthropic/models.list', input: {}, config: A_VER },
+  { id: 'google/models.list', input: {}, config: { apiKey: 'k' } },
+  { id: 'xai/models.list', input: {}, config: { apiKey: 'k' } },
+  { id: 'openrouter/models.list', input: {}, config: { apiKey: 'k' } },
+
+  { id: 'openai/files.content', input: { id: 'f1' }, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'openai/files.content.container', input: { id: 'f1', containerId: 'c1' }, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'anthropic/files.content', input: { id: 'f1' }, config: { baseURL: ANTHROPIC_B, ...A_VER } },
+  { id: 'anthropic/files.content', input: { id: 'f1', browser: true }, config: { baseURL: ANTHROPIC_B, ...A_VER } },
+  { id: 'google/files.content', input: { id: 'files/f1' }, config: { baseURL: GOOGLE_B, apiKey: 'k' } },
+  { id: 'files/download.byUrl', input: { url: 'https://cdn.example.com/x', sameHost: false, provider: 'openai' }, config: { apiKey: 'k' } },
+  { id: 'files/download.byUrl', input: { url: `${OPENAI_B}/x`, sameHost: true, provider: 'openai' }, config: { apiKey: 'k' } },
+  { id: 'files/download.byUrl', input: { url: `${ANTHROPIC_B}/x`, sameHost: true, provider: 'anthropic', browser: true }, config: A_VER },
+  { id: 'files/download.byUrl', input: { url: `${GOOGLE_B}/x`, sameHost: true, provider: 'google' }, config: { apiKey: 'k' } },
+
+  { id: 'openai/provenance.check', input: {}, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+];
+
+let utilityBuilds = 0;
+const utilityFailures: string[] = [];
+for (const d of UTILITY_DRIVES) {
+  const spec = utilitySpec(d.id);
+  const note = (kind: string, name: string) => rulesFired.add(`${d.id}|${kind}|${name}`);
+  try {
+    buildFromSpec(spec, d.input as never, recorded, d.flavor ?? spec.provider, note, d.config);
+    utilityBuilds++;
+  } catch (e) {
+    utilityFailures.push(`${d.id}: ${(e as Error).message}`);
+  }
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 const CHAT = new Set(subjects.map((s) => s.specId));
 const line = (s: string) => console.log(s);
@@ -641,6 +688,8 @@ line(`retrieval builds     : ${retrievalBuilds}/${RETRIEVAL_DRIVES.length} retri
 for (const f of retrievalFailures) line(`  DRIVE FAILED  ${f}`);
 line(`mcp builds           : ${mcpBuilds}/${MCP_DRIVES.length + OAUTH_DRIVES.length} mcp + oauth specs driven`);
 for (const f of mcpFailures) line(`  DRIVE FAILED  ${f}`);
+line(`utility builds       : ${utilityBuilds}/${UTILITY_DRIVES.length} utility specs driven`);
+for (const f of utilityFailures) line(`  DRIVE FAILED  ${f}`);
 line('');
 
 if (missing.length) {

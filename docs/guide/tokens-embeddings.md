@@ -22,6 +22,16 @@ transcribing speech to text.
 | `HybridTokenCounter` | Low-level token counter that tries tiktoken, falls back to count-API, then heuristic. Used by `countTokens` and `estimate()` internally. |
 | `HeuristicCounter` / `TiktokenCounter` / `CountApiCounter` | Individual counters for custom wiring. |
 
+**Wiring a counter yourself?** The exact count APIs are HTTP calls, so they need the engine's fetch
+— the queue, the rate limiter, the retry policy and the telemetry all live there:
+
+```ts
+new HybridTokenCounter({ catalog: engine.catalog, countApiKeys, fetch: engine.fetch });
+```
+
+Leave `fetch` out and the exact strategies are unavailable: counting falls back to the heuristic and
+warns. `countTokens()` passes it for you.
+
 ## Exact OpenAI counting needs `tiktoken` (optional peer dependency)
 
 The SDK has **zero required runtime dependencies**. Exact OpenAI tokenization is the one feature

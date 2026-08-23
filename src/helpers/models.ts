@@ -13,6 +13,9 @@ import type { ProviderName } from '../llm/types/provider';
 import type { ModelCapabilities, ModelInfo, ModelPricing } from '../catalog/catalog';
 import { isBrowser } from '../runtime/runtime';
 import { coreRegistry, type EngineHandle } from './engine';
+import { buildFromSpec } from '../wire/interpreter';
+import { utilitySpec } from '../wire/utility-specs';
+import { makeRegistry } from '../llm/wire-transforms';
 import { ANTHROPIC_API_VERSION } from '../llm/providers/anthropic/constants';
 
 /** Curated local catalog (the main answer). */
@@ -186,18 +189,24 @@ async function fetchLiveBody(opts: ListModelsLiveOptions): Promise<Record<string
   if (!apiKey) throw new Error(`listModelsLive: no API key for provider "${opts.provider}".`);
 
   const p = (async () => {
+    const built = buildFromSpec(
+      utilitySpec(`${opts.provider}/models.list`),
+      {} as never,
+      makeRegistry({}),
+      opts.provider,
+      undefined,
+      { apiKey, apiVersion: ANTHROPIC_API_VERSION },
+    ) as unknown as Record<string, unknown>;
+    const { noBody: _noBody, body: _body, ...rest } = built;
     const res = await engine.fetch(
       {
-        url: spec.url,
-        method: 'GET',
-        headers: spec.headers(apiKey),
-        body: undefined,
+        ...rest,
         provider: opts.provider,
         // Model-agnostic endpoint — name the queue explicitly so it isn't the
         // dangling `provider/` derived from an empty model.
         model: 'models',
         responseType: 'json',
-      },
+      } as never,
       { queueName: `${opts.provider}/models` },
     );
     const body = res.body as Record<string, unknown>;

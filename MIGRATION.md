@@ -34,6 +34,33 @@ catalog.set('anthropic', 'my-model', { pricing: {}, wireSpec: 'anthropic/message
 in 2.3.0 — checked on every CI run against a corpus frozen from the 2.3.0 tag: 290 subjects across
 23 request shapes, on both the pinned and the id-derived route.
 
+## The token-count APIs need the engine's fetch
+
+`AnthropicCountApi` and `GoogleCountApi` used to default their second argument to
+`globalThis.fetch`. That default is gone: the fetch is required, and it is an `EngineFetch` — the
+same request-object fetch every other adapter takes — rather than a WHATWG `(url, init)` one.
+
+**Almost certainly no source change.** `countTokens()` and `HybridTokenCounter` build these for you,
+and `countTokens()` passes `engine.fetch`. You only touch this if you construct one directly:
+
+```ts
+// before — went around the NetworkEngine entirely
+const api = new AnthropicCountApi(apiKey);
+
+// after
+const api = new AnthropicCountApi(apiKey, engine.fetch);
+```
+
+If you build a `HybridTokenCounter` yourself and want the exact count APIs, pass `fetch`:
+
+```ts
+new HybridTokenCounter({ catalog, countApiKeys, fetch: engine.fetch });
+```
+
+Without it the exact strategies are unavailable and counting falls back to the heuristic, with a
+warning — rather than quietly calling the provider outside the queue, the rate limiter, the retry
+policy and the telemetry, which is what the old default did.
+
 ## Nothing else was removed
 
 The band helpers that went with it — `anthropicThinkingShape`, `anthropicAcceptsTopK`,

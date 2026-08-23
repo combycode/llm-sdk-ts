@@ -3,6 +3,7 @@
 import type { Message } from '../../../llm/types/messages';
 import type { TokenCountContext, TokenCounter, LearnInput } from '../../../agent/types';
 import type { ModelCatalog } from '../../../catalog/catalog';
+import type { EngineFetch } from '../../../network/types';
 import type { CalibrationStore } from '../types';
 import { HeuristicCounter } from './heuristic';
 import { TiktokenCounter } from './tiktoken';
@@ -15,6 +16,12 @@ export interface HybridCounterConfig {
     anthropic?: string;
     google?: string;
   };
+  /** Required to use the exact count APIs: they are HTTP calls, and every HTTP
+   *  call in this library goes through the engine's fetch. Without it the exact
+   *  strategies are unavailable and counting falls back to the heuristic — which
+   *  is said out loud rather than done quietly, because a silent downgrade from
+   *  exact to estimated is invisible in the only place it matters: the number. */
+  fetch?: EngineFetch;
 }
 
 /**
@@ -37,11 +44,18 @@ export class HybridTokenCounter implements TokenCounter {
     this.heuristic = new HeuristicCounter(config.catalog ?? null, config.calibrationStore ?? null);
 
     const countApis: { anthropic?: AnthropicCountApi; google?: GoogleCountApi } = {};
-    if (config.countApiKeys?.anthropic) {
-      countApis.anthropic = new AnthropicCountApi(config.countApiKeys.anthropic);
+    const wanted = config.countApiKeys?.anthropic || config.countApiKeys?.google;
+    if (wanted && !config.fetch) {
+      console.warn(
+        '[llm-sdk] HybridTokenCounter: countApiKeys were given without `fetch`, so the exact ' +
+          'count APIs are unavailable and counting falls back to the heuristic. Pass engine.fetch.',
+      );
     }
-    if (config.countApiKeys?.google) {
-      countApis.google = new GoogleCountApi(config.countApiKeys.google);
+    if (config.fetch && config.countApiKeys?.anthropic) {
+      countApis.anthropic = new AnthropicCountApi(config.countApiKeys.anthropic, config.fetch);
+    }
+    if (config.fetch && config.countApiKeys?.google) {
+      countApis.google = new GoogleCountApi(config.countApiKeys.google, config.fetch);
     }
     this.countApi = new CountApiCounter(config.catalog ?? null, countApis);
   }
@@ -68,6 +82,19 @@ export class HybridTokenCounter implements TokenCounter {
 
   learn(input: LearnInput): void {
     this.heuristic.learn(input);
+  }
+
+  /** Which strategy a context resolves to, without running it.
+   *
+   *  Public because a caller has to be able to ASK. `countTokens()` records a
+   *  zero-cost ledger entry for a count-API call, and it was deciding that from
+   *  the provider and the presence of a key — that is intent, not evidence. It now
+   *  asks what actually ran, so the ledger cannot claim a provider call that never
+   *  left the process. */
+  strategyNameFor(ctx?: TokenCountContext): 'tiktoken' | 'count_api' | 'heuristic' {
+    if (!ctx?.provider || !ctx.model || !this._config.catalog) return 'heuristic';
+    const strategy = this._config.catalog.get(ctx.provider, ctx.model)?.tokenizer?.strategy;
+    return strategy === 'tiktoken' || strategy === 'count_api' ? strategy : 'heuristic';
   }
 
   private strategyFor(ctx?: TokenCountContext): TokenCounter {

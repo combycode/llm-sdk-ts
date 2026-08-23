@@ -2,16 +2,38 @@
 
 import type { Message } from '../../../llm/types/messages';
 import type { TokenCountContext, TokenCounter, LearnInput } from '../../../agent/types';
-import type { FetchFn } from '../../../network/types';
+import type { EngineFetch } from '../../../network/types';
+import { buildFromSpec } from '../../../wire/interpreter';
+import { utilitySpec } from '../../../wire/utility-specs';
+import { makeRegistry } from '../../../llm/wire-transforms';
 import type { ModelCatalog } from '../../../catalog/catalog';
 import { HeuristicCounter, messageChars } from './heuristic';
 import { ANTHROPIC_API_VERSION } from '../../../llm/providers/anthropic/constants';
+
+
+/** Build a count request from its spec and add the engine metadata.
+ *
+ *  These two endpoints used to call `globalThis.fetch` directly, which meant every
+ *  exact token count went out around the NetworkEngine: no queue, no rate limit,
+ *  no retry, no telemetry span — while every other file in the library says all
+ *  HTTP goes through the injected fetch. The fetch is now REQUIRED rather than
+ *  defaulted, because a default that silently bypasses the engine is the trap that
+ *  produced this. */
+function countRequest(
+  specId: string,
+  input: object,
+  config: Record<string, unknown>,
+  provider: string,
+): Record<string, unknown> {
+  const built = buildFromSpec(utilitySpec(specId), input as never, makeRegistry({}), provider, undefined, config) as unknown as Record<string, unknown>;
+  return { ...built, provider, model: 'count_tokens', responseType: 'json' };
+}
 
 /** Anthropic count endpoint: POST /v1/messages/count_tokens */
 export class AnthropicCountApi {
   constructor(
     private readonly apiKey: string,
-    private readonly fetchFn: FetchFn = globalThis.fetch.bind(globalThis),
+    private readonly fetchFn: EngineFetch,
     private readonly baseURL: string = 'https://api.anthropic.com',
   ) {}
 
@@ -20,22 +42,19 @@ export class AnthropicCountApi {
     messages: Array<{ role: string; content: unknown }>,
     system?: string,
   ): Promise<number> {
-    const body: Record<string, unknown> = { model, messages };
-    if (system) body.system = system;
+    const res = await this.fetchFn(
+      countRequest(
+        'anthropic/count.messages',
+        { model, messages, system },
+        { baseURL: this.baseURL, apiKey: this.apiKey, apiVersion: ANTHROPIC_API_VERSION },
+        'anthropic',
+      ) as never,
+    );
 
-    const res = await this.fetchFn(`${this.baseURL}/v1/messages/count_tokens`, {
-      method: 'POST',
-      headers: {
-        'x-api-key': this.apiKey,
-        'anthropic-version': ANTHROPIC_API_VERSION,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok)
-      throw new Error(`Anthropic count_tokens failed: ${res.status} ${await res.text()}`);
-    const data = (await res.json()) as Record<string, unknown>;
+    if (res.status >= 400) {
+      throw new Error(`Anthropic count_tokens failed: ${res.status} ${JSON.stringify(res.body)}`);
+    }
+    const data = (res.body ?? {}) as Record<string, unknown>;
     return (data.input_tokens as number) ?? 0;
   }
 
@@ -48,25 +67,24 @@ export class AnthropicCountApi {
 export class GoogleCountApi {
   constructor(
     private readonly apiKey: string,
-    private readonly fetchFn: FetchFn = globalThis.fetch.bind(globalThis),
+    private readonly fetchFn: EngineFetch,
     private readonly baseURL: string = 'https://generativelanguage.googleapis.com',
   ) {}
 
   async countText(model: string, text: string): Promise<number> {
-    const modelPath = model.startsWith('models/') ? model : `models/${model}`;
-    const body = { contents: [{ parts: [{ text }] }] };
+    const res = await this.fetchFn(
+      countRequest(
+        'google/count.tokens',
+        { model, text },
+        { baseURL: this.baseURL, apiKey: this.apiKey },
+        'google',
+      ) as never,
+    );
 
-    const res = await this.fetchFn(`${this.baseURL}/v1beta/${modelPath}:countTokens`, {
-      method: 'POST',
-      headers: {
-        'x-goog-api-key': this.apiKey,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-
-    if (!res.ok) throw new Error(`Google countTokens failed: ${res.status} ${await res.text()}`);
-    const data = (await res.json()) as Record<string, unknown>;
+    if (res.status >= 400) {
+      throw new Error(`Google countTokens failed: ${res.status} ${JSON.stringify(res.body)}`);
+    }
+    const data = (res.body ?? {}) as Record<string, unknown>;
     return (data.totalTokens as number) ?? 0;
   }
 }

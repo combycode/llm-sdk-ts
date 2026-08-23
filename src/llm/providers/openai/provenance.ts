@@ -10,6 +10,10 @@
  *  All HTTP flows through the injected EngineFetch. */
 
 import type { EngineFetch } from '../../../network/types';
+import { buildFromSpec, type MultipartField } from '../../../wire/interpreter';
+import { utilitySpec } from '../../../wire/utility-specs';
+import { makeRegistry } from '../../wire-transforms';
+import { toFormData } from '../../wire-multipart';
 import type { ProvenanceCheckResult, ProvenanceRawResponse } from '../../../helpers/provenance-types';
 
 export interface OpenAIProvenanceAdapterConfig {
@@ -35,20 +39,25 @@ export class OpenAIProvenanceAdapter {
     mimeType: string,
     fetch: EngineFetch,
   ): Promise<ProvenanceCheckResult> {
-    const form = new FormData();
-    form.append('file', new Blob([bytes as BlobPart], { type: mimeType }), filename);
+    const built = buildFromSpec(
+      utilitySpec('openai/provenance.check'),
+      {} as never,
+      makeRegistry({}),
+      'openai',
+      undefined,
+      { baseURL: this.baseURL, apiKey: this.apiKey },
+    ) as unknown as Record<string, unknown>;
+    const { multipart, body: _unused, ...rest } = built;
 
     const res = await fetch(
       {
-        url: `${this.baseURL}${OPENAI_PROVENANCE_PATH}`,
-        method: 'POST',
-        headers: { authorization: `Bearer ${this.apiKey}` },
-        body: form,
+        ...rest,
+        body: toFormData(multipart as MultipartField[], { data: bytes, filename, mimeType }),
         rawBody: true,
         provider: 'openai',
         model: 'content_provenance_check',
         responseType: 'json',
-      },
+      } as never,
       { queueName: 'openai/provenance' },
     );
 
