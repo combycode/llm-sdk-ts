@@ -18,13 +18,18 @@
     "structured",
     "structured+thinking",
     "cache.auto",
-    "tier"
+    "tier",
+    "audio.out",
+    "content.multimodal",
+    "serverState",
+    "moderation",
+    "providerOptions"
   ],
   "counts": {
-    "models": 289,
-    "shapes": 17,
-    "bodies": 4913,
-    "distinct": 448
+    "models": 290,
+    "shapes": 22,
+    "bodies": 6380,
+    "distinct": 507
   },
   "bodies": {
     "30387636": {
@@ -47,6 +52,27 @@
         }
       },
       "path": "/v1beta/models/gemini-3-flash-preview:generateContent"
+    },
+    "31024478": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-2.5-flash-lite:generateContent"
     },
     "35659862": {
       "body": {
@@ -180,6 +206,33 @@
         ],
         "model": "openai/gpt-5.6-sol:online"
       }
+    },
+    "98534445": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-2.5-flash-lite:generateContent"
     },
     "9ec64032": {
       "body": {
@@ -640,6 +693,51 @@
       },
       "headers": {}
     },
+    "2f6a05b6": {
+      "body": {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "what is this",
+                "type": "text"
+              },
+              {
+                "source": {
+                  "data": "aGk=",
+                  "type": "base64"
+                },
+                "type": "image"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL"
+      },
+      "headers": {}
+    },
+    "9dde0163": {
+      "body": {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL"
+      },
+      "headers": {
+        "anthropic-user-profile-id": "u_1"
+      }
+    },
     "c8cb741e": {
       "body": {
         "max_tokens": 256,
@@ -1089,6 +1187,74 @@
         "service_tier": "priority"
       }
     },
+    "2079ae85": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "what is this",
+                "type": "input_text"
+              },
+              {
+                "image_url": "data:undefined;base64,aGk=",
+                "type": "input_image"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL"
+      }
+    },
+    "2c33d51f": {
+      "body": {
+        "input": [
+          {
+            "content": "hi",
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL",
+        "previous_response_id": "resp_1"
+      }
+    },
+    "461eeb37": {
+      "body": {
+        "input": [
+          {
+            "content": "hi",
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL",
+        "moderation": {
+          "model": "omni-moderation-latest"
+        }
+      }
+    },
+    "df863fa1": {
+      "body": {
+        "input": [
+          {
+            "content": "hi",
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL",
+        "moderation": {
+          "model": "omni-moderation-latest",
+          "policy": {
+            "categories": [
+              "hate"
+            ]
+          }
+        },
+        "prompt_cache_options": {
+          "scope": "session"
+        }
+      }
+    },
     "5c795dae": {
       "body": {
         "contents": [
@@ -1487,6 +1653,88 @@
         ],
         "generationConfig": {},
         "serviceTier": "priority"
+      },
+      "path": "/v1beta/models/gemini-2.5-pro:generateContent"
+    },
+    "5f07ba61": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-2.5-pro:generateContent"
+    },
+    "f5a64eca": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-2.5-pro:generateContent"
+    },
+    "031bf5cf": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
       },
       "path": "/v1beta/models/gemini-2.5-pro:generateContent"
     },
@@ -1891,6 +2139,88 @@
       },
       "path": "/v1beta/models/gemini-3.1-pro-preview:generateContent"
     },
+    "0bdf1e37": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview:generateContent"
+    },
+    "6c180b18": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview:generateContent"
+    },
+    "6c7e1a99": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview:generateContent"
+    },
     "3c306cd3": {
       "body": {
         "contents": [
@@ -2289,6 +2619,88 @@
         ],
         "generationConfig": {},
         "serviceTier": "priority"
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview-customtools:generateContent"
+    },
+    "23c43784": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview-customtools:generateContent"
+    },
+    "a291f0f7": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview-customtools:generateContent"
+    },
+    "0d960d7e": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
       },
       "path": "/v1beta/models/gemini-3.1-pro-preview-customtools:generateContent"
     },
@@ -2693,6 +3105,88 @@
       },
       "path": "/v1beta/models/gemini-2.5-flash:generateContent"
     },
+    "952a4bcc": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-2.5-flash:generateContent"
+    },
+    "b1d08547": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-2.5-flash:generateContent"
+    },
+    "8cf4a7c2": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-2.5-flash:generateContent"
+    },
     "daa673e0": {
       "body": {
         "contents": [
@@ -3070,6 +3564,88 @@
         ],
         "generationConfig": {},
         "serviceTier": "priority"
+      },
+      "path": "/v1beta/models/gemini-3-flash-preview:generateContent"
+    },
+    "23f5765b": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-3-flash-preview:generateContent"
+    },
+    "54d7bd3c": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3-flash-preview:generateContent"
+    },
+    "4dd7bdf1": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
       },
       "path": "/v1beta/models/gemini-3-flash-preview:generateContent"
     },
@@ -3474,6 +4050,88 @@
       },
       "path": "/v1beta/models/gemini-3.5-flash:generateContent"
     },
+    "7ded564b": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-3.5-flash:generateContent"
+    },
+    "5adb6a48": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.5-flash:generateContent"
+    },
+    "fc90b4a9": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-3.5-flash:generateContent"
+    },
     "7673e98c": {
       "body": {
         "contents": [
@@ -3835,6 +4493,40 @@
         ],
         "generationConfig": {},
         "serviceTier": "priority"
+      },
+      "path": "/v1beta/models/gemini-2.5-flash-lite:generateContent"
+    },
+    "02af1bbf": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
       },
       "path": "/v1beta/models/gemini-2.5-flash-lite:generateContent"
     },
@@ -4239,6 +4931,88 @@
       },
       "path": "/v1beta/models/gemini-3.1-flash-lite:generateContent"
     },
+    "175d4118": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-3.1-flash-lite:generateContent"
+    },
+    "742a409d": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.1-flash-lite:generateContent"
+    },
+    "b897f4b2": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-3.1-flash-lite:generateContent"
+    },
     "f203ef0a": {
       "body": {
         "contents": [
@@ -4637,6 +5411,88 @@
         ],
         "generationConfig": {},
         "serviceTier": "priority"
+      },
+      "path": "/v1beta/models/gemma-4-26b-a4b-it:generateContent"
+    },
+    "95957ec9": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemma-4-26b-a4b-it:generateContent"
+    },
+    "907c3dce": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemma-4-26b-a4b-it:generateContent"
+    },
+    "e64ddcc3": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
       },
       "path": "/v1beta/models/gemma-4-26b-a4b-it:generateContent"
     },
@@ -5041,6 +5897,88 @@
       },
       "path": "/v1beta/models/gemma-4-31b-it:generateContent"
     },
+    "498a5735": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemma-4-31b-it:generateContent"
+    },
+    "a6b1d966": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemma-4-31b-it:generateContent"
+    },
+    "74399e77": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
+      },
+      "path": "/v1beta/models/gemma-4-31b-it:generateContent"
+    },
     "3fe3ac51": {
       "body": {
         "contents": [
@@ -5439,6 +6377,88 @@
         ],
         "generationConfig": {},
         "serviceTier": "priority"
+      },
+      "path": "/v1beta/models/gemini-3.6-flash:generateContent"
+    },
+    "18a25a9a": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-3.6-flash:generateContent"
+    },
+    "f2c892b5": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.6-flash:generateContent"
+    },
+    "4d90071c": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
       },
       "path": "/v1beta/models/gemini-3.6-flash:generateContent"
     },
@@ -5843,6 +6863,88 @@
       },
       "path": "/v1beta/models/gemini-3.5-flash-lite:generateContent"
     },
+    "17ba5a14": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "alloy"
+              }
+            }
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-3.5-flash-lite:generateContent"
+    },
+    "b3f79019": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk="
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.5-flash-lite:generateContent"
+    },
+    "ec1ea636": {
+      "body": {
+        "cachedContent": "cc-1",
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "hi"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {
+          "imageConfig": {
+            "aspectRatio": "1:1"
+          },
+          "responseModalities": [
+            "TEXT"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          },
+          "translationConfig": {
+            "targetLanguage": "fr"
+          }
+        }
+      },
+      "path": "/v1beta/models/gemini-3.5-flash-lite:generateContent"
+    },
     "5338d5db": {
       "body": {
         "input": [
@@ -5946,6 +7048,25 @@
             "type": "function"
           }
         ]
+      }
+    },
+    "9694b55f": {
+      "body": {
+        "input": [
+          {
+            "content": "hi",
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL",
+        "moderation": {
+          "model": "omni-moderation-latest",
+          "policy": {
+            "categories": [
+              "hate"
+            ]
+          }
+        }
       }
     },
     "4e4ed97a": {
@@ -6318,6 +7439,73 @@
         ],
         "model": "$MODEL",
         "service_tier": "priority"
+      }
+    },
+    "ab62e2f4": {
+      "body": {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "what is this",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "detail": "auto",
+                  "url": "data:undefined;base64,aGk="
+                },
+                "type": "image_url"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL"
+      }
+    },
+    "b51d27cd": {
+      "body": {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": "hi",
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL",
+        "moderation": {
+          "model": "omni-moderation-latest"
+        }
+      }
+    },
+    "1d7cbd18": {
+      "body": {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": "hi",
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL",
+        "moderation": {
+          "model": "omni-moderation-latest",
+          "policy": {
+            "categories": [
+              "hate"
+            ]
+          }
+        },
+        "provider": {
+          "order": [
+            "a"
+          ]
+        },
+        "transforms": [
+          "x"
+        ]
       }
     },
     "0abf5c67": {
@@ -8935,6 +10123,311 @@
         ],
         "model": "thinkingmachines/inkling:online"
       }
+    },
+    "9033373b": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro"
+      }
+    },
+    "647b7456": {
+      "body": {
+        "generation_config": {
+          "max_output_tokens": 256,
+          "seed": 7,
+          "stop_sequences": [
+            "x"
+          ],
+          "temperature": 0.3,
+          "top_k": 5,
+          "top_p": 0.8
+        },
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro"
+      }
+    },
+    "4e2221ae": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro",
+        "system_instruction": "sys"
+      }
+    },
+    "0f52e6b7": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro",
+        "tools": [
+          {
+            "description": "w",
+            "name": "get_weather",
+            "parameters": {
+              "properties": {
+                "a": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "a"
+              ],
+              "type": "object"
+            },
+            "type": "function"
+          }
+        ]
+      }
+    },
+    "74375d48": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro",
+        "tools": []
+      }
+    },
+    "6860755d": {
+      "body": {
+        "generation_config": {
+          "thinking_level": "high"
+        },
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro"
+      }
+    },
+    "c8ffcbdb": {
+      "body": {
+        "generation_config": {
+          "thinking_level": "low"
+        },
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro"
+      }
+    },
+    "522c185b": {
+      "body": {
+        "generation_config": {
+          "max_output_tokens": 100,
+          "thinking_level": "high"
+        },
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro"
+      }
+    },
+    "695770e0": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro",
+        "response_format": {
+          "mime_type": "application/json",
+          "schema": {
+            "properties": {
+              "a": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "a"
+            ],
+            "type": "object"
+          },
+          "type": "text"
+        }
+      }
+    },
+    "0dbf2779": {
+      "body": {
+        "generation_config": {
+          "thinking_level": "medium"
+        },
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro",
+        "response_format": {
+          "mime_type": "application/json",
+          "schema": {
+            "properties": {
+              "a": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "a"
+            ],
+            "type": "object"
+          },
+          "type": "text"
+        }
+      }
+    },
+    "dd44b0fe": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro",
+        "system_instruction": "sys",
+        "tools": [
+          {
+            "description": "w",
+            "name": "get_weather",
+            "parameters": {
+              "properties": {
+                "a": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "a"
+              ],
+              "type": "object"
+            },
+            "type": "function"
+          }
+        ]
+      }
+    },
+    "e162585d": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "what is this",
+                "type": "text"
+              },
+              {
+                "data": "aGk=",
+                "type": "image"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro"
+      }
+    },
+    "f262b7e3": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "hi",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro",
+        "previous_interaction_id": "resp_1"
+      }
     }
   },
   "index": {
@@ -8955,7 +10448,12 @@
       "structured": "e6050263",
       "structured+thinking": "8c492c8c",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-4-1-20250805": {
       "minimal": "9ec64032",
@@ -8974,7 +10472,12 @@
       "structured": "e6050263",
       "structured+thinking": "8c492c8c",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-4-5-20251101": {
       "minimal": "9ec64032",
@@ -8993,7 +10496,12 @@
       "structured": "e6050263",
       "structured+thinking": "8c492c8c",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-4-6": {
       "minimal": "9ec64032",
@@ -9012,7 +10520,12 @@
       "structured": "e6050263",
       "structured+thinking": "ac5aa4e2",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-4-7": {
       "minimal": "9ec64032",
@@ -9031,7 +10544,12 @@
       "structured": "e6050263",
       "structured+thinking": "ac5aa4e2",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-4-8": {
       "minimal": "9ec64032",
@@ -9050,7 +10568,12 @@
       "structured": "e6050263",
       "structured+thinking": "ac5aa4e2",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-sonnet-4-20250514": {
       "minimal": "9ec64032",
@@ -9069,7 +10592,12 @@
       "structured": "e6050263",
       "structured+thinking": "8c492c8c",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-sonnet-4-5-20250929": {
       "minimal": "9ec64032",
@@ -9088,7 +10616,12 @@
       "structured": "e6050263",
       "structured+thinking": "8c492c8c",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-sonnet-4-6": {
       "minimal": "9ec64032",
@@ -9107,7 +10640,12 @@
       "structured": "e6050263",
       "structured+thinking": "ac5aa4e2",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-haiku-4-5-20251001": {
       "minimal": "9ec64032",
@@ -9126,7 +10664,12 @@
       "structured": "e6050263",
       "structured+thinking": "8c492c8c",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-fable-5": {
       "minimal": "9ec64032",
@@ -9145,7 +10688,12 @@
       "structured": "e6050263",
       "structured+thinking": "ac5aa4e2",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-sonnet-5": {
       "minimal": "9ec64032",
@@ -9164,7 +10712,12 @@
       "structured": "e6050263",
       "structured+thinking": "ac5aa4e2",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-mythos-5": {
       "minimal": "9ec64032",
@@ -9183,7 +10736,12 @@
       "structured": "e6050263",
       "structured+thinking": "ac5aa4e2",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-5": {
       "minimal": "9ec64032",
@@ -9202,7 +10760,12 @@
       "structured": "e6050263",
       "structured+thinking": "ac5aa4e2",
       "cache.auto": "66aefab5",
-      "tier": "2cbf8753"
+      "tier": "2cbf8753",
+      "audio.out": "9ec64032",
+      "content.multimodal": "2f6a05b6",
+      "serverState": "9ec64032",
+      "moderation": "9ec64032",
+      "providerOptions": "9dde0163"
     },
     "openai/gpt-3.5-turbo": {
       "minimal": "d9c84240",
@@ -9221,7 +10784,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-4": {
       "minimal": "d9c84240",
@@ -9240,7 +10808,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-4-turbo": {
       "minimal": "d9c84240",
@@ -9259,7 +10832,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-4.1": {
       "minimal": "d9c84240",
@@ -9278,7 +10856,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5": {
       "minimal": "d9c84240",
@@ -9297,7 +10880,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.1": {
       "minimal": "d9c84240",
@@ -9316,7 +10904,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.2": {
       "minimal": "d9c84240",
@@ -9335,7 +10928,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.4": {
       "minimal": "d9c84240",
@@ -9354,7 +10952,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.5": {
       "minimal": "d9c84240",
@@ -9373,7 +10976,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5-chat-latest": {
       "minimal": "d9c84240",
@@ -9392,7 +11000,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.1-chat-latest": {
       "minimal": "d9c84240",
@@ -9411,7 +11024,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.2-chat-latest": {
       "minimal": "d9c84240",
@@ -9430,7 +11048,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.3-chat-latest": {
       "minimal": "d9c84240",
@@ -9449,7 +11072,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-4.1-mini": {
       "minimal": "d9c84240",
@@ -9468,7 +11096,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5-mini": {
       "minimal": "d9c84240",
@@ -9487,7 +11120,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.4-mini": {
       "minimal": "d9c84240",
@@ -9506,7 +11144,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-4.1-nano": {
       "minimal": "d9c84240",
@@ -9525,7 +11168,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5-nano": {
       "minimal": "d9c84240",
@@ -9544,7 +11192,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.4-nano": {
       "minimal": "d9c84240",
@@ -9563,7 +11216,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5-pro": {
       "minimal": "d9c84240",
@@ -9582,7 +11240,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.2-pro": {
       "minimal": "d9c84240",
@@ -9601,7 +11264,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.4-pro": {
       "minimal": "d9c84240",
@@ -9620,7 +11288,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.5-pro": {
       "minimal": "d9c84240",
@@ -9639,7 +11312,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-4o": {
       "minimal": "d9c84240",
@@ -9658,7 +11336,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-4o-mini": {
       "minimal": "d9c84240",
@@ -9677,7 +11360,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/o1": {
       "minimal": "d9c84240",
@@ -9696,7 +11384,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/o1-pro": {
       "minimal": "d9c84240",
@@ -9715,7 +11408,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/o3": {
       "minimal": "d9c84240",
@@ -9734,7 +11432,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/o3-mini": {
       "minimal": "d9c84240",
@@ -9753,7 +11456,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/o3-pro": {
       "minimal": "d9c84240",
@@ -9772,7 +11480,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/o4-mini": {
       "minimal": "d9c84240",
@@ -9791,7 +11504,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.6-sol": {
       "minimal": "d9c84240",
@@ -9810,7 +11528,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.6-terra": {
       "minimal": "d9c84240",
@@ -9829,7 +11552,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "openai/gpt-5.6-luna": {
       "minimal": "d9c84240",
@@ -9848,7 +11576,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "5b142130",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "df863fa1"
     },
     "google/gemini-2.5-pro": {
       "minimal": "5c795dae",
@@ -9867,7 +11600,12 @@
       "structured": "374a589e",
       "structured+thinking": "0ac1efdb",
       "cache.auto": "601d144d",
-      "tier": "3e52d791"
+      "tier": "3e52d791",
+      "audio.out": "5f07ba61",
+      "content.multimodal": "f5a64eca",
+      "serverState": "5c795dae",
+      "moderation": "5c795dae",
+      "providerOptions": "031bf5cf"
     },
     "google/gemini-3.1-pro-preview": {
       "minimal": "5b981a6c",
@@ -9886,7 +11624,12 @@
       "structured": "6df6db1c",
       "structured+thinking": "f1b9efaf",
       "cache.auto": "0c9a62d3",
-      "tier": "a3ea25a7"
+      "tier": "a3ea25a7",
+      "audio.out": "0bdf1e37",
+      "content.multimodal": "6c180b18",
+      "serverState": "5b981a6c",
+      "moderation": "5b981a6c",
+      "providerOptions": "6c7e1a99"
     },
     "google/gemini-3.1-pro-preview-customtools": {
       "minimal": "3c306cd3",
@@ -9905,7 +11648,12 @@
       "structured": "5be5ca23",
       "structured+thinking": "305d29bc",
       "cache.auto": "a9772778",
-      "tier": "fe2c8b14"
+      "tier": "fe2c8b14",
+      "audio.out": "23c43784",
+      "content.multimodal": "a291f0f7",
+      "serverState": "3c306cd3",
+      "moderation": "3c306cd3",
+      "providerOptions": "0d960d7e"
     },
     "google/gemini-2.5-flash": {
       "minimal": "f102f223",
@@ -9924,7 +11672,12 @@
       "structured": "e650bcb3",
       "structured+thinking": "89ba5386",
       "cache.auto": "6b7c1ea0",
-      "tier": "e38b2d9c"
+      "tier": "e38b2d9c",
+      "audio.out": "952a4bcc",
+      "content.multimodal": "b1d08547",
+      "serverState": "f102f223",
+      "moderation": "f102f223",
+      "providerOptions": "8cf4a7c2"
     },
     "google/gemini-3-flash-preview": {
       "minimal": "daa673e0",
@@ -9943,7 +11696,12 @@
       "structured": "3de9d890",
       "structured+thinking": "69e1e4d3",
       "cache.auto": "fae1a287",
-      "tier": "c8da340b"
+      "tier": "c8da340b",
+      "audio.out": "23f5765b",
+      "content.multimodal": "54d7bd3c",
+      "serverState": "daa673e0",
+      "moderation": "daa673e0",
+      "providerOptions": "4dd7bdf1"
     },
     "google/gemini-3.5-flash": {
       "minimal": "2ff6c724",
@@ -9962,7 +11720,12 @@
       "structured": "4b28b834",
       "structured+thinking": "3409bdb3",
       "cache.auto": "76ab21ff",
-      "tier": "0cf381db"
+      "tier": "0cf381db",
+      "audio.out": "7ded564b",
+      "content.multimodal": "5adb6a48",
+      "serverState": "2ff6c724",
+      "moderation": "2ff6c724",
+      "providerOptions": "fc90b4a9"
     },
     "google/gemini-2.5-flash-lite": {
       "minimal": "7673e98c",
@@ -9981,7 +11744,12 @@
       "structured": "00bd7c1c",
       "structured+thinking": "d334d79b",
       "cache.auto": "fd6ae6b1",
-      "tier": "88ba46d5"
+      "tier": "88ba46d5",
+      "audio.out": "98534445",
+      "content.multimodal": "31024478",
+      "serverState": "7673e98c",
+      "moderation": "7673e98c",
+      "providerOptions": "02af1bbf"
     },
     "google/gemini-3.1-flash-lite": {
       "minimal": "40bc36b9",
@@ -10000,7 +11768,12 @@
       "structured": "92381e09",
       "structured+thinking": "f7727460",
       "cache.auto": "e1b0688c",
-      "tier": "d41d8828"
+      "tier": "d41d8828",
+      "audio.out": "175d4118",
+      "content.multimodal": "742a409d",
+      "serverState": "40bc36b9",
+      "moderation": "40bc36b9",
+      "providerOptions": "b897f4b2"
     },
     "google/gemma-4-26b-a4b-it": {
       "minimal": "f203ef0a",
@@ -10019,7 +11792,12 @@
       "structured": "8bef15da",
       "structured+thinking": "285fb3f1",
       "cache.auto": "bcab9f7d",
-      "tier": "142855d9"
+      "tier": "142855d9",
+      "audio.out": "95957ec9",
+      "content.multimodal": "907c3dce",
+      "serverState": "f203ef0a",
+      "moderation": "f203ef0a",
+      "providerOptions": "e64ddcc3"
     },
     "google/gemma-4-31b-it": {
       "minimal": "8067f7ba",
@@ -10038,7 +11816,12 @@
       "structured": "d8cdd8aa",
       "structured+thinking": "f6aadc2d",
       "cache.auto": "f008e261",
-      "tier": "b50e8725"
+      "tier": "b50e8725",
+      "audio.out": "498a5735",
+      "content.multimodal": "a6b1d966",
+      "serverState": "8067f7ba",
+      "moderation": "8067f7ba",
+      "providerOptions": "74399e77"
     },
     "google/gemini-3.6-flash": {
       "minimal": "3fe3ac51",
@@ -10057,7 +11840,12 @@
       "structured": "cbabe621",
       "structured+thinking": "032749c2",
       "cache.auto": "cb67e53e",
-      "tier": "381b76aa"
+      "tier": "381b76aa",
+      "audio.out": "18a25a9a",
+      "content.multimodal": "f2c892b5",
+      "serverState": "3fe3ac51",
+      "moderation": "3fe3ac51",
+      "providerOptions": "4d90071c"
     },
     "google/gemini-3.5-flash-lite": {
       "minimal": "b2f1953d",
@@ -10076,7 +11864,12 @@
       "structured": "691f988d",
       "structured+thinking": "2af03f1c",
       "cache.auto": "19bdf050",
-      "tier": "e27a70e4"
+      "tier": "e27a70e4",
+      "audio.out": "17ba5a14",
+      "content.multimodal": "b3f79019",
+      "serverState": "b2f1953d",
+      "moderation": "b2f1953d",
+      "providerOptions": "ec1ea636"
     },
     "xai/grok-4.20-0309-reasoning": {
       "minimal": "d9c84240",
@@ -10095,7 +11888,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "bcbb17e3",
       "cache.auto": "e2d746d5",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "9694b55f"
     },
     "xai/grok-4.20-0309-non-reasoning": {
       "minimal": "d9c84240",
@@ -10114,7 +11912,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "bcbb17e3",
       "cache.auto": "e2d746d5",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "9694b55f"
     },
     "xai/grok-4.20-multi-agent-0309": {
       "minimal": "d9c84240",
@@ -10133,7 +11936,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "3f2e377d",
       "cache.auto": "e2d746d5",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "9694b55f"
     },
     "xai/grok-4.3": {
       "minimal": "d9c84240",
@@ -10152,7 +11960,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "bcbb17e3",
       "cache.auto": "e2d746d5",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "9694b55f"
     },
     "xai/grok-4.5": {
       "minimal": "d9c84240",
@@ -10171,7 +11984,12 @@
       "structured": "bcbb17e3",
       "structured+thinking": "bcbb17e3",
       "cache.auto": "e2d746d5",
-      "tier": "e538231a"
+      "tier": "e538231a",
+      "audio.out": "d9c84240",
+      "content.multimodal": "2079ae85",
+      "serverState": "2c33d51f",
+      "moderation": "461eeb37",
+      "providerOptions": "9694b55f"
     },
     "openrouter/anthropic/claude-fable-5": {
       "minimal": "4e4ed97a",
@@ -10190,7 +12008,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4": {
       "minimal": "4e4ed97a",
@@ -10209,7 +12032,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.1": {
       "minimal": "4e4ed97a",
@@ -10228,7 +12056,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.5": {
       "minimal": "4e4ed97a",
@@ -10247,7 +12080,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.6": {
       "minimal": "4e4ed97a",
@@ -10266,7 +12104,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.6-fast": {
       "minimal": "4e4ed97a",
@@ -10285,7 +12128,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.7": {
       "minimal": "4e4ed97a",
@@ -10304,7 +12152,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.7-fast": {
       "minimal": "4e4ed97a",
@@ -10323,7 +12176,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.8": {
       "minimal": "4e4ed97a",
@@ -10342,7 +12200,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.8-fast": {
       "minimal": "4e4ed97a",
@@ -10361,7 +12224,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-sonnet-4": {
       "minimal": "4e4ed97a",
@@ -10380,7 +12248,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-sonnet-4.5": {
       "minimal": "4e4ed97a",
@@ -10399,7 +12272,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-sonnet-4.6": {
       "minimal": "4e4ed97a",
@@ -10418,7 +12296,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-3-haiku": {
       "minimal": "4e4ed97a",
@@ -10437,7 +12320,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-3.5-haiku": {
       "minimal": "4e4ed97a",
@@ -10456,7 +12344,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-haiku-4.5": {
       "minimal": "4e4ed97a",
@@ -10475,7 +12368,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-3.5-turbo": {
       "minimal": "4e4ed97a",
@@ -10494,7 +12392,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4": {
       "minimal": "4e4ed97a",
@@ -10513,7 +12416,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4-turbo": {
       "minimal": "4e4ed97a",
@@ -10532,7 +12440,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4.1": {
       "minimal": "4e4ed97a",
@@ -10551,7 +12464,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5": {
       "minimal": "4e4ed97a",
@@ -10570,7 +12488,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.1": {
       "minimal": "4e4ed97a",
@@ -10589,7 +12512,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.2": {
       "minimal": "4e4ed97a",
@@ -10608,7 +12536,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.4": {
       "minimal": "4e4ed97a",
@@ -10627,7 +12560,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.5": {
       "minimal": "4e4ed97a",
@@ -10646,7 +12584,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5-chat": {
       "minimal": "4e4ed97a",
@@ -10665,7 +12608,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.1-chat": {
       "minimal": "4e4ed97a",
@@ -10684,7 +12632,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.2-chat": {
       "minimal": "4e4ed97a",
@@ -10703,7 +12656,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.3-chat": {
       "minimal": "4e4ed97a",
@@ -10722,7 +12680,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4.1-mini": {
       "minimal": "4e4ed97a",
@@ -10741,7 +12704,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5-mini": {
       "minimal": "4e4ed97a",
@@ -10760,7 +12728,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.4-mini": {
       "minimal": "4e4ed97a",
@@ -10779,7 +12752,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4.1-nano": {
       "minimal": "4e4ed97a",
@@ -10798,7 +12776,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5-nano": {
       "minimal": "4e4ed97a",
@@ -10817,7 +12800,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.4-nano": {
       "minimal": "4e4ed97a",
@@ -10836,7 +12824,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5-pro": {
       "minimal": "4e4ed97a",
@@ -10855,7 +12848,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.2-pro": {
       "minimal": "4e4ed97a",
@@ -10874,7 +12872,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.4-pro": {
       "minimal": "4e4ed97a",
@@ -10893,7 +12896,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.5-pro": {
       "minimal": "4e4ed97a",
@@ -10912,7 +12920,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4o": {
       "minimal": "4e4ed97a",
@@ -10931,7 +12944,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4o-mini": {
       "minimal": "4e4ed97a",
@@ -10950,7 +12968,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-oss-20b": {
       "minimal": "4e4ed97a",
@@ -10969,7 +12992,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-oss-120b": {
       "minimal": "4e4ed97a",
@@ -10988,7 +13016,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o1": {
       "minimal": "4e4ed97a",
@@ -11007,7 +13040,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o1-pro": {
       "minimal": "4e4ed97a",
@@ -11026,7 +13064,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o3": {
       "minimal": "4e4ed97a",
@@ -11045,7 +13088,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o3-mini": {
       "minimal": "4e4ed97a",
@@ -11064,7 +13112,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o3-pro": {
       "minimal": "4e4ed97a",
@@ -11083,7 +13136,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o3-deep-research": {
       "minimal": "4e4ed97a",
@@ -11102,7 +13160,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o4-mini": {
       "minimal": "4e4ed97a",
@@ -11121,7 +13184,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o4-mini-deep-research": {
       "minimal": "4e4ed97a",
@@ -11140,7 +13208,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-2.5-pro": {
       "minimal": "4e4ed97a",
@@ -11159,7 +13232,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.1-pro-preview": {
       "minimal": "4e4ed97a",
@@ -11178,7 +13256,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.1-pro-preview-customtools": {
       "minimal": "4e4ed97a",
@@ -11197,7 +13280,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-2.5-flash": {
       "minimal": "4e4ed97a",
@@ -11216,7 +13304,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3-flash-preview": {
       "minimal": "4e4ed97a",
@@ -11235,7 +13328,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.5-flash": {
       "minimal": "4e4ed97a",
@@ -11254,7 +13352,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-2.5-flash-lite": {
       "minimal": "4e4ed97a",
@@ -11273,7 +13376,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.1-flash-lite": {
       "minimal": "4e4ed97a",
@@ -11292,7 +13400,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-2-27b-it": {
       "minimal": "4e4ed97a",
@@ -11311,7 +13424,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-3-4b-it": {
       "minimal": "4e4ed97a",
@@ -11330,7 +13448,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-3-12b-it": {
       "minimal": "4e4ed97a",
@@ -11349,7 +13472,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-3-27b-it": {
       "minimal": "4e4ed97a",
@@ -11368,7 +13496,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-3n-e4b-it": {
       "minimal": "4e4ed97a",
@@ -11387,7 +13520,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-4-26b-a4b-it": {
       "minimal": "4e4ed97a",
@@ -11406,7 +13544,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-4-31b-it": {
       "minimal": "4e4ed97a",
@@ -11425,7 +13568,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/x-ai/grok-4.20": {
       "minimal": "4e4ed97a",
@@ -11444,7 +13592,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/x-ai/grok-4.20-multi-agent": {
       "minimal": "4e4ed97a",
@@ -11463,7 +13616,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/x-ai/grok-4.3": {
       "minimal": "4e4ed97a",
@@ -11482,7 +13640,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-chat": {
       "minimal": "4e4ed97a",
@@ -11501,7 +13664,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-chat-v3-0324": {
       "minimal": "4e4ed97a",
@@ -11520,7 +13688,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-chat-v3.1": {
       "minimal": "4e4ed97a",
@@ -11539,7 +13712,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-v3.2": {
       "minimal": "4e4ed97a",
@@ -11558,7 +13736,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-v4-flash": {
       "minimal": "4e4ed97a",
@@ -11577,7 +13760,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-v4-pro": {
       "minimal": "4e4ed97a",
@@ -11596,7 +13784,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-r1": {
       "minimal": "4e4ed97a",
@@ -11615,7 +13808,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-r1-distill-llama-70b": {
       "minimal": "4e4ed97a",
@@ -11634,7 +13832,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-r1-distill-qwen-32b": {
       "minimal": "4e4ed97a",
@@ -11653,7 +13856,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen-2.5-7b-instruct": {
       "minimal": "4e4ed97a",
@@ -11672,7 +13880,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen-2.5-72b-instruct": {
       "minimal": "4e4ed97a",
@@ -11691,7 +13904,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-8b": {
       "minimal": "4e4ed97a",
@@ -11710,7 +13928,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-14b": {
       "minimal": "4e4ed97a",
@@ -11729,7 +13952,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-30b-a3b": {
       "minimal": "4e4ed97a",
@@ -11748,7 +13976,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-32b": {
       "minimal": "4e4ed97a",
@@ -11767,7 +14000,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-235b-a22b": {
       "minimal": "4e4ed97a",
@@ -11786,7 +14024,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-next-80b-a3b-instruct": {
       "minimal": "4e4ed97a",
@@ -11805,7 +14048,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-9b": {
       "minimal": "4e4ed97a",
@@ -11824,7 +14072,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-27b": {
       "minimal": "4e4ed97a",
@@ -11843,7 +14096,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-35b-a3b": {
       "minimal": "4e4ed97a",
@@ -11862,7 +14120,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-122b-a10b": {
       "minimal": "4e4ed97a",
@@ -11881,7 +14144,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-397b-a17b": {
       "minimal": "4e4ed97a",
@@ -11900,7 +14168,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.6-27b": {
       "minimal": "4e4ed97a",
@@ -11919,7 +14192,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.6-35b-a3b": {
       "minimal": "4e4ed97a",
@@ -11938,7 +14216,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen-plus": {
       "minimal": "4e4ed97a",
@@ -11957,7 +14240,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-plus-20260420": {
       "minimal": "4e4ed97a",
@@ -11976,7 +14264,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.6-plus": {
       "minimal": "4e4ed97a",
@@ -11995,7 +14288,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.7-plus": {
       "minimal": "4e4ed97a",
@@ -12014,7 +14312,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-max": {
       "minimal": "4e4ed97a",
@@ -12033,7 +14336,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.6-max-preview": {
       "minimal": "4e4ed97a",
@@ -12052,7 +14360,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.7-max": {
       "minimal": "4e4ed97a",
@@ -12071,7 +14384,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-flash-02-23": {
       "minimal": "4e4ed97a",
@@ -12090,7 +14408,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.6-flash": {
       "minimal": "4e4ed97a",
@@ -12109,7 +14432,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3-8b-instruct": {
       "minimal": "4e4ed97a",
@@ -12128,7 +14456,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3-70b-instruct": {
       "minimal": "4e4ed97a",
@@ -12147,7 +14480,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3.1-8b-instruct": {
       "minimal": "4e4ed97a",
@@ -12166,7 +14504,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3.1-70b-instruct": {
       "minimal": "4e4ed97a",
@@ -12185,7 +14528,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3.2-1b-instruct": {
       "minimal": "4e4ed97a",
@@ -12204,7 +14552,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3.2-3b-instruct": {
       "minimal": "4e4ed97a",
@@ -12223,7 +14576,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3.3-70b-instruct": {
       "minimal": "4e4ed97a",
@@ -12242,7 +14600,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-4-scout": {
       "minimal": "4e4ed97a",
@@ -12261,7 +14624,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-4-maverick": {
       "minimal": "4e4ed97a",
@@ -12280,7 +14648,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mistral-large": {
       "minimal": "4e4ed97a",
@@ -12299,7 +14672,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mistral-medium-3": {
       "minimal": "4e4ed97a",
@@ -12318,7 +14696,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mistral-small-24b-instruct-2501": {
       "minimal": "4e4ed97a",
@@ -12337,7 +14720,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/ministral-3b-2512": {
       "minimal": "4e4ed97a",
@@ -12356,7 +14744,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/ministral-8b-2512": {
       "minimal": "4e4ed97a",
@@ -12375,7 +14768,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/ministral-14b-2512": {
       "minimal": "4e4ed97a",
@@ -12394,7 +14792,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mistral-nemo": {
       "minimal": "4e4ed97a",
@@ -12413,7 +14816,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mistral-saba": {
       "minimal": "4e4ed97a",
@@ -12432,7 +14840,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mixtral-8x22b-instruct": {
       "minimal": "4e4ed97a",
@@ -12451,7 +14864,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/moonshotai/kimi-k2": {
       "minimal": "4e4ed97a",
@@ -12470,7 +14888,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/moonshotai/kimi-k2.5": {
       "minimal": "4e4ed97a",
@@ -12489,7 +14912,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/moonshotai/kimi-k2.6": {
       "minimal": "4e4ed97a",
@@ -12508,7 +14936,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-4.5": {
       "minimal": "4e4ed97a",
@@ -12527,7 +14960,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-4.6": {
       "minimal": "4e4ed97a",
@@ -12546,7 +14984,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-4.7": {
       "minimal": "4e4ed97a",
@@ -12565,7 +15008,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-5": {
       "minimal": "4e4ed97a",
@@ -12584,7 +15032,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-5.1": {
       "minimal": "4e4ed97a",
@@ -12603,7 +15056,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-01": {
       "minimal": "4e4ed97a",
@@ -12622,7 +15080,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-m1": {
       "minimal": "4e4ed97a",
@@ -12641,7 +15104,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-m2": {
       "minimal": "4e4ed97a",
@@ -12660,7 +15128,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-m2.5": {
       "minimal": "4e4ed97a",
@@ -12679,7 +15152,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-m2.7": {
       "minimal": "4e4ed97a",
@@ -12698,7 +15176,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-m3": {
       "minimal": "4e4ed97a",
@@ -12717,7 +15200,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/nvidia/nemotron-nano-9b-v2:free": {
       "minimal": "4e4ed97a",
@@ -12736,7 +15224,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/nvidia/llama-3.3-nemotron-super-49b-v1.5": {
       "minimal": "4e4ed97a",
@@ -12755,7 +15248,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/nvidia/nemotron-3-nano-30b-a3b": {
       "minimal": "4e4ed97a",
@@ -12774,7 +15272,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/nvidia/nemotron-3-super-120b-a12b": {
       "minimal": "4e4ed97a",
@@ -12793,7 +15296,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/nvidia/nemotron-3-ultra-550b-a55b": {
       "minimal": "4e4ed97a",
@@ -12812,7 +15320,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/amazon/nova-micro-v1": {
       "minimal": "4e4ed97a",
@@ -12831,7 +15344,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/amazon/nova-lite-v1": {
       "minimal": "4e4ed97a",
@@ -12850,7 +15368,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/amazon/nova-2-lite-v1": {
       "minimal": "4e4ed97a",
@@ -12869,7 +15392,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/amazon/nova-pro-v1": {
       "minimal": "4e4ed97a",
@@ -12888,7 +15416,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/amazon/nova-premier-v1": {
       "minimal": "4e4ed97a",
@@ -12907,7 +15440,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/cohere/command-r7b-12-2024": {
       "minimal": "4e4ed97a",
@@ -12926,7 +15464,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/cohere/command-r-08-2024": {
       "minimal": "4e4ed97a",
@@ -12945,7 +15488,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/cohere/command-r-plus-08-2024": {
       "minimal": "4e4ed97a",
@@ -12964,7 +15512,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/cohere/command-a": {
       "minimal": "4e4ed97a",
@@ -12983,7 +15536,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/microsoft/phi-4": {
       "minimal": "4e4ed97a",
@@ -13002,7 +15560,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/microsoft/phi-4-mini-instruct": {
       "minimal": "4e4ed97a",
@@ -13021,7 +15584,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/microsoft/wizardlm-2-8x22b": {
       "minimal": "4e4ed97a",
@@ -13040,7 +15608,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/nousresearch/hermes-3-llama-3.1-70b": {
       "minimal": "4e4ed97a",
@@ -13059,7 +15632,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/nousresearch/hermes-3-llama-3.1-405b": {
       "minimal": "4e4ed97a",
@@ -13078,7 +15656,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/nousresearch/hermes-4-70b": {
       "minimal": "4e4ed97a",
@@ -13097,7 +15680,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/nousresearch/hermes-4-405b": {
       "minimal": "4e4ed97a",
@@ -13116,7 +15704,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/bytedance-seed/seed-1.6": {
       "minimal": "4e4ed97a",
@@ -13135,7 +15728,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/bytedance-seed/seed-2.0-lite": {
       "minimal": "4e4ed97a",
@@ -13154,7 +15752,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/bytedance-seed/seed-2.0-mini": {
       "minimal": "4e4ed97a",
@@ -13173,7 +15776,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/ai21/jamba-large-1.7": {
       "minimal": "4e4ed97a",
@@ -13192,7 +15800,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/aion-labs/aion-1.0": {
       "minimal": "4e4ed97a",
@@ -13211,7 +15824,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/aion-labs/aion-2.0": {
       "minimal": "4e4ed97a",
@@ -13230,7 +15848,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/allenai/olmo-3-32b-think": {
       "minimal": "4e4ed97a",
@@ -13249,7 +15872,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/arcee-ai/trinity-large-thinking": {
       "minimal": "4e4ed97a",
@@ -13268,7 +15896,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/arcee-ai/trinity-mini": {
       "minimal": "4e4ed97a",
@@ -13287,7 +15920,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/arcee-ai/virtuoso-large": {
       "minimal": "4e4ed97a",
@@ -13306,7 +15944,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/deepcogito/cogito-v2.1-671b": {
       "minimal": "4e4ed97a",
@@ -13325,7 +15968,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/essentialai/rnj-1-instruct": {
       "minimal": "4e4ed97a",
@@ -13344,7 +15992,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/ibm-granite/granite-4.0-h-micro": {
       "minimal": "4e4ed97a",
@@ -13363,7 +16016,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/ibm-granite/granite-4.1-8b": {
       "minimal": "4e4ed97a",
@@ -13382,7 +16040,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/inception/mercury-2": {
       "minimal": "4e4ed97a",
@@ -13401,7 +16064,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/inclusionai/ling-2.6-1t": {
       "minimal": "4e4ed97a",
@@ -13420,7 +16088,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/inclusionai/ling-2.6-flash": {
       "minimal": "4e4ed97a",
@@ -13439,7 +16112,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/inclusionai/ring-2.6-1t": {
       "minimal": "4e4ed97a",
@@ -13458,7 +16136,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/inflection/inflection-3-pi": {
       "minimal": "4e4ed97a",
@@ -13477,7 +16160,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/inflection/inflection-3-productivity": {
       "minimal": "4e4ed97a",
@@ -13496,7 +16184,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/liquid/lfm-2-24b-a2b": {
       "minimal": "4e4ed97a",
@@ -13515,7 +16208,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/liquid/lfm-2.5-1.2b-instruct:free": {
       "minimal": "4e4ed97a",
@@ -13534,7 +16232,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/perceptron/perceptron-mk1": {
       "minimal": "4e4ed97a",
@@ -13553,7 +16256,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/prime-intellect/intellect-3": {
       "minimal": "4e4ed97a",
@@ -13572,7 +16280,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/rekaai/reka-edge": {
       "minimal": "4e4ed97a",
@@ -13591,7 +16304,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/rekaai/reka-flash-3": {
       "minimal": "4e4ed97a",
@@ -13610,7 +16328,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/stepfun/step-3.5-flash": {
       "minimal": "4e4ed97a",
@@ -13629,7 +16352,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/stepfun/step-3.7-flash": {
       "minimal": "4e4ed97a",
@@ -13648,7 +16376,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/tencent/hunyuan-a13b-instruct": {
       "minimal": "4e4ed97a",
@@ -13667,7 +16400,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/tencent/hy3": {
       "minimal": "4e4ed97a",
@@ -13686,7 +16424,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/upstage/solar-pro-3": {
       "minimal": "4e4ed97a",
@@ -13705,7 +16448,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/writer/palmyra-x5": {
       "minimal": "4e4ed97a",
@@ -13724,7 +16472,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/xiaomi/mimo-v2-flash": {
       "minimal": "4e4ed97a",
@@ -13743,7 +16496,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/xiaomi/mimo-v2.5": {
       "minimal": "4e4ed97a",
@@ -13762,7 +16520,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/xiaomi/mimo-v2.5-pro": {
       "minimal": "4e4ed97a",
@@ -13781,7 +16544,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/nex-agi/nex-n2-pro:free": {
       "minimal": "4e4ed97a",
@@ -13800,7 +16568,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/aion-labs/aion-rp-llama-3.1-8b": {
       "minimal": "4e4ed97a",
@@ -13819,7 +16592,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthracite-org/magnum-v4-72b": {
       "minimal": "4e4ed97a",
@@ -13838,7 +16616,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/cognitivecomputations/dolphin-mistral-24b-venice-edition:free": {
       "minimal": "4e4ed97a",
@@ -13857,7 +16640,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/gryphe/mythomax-l2-13b": {
       "minimal": "4e4ed97a",
@@ -13876,7 +16664,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/mancer/weaver": {
       "minimal": "4e4ed97a",
@@ -13895,7 +16688,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/sao10k/l3-lunaris-8b": {
       "minimal": "4e4ed97a",
@@ -13914,7 +16712,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/sao10k/l3.1-euryale-70b": {
       "minimal": "4e4ed97a",
@@ -13933,7 +16736,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/thedrummer/cydonia-24b-v4.1": {
       "minimal": "4e4ed97a",
@@ -13952,7 +16760,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/thedrummer/rocinante-12b": {
       "minimal": "4e4ed97a",
@@ -13971,7 +16784,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/thedrummer/skyfall-36b-v2": {
       "minimal": "4e4ed97a",
@@ -13990,7 +16808,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/thedrummer/unslopnemo-12b": {
       "minimal": "4e4ed97a",
@@ -14009,7 +16832,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/undi95/remm-slerp-l2-13b": {
       "minimal": "4e4ed97a",
@@ -14028,7 +16856,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-sonnet-5": {
       "minimal": "4e4ed97a",
@@ -14047,7 +16880,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-luna": {
       "minimal": "4e4ed97a",
@@ -14066,7 +16904,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-terra": {
       "minimal": "4e4ed97a",
@@ -14085,7 +16928,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-sol": {
       "minimal": "4e4ed97a",
@@ -14104,7 +16952,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-luna-pro": {
       "minimal": "4e4ed97a",
@@ -14123,7 +16976,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-terra-pro": {
       "minimal": "4e4ed97a",
@@ -14142,7 +17000,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-sol-pro": {
       "minimal": "4e4ed97a",
@@ -14161,7 +17024,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/x-ai/grok-4.5": {
       "minimal": "4e4ed97a",
@@ -14180,7 +17048,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-5.2": {
       "minimal": "4e4ed97a",
@@ -14199,7 +17072,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/aion-labs/aion-3.0-mini": {
       "minimal": "4e4ed97a",
@@ -14218,7 +17096,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/aion-labs/aion-3.0": {
       "minimal": "4e4ed97a",
@@ -14237,7 +17120,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/nex-agi/nex-n2-mini": {
       "minimal": "4e4ed97a",
@@ -14256,7 +17144,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/sakana/fugu-ultra": {
       "minimal": "4e4ed97a",
@@ -14275,7 +17168,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-5-fast": {
       "minimal": "4e4ed97a",
@@ -14294,7 +17192,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-5": {
       "minimal": "4e4ed97a",
@@ -14313,7 +17216,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.6-flash": {
       "minimal": "4e4ed97a",
@@ -14332,7 +17240,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.5-flash-lite": {
       "minimal": "4e4ed97a",
@@ -14351,7 +17264,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/moonshotai/kimi-k3": {
       "minimal": "4e4ed97a",
@@ -14370,7 +17288,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/inclusionai/ling-3.0-flash:free": {
       "minimal": "4e4ed97a",
@@ -14389,7 +17312,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/meituan/longcat-2.0": {
       "minimal": "4e4ed97a",
@@ -14408,7 +17336,12 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
     },
     "openrouter/thinkingmachines/inkling": {
       "minimal": "4e4ed97a",
@@ -14427,7 +17360,36 @@
       "structured": "143935c2",
       "structured+thinking": "8f603ebf",
       "cache.auto": "5054e235",
-      "tier": "557070e4"
+      "tier": "557070e4",
+      "audio.out": "4e4ed97a",
+      "content.multimodal": "ab62e2f4",
+      "serverState": "4e4ed97a",
+      "moderation": "b51d27cd",
+      "providerOptions": "1d7cbd18"
+    },
+    "google:interactions/gemini-3.1-pro": {
+      "minimal": "9033373b",
+      "sampling": "647b7456",
+      "system": "4e2221ae",
+      "tools": "0f52e6b7",
+      "tools.strict": "0f52e6b7",
+      "tools.builtin": "74375d48",
+      "toolChoice.required": "0f52e6b7",
+      "toolChoice.named": "0f52e6b7",
+      "thinking.on": "6860755d",
+      "thinking.effort": "6860755d",
+      "thinking.hidden": "c8ffcbdb",
+      "thinking.off": "9033373b",
+      "thinking.lowMaxTokens": "522c185b",
+      "structured": "695770e0",
+      "structured+thinking": "0dbf2779",
+      "cache.auto": "dd44b0fe",
+      "tier": "9033373b",
+      "audio.out": "9033373b",
+      "content.multimodal": "e162585d",
+      "serverState": "f262b7e3",
+      "moderation": "9033373b",
+      "providerOptions": "9033373b"
     }
   }
 }

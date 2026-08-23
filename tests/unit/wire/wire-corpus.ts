@@ -101,6 +101,60 @@ export const SHAPES: Shape[] = [
     req: (model) => ({ model, messages: U, system: 'sys', cache: 'auto', tools: [FN] }),
   },
   { name: 'tier', req: (model) => ({ model, messages: U, serviceTier: 'priority' }) },
+
+  // ── paths the first freeze missed ──────────────────────────────────────────
+  // Added after the migration had started, and re-frozen from the v2.3.0 tag so
+  // they still describe pre-migration behaviour. `providerOptions` alone had 22
+  // read sites in the hand-written adapters and not one frozen request exercised
+  // it, which is precisely the kind of hole a golden corpus exists to not have.
+  {
+    name: 'audio.out',
+    req: (model) => ({
+      model,
+      messages: U,
+      outputModalities: ['text', 'audio'],
+      audio: { voice: 'alloy', format: 'wav' },
+    }),
+  },
+  {
+    name: 'content.multimodal',
+    req: (model) => ({
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'what is this' },
+            { type: 'image', source: { type: 'base64', mediaType: 'image/png', data: 'aGk=' } },
+          ],
+        },
+      ],
+    }),
+  },
+  { name: 'serverState', req: (model) => ({ model, messages: U, previousResponseId: 'resp_1' }) },
+  {
+    name: 'moderation',
+    req: (model) => ({ model, messages: U, moderation: { mode: 'report' } }),
+  },
+  {
+    name: 'providerOptions',
+    req: (model) => ({
+      model,
+      messages: U,
+      providerOptions: {
+        userProfileId: 'u_1',
+        promptCacheOptions: { scope: 'session' },
+        reasoningMode: 'pro',
+        responseModalities: ['TEXT'],
+        cachedContent: 'cc-1',
+        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Kore' } } },
+        imageConfig: { aspectRatio: '1:1' },
+        translationConfig: { targetLanguage: 'fr' },
+        moderationPolicy: { categories: ['hate'] },
+        openrouter: { provider: { order: ['a'] }, transforms: ['x'] },
+      },
+    }),
+  },
 ];
 
 export interface Adapterish {
@@ -114,7 +168,26 @@ export interface Subject {
   specId: string;
   flavor?: string;
   adapter: Adapterish;
+  /** Index key in the frozen corpus. Carries the API for opt-in adapters, so
+   *  `google/gemini-3.1-pro` on generateContent and the same id on Interactions
+   *  are two entries rather than one silently overwriting the other. */
+  key: string;
 }
+
+/** Adapters that NO catalogued model routes to, and which `subjectsFrom` therefore
+ *  cannot discover.
+ *
+ *  Interactions is opt-in: nothing sets `preferredApi: 'interactions'`, a caller
+ *  points a client at it deliberately. Without an explicit entry the corpus would
+ *  quietly cover zero of it while still reporting green — the same hole that let
+ *  five request paths reach the migration unfrozen. */
+export const EXTRA_SUBJECTS: ReadonlyArray<{
+  provider: string;
+  api: string;
+  model: string;
+  specId: string;
+  flavor?: string;
+}> = [{ provider: 'google', api: 'interactions', model: 'gemini-3.1-pro', specId: 'google/interactions' }];
 
 /** Which flavor overlay a provider's requests carry on the OpenAI-shaped specs. */
 const FLAVORS: Record<string, string | undefined> = {
@@ -140,12 +213,26 @@ export function subjectsFrom(
     if (m.type !== 'chat' || !m.wireSpec) continue;
     const adapter = adapters[m.provider]?.[m.preferredApi];
     if (!adapter) continue;
+    const model = m.providerModelName ?? m.model;
     out.push({
       provider: m.provider,
-      model: m.providerModelName ?? m.model,
+      model,
       specId: m.wireSpec,
       flavor: FLAVORS[m.provider],
       adapter,
+      key: `${m.provider}/${model}`,
+    });
+  }
+  for (const e of EXTRA_SUBJECTS) {
+    const adapter = adapters[e.provider]?.[e.api];
+    if (!adapter) continue;
+    out.push({
+      provider: e.provider,
+      model: e.model,
+      specId: e.specId,
+      flavor: e.flavor,
+      adapter,
+      key: `${e.provider}:${e.api}/${e.model}`,
     });
   }
   return out;

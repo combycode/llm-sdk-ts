@@ -89,7 +89,7 @@ describe('the frozen corpus is intact', () => {
   });
 
   it('has an entry for every catalogued chat model, and enough of them', () => {
-    const missing = subjects.map((s) => `${s.provider}/${s.model}`).filter((k) => !index[k]);
+    const missing = subjects.map((s) => s.key).filter((k) => !index[k]);
     expect(missing).toEqual([]);
     const short = Object.entries(FLOOR)
       .filter(([p, n]) => subjects.filter((s) => s.provider === p).length < n)
@@ -120,7 +120,7 @@ describe('every catalogued chat model still sends what 2.3.0 sent', () => {
       let compared = 0;
 
       for (const s of mine) {
-        const key = `${s.provider}/${s.model}`;
+        const key = s.key;
         for (const shape of SHAPES) {
           const was = frozen(key, shape.name, s.model);
           if (was === null) {

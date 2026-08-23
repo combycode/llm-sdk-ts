@@ -84,7 +84,7 @@ const index: Record<string, Record<string, string>> = {};
 let count = 0;
 
 for (const s of subjects) {
-  const key = `${s.provider}/${s.model}`;
+  const key = s.key;
   index[key] = {};
   for (const shape of SHAPES) {
     const wire = onWire(s.adapter.buildRequest(shape.req(s.model) as never));
