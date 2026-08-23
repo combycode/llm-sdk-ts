@@ -40,6 +40,36 @@ import { XAIResponsesAdapter } from '../src/llm/providers/xai/responses';
 import { OpenRouterAdapter } from '../src/llm/providers/openrouter/completions';
 import { OpenRouterResponsesAdapter } from '../src/llm/providers/openrouter/responses';
 import { SHAPES, subjectsFrom, type Adapterish } from '../tests/unit/wire/wire-corpus';
+import { MEDIA_SUITES, type MediaCase } from '../tests/unit/wire/media-corpus';
+import { mediaSpec } from '../src/wire/media-specs';
+
+const MEDIA_BASE: Record<string, string> = {
+  openai: 'https://api.openai.com',
+  google: 'https://generativelanguage.googleapis.com',
+};
+
+/** The pins the media adapters use. Kept beside them rather than imported so the
+ *  audit measures the specs, not the adapter's opinion of which one applies. */
+function mediaSpecIdFor(provider: string, c: MediaCase): string {
+  if (provider === 'openai') {
+    if (c.kind === 'image') {
+      return c.model.startsWith('gpt-image-')
+        ? 'openai/images.generations'
+        : 'openai/images.generations@dall-e';
+    }
+    if (c.kind === 'imageEdit') return 'openai/images.edits';
+    if (c.kind === 'audio') return 'openai/audio.speech';
+    return 'openai/videos';
+  }
+  if (c.kind === 'image') {
+    return c.model.startsWith('imagen')
+      ? 'google/imagen@predict'
+      : 'google/gemini-image@generateContent';
+  }
+  if (c.kind === 'imageEdit') return 'google/gemini-image-edit@generateContent';
+  if (c.kind === 'audio') return 'google/gemini-tts@generateContent';
+  return 'google/veo@predictLongRunning';
+}
 
 const SPEC_DIR = resolve(import.meta.dir, '../src/wire/specs');
 const K = 'k';
@@ -215,6 +245,34 @@ for (const s of subjects) {
   }
 }
 
+// ── also drive the MEDIA corpus ──────────────────────────────────────────────
+//
+// Without this the audit reports the media transforms as never-fired even after
+// `media-differential.test.ts` began executing them — an instrument that
+// understates coverage is worse than none, because the gap it invents draws
+// attention away from the gap that is real.
+const mediaSpecIds = new Set<string>();
+let mediaBuilds = 0;
+for (const { provider, cases } of MEDIA_SUITES) {
+  for (const c of cases) {
+    const id = mediaSpecIdFor(provider, c);
+    mediaSpecIds.add(id);
+    try {
+      buildFromSpec(
+        mediaSpec(id),
+        { ...c.req, model: c.model } as never,
+        recorded,
+        provider,
+        (kind, name) => rulesFired.add(`${id}|${kind}|${name}`),
+        { baseURL: MEDIA_BASE[provider], apiKey: K },
+      );
+      mediaBuilds++;
+    } catch (e) {
+      console.error(`media ${provider}/${c.name} (${id}) threw: ${(e as Error).message}`);
+    }
+  }
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 const CHAT = new Set(subjects.map((s) => s.specId));
 const line = (s: string) => console.log(s);
@@ -222,7 +280,8 @@ const line = (s: string) => console.log(s);
 line(`specs on disk        : ${specFiles.length}`);
 line(`interpreter builtins : ${hardcoded.size}  (${[...hardcoded].sort().join(', ')})`);
 line(`specs driven here    : ${CHAT.size}  (${[...CHAT].sort().join(', ')})`);
-line(`corpus builds        : ${builds}  (${subjects.length} subjects x ${SHAPES.length} shapes)`);
+line(`chat builds          : ${builds}  (${subjects.length} subjects x ${SHAPES.length} shapes)`);
+line(`media builds         : ${mediaBuilds}  (${mediaSpecIds.size} media specs driven)`);
 line('');
 
 if (missing.length) {
