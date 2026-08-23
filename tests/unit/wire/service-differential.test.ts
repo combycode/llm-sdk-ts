@@ -23,6 +23,7 @@ import {
   XAI_MEDIA_CASES,
   type OrMediaCase,
   type XaiMediaCase,
+  REALTIME_CASES,
 } from './service-corpus';
 import type {
   AudioGenRequest,
@@ -30,6 +31,16 @@ import type {
   ImageGenRequest,
   VideoGenRequest,
 } from '../../../src/plugins/media/types';
+import {
+  OpenAIRealtimeAdapter,
+  buildOpenAISessionUpdate,
+  buildOpenAITurnFrames,
+} from '../../../src/llm/providers/openai/realtime';
+import {
+  GoogleRealtimeAdapter,
+  buildGoogleSetupFrame,
+  buildGoogleTurnFrames,
+} from '../../../src/llm/providers/google/realtime';
 import golden from '../../fixtures/service-golden.json' with { type: 'json' };
 
 const K = 'k';
@@ -171,5 +182,43 @@ describe('openrouter media still sends what was frozen', () => {
       if (now !== was) drift.push(`${key}:\n    frozen: ${was}\n    now:    ${now}`);
     }
     expect(drift.slice(0, 3)).toEqual([]);
+  });
+});
+
+const RT = {
+  openai: {
+    adapter: new OpenAIRealtimeAdapter({ apiKey: K }),
+    open: buildOpenAISessionUpdate,
+    turn: buildOpenAITurnFrames,
+  },
+  google: {
+    adapter: new GoogleRealtimeAdapter({ apiKey: K }),
+    open: buildGoogleSetupFrame,
+    turn: buildGoogleTurnFrames,
+  },
+};
+
+describe('realtime still produces what was frozen', () => {
+  it('connection descriptors, handshake frames and turn frames', () => {
+    const drift: string[] = [];
+    let compared = 0;
+    for (const c of REALTIME_CASES) {
+      const rt = RT[c.provider];
+      const check = (key: string, got: unknown) => {
+        compared++;
+        const now = onWire(got);
+        const was = onWire(index[key]);
+        if (now !== was) drift.push(`${key}:
+    frozen: ${was}
+    now:    ${now}`);
+      };
+      const base = `realtime/${c.provider}/${c.name}`;
+      check(`${base}/connect`, rt.adapter.buildConnectRequest(c.config as never));
+      check(`${base}/open`, rt.open(c.config as never));
+      for (const t of c.turns) {
+        check(`${base}/turn.${t.name}`, rt.turn(t.input as never, { turnComplete: t.turnComplete }));
+      }
+    }
+    expect({ compared: compared > 0, drift: drift.slice(0, 3) }).toEqual({ compared: true, drift: [] });
   });
 });

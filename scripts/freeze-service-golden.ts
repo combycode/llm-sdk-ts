@@ -26,8 +26,19 @@ import {
   XAI_MEDIA_CASES,
   type OrMediaCase,
   type XaiMediaCase,
+  REALTIME_CASES,
 } from '../tests/unit/wire/service-corpus';
 import type { ImageEditRequest, ImageGenRequest, AudioGenRequest, VideoGenRequest } from '../src/plugins/media/types';
+import {
+  OpenAIRealtimeAdapter,
+  buildOpenAISessionUpdate,
+  buildOpenAITurnFrames,
+} from '../src/llm/providers/openai/realtime';
+import {
+  GoogleRealtimeAdapter,
+  buildGoogleSetupFrame,
+  buildGoogleTurnFrames,
+} from '../src/llm/providers/google/realtime';
 
 const OUT = resolve(import.meta.dir, '../tests/fixtures/service-golden.json');
 const force = process.argv.includes('--force');
@@ -137,6 +148,31 @@ async function runOr(a: OpenRouterMediaAdapter, c: OrMediaCase, fetch: never): P
       return a.editImage(c.req as ImageEditRequest, fetch);
     default:
       return a.generateAudio(c.req as AudioGenRequest, fetch);
+  }
+}
+
+// ── realtime ─────────────────────────────────────────────────────────────────
+const RT = {
+  openai: {
+    adapter: new OpenAIRealtimeAdapter({ apiKey: K }),
+    open: buildOpenAISessionUpdate,
+    turn: buildOpenAITurnFrames,
+  },
+  google: {
+    adapter: new GoogleRealtimeAdapter({ apiKey: K }),
+    open: buildGoogleSetupFrame,
+    turn: buildGoogleTurnFrames,
+  },
+};
+for (const c of REALTIME_CASES) {
+  const rt = RT[c.provider];
+  record(`realtime/${c.provider}/${c.name}/connect`, rt.adapter.buildConnectRequest(c.config as never));
+  record(`realtime/${c.provider}/${c.name}/open`, rt.open(c.config as never));
+  for (const t of c.turns) {
+    record(
+      `realtime/${c.provider}/${c.name}/turn.${t.name}`,
+      rt.turn(t.input as never, { turnComplete: t.turnComplete }),
+    );
   }
 }
 

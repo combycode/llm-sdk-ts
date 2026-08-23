@@ -1,8 +1,8 @@
 {
   "_doc": "What the embeddings and seamless-media adapters sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed.",
-  "frozenAtCommit": "1c8e69f3259e49f0216dd68bed4bfe89ca89dcfe",
+  "frozenAtCommit": "626487b1111155ba85ebbed5a8f82b33ba83044d",
   "counts": {
-    "cases": 18
+    "cases": 33
   },
   "index": {
     "embeddings/openai/single": {
@@ -380,6 +380,220 @@
       "provider": "openrouter",
       "responseType": "json",
       "url": "https://openrouter.ai/api/v1/chat/completions"
-    }
+    },
+    "realtime/openai/text/connect": {
+      "model": "gpt-realtime",
+      "protocols": [
+        "realtime",
+        "openai-insecure-api-key.k"
+      ],
+      "provider": "openai",
+      "url": "wss://api.openai.com/v1/realtime?model=gpt-realtime"
+    },
+    "realtime/openai/text/open": {
+      "session": {
+        "output_modalities": [
+          "text"
+        ],
+        "type": "realtime"
+      },
+      "type": "session.update"
+    },
+    "realtime/openai/text/turn.text": [
+      {
+        "item": {
+          "content": [
+            {
+              "text": "hello",
+              "type": "input_text"
+            }
+          ],
+          "role": "user",
+          "type": "message"
+        },
+        "type": "conversation.item.create"
+      },
+      {
+        "type": "response.create"
+      }
+    ],
+    "realtime/openai/text/turn.text.open": [
+      {
+        "item": {
+          "content": [
+            {
+              "text": "hello",
+              "type": "input_text"
+            }
+          ],
+          "role": "user",
+          "type": "message"
+        },
+        "type": "conversation.item.create"
+      }
+    ],
+    "realtime/openai/audio/connect": {
+      "model": "gpt-realtime",
+      "protocols": [
+        "realtime",
+        "openai-insecure-api-key.k"
+      ],
+      "provider": "openai",
+      "url": "wss://api.openai.com/v1/realtime?model=gpt-realtime"
+    },
+    "realtime/openai/audio/open": {
+      "session": {
+        "audio": {
+          "output": {
+            "voice": "alloy"
+          }
+        },
+        "instructions": "be brief",
+        "output_modalities": [
+          "text",
+          "audio"
+        ],
+        "type": "realtime"
+      },
+      "type": "session.update"
+    },
+    "realtime/openai/audio/turn.audio": [
+      {
+        "item": {
+          "content": [
+            {
+              "audio": "AAECAw==",
+              "type": "input_audio"
+            }
+          ],
+          "role": "user",
+          "type": "message"
+        },
+        "type": "conversation.item.create"
+      },
+      {
+        "type": "response.create"
+      }
+    ],
+    "realtime/openai/audio/turn.both": [
+      {
+        "item": {
+          "content": [
+            {
+              "text": "and this",
+              "type": "input_text"
+            },
+            {
+              "audio": "AAECAw==",
+              "type": "input_audio"
+            }
+          ],
+          "role": "user",
+          "type": "message"
+        },
+        "type": "conversation.item.create"
+      },
+      {
+        "type": "response.create"
+      }
+    ],
+    "realtime/google/text/connect": {
+      "model": "gemini-3.1-flash-live-preview",
+      "provider": "google",
+      "url": "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=k"
+    },
+    "realtime/google/text/open": {
+      "setup": {
+        "generationConfig": {
+          "responseModalities": [
+            "TEXT"
+          ]
+        },
+        "model": "models/gemini-3.1-flash-live-preview"
+      }
+    },
+    "realtime/google/text/turn.text": [
+      {
+        "clientContent": {
+          "turnComplete": true,
+          "turns": [
+            {
+              "parts": [
+                {
+                  "text": "hello"
+                }
+              ],
+              "role": "user"
+            }
+          ]
+        }
+      }
+    ],
+    "realtime/google/text/turn.text.open": [
+      {
+        "clientContent": {
+          "turnComplete": false,
+          "turns": [
+            {
+              "parts": [
+                {
+                  "text": "hello"
+                }
+              ],
+              "role": "user"
+            }
+          ]
+        }
+      }
+    ],
+    "realtime/google/audio/connect": {
+      "model": "models/gemini-3.1-flash-live-preview",
+      "provider": "google",
+      "url": "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent?key=k"
+    },
+    "realtime/google/audio/open": {
+      "setup": {
+        "generationConfig": {
+          "responseModalities": [
+            "AUDIO"
+          ],
+          "speechConfig": {
+            "voiceConfig": {
+              "prebuiltVoiceConfig": {
+                "voiceName": "Kore"
+              }
+            }
+          }
+        },
+        "model": "models/gemini-3.1-flash-live-preview",
+        "systemInstruction": {
+          "parts": [
+            {
+              "text": "be brief"
+            }
+          ]
+        }
+      }
+    },
+    "realtime/google/audio/turn.audio": [
+      {
+        "clientContent": {
+          "turnComplete": true,
+          "turns": [
+            {
+              "parts": [
+                {
+                  "inlineData": {
+                    "data": "AAECAw==",
+                    "mimeType": "audio/pcm"
+                  }
+                }
+              ],
+              "role": "user"
+            }
+          ]
+        }
+      }
+    ]
   }
 }

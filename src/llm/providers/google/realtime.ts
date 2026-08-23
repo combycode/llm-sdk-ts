@@ -14,14 +14,19 @@
  *  Gemini Live models are audio-native: with responseModalities ['AUDIO'] the
  *  parts carry inlineData audio, not text. */
 
+import { buildConnection, buildFrames } from '../../../wire/interpreter';
+import { serviceSpec } from '../../../wire/service-specs';
+import { makeRegistry } from '../../wire-transforms';
 import type {
   EngineConnect,
   RealtimeConnection,
   RealtimeFrame,
   WsRequest,
 } from '../../../network/types';
+
+const RT_REGISTRY = makeRegistry({});
 import { BaseRealtimeSession } from '../../realtime/session';
-import { base64ToBytes, bytesToBase64 } from '../../../util/base64';
+import { base64ToBytes, } from '../../../util/base64';
 import type { Usage } from '../../types/response';
 import type {
   RealtimeInput,
@@ -53,10 +58,15 @@ export class GoogleRealtimeAdapter implements RealtimeProviderAdapter {
    *  without opening a socket. Gemini authenticates with a query-string key and
    *  does NOT name the model in the URL — that goes in the setup frame. */
   buildConnectRequest(config: RealtimeSessionConfig): WsRequest {
-    const url =
-      `${this.base}/ws/google.ai.generativelanguage.${API_VERSION}` +
-      `.GenerativeService.BidiGenerateContent?key=${this.apiKey}`;
-    return { url, provider: 'google', model: config.model };
+    // The spec names these `wsBase` / `apiVersion`: the host is already ws:// by
+    // the time it gets here, and the API version is part of the RPC path rather
+    // than a prefix, so neither is the plain `baseURL` other specs read.
+    const conn = buildConnection(serviceSpec('google/realtime'), 'connect', config, RT_REGISTRY, {
+      wsBase: this.base,
+      apiVersion: API_VERSION,
+      apiKey: this.apiKey,
+    });
+    return { ...conn, provider: 'google', model: config.model };
   }
 
   connect(config: RealtimeSessionConfig, connect: EngineConnect): RealtimeSession {
@@ -65,7 +75,7 @@ export class GoogleRealtimeAdapter implements RealtimeProviderAdapter {
 }
 
 /** Map our modalities to Gemini's response-modality enum strings. */
-function toResponseModalities(mods: RealtimeModality[] | undefined): string[] {
+function _toResponseModalities(mods: RealtimeModality[] | undefined): string[] {
   return (mods ?? ['text']).map((m) => (m === 'audio' ? 'AUDIO' : 'TEXT'));
 }
 
@@ -73,20 +83,10 @@ function toResponseModalities(mods: RealtimeModality[] | undefined): string[] {
  *  asserted without opening a socket. Gemini Live names the model HERE rather
  *  than in the URL, which is the opposite of OpenAI. */
 export function buildGoogleSetupFrame(config: RealtimeSessionConfig): Record<string, unknown> {
-  const voice = config.voice;
-  const setup: Record<string, unknown> = {
-    model: config.model.startsWith('models/') ? config.model : `models/${config.model}`,
-    generationConfig: {
-      responseModalities: toResponseModalities(config.modalities),
-      ...(voice
-        ? { speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } } }
-        : {}),
-    },
-  };
-  if (config.instructions) {
-    setup.systemInstruction = { parts: [{ text: config.instructions }] };
-  }
-  return { setup };
+  return buildFrames(serviceSpec('google/realtime'), 'open', config, RT_REGISTRY)[0] as Record<
+    string,
+    unknown
+  >;
 }
 
 /** The frames for one turn. Gemini carries turn completion as a FIELD, where
@@ -95,19 +95,12 @@ export function buildGoogleTurnFrames(
   input: RealtimeInput,
   opts?: { turnComplete?: boolean },
 ): Array<Record<string, unknown>> {
-  const parts: Array<Record<string, unknown>> = [];
-  if (input.text != null) parts.push({ text: input.text });
-  if (input.audio) {
-    parts.push({ inlineData: { mimeType: 'audio/pcm', data: bytesToBase64(input.audio) } });
-  }
-  return [
-    {
-      clientContent: {
-        turns: [{ role: 'user', parts }],
-        turnComplete: opts?.turnComplete !== false,
-      },
-    },
-  ];
+  return buildFrames(
+    serviceSpec('google/realtime'),
+    'send',
+    { ...input, turnComplete: opts?.turnComplete },
+    RT_REGISTRY,
+  ) as Array<Record<string, unknown>>;
 }
 
 class GoogleRealtimeSession extends BaseRealtimeSession {

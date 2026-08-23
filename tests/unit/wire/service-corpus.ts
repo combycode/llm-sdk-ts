@@ -111,3 +111,60 @@ export const OPENROUTER_MEDIA_CASES: OrMediaCase[] = [
     req: { provider: 'openrouter', input: 'hello', params: { voice: 'Kore' } } as AudioGenRequest,
   },
 ];
+
+// ── realtime ─────────────────────────────────────────────────────────────────
+//
+// A session's outbound side is three artifacts, not one request: the connection
+// descriptor, the handshake frame, and the per-turn frames. All three are built
+// without a socket, which is why they can be frozen at all.
+export interface RealtimeCase {
+  name: string;
+  provider: 'openai' | 'google';
+  config: { model: string; modalities?: Array<'text' | 'audio'>; voice?: string; instructions?: string };
+  turns: Array<{ name: string; input: { text?: string; audio?: Uint8Array }; turnComplete?: boolean }>;
+}
+
+const PCM = new Uint8Array([0, 1, 2, 3]);
+
+export const REALTIME_CASES: RealtimeCase[] = [
+  {
+    name: 'text',
+    provider: 'openai',
+    config: { model: 'gpt-realtime' },
+    turns: [
+      { name: 'text', input: { text: 'hello' } },
+      // turnComplete:false withholds response.create and leaves the turn open —
+      // where Gemini expresses the same thing as a field on its single frame.
+      { name: 'text.open', input: { text: 'hello' }, turnComplete: false },
+    ],
+  },
+  {
+    name: 'audio',
+    provider: 'openai',
+    config: { model: 'gpt-realtime', modalities: ['text', 'audio'], voice: 'alloy', instructions: 'be brief' },
+    turns: [
+      { name: 'audio', input: { audio: PCM } },
+      { name: 'both', input: { text: 'and this', audio: PCM } },
+    ],
+  },
+  {
+    name: 'text',
+    provider: 'google',
+    config: { model: 'gemini-3.1-flash-live-preview' },
+    turns: [
+      { name: 'text', input: { text: 'hello' } },
+      { name: 'text.open', input: { text: 'hello' }, turnComplete: false },
+    ],
+  },
+  {
+    name: 'audio',
+    provider: 'google',
+    config: {
+      model: 'models/gemini-3.1-flash-live-preview',
+      modalities: ['audio'],
+      voice: 'Kore',
+      instructions: 'be brief',
+    },
+    turns: [{ name: 'audio', input: { audio: PCM } }],
+  },
+];

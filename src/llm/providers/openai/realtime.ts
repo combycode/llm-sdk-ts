@@ -11,9 +11,16 @@
  *        response.done                → turn complete
  *        error                        → error */
 
+import { buildConnection, buildFrames } from '../../../wire/interpreter';
+import { serviceSpec } from '../../../wire/service-specs';
+import { makeRegistry } from '../../wire-transforms';
 import type { EngineConnect, RealtimeFrame, WsRequest } from '../../../network/types';
+
+/** Realtime rules need no adapter handles: the frames are data plus the base64
+ *  audio encoder. Module scope, because these are free functions. */
+const RT_REGISTRY = makeRegistry({});
 import { BaseRealtimeSession } from '../../realtime/session';
-import { base64ToBytes, bytesToBase64 } from '../../../util/base64';
+import { base64ToBytes, } from '../../../util/base64';
 import type {
   RealtimeInput,
   RealtimeProviderAdapter,
@@ -68,16 +75,15 @@ export class OpenAIRealtimeAdapter implements RealtimeProviderAdapter {
    *  without opening a socket. Note the auth: OpenAI carries the key in a
    *  SUBPROTOCOL, not a header or query param, because browsers cannot set
    *  WebSocket headers. */
+  /** The WebSocket descriptor. Note the auth: OpenAI carries the key in a
+   *  SUBPROTOCOL, not a header or query param, because browsers cannot set
+   *  WebSocket headers — which is why the spec models `protocols` at all. */
   buildConnectRequest(config: RealtimeSessionConfig): WsRequest {
-    const url = new URL(`${this.baseURL.replace(/\/$/, '')}/v1/realtime`);
-    url.protocol = 'wss';
-    url.searchParams.set('model', config.model);
-    return {
-      url: url.toString(),
-      protocols: ['realtime', `openai-insecure-api-key.${this.apiKey}`],
-      provider: 'openai',
-      model: config.model,
-    };
+    const conn = buildConnection(serviceSpec('openai/realtime'), 'connect', config, RT_REGISTRY, {
+      baseURL: this.baseURL,
+      apiKey: this.apiKey,
+    });
+    return { ...conn, provider: 'openai', model: config.model };
   }
 
   connect(config: RealtimeSessionConfig, connect: EngineConnect): RealtimeSession {
@@ -97,13 +103,10 @@ export class OpenAIRealtimeAdapter implements RealtimeProviderAdapter {
 export function buildOpenAISessionUpdate(
   config: Pick<RealtimeSessionConfig, 'modalities' | 'instructions' | 'voice'>,
 ): Record<string, unknown> {
-  const session: Record<string, unknown> = {
-    type: 'realtime',
-    output_modalities: config.modalities ?? ['text'],
-  };
-  if (config.instructions) session.instructions = config.instructions;
-  if (config.voice) session.audio = { output: { voice: config.voice } };
-  return { type: 'session.update', session };
+  return buildFrames(serviceSpec('openai/realtime'), 'open', config, RT_REGISTRY)[0] as Record<
+    string,
+    unknown
+  >;
 }
 
 /** The frames for one turn. `response.create` is what asks the model to reply,
@@ -113,14 +116,12 @@ export function buildOpenAITurnFrames(
   input: RealtimeInput,
   opts?: { turnComplete?: boolean },
 ): Array<Record<string, unknown>> {
-  const content: Array<Record<string, unknown>> = [];
-  if (input.text != null) content.push({ type: 'input_text', text: input.text });
-  if (input.audio) content.push({ type: 'input_audio', audio: bytesToBase64(input.audio) });
-  const frames: Array<Record<string, unknown>> = [
-    { type: 'conversation.item.create', item: { type: 'message', role: 'user', content } },
-  ];
-  if (opts?.turnComplete !== false) frames.push({ type: 'response.create' });
-  return frames;
+  return buildFrames(
+    serviceSpec('openai/realtime'),
+    'send',
+    { ...input, turnComplete: opts?.turnComplete },
+    RT_REGISTRY,
+  ) as Array<Record<string, unknown>>;
 }
 
 class OpenAIRealtimeSession extends BaseRealtimeSession {
