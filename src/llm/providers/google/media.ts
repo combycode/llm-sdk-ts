@@ -1,15 +1,13 @@
 /** Google media adapter — Imagen (:predict) + Veo (:predictLongRunning).
  *  All HTTP calls go through an injected EngineFetch (NetworkEngine queue). */
 
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { mediaSpec } from '../../../wire/media-specs';
+import { makeRegistry } from '../../wire-transforms';
 import type { EngineFetch, HttpRequest } from '../../../network/types';
 import { base64ToBytes } from '../../../util/base64';
-import {
-  googleImagePart,
-  googleVeoImage,
-  normalizeImageSource,
-} from '../../../util/source-image';
 import { ensurePlayableAudio } from '../../../util/wav';
-import { resolveVoice } from '../../audio/voices';
 import { emptyUsage, type Usage } from '../../types/response';
 import type {
   AudioGenRequest,
@@ -60,6 +58,26 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
     };
   }
 
+  /** Named code the specs cannot express as data — image-source normalisation. */
+  private readonly wireRegistry: Registry = makeRegistry({ google: this });
+
+  /** Build one media request from its spec, then add the engine metadata.
+   *
+   *  `provider`, `model` and `responseType` are engine concerns, not wire: nothing
+   *  a provider sees, so the specs do not model them. Every Google media response
+   *  is JSON, including Veo's operation handle and the base64 inline data. */
+  private fromSpec(specId: string, req: object, model: string): HttpRequest {
+    const built = buildFromSpec(
+      mediaSpec(specId),
+      { ...req, model } as never,
+      this.wireRegistry,
+      'google',
+      undefined,
+      { baseURL: this.baseURL, apiKey: this.apiKey },
+    );
+    return { ...(built as object), provider: 'google', model, responseType: 'json' } as HttpRequest;
+  }
+
   // ─── request builders ────────────────────────────────────────────────
   //
   // Split out from the methods that fetch and parse, so a request can be built,
@@ -68,19 +86,9 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
   // the adapter would send was to intercept the network.
 
   /** Imagen image generation: the Vertex-style `:predict` envelope. */
+  /** Imagen image generation: the Vertex-style `:predict` envelope. */
   buildImagenRequest(req: ImageGenRequest, model = req.model ?? 'imagen-4.0-generate-001'): HttpRequest {
-    const parameters: Record<string, unknown> = { sampleCount: req.params?.n ?? 1 };
-    if (req.params?.aspectRatio) parameters.aspectRatio = req.params.aspectRatio;
-    if (req.params?.imageSize) parameters.sampleImageSize = req.params.imageSize;
-    return {
-      url: `${this.baseURL}/v1beta/models/${model}:predict?key=${this.apiKey}`,
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: { instances: [{ prompt: req.prompt }], parameters },
-      provider: 'google',
-      model,
-      responseType: 'json',
-    };
+    return this.fromSpec('google/imagen@predict', req, model);
   }
 
   /** The inline-media path shared by gemini image generation, editing and TTS. */
@@ -102,68 +110,43 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
   }
 
   /** Veo video submission — a long-running operation, hence the endpoint. */
+  /** Veo video submission — a long-running operation, hence the endpoint. */
   buildVideoRequest(req: VideoGenRequest, model = req.model ?? 'veo-3.1-generate-preview'): HttpRequest {
-    const instance: Record<string, unknown> = { prompt: req.prompt };
-    // First-frame image → image-to-video.
-    if (req.sourceImage) instance.image = googleVeoImage(normalizeImageSource(req.sourceImage));
-    const parameters: Record<string, unknown> = {};
-    if (req.params?.duration) parameters.durationSeconds = req.params.duration;
-    if (req.params?.aspectRatio) parameters.aspectRatio = req.params.aspectRatio;
-    if (req.params?.resolution) parameters.resolution = req.params.resolution;
-    return {
-      url: `${this.baseURL}/v1beta/models/${model}:predictLongRunning?key=${this.apiKey}`,
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: { instances: [instance], parameters },
-      provider: 'google',
-      model,
-      responseType: 'json',
-    };
-  }
-
-  /** `generationConfig` for the gemini image paths — generation and editing take
-   *  the same one. */
-  private imageGenerationConfig(params: ImageGenRequest['params']): Record<string, unknown> {
-    const generationConfig: Record<string, unknown> = { responseModalities: ['IMAGE'] };
-    const image: Record<string, unknown> = {};
-    if (params?.aspectRatio) image.aspectRatio = params.aspectRatio;
-    if (params?.imageSize) image.imageSize = params.imageSize;
-    if (Object.keys(image).length) generationConfig.imageConfig = image;
-    return generationConfig;
+    return this.fromSpec('google/veo@predictLongRunning', req, model);
   }
 
   /** The complete image request, whichever of the two Google image paths applies:
    *  Imagen models use `:predict`, gemini-* models generate inline via
    *  `:generateContent` steered by responseModalities. */
+  /** The complete image request, whichever of the two Google image paths applies.
+   *
+   *  Imagen models use `:predict`; gemini-* models generate inline via
+   *  `:generateContent` steered by responseModalities. Different endpoint, body and
+   *  response — the fork is a genuine wire difference, not a preference. */
   buildImageRequest(req: ImageGenRequest, model = req.model ?? 'imagen-4.0-generate-001'): HttpRequest {
-    return model.startsWith('imagen')
-      ? this.buildImagenRequest(req, model)
-      : this.buildGenerateContentRequest(model, req.prompt, this.imageGenerationConfig(req.params));
+    return this.fromSpec(
+      model.startsWith('imagen') ? 'google/imagen@predict' : 'google/gemini-image@generateContent',
+      req,
+      model,
+    );
   }
 
   /** Gemini TTS: the same inline path with an AUDIO modality and a speechConfig. */
+  /** Gemini TTS: the inline path with an AUDIO modality and a speechConfig. */
   buildAudioRequest(
     req: AudioGenRequest,
     model = req.model ?? 'gemini-2.5-flash-preview-tts',
   ): HttpRequest {
-    const voiceName = resolveVoice('google', req.params?.voice) ?? 'Kore';
-    return this.buildGenerateContentRequest(model, req.input, {
-      responseModalities: ['AUDIO'],
-      speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName } } },
-    });
+    return this.fromSpec('google/gemini-tts@generateContent', req, model);
   }
 
+  /** Image-to-image edit: image generation plus the source image as a second part. */
   /** Image-to-image edit: image generation plus the source image as a second part. */
   buildEditImageRequest(
     req: ImageEditRequest,
     model = req.model ?? 'gemini-2.5-flash-image',
   ): HttpRequest {
-    return this.buildGenerateContentRequest(
-      model,
-      req.prompt,
-      this.imageGenerationConfig(req.params),
-      [googleImagePart(normalizeImageSource(req.sourceImage))],
-    );
+    return this.fromSpec('google/gemini-image-edit@generateContent', req, model);
   }
 
   async generateImage(req: ImageGenRequest, fetch: EngineFetch): Promise<RawMediaResult[]> {

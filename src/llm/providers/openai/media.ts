@@ -3,10 +3,12 @@
  *  so they share the NetworkEngine queue, rate-limits, retry, and hooks. */
 
 import { base64ToBytes } from '../../../util/base64';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { mediaSpec } from '../../../wire/media-specs';
+import { makeRegistry } from '../../wire-transforms';
 import type { EngineFetch, HttpRequest } from '../../../network/types';
-import { resolveVoice } from '../../audio/voices';
 import { emptyUsage, type Usage } from '../../types/response';
-import { normalizeImageSource, openaiImageRef } from '../../../util/source-image';
 import type {
   AudioGenRequest,
   ImageEditRequest,
@@ -58,6 +60,31 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
     return { authorization: `Bearer ${this.apiKey}`, 'content-type': 'application/json' };
   }
 
+  /** Named code the specs cannot express as data — image-source normalisation. */
+  private readonly wireRegistry: Registry = makeRegistry({ openaiResponses: this });
+
+  /** Build one media request from its spec, then add the engine metadata.
+   *
+   *  `provider`, `model` and `responseType` are NOT wire: the NetworkEngine routes
+   *  and decodes with them and no provider ever sees them, so the specs do not
+   *  model them and this layer keeps supplying them. */
+  private fromSpec(
+    specId: string,
+    req: object,
+    model: string,
+    responseType: 'json' | 'arraybuffer',
+  ): HttpRequest {
+    const built = buildFromSpec(
+      mediaSpec(specId),
+      { ...req, model } as never,
+      this.wireRegistry,
+      'openai',
+      undefined,
+      { baseURL: this.baseURL, apiKey: this.apiKey },
+    );
+    return { ...(built as object), provider: 'openai', model, responseType } as HttpRequest;
+  }
+
   // ─── request builders ──────────────────────────────────────────────────
   //
   // Separated from the methods that fetch and parse, so a request can be built
@@ -66,99 +93,43 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
   // was to intercept the network.
 
   /** Text-to-image. */
+  /** Text-to-image.
+   *
+   *  The spec forks by family, and the fork is real: gpt-image-1 always returns
+   *  b64_json and REJECTS `response_format`, while dall-e-3 / dall-e-2 still
+   *  require it. */
   buildGenerateImageRequest(
     req: ImageGenRequest,
     model = req.model ?? 'gpt-image-1',
   ): HttpRequest {
-    const body: Record<string, unknown> = {
+    return this.fromSpec(
+      model.startsWith('gpt-image-')
+        ? 'openai/images.generations'
+        : 'openai/images.generations@dall-e',
+      req,
       model,
-      prompt: req.prompt,
-      n: req.params?.n ?? 1,
-    };
-    // gpt-image-1 always returns b64_json and rejects the parameter; older
-    // dall-e-3 / dall-e-2 endpoints still accept (and need) the explicit format.
-    if (!model.startsWith('gpt-image-')) {
-      body.response_format = 'b64_json';
-    }
-    if (req.params?.size) body.size = req.params.size;
-    if (req.params?.quality) body.quality = req.params.quality;
-    if (req.params?.style) body.style = req.params.style;
-    if (req.params?.background) body.background = req.params.background;
-    if (req.params?.outputFormat) body.output_format = req.params.outputFormat;
-    return {
-      url: `${this.baseURL}/v1/images/generations`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'openai',
-      model,
-      responseType: 'json',
-    };
+      'json',
+    );
   }
 
   /** Image-to-image edit. Generation's field set minus `style`, plus the source
    *  image and an optional mask. */
+  /** Image-to-image edit. */
   buildEditImageRequest(req: ImageEditRequest, model = req.model ?? 'gpt-image-1'): HttpRequest {
-    const body: Record<string, unknown> = {
-      model,
-      prompt: req.prompt,
-      images: [openaiImageRef(normalizeImageSource(req.sourceImage))],
-      n: req.params?.n ?? 1,
-    };
-    if (req.mask) body.mask = openaiImageRef(normalizeImageSource(req.mask));
-    if (req.params?.size) body.size = req.params.size;
-    if (req.params?.quality) body.quality = req.params.quality;
-    if (req.params?.background) body.background = req.params.background;
-    if (req.params?.outputFormat) body.output_format = req.params.outputFormat;
-    return {
-      url: `${this.baseURL}/v1/images/edits`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'openai',
-      model,
-      responseType: 'json',
-    };
+    return this.fromSpec('openai/images.edits', req, model, 'json');
   }
 
   /** TTS. `responseType` is arraybuffer because the response is audio bytes. */
+  /** TTS. `responseType` is arraybuffer because the response is audio bytes —
+   *  transport decoding, which is the engine's business rather than the wire's. */
   buildAudioRequest(req: AudioGenRequest, model: string): HttpRequest {
-    const body: Record<string, unknown> = {
-      model,
-      input: req.input,
-      voice: resolveVoice('openai', req.params?.voice) ?? 'alloy',
-    };
-    if (req.params?.format) body.response_format = req.params.format;
-    if (req.params?.speed) body.speed = req.params.speed;
-    if (req.params?.instructions) body.instructions = req.params.instructions;
-    return {
-      url: `${this.baseURL}/v1/audio/speech`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'openai',
-      model,
-      responseType: 'arraybuffer',
-    };
+    return this.fromSpec('openai/audio.speech', req, model, 'arraybuffer');
   }
 
   /** Sora video submission. `seconds` goes on the wire as a string. */
+  /** Sora video submission. */
   buildVideoRequest(req: VideoGenRequest, model = req.model ?? 'sora-2'): HttpRequest {
-    const body: Record<string, unknown> = { model, prompt: req.prompt };
-    if (req.params?.duration) body.seconds = String(req.params.duration);
-    if (req.params?.size) body.size = req.params.size;
-    if (req.sourceImage) {
-      body.input_reference = openaiImageRef(normalizeImageSource(req.sourceImage));
-    }
-    return {
-      url: `${this.baseURL}/v1/videos`,
-      method: 'POST',
-      headers: this.authHeaders(),
-      body,
-      provider: 'openai',
-      model,
-      responseType: 'json',
-    };
+    return this.fromSpec('openai/videos', req, model, 'json');
   }
 
   async generateImage(req: ImageGenRequest, fetch: EngineFetch): Promise<RawMediaResult[]> {
