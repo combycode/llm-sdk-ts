@@ -4,46 +4,7 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
-
-### Fixed
-
-- **Anthropic 4.0 models were handed the 4.6+ `thinking` shape.** `anthropicThinkingShape()`
-  parsed a model id with `/^claude-[a-z]+-(\d+)(?:[-.](\d+))?/`, so an id carrying a release date
-  but no minor version read the date AS the minor: `claude-opus-4-20250514` became major 4 /
-  minor 20250514, cleared the `>= 4.6` test, and was sent `thinking: {type:'adaptive'}` — the
-  opposite of what the file's own `ANTHROPIC_ADAPTIVE_THINKING_MIN = {major:4, minor:6}` says.
-
-  This never shipped a failure: `claude-opus-4-20250514` and `claude-sonnet-4-20250514` are the
-  only affected ids and both are `active: false` in the catalog (deprecated 2026-05-14). It is
-  nonetheless the 2.2.1 regression in mirror image, so it is fixed rather than left latent. The
-  minor is now bounded to one or two digits and must not be followed by another digit. Checked
-  against every id in the catalog plus aliases and future-shaped ids (`claude-opus-4-10`,
-  `claude-sonnet-6-1-20270101`): exactly those two change classification, the other 17 are
-  untouched.
-
-- **xAI batch creation was not reproducible.** The create call named the batch
-  `` `batch_${Date.now()}` ``, which made it the only request in the provider surface that was not
-  a pure function of its input: it could not be asserted in a test or reproduced from a log, and a
-  retried create produced a second batch under a different name that nothing could deduplicate.
-  The name is now derived from the batch contents, so identical submissions produce identical
-  requests and differing ones still differ.
-
-### Changed
-
-- **The module graph is now a DAG.** Two dependency cycles between top-level layers were closed:
-  `llm <-> plugins` and `helpers <-> plugins`. They were harmless in TypeScript and are not
-  harmless in Rust, where crates cannot express a cycle, so they blocked the port.
-
-  Shared code moved DOWN rather than sideways: the model catalog and its bundled data now live in
-  `src/catalog/` instead of `src/plugins/model-catalog/` + `src/llm/providers/*/catalog.json`, and
-  image-source normalisation moved from `src/plugins/media/source-image` to `src/util/source-image`.
-  Where a lower layer genuinely needs a capability from a higher one it is now passed down instead
-  of imported up.
-
-  **No public API changed** — the package has a single root export and every moved symbol is
-  re-exported from the same place as before. A new test (`tests/unit/architecture/layers.test.ts`)
-  fails if any cycle returns.
+## [2.3.0] — 2026-08-23
 
 ### Added
 
@@ -60,8 +21,6 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   drift, a test drives the PINNED SPEC and asserts the request it produces matches what the traits
   say the model takes. When the adapters become spec-driven in 3.0.0, `wire` goes away and that
   test is what makes the swap safe.
-
-### Added
 
 - **Wire specs ship in the repo** (`src/wire/`). 71 JSON specs describe how to talk to each
   provider API — field names, enum values, defaults, versioned tool-type strings, which shape a
@@ -98,64 +57,6 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   `label`/`source`/`attributes`, and reading `client.routing`. The trace feed had no example at
   all, which the quality gate's example-first check was reporting.
 
-### Fixed
-
-- **`google/files` rejected Google's own resource-name format.** `delete()` and `getInfo()`
-  normalised the file id only when it contained `/files/` *with* a leading slash — true of the
-  full `uri` this adapter returns from `upload()` and `list()`, and false of `files/abc`, the
-  canonical `name` the Google API itself returns. Passing that back produced
-  `/v1beta/files/files/abc` and a 404.
-
-  It never broke the library's own round-trip, which is why it survived: the only way to reach it
-  was to use the provider's own id format. All three forms — full uri, `files/abc`, and a bare
-  name — now normalise to the same request.
-
-### Changed
-
-- **Internal cleanups carried over from the 1.0 backlog.**
-  - `buildContext` read `LLMClient`'s private `queueName` / `configName` / `cacheName` through
-    `as unknown as` casts, which compile happily and would silently yield `undefined` the day a
-    field is renamed. The client now exposes them deliberately as `client.routing`, so a rename is
-    a type error.
-  - Telemetry's ten exported types moved from the 1,225-line `telemetry.ts` to
-    `plugins/telemetry/types.ts`, matching the rest of the codebase. Re-exported from the old path,
-    so no import — public or internal — changed.
-  - `sseJson()` in `providers/_shared` replaces the one line every provider's stream parser
-    repeated verbatim.
-
-### Changed
-
-- **`providerOptions` is typed.** It was `Record<string, unknown>` — the one untyped hole in the
-  request, and so the one place a typo produced silence rather than an error:
-  `promtCacheOptions` type-checked and was simply never sent.
-
-  The new `ProviderOptions` interface documents every key an adapter actually reads
-  (`userProfileId`; `moderationPolicy`, `promptCacheOptions`, `reasoningMode`;
-  `responseModalities`, `speechConfig`, `imageConfig`, `translationConfig`, `cachedContent`;
-  `openrouter`), derived from the read sites rather than invented. Two `as` casts at those sites
-  became unnecessary and were removed.
-
-  **Not breaking:** the index signature stays, so an unmodelled key is still accepted — providers
-  ship parameters before the SDK models them, and refusing those would make the escape hatch
-  useless. What changed is that the keys we do know are checked and discoverable.
-
-### Changed
-
-- **`AgentLoop.complete()` and `stream()` no longer duplicate their scaffolding.** The two are the
-  same loop with different plumbing, and they had drifted into near-duplicates — 167 identical
-  lines across ~560. Five shared pieces are now extracted: `recordRunError`, `resolveFinalText`,
-  `buildFinalResponse`, `settleRun`, and `buildStepOptions`.
-
-  This is not tidying. The `ctx` block in `buildStepOptions` is what stops one conversation
-  arriving at a collector as several unrelated traces; duplicated, a fix to one path would have
-  left the other silently splitting. The same applies to the run's final-text rules and its
-  error reporting.
-
-  `complete()` 303 -> 234 lines, `stream()` 261 -> 209, identical shared lines 167 -> ~118.
-  Behaviour unchanged: all 1,953 tests pass untouched.
-
-### Added
-
 - **Request builders on the media and realtime adapters.** These adapters used to assemble each
   request *inside* the method that also fetched and parsed it, so the only way to see what the SDK
   would send was to intercept the network. Construction is now separated:
@@ -173,8 +74,6 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   its method actually sends.
 
   Additive: no existing signature changed.
-
-### Added
 
 - **The catalog now knows how to TALK to a model, not just what it can do.** `ModelInfo` gains a
   `wire` block carrying per-model wire traits — which `thinking` shape the model accepts, whether
@@ -199,6 +98,93 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 - `util/hash` — FNV-1a 32-bit, deterministic and dependency-free, for deriving stable short ids
   from content instead of from a clock.
+
+### Changed
+
+- **The module graph is now a DAG.** Two dependency cycles between top-level layers were closed:
+  `llm <-> plugins` and `helpers <-> plugins`. They were harmless in TypeScript and are not
+  harmless in Rust, where crates cannot express a cycle, so they blocked the port.
+
+  Shared code moved DOWN rather than sideways: the model catalog and its bundled data now live in
+  `src/catalog/` instead of `src/plugins/model-catalog/` + `src/llm/providers/*/catalog.json`, and
+  image-source normalisation moved from `src/plugins/media/source-image` to `src/util/source-image`.
+  Where a lower layer genuinely needs a capability from a higher one it is now passed down instead
+  of imported up.
+
+  **No public API changed** — the package has a single root export and every moved symbol is
+  re-exported from the same place as before. A new test (`tests/unit/architecture/layers.test.ts`)
+  fails if any cycle returns.
+
+- **Internal cleanups carried over from the 1.0 backlog.**
+  - `buildContext` read `LLMClient`'s private `queueName` / `configName` / `cacheName` through
+    `as unknown as` casts, which compile happily and would silently yield `undefined` the day a
+    field is renamed. The client now exposes them deliberately as `client.routing`, so a rename is
+    a type error.
+  - Telemetry's ten exported types moved from the 1,225-line `telemetry.ts` to
+    `plugins/telemetry/types.ts`, matching the rest of the codebase. Re-exported from the old path,
+    so no import — public or internal — changed.
+  - `sseJson()` in `providers/_shared` replaces the one line every provider's stream parser
+    repeated verbatim.
+
+- **`providerOptions` is typed.** It was `Record<string, unknown>` — the one untyped hole in the
+  request, and so the one place a typo produced silence rather than an error:
+  `promtCacheOptions` type-checked and was simply never sent.
+
+  The new `ProviderOptions` interface documents every key an adapter actually reads
+  (`userProfileId`; `moderationPolicy`, `promptCacheOptions`, `reasoningMode`;
+  `responseModalities`, `speechConfig`, `imageConfig`, `translationConfig`, `cachedContent`;
+  `openrouter`), derived from the read sites rather than invented. Two `as` casts at those sites
+  became unnecessary and were removed.
+
+  **Not breaking:** the index signature stays, so an unmodelled key is still accepted — providers
+  ship parameters before the SDK models them, and refusing those would make the escape hatch
+  useless. What changed is that the keys we do know are checked and discoverable.
+
+- **`AgentLoop.complete()` and `stream()` no longer duplicate their scaffolding.** The two are the
+  same loop with different plumbing, and they had drifted into near-duplicates — 167 identical
+  lines across ~560. Five shared pieces are now extracted: `recordRunError`, `resolveFinalText`,
+  `buildFinalResponse`, `settleRun`, and `buildStepOptions`.
+
+  This is not tidying. The `ctx` block in `buildStepOptions` is what stops one conversation
+  arriving at a collector as several unrelated traces; duplicated, a fix to one path would have
+  left the other silently splitting. The same applies to the run's final-text rules and its
+  error reporting.
+
+  `complete()` 303 -> 234 lines, `stream()` 261 -> 209, identical shared lines 167 -> ~118.
+  Behaviour unchanged: all 1,953 tests pass untouched.
+
+### Fixed
+
+- **Anthropic 4.0 models were handed the 4.6+ `thinking` shape.** `anthropicThinkingShape()`
+  parsed a model id with `/^claude-[a-z]+-(\d+)(?:[-.](\d+))?/`, so an id carrying a release date
+  but no minor version read the date AS the minor: `claude-opus-4-20250514` became major 4 /
+  minor 20250514, cleared the `>= 4.6` test, and was sent `thinking: {type:'adaptive'}` — the
+  opposite of what the file's own `ANTHROPIC_ADAPTIVE_THINKING_MIN = {major:4, minor:6}` says.
+
+  This never shipped a failure: `claude-opus-4-20250514` and `claude-sonnet-4-20250514` are the
+  only affected ids and both are `active: false` in the catalog (deprecated 2026-05-14). It is
+  nonetheless the 2.2.1 regression in mirror image, so it is fixed rather than left latent. The
+  minor is now bounded to one or two digits and must not be followed by another digit. Checked
+  against every id in the catalog plus aliases and future-shaped ids (`claude-opus-4-10`,
+  `claude-sonnet-6-1-20270101`): exactly those two change classification, the other 17 are
+  untouched.
+
+- **xAI batch creation was not reproducible.** The create call named the batch
+  `` `batch_${Date.now()}` ``, which made it the only request in the provider surface that was not
+  a pure function of its input: it could not be asserted in a test or reproduced from a log, and a
+  retried create produced a second batch under a different name that nothing could deduplicate.
+  The name is now derived from the batch contents, so identical submissions produce identical
+  requests and differing ones still differ.
+
+- **`google/files` rejected Google's own resource-name format.** `delete()` and `getInfo()`
+  normalised the file id only when it contained `/files/` *with* a leading slash — true of the
+  full `uri` this adapter returns from `upload()` and `list()`, and false of `files/abc`, the
+  canonical `name` the Google API itself returns. Passing that back produced
+  `/v1beta/files/files/abc` and a 404.
+
+  It never broke the library's own round-trip, which is why it survived: the only way to reach it
+  was to use the provider's own id format. All three forms — full uri, `files/abc`, and a bare
+  name — now normalise to the same request.
 
 ## [2.2.2] — 2026-08-17
 
