@@ -8,6 +8,28 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **MCP is spec-driven too, transport and OAuth.** The Streamable-HTTP transport's five requests
+  (call, notification, long-lived subscription, event stream, session delete) and the OAuth flow's
+  five (two discovery probes, dynamic client registration, code exchange, refresh) now come from 13
+  specs — as does the authorization URL the user's browser opens.
+
+  This is the point where the spec format stops being about LLM providers. A JSON-RPC envelope,
+  era-dependent routing headers, a form-urlencoded token grant and an SSE stream are all described
+  with the constructs a chat request already used.
+
+  Verified against two frozen corpora (23 transport artifacts, 11 OAuth), both shown to fail on
+  deliberate corruption, plus live runs of the MCP protocol example and the five-provider MCP tool
+  scenario. The OAuth half has no live coverage anywhere — that needs a real authorization server
+  and a browser — so its frozen bytes are the only oracle it has, which the wire README now says
+  out loud.
+
+- **Three more spec constructs**, each added because a real request needed it: `bodyKind: 'form'`
+  (the spec carries the FIELDS, the runtime encodes them — the same split multipart already used),
+  a header entry with `spread` (merge an evaluated object of headers, so a caller's header map and
+  a resolved bearer keep their precedence), and `queryEncoding: 'form'` (a space as `+` rather than
+  `%20`, which is what RFC 6749 prescribes for an authorization request and what the library
+  already sent).
+
 - `NormalizedRequest.wireSpec` — the catalog's pin, resolved by `LLMClient` and read by
   the adapter. Absent for an uncatalogued model or an engine with no catalog, in which
   case the adapter derives the spec the way it always derived the shape.
@@ -30,6 +52,17 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   against a provider, which is how both defects below survived.
 
 ### Changed
+
+- **MCP header assembly is one ordered list instead of three helpers.** Which headers a call
+  carries — session, protocol version, the modern `Mcp-Method` / `Mcp-Name` routing pair — was
+  decided by three private methods and by the order their results were spread into an object
+  literal. It is now a declared sequence, and the two rules that genuinely are not data (era
+  detection, and reading a subject from a different param per method) are named registry entries
+  the coverage audit executes.
+
+  One asymmetry was preserved rather than tidied: a NOTIFICATION carries no routing headers, which
+  is what the transport has always sent. The freeze caught the attempt to "fix" it, and there is no
+  modern server here to test the change against.
 
 - **The chat adapters build their requests from the wire specs.** All five —
   `anthropic/messages`, `google/generateContent`, `google/interactions`,

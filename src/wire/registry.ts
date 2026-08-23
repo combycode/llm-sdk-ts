@@ -64,6 +64,20 @@ import spec_google_retrieval_pollOperation from './specs/retrieval/google.pollOp
 import spec_google_retrieval_removeDocument from './specs/retrieval/google.removeDocument.json';
 import spec_google_retrieval_uploadFile from './specs/retrieval/google.uploadFile.json';
 import spec_google_veo_predictLongRunning from './specs/google-media/veo.json';
+import spec_mcp_oauth_authorize from './specs/mcp-oauth/authorize.json';
+import spec_mcp_oauth_base from './specs/mcp-oauth/base.json';
+import spec_mcp_oauth_discover_oauth from './specs/mcp-oauth/discover.oauth.json';
+import spec_mcp_oauth_discover_oidc from './specs/mcp-oauth/discover.oidc.json';
+import spec_mcp_oauth_register from './specs/mcp-oauth/register.json';
+import spec_mcp_oauth_token_exchange from './specs/mcp-oauth/token.exchange.json';
+import spec_mcp_oauth_token_refresh from './specs/mcp-oauth/token.refresh.json';
+import spec_mcp_http_base from './specs/mcp/http.base.json';
+import spec_mcp_http_close from './specs/mcp/http.close.json';
+import spec_mcp_http_events from './specs/mcp/http.events.json';
+import spec_mcp_http_longLived from './specs/mcp/http.longLived.json';
+import spec_mcp_http_message from './specs/mcp/http.message.json';
+import spec_mcp_http_notify from './specs/mcp/http.notify.json';
+import spec_mcp_http_request from './specs/mcp/http.request.json';
 import spec_openai_audio_speech from './specs/openai-media/audio.speech.json';
 import spec_openai_batch_base from './specs/batch/openai.base.json';
 import spec_openai_batch_cancel from './specs/batch/openai.cancel.json';
@@ -185,6 +199,20 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['google/retrieval.removeDocument', spec_google_retrieval_removeDocument as unknown as SpecDelta],
   ['google/retrieval.uploadFile', spec_google_retrieval_uploadFile as unknown as SpecDelta],
   ['google/veo@predictLongRunning', spec_google_veo_predictLongRunning as unknown as SpecDelta],
+  ['mcp-oauth/authorize', spec_mcp_oauth_authorize as unknown as SpecDelta],
+  ['mcp-oauth/base', spec_mcp_oauth_base as unknown as SpecDelta],
+  ['mcp-oauth/discover.oauth', spec_mcp_oauth_discover_oauth as unknown as SpecDelta],
+  ['mcp-oauth/discover.oidc', spec_mcp_oauth_discover_oidc as unknown as SpecDelta],
+  ['mcp-oauth/register', spec_mcp_oauth_register as unknown as SpecDelta],
+  ['mcp-oauth/token.exchange', spec_mcp_oauth_token_exchange as unknown as SpecDelta],
+  ['mcp-oauth/token.refresh', spec_mcp_oauth_token_refresh as unknown as SpecDelta],
+  ['mcp/http.base', spec_mcp_http_base as unknown as SpecDelta],
+  ['mcp/http.close', spec_mcp_http_close as unknown as SpecDelta],
+  ['mcp/http.events', spec_mcp_http_events as unknown as SpecDelta],
+  ['mcp/http.longLived', spec_mcp_http_longLived as unknown as SpecDelta],
+  ['mcp/http.message', spec_mcp_http_message as unknown as SpecDelta],
+  ['mcp/http.notify', spec_mcp_http_notify as unknown as SpecDelta],
+  ['mcp/http.request', spec_mcp_http_request as unknown as SpecDelta],
   ['openai/audio.speech', spec_openai_audio_speech as unknown as SpecDelta],
   ['openai/batch.base', spec_openai_batch_base as unknown as SpecDelta],
   ['openai/batch.cancel', spec_openai_batch_cancel as unknown as SpecDelta],

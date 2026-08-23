@@ -97,8 +97,14 @@ export interface WireSpec {
      *  `raw` when the body is caller-supplied BYTES the spec cannot describe —
      *  a file being streamed to an upload session. The spec still owns the URL,
      *  method and headers; only the payload comes from outside. */
-    bodyKind?: 'json' | 'multipart' | 'none' | 'raw';
-    headers?: { name: string; value: Json; when?: Cond }[];
+    bodyKind?: 'json' | 'multipart' | 'none' | 'raw' | 'form';
+    /** Headers in declaration order. An entry with `spread` merges an evaluated
+     *  OBJECT of headers instead of setting one, which is what a caller-supplied
+     *  header map or a resolved auth bundle is. Order is the whole point: it is
+     *  what decides whether a configured `accept` overrides the default one or the
+     *  other way round, and that was previously a property of which spread came
+     *  later in a hand-written object literal. */
+    headers?: { name?: string; value?: Json; when?: Cond; spread?: Json }[];
     /** Query parameters, appended to `url` (or `path`) in declaration order.
      *
      *  Splicing them into the URL with `$join` works only while every parameter is
@@ -108,6 +114,13 @@ export interface WireSpec {
      *  disagreed about whether to call `encodeURIComponent`, which is how a page
      *  token with a `+` in it silently paged from the wrong place. */
     query?: { name: string; value: Json; when?: Cond }[];
+    /** How query values are escaped. `component` (default) percent-escapes
+     *  everything, including a space as `%20`. `form` uses the
+     *  application/x-www-form-urlencoded rules, where a space is `+` — which is
+     *  what RFC 6749 prescribes for an OAuth authorization request, and what its
+     *  servers are used to receiving. Both decode to the same string; they are not
+     *  the same bytes, and a signature over the request would notice. */
+    queryEncoding?: 'component' | 'form';
   };
   /** Model-id → variant flags. The migration target is a catalog pin; the
    *  `idMatch` form is what today's regex helpers do, expressed as data.
@@ -425,6 +438,11 @@ export interface BuiltRequest {
   rawBody?: boolean;
   /** Present instead of a JSON body when bodyKind is 'multipart'. */
   multipart?: MultipartField[];
+  /** The body is form-urlencoded: `body` holds the FIELDS, and the caller encodes
+   *  them. Same split as multipart — the spec says what the form carries, the
+   *  runtime does the encoding, and the frozen fixture stays readable as fields
+   *  rather than as one percent-escaped string. */
+  formBody?: boolean;
   /** True when the spec declares the request carries no body at all. */
   noBody?: boolean;
 }
@@ -560,9 +578,22 @@ export function buildFromSpec(
   if (spec.envelope?.bodyKind === 'none') out.noBody = true;
   // `raw`: the caller attaches the bytes; say so rather than emitting an empty body.
   if (spec.envelope?.bodyKind === 'raw') out.rawBody = true;
+  if (spec.envelope?.bodyKind === 'form') out.formBody = true;
   const headers: Record<string, string> = {};
   for (const h of spec.envelope?.headers ?? []) {
     if (!evalCond(h.when, ctx, reg)) continue;
+    if (h.spread !== undefined) {
+      const many = evalTemplate(h.spread, ctx, reg);
+      if (many !== OMIT && isObj(many)) {
+        for (const [k, v] of Object.entries(many)) {
+          if (v === undefined || v === null) continue;
+          headers[k] = String(v);
+          onUse?.('header', k);
+        }
+      }
+      continue;
+    }
+    if (h.name === undefined) throw new Error(`${spec.id}: a header needs either a name or a spread`);
     const v = evalTemplate(h.value, ctx, reg);
     if (v !== OMIT && v !== undefined) {
       headers[h.name] = String(v);
@@ -586,7 +617,11 @@ export function buildFromSpec(
     if (!evalCond(q.when, ctx, reg)) continue;
     const v = evalTemplate(q.value, ctx, reg);
     if (v === OMIT || v === undefined) continue;
-    params.push(`${encodeURIComponent(q.name)}=${encodeURIComponent(String(v))}`);
+    const esc =
+      spec.envelope?.queryEncoding === 'form'
+        ? (x: string) => new URLSearchParams({ x }).toString().slice(2)
+        : encodeURIComponent;
+    params.push(`${esc(q.name)}=${esc(String(v))}`);
     onUse?.('header', `query:${q.name}`);
   }
   if (params.length) {

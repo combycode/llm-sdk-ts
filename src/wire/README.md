@@ -25,28 +25,42 @@ regex nobody re-read rather than in data anyone could diff.
 ## Layout
 
 ```
-interpreter.ts   the spec schema + evaluator. No library imports — pure.
-inherit.ts       resolves `extends` chains and trees into a flat spec.
-transforms.ts    the named-code registry: what genuinely CANNOT be data
-                 (message/content transformation, schema-shape rules).
-registry.ts      generated index of every shipped spec, by id.
-specs/           the specs themselves.
+interpreter.ts    the spec schema + evaluator. No outbound imports — pure.
+inherit.ts        resolves `extends` chains and trees into a flat spec.
+pins.ts + pins/   which chain node an UNPINNED model uses, as ordered rules.
+registry.ts       GENERATED index of every shipped spec, by id.
+chat-specs.ts     ┐
+media-specs.ts    │ per-family runtime loaders. Adapters import one of these,
+service-specs.ts  │ never `registry.ts`, so a chat call does not drag every
+retrieval-specs.ts│ batch, media and MCP spec into the bundle.
+mcp-specs.ts      ┘
+specs/            the specs themselves.
 ```
 
-## Status: oracle, not yet authority
+The named-code registry lives OUTSIDE this folder, in `src/llm/wire-transforms.ts`:
+it imports from `src/llm`, and keeping it here would make `wire` cyclic. MCP adds
+two more rules of its own (`src/plugins/mcp/wire-rules.ts`) because `llm -> plugins`
+is a forbidden edge; it composes them onto the shared registry rather than the
+shared registry reaching down into a plugin.
 
-The adapters are still hand-written. These specs are proven to **agree** with
-them on every CI run (`tests/unit/wire`), which is what keeps the data honest —
-data that is never executed rots.
+## Status: authoritative
 
-Making the specs authoritative, so the adapters are driven by them, is the 3.0.0
-step. It needs the catalog to carry a `wireSpec` pin per model, which in turn
-needed the catalog to become core (done) and the adapters to have a
-request-building seam (done).
+The specs BUILD the requests. Every provider adapter, every hosted-retrieval
+backend, the MCP transport and the MCP OAuth flow interpret a spec; none of them
+assembles a request by hand any more.
 
-The specs are deliberately **not** exported from `index.ts` and are tree-shaken
-out of `dist` — they add no bytes to the published package until the runtime
-uses them.
+What is deliberately not in a spec: response parsing, streaming, retry, session
+and cursor bookkeeping, and the engine metadata (`provider` / `model` /
+`responseType`) that routes a call inside the NetworkEngine. A spec describes a
+REQUEST, and the adapter wraps that with what the runtime needs.
+
+Every migration was checked against a corpus frozen from the commit BEFORE it, so
+"the wire did not move" is measured rather than asserted — and each of those
+corpora has been shown to fail when the code is deliberately corrupted.
+
+Coverage is uneven in one place worth naming: the MCP OAuth flow has no live
+exercise anywhere, because it needs a real authorization server and a browser
+round-trip. Its frozen bytes are the only oracle it has.
 
 ## Conventions
 
@@ -61,13 +75,33 @@ uses them.
   and OpenRouter patch the base spec rather than copying it.
 - `$note` is the comment form **inside** a template. A plain `note` key would
   ship to the provider as payload — it did, once.
+- **Spec, not provider.** The format describes HTTP, not LLM APIs: a spec covers a
+  JSON-RPC envelope, a form-urlencoded token grant and a long-lived SSE stream with
+  the same constructs a chat request uses. `provider: 'mcp'` is a namespace, not a
+  claim that MCP is a model vendor.
+
+### The constructs
+
+| | |
+|---|---|
+| `envelope.url` / `method` / `headers` | the request line and its headers, in declaration order |
+| `envelope.query` | query parameters, each able to drop out on its own; `queryEncoding: 'form'` switches a space from `%20` to `+`, which is what RFC 6749 prescribes for an authorization request |
+| `envelope.bodyKind` | `json` (default), `form`, `multipart`, `none`, `raw` — the last three hand the payload back to the caller to fill in |
+| `fields` / `blocks` | the body, by path or by template |
+| a header entry with `spread` | merge an evaluated OBJECT of headers — a caller's header map, a resolved bearer |
+| `$each` | splice a mapped array into a literal one; `$spread` is its object form |
+| `variants` / `overlays` | model-version flags and per-flavor patches |
 
 ## Adding or changing a spec
 
 1. Edit the JSON.
-2. Re-generate `registry.ts` if you added a file.
-3. `bun test tests/unit/wire` — the differential fails if the spec and the
-   adapter disagree.
+2. `bun run gen:registry` if you added or removed a file. It is generated from the
+   directory, and `--check` fails a stale index in CI. A spec missing from the
+   index does not fail loudly — it becomes invisible to the chain tests and to the
+   coverage audit, which are the two things meant to catch it.
+3. `bun test tests/unit/wire` — the differentials fail if the wire moved.
+4. `bun run scripts/audit-wire-coverage.ts` — every name a spec can reach must be
+   EXECUTED, not merely defined.
 
 Two suites guard the specs in-repo:
 

@@ -250,28 +250,9 @@ export async function driveRetrieval(c: RetrievalCase): Promise<unknown[]> {
   return seen;
 }
 
-/** Stable ordering and a FormData that survives JSON, so a multipart upload can
- *  compare equal to itself across two runs. */
-export const canon = (v: unknown): unknown => {
-  if (typeof FormData !== 'undefined' && v instanceof FormData) {
-    return canon({
-      __formData: [...v.entries()].map(([name, x]) =>
-        typeof x === 'string'
-          ? { name, value: x }
-          : { name, filename: (x as File).name, type: (x as File).type, size: (x as File).size },
-      ),
-    });
-  }
-  if (v instanceof Uint8Array) return { __bytes: v.length };
-  if (Array.isArray(v)) return v.map(canon);
-  if (v && typeof v === 'object') {
-    const src = v as Record<string, unknown>;
-    const out: Record<string, unknown> = {};
-    for (const k of Object.keys(src).sort()) if (src[k] !== undefined) out[k] = canon(src[k]);
-    return out;
-  }
-  return v;
-};
+// `canon` lives in ./canon so the MCP corpus shares one definition of what
+// "the same request" means.
+export { canon } from './canon';
 
 /** The key a captured request is filed under. */
 export const keyFor = (c: RetrievalCase, i: number): string =>

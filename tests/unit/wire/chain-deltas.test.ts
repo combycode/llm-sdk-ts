@@ -27,6 +27,7 @@ import { applyDelta, resolveSpec, type SpecDelta } from '../../../src/wire/inher
 import type { WireSpec } from '../../../src/wire/interpreter';
 import { WIRE_SPECS } from '../../../src/wire/registry';
 import { makeRegistry } from '../../../src/llm/wire-transforms';
+import { mcpWireRegistry } from '../../../src/plugins/mcp/wire-rules';
 import { AnthropicAdapter } from '../../../src/llm/providers/anthropic/messages';
 import { GoogleAdapter } from '../../../src/llm/providers/google/generate';
 import { GoogleInteractionsAdapter } from '../../../src/llm/providers/google/interactions';
@@ -106,7 +107,7 @@ describe('a chain delta cannot remove something that is not there', () => {
       }
     }
     expect(broken).toEqual([]);
-    expect(WIRE_SPECS.size).toBe(118);
+    expect(WIRE_SPECS.size).toBe(132);
   });
 });
 
@@ -129,12 +130,17 @@ describe('every name a spec uses resolves to real code', () => {
     for (const v of Object.values(o)) namesIn(v, out);
   }
 
-  it('resolves every named reference across all 87 specs', () => {
+  it('resolves every named reference across every shipped spec', () => {
+    // MCP composes two extra rules onto the shared registry — `llm -> plugins` is a
+    // forbidden edge, so they cannot live in wire-transforms with the rest. Names are
+    // resolved against the composition the library actually builds, not against the
+    // base alone, or an MCP spec would look like it referenced code that is not there.
+    const full = mcpWireRegistry(reg);
     const known = new Set([
-      ...Object.keys(reg.transforms),
-      ...Object.keys(reg.builders),
-      ...Object.keys(reg.predicates),
-      ...Object.keys(reg.effects),
+      ...Object.keys(full.transforms),
+      ...Object.keys(full.builders),
+      ...Object.keys(full.predicates),
+      ...Object.keys(full.effects),
     ]);
     const missing: string[] = [];
     let referenced = 0;

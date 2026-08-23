@@ -129,7 +129,14 @@ export function applyDelta(base: WireSpec, delta: SpecDelta): WireSpec {
     const { headers: deltaHeaders, ...rest } = delta.envelope;
     out.envelope = { ...(out.envelope ?? {}), ...clone(rest) };
     if (deltaHeaders) {
-      out.envelope.headers = mergeKeyed(out.envelope.headers ?? [], deltaHeaders, (h) => h.name);
+      // Headers merge by NAME so a child can override one the base set. A spread
+      // entry has no name, so it is keyed by what it spreads: two different
+      // spreads coexist, and re-declaring the same one replaces it in place
+      // rather than duplicating it — which would silently re-apply a caller's
+      // header map after the overrides that were supposed to beat it.
+      const keyOf = (h: { name?: string; spread?: unknown }) =>
+        h.name ?? `spread:${JSON.stringify(h.spread)}`;
+      out.envelope.headers = mergeKeyed(out.envelope.headers ?? [], deltaHeaders, keyOf);
     }
   }
 

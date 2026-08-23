@@ -7,6 +7,9 @@
  *  implements. All HTTP goes through the engine's fetch. */
 
 import type { EngineFetch } from '../../network/types';
+import { buildFromSpec, type Registry } from '../../wire/interpreter';
+import { mcpSpec } from '../../wire/mcp-specs';
+import { makeRegistry } from '../../llm/wire-transforms';
 import { bytesToBase64 } from '../../util/base64';
 import { assertSafeAuthUrl } from './url-guard';
 import type { SsrfGuardOptions } from './url-guard';
@@ -156,24 +159,42 @@ function safeEqual(a: string, b: string): boolean {
 
 // ─── HTTP primitives (through the engine) ──────────────────────────────────
 
-async function getJson(fetch: EngineFetch, url: string): Promise<Record<string, unknown> | null> {
+/** OAuth rules need no adapter handles. */
+const oauthRegistry: Registry = makeRegistry({});
+
+/** Build one OAuth request from its spec.
+ *
+ *  `provider` / `model` route and queue the call inside the NetworkEngine and are
+ *  not part of the wire, so they wrap the spec's output. A `form` body arrives as
+ *  FIELDS and is encoded here — the same split as multipart, which keeps the
+ *  frozen fixture readable as parameters rather than as one escaped string. */
+function oauthRequest(specId: string, input: object, config: Record<string, unknown> = {}): Record<string, unknown> {
+  const built = buildFromSpec(mcpSpec(specId), input as never, oauthRegistry, 'mcp', undefined, config) as unknown as Record<string, unknown>;
+  const { noBody, formBody, body, ...rest } = built;
+  return {
+    ...rest,
+    ...(noBody
+      ? {}
+      : formBody
+        ? { body: new URLSearchParams(body as Record<string, string>).toString() }
+        : { body }),
+    provider: 'mcp',
+    model: 'oauth',
+    responseType: 'json',
+  };
+}
+
+async function getJson(fetch: EngineFetch, specId: string, config: Record<string, unknown>): Promise<Record<string, unknown> | null> {
   try {
-    const res = await fetch(
-      { url, method: 'GET', headers: { accept: 'application/json' }, body: undefined, provider: 'mcp', model: 'oauth', responseType: 'json' },
-      { queueName: 'mcp/oauth' },
-    );
+    const res = await fetch(oauthRequest(specId, {}, config) as never, { queueName: 'mcp/oauth' });
     return res.status < 400 ? (res.body as Record<string, unknown>) : null;
   } catch {
     return null;
   }
 }
 
-async function postForm(fetch: EngineFetch, url: string, form: Record<string, string>): Promise<Record<string, unknown>> {
-  const body = new URLSearchParams(form).toString();
-  const res = await fetch(
-    { url, method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json' }, body, provider: 'mcp', model: 'oauth', responseType: 'json' },
-    { queueName: 'mcp/oauth' },
-  );
+async function postForm(fetch: EngineFetch, specId: string, input: object): Promise<Record<string, unknown>> {
+  const res = await fetch(oauthRequest(specId, input) as never, { queueName: 'mcp/oauth' });
   if (res.status >= 400) throw new Error(`OAuth token endpoint returned ${res.status}`);
   return res.body as Record<string, unknown>;
 }
@@ -190,8 +211,8 @@ export async function discoverMetadata(
 ): Promise<AuthServerMetadata> {
   const origin = new URL(serverUrl).origin;
   const doc =
-    (await getJson(fetch, `${origin}/.well-known/oauth-authorization-server`)) ??
-    (await getJson(fetch, `${origin}/.well-known/openid-configuration`));
+    (await getJson(fetch, 'mcp-oauth/discover.oauth', { origin })) ??
+    (await getJson(fetch, 'mcp-oauth/discover.oidc', { origin }));
   if (!doc?.authorization_endpoint || !doc?.token_endpoint) {
     throw new Error(`MCP OAuth: no authorization-server metadata at ${origin}`);
   }
@@ -229,9 +250,8 @@ export async function registerClient(
   // process or desktop app with a loopback redirect), and some authorization servers apply
   // stricter redirect-URI rules to `web` clients — omitting it lets the server guess, and the
   // guess is usually `web`. An explicit value from the caller always wins.
-  const body: McpOAuthClientMetadata = { application_type: 'native', ...metadata };
   const res = await fetch(
-    { url: registrationEndpoint, method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body, provider: 'mcp', model: 'oauth', responseType: 'json' },
+    oauthRequest('mcp-oauth/register', { registrationEndpoint, metadata }) as never,
     { queueName: 'mcp/oauth' },
   );
   if (res.status >= 400) throw new Error(`MCP OAuth: client registration returned ${res.status}`);
@@ -245,16 +265,7 @@ export function buildAuthorizationUrl(
   authorizationEndpoint: string,
   params: { client_id: string; redirect_uri: string; code_challenge: string; scope?: string; state?: string; resource?: string },
 ): string {
-  const url = new URL(authorizationEndpoint);
-  url.searchParams.set('response_type', 'code');
-  url.searchParams.set('client_id', params.client_id);
-  url.searchParams.set('redirect_uri', params.redirect_uri);
-  url.searchParams.set('code_challenge', params.code_challenge);
-  url.searchParams.set('code_challenge_method', 'S256');
-  if (params.scope) url.searchParams.set('scope', params.scope);
-  if (params.state) url.searchParams.set('state', params.state);
-  if (params.resource) url.searchParams.set('resource', params.resource);
-  return url.toString();
+  return String(oauthRequest('mcp-oauth/authorize', { authorizationEndpoint, ...params }).url);
 }
 
 function toTokens(doc: Record<string, unknown>): McpOAuthTokens {
@@ -274,16 +285,7 @@ export async function exchangeCode(
   tokenEndpoint: string,
   p: { code: string; code_verifier: string; client_id: string; client_secret?: string; redirect_uri: string; resource?: string },
 ): Promise<McpOAuthTokens> {
-  const form: Record<string, string> = {
-    grant_type: 'authorization_code',
-    code: p.code,
-    code_verifier: p.code_verifier,
-    client_id: p.client_id,
-    redirect_uri: p.redirect_uri,
-  };
-  if (p.client_secret) form.client_secret = p.client_secret;
-  if (p.resource) form.resource = p.resource;
-  return toTokens(await postForm(fetch, tokenEndpoint, form));
+  return toTokens(await postForm(fetch, 'mcp-oauth/token.exchange', { tokenEndpoint, ...p }));
 }
 
 /** Refresh tokens with a refresh_token. */
@@ -292,9 +294,7 @@ export async function refreshTokens(
   tokenEndpoint: string,
   p: { refresh_token: string; client_id: string; client_secret?: string },
 ): Promise<McpOAuthTokens> {
-  const form: Record<string, string> = { grant_type: 'refresh_token', refresh_token: p.refresh_token, client_id: p.client_id };
-  if (p.client_secret) form.client_secret = p.client_secret;
-  return toTokens(await postForm(fetch, tokenEndpoint, form));
+  return toTokens(await postForm(fetch, 'mcp-oauth/token.refresh', { tokenEndpoint, ...p }));
 }
 
 function isExpired(tokens: McpOAuthTokens): boolean {

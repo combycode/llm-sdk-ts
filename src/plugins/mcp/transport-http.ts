@@ -8,14 +8,10 @@
 
 import type { EngineFetch, EngineFetchStream, SSEEvent } from '../../network/types';
 import { McpError, McpErrorCode } from './jsonrpc';
-import {
-  MCP_METHOD_HEADER,
-  MCP_NAME_BEARING_METHODS,
-  MCP_NAME_HEADER,
-  MCP_PROTOCOL_VERSION_HEADER,
-  encodeMcpHeaderValue,
-  isModernMcpVersion,
-} from './protocol-version';
+import { buildFromSpec, type Registry } from '../../wire/interpreter';
+import { mcpSpec } from '../../wire/mcp-specs';
+import { makeRegistry } from '../../llm/wire-transforms';
+import { mcpWireRegistry } from './wire-rules';
 import type { McpTransport } from './transport';
 import type { JsonRpcResponse, McpHttpConfig } from './types';
 import { BaseJsonRpcTransport } from './base-transport';
@@ -100,17 +96,9 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
     try {
       const stream = this.deps.fetchStream(
         {
-          url: this.config.url,
-          method: 'GET',
-          headers: await this.authedHeaders({
-            accept: 'text/event-stream',
-            ...(this.lastEventId ? { 'last-event-id': this.lastEventId } : {}),
-          }),
-          body: undefined,
-          provider: 'mcp',
-          model: this.config.name ?? 'server',
+          ...(await this.request0('mcp/http.events', { lastEventId: this.lastEventId })),
           signal,
-        },
+        } as never,
         { queueName: this.deps.queueName ? `${this.deps.queueName}/events` : undefined },
       );
       for await (const ev of stream) {
@@ -134,14 +122,13 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
 
   async request(method: string, params?: unknown): Promise<unknown> {
     const id = this.nextHttpId++;
-    const message = { jsonrpc: '2.0', id, method, ...(params !== undefined ? { params } : {}) };
-    const routing = this.routingHeaders(method, params);
-    let res = await this.post(message, routing);
+    const call = { id, method, ...(params !== undefined ? { params } : {}) };
+    let res = await this.post('mcp/http.request', call);
     if (res.headers['mcp-session-id']) this.sessionId = res.headers['mcp-session-id'];
 
     // 401 -> re-auth and retry once.
     if (res.status === 401 && this.deps.onUnauthorized && (await this.deps.onUnauthorized())) {
-      res = await this.post(message, routing);
+      res = await this.post('mcp/http.request', call);
       if (res.headers['mcp-session-id']) this.sessionId = res.headers['mcp-session-id'];
     }
 
@@ -162,7 +149,7 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
   }
 
   async notify(method: string, params?: unknown): Promise<void> {
-    await this.post({ jsonrpc: '2.0', method, ...(params !== undefined ? { params } : {}) });
+    await this.post('mcp/http.notify', { method, ...(params !== undefined ? { params } : {}) });
   }
 
   async close(): Promise<void> {
@@ -174,14 +161,9 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
     try {
       await this.deps.fetch(
         {
-          url: this.config.url,
-          method: 'DELETE',
-          headers: await this.authedHeaders(),
-          body: undefined,
-          provider: 'mcp',
-          model: this.config.name ?? 'server',
+          ...(await this.request0('mcp/http.close', {})),
           responseType: 'text',
-        },
+        } as never,
         { queueName: this.deps.queueName },
       );
     } catch {
@@ -194,7 +176,7 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
 
   /** Send a JSON-RPC response back via POST (used by handleRequest from base). */
   protected sendMessage(obj: unknown): Promise<void> {
-    return this.post(obj).then(() => undefined);
+    return this.post('mcp/http.message', { message: obj }).then(() => undefined);
   }
 
   /** Open a long-lived request whose RESPONSE BODY is the event stream.
@@ -214,28 +196,14 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
     onEnd?: (error?: unknown) => void,
   ): Promise<number> {
     const id = this.allocateId();
-    const message = { jsonrpc: '2.0', id, method, ...(params !== undefined ? { params } : {}) };
     const abort = new AbortController();
     this.streamAborts.add(abort);
 
     const stream = this.deps.fetchStream(
       {
-        url: this.config.url,
-        method: 'POST',
-        headers: await this.authedHeaders({
-          // BOTH media types, exactly as an ordinary POST sends: a modern server answers
-          // `text/event-stream` alone with **406 Not Acceptable** and an empty body, so the
-          // subscription was rejected before it began and `listen()` handed back a stream
-          // that could never deliver. Verified against mcp-py 2.0.0 Streamable HTTP
-          // (2026-08-09): 406 with this header, 200 + frames with both.
-          accept: 'application/json, text/event-stream',
-          ...this.routingHeaders(method, params),
-        }),
-        body: message,
-        provider: 'mcp',
-        model: this.config.name ?? 'server',
+        ...(await this.request0('mcp/http.longLived', { id, method, params })),
         signal: abort.signal,
-      },
+      } as never,
       { queueName: this.deps.queueName ? `${this.deps.queueName}/events` : undefined },
     );
 
@@ -283,17 +251,9 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
           try {
             const resumed = this.deps.fetchStream(
               {
-                url: this.config.url,
-                method: 'GET',
-                headers: await this.authedHeaders({
-                  accept: 'text/event-stream',
-                  'last-event-id': cursor,
-                }),
-                body: undefined,
-                provider: 'mcp',
-                model: this.config.name ?? 'server',
+                ...(await this.request0('mcp/http.events', { lastEventId: cursor })),
                 signal: abort.signal,
-              },
+              } as never,
               { queueName: this.deps.queueName ? `${this.deps.queueName}/events` : undefined },
             );
             // A reconnect that delivered frames earns a fresh budget; one that opened and
@@ -319,60 +279,57 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
     return id;
   }
 
-  private headers(): Record<string, string> {
-    const h: Record<string, string> = {
-      'content-type': 'application/json',
-      accept: 'application/json, text/event-stream',
-      ...this.config.headers,
+  /** The shared registry plus the two rules only MCP has. */
+  private readonly wireRegistry: Registry = mcpWireRegistry(makeRegistry({}));
+
+  /** Build one MCP request from its spec.
+   *
+   *  Everything that varies — the negotiated era, the session, the declared
+   *  protocol version, a resolved bearer, the resumption cursor — is passed IN, so
+   *  the spec decides which headers those facts produce. That decision used to be
+   *  spread across three private helpers and the order in which their results were
+   *  spread into an object literal.
+   *
+   *  `provider` / `model` route and queue the call inside the NetworkEngine and are
+   *  not part of the wire, so they wrap the spec's output. */
+  private async request0(
+    specId: string,
+    input: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const auth = this.deps.getAuthHeaders ? await this.deps.getAuthHeaders() : undefined;
+    const built = buildFromSpec(
+      mcpSpec(specId),
+      {
+        ...input,
+        era: this.era,
+        sessionId: this.sessionId,
+        protocolVersion: this.protocolVersion,
+        authHeaders: auth,
+      } as never,
+      this.wireRegistry,
+      'mcp',
+      undefined,
+      { url: this.config.url, headers: this.config.headers },
+    ) as unknown as Record<string, unknown>;
+    const { noBody, body, ...rest } = built;
+    return {
+      ...rest,
+      ...(noBody ? {} : { body }),
+      provider: 'mcp',
+      model: this.config.name ?? 'server',
     };
-    // The 2026-07-28 wire is stateless: there is no session to identify, and sending a stale
-    // `Mcp-Session-Id` invites a header/body mismatch (-32020).
-    if (this.sessionId && this.era === 'handshake') h['mcp-session-id'] = this.sessionId;
-    if (this.protocolVersion) h[MCP_PROTOCOL_VERSION_HEADER] = this.protocolVersion;
-    return h;
-  }
-
-  /** Modern-era routing headers: `Mcp-Method` on every request, plus `Mcp-Name` carrying the
-   *  method's subject (tool name / prompt name / resource URI) so a gateway can route and
-   *  authorize without parsing the body. No-op on the handshake wire. */
-  private routingHeaders(method: string, params?: unknown): Record<string, string> {
-    // Driven by the version this request DECLARES, not by the negotiated era: the
-    // `server/discover` probe already says `MCP-Protocol-Version: 2026-07-28`, and a modern
-    // server rejects a request whose `Mcp-Method` does not match its body — including a
-    // missing one. Era is only set after discover succeeds, so keying on it left the probe
-    // itself half-modern. Found against mcp-py 2.0.0 Streamable HTTP (2026-08-09).
-    const modern = this.era === 'modern' || isModernMcpVersion(this.protocolVersion ?? '');
-    if (!modern) return {};
-    const h: Record<string, string> = { [MCP_METHOD_HEADER]: method };
-    const key = MCP_NAME_BEARING_METHODS[method];
-    if (key && params && typeof params === 'object') {
-      const value = (params as Record<string, unknown>)[key];
-      if (typeof value === 'string') h[MCP_NAME_HEADER] = encodeMcpHeaderValue(value);
-    }
-    return h;
-  }
-
-  /** Base headers + any OAuth bearer + per-call extras. */
-  private async authedHeaders(extra?: Record<string, string>): Promise<Record<string, string>> {
-    const auth = this.deps.getAuthHeaders ? await this.deps.getAuthHeaders() : {};
-    return { ...this.headers(), ...auth, ...extra };
   }
 
   private async post(
-    body: unknown,
-    extraHeaders?: Record<string, string>,
+    specId: string,
+    input: Record<string, unknown>,
   ): Promise<{ status: number; headers: Record<string, string>; text: string }> {
     const res = await this.deps.fetch(
       {
-        url: this.config.url,
-        method: 'POST',
-        headers: await this.authedHeaders(extraHeaders),
-        body,
-        provider: 'mcp',
-        model: this.config.name ?? 'server',
+        ...(await this.request0(specId, input)),
         responseType: 'text',
         timeout: this.deps.timeoutMs,
-      },
+      } as never,
       { queueName: this.deps.queueName },
     );
     return {

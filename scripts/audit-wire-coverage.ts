@@ -161,6 +161,8 @@ const runOrMedia = (c: OrMediaCase, fetch: never): Promise<unknown> =>
 import { mediaSpec } from '../src/wire/media-specs';
 import { serviceSpec } from '../src/wire/service-specs';
 import { retrievalSpec } from '../src/wire/retrieval-specs';
+import { mcpSpec } from '../src/wire/mcp-specs';
+import { mcpWireRegistry } from '../src/plugins/mcp/wire-rules';
 
 const MEDIA_BASE: Record<string, string> = {
   openai: 'https://api.openai.com',
@@ -213,16 +215,22 @@ const adapters: Record<string, Record<string, Adapterish | undefined>> = {
   },
 };
 
-const base = makeRegistry({
-  anthropic,
-  google,
-  googleInteractions,
-  openaiResponses,
-  openaiCompletions,
-  // OpenRouter's image_config rules call back into its media adapter, so the
-  // audit needs that handle to reach them at all.
-  openrouterMedia: new OpenRouterMediaAdapter({ apiKey: 'k' }),
-});
+// MCP composes two more rules onto the shared registry — `llm -> plugins` is a
+// forbidden edge, so they cannot live in wire-transforms. The audit measures the
+// composition the library actually builds; against the base alone the MCP specs
+// would report as referencing code that does not exist.
+const base = mcpWireRegistry(
+  makeRegistry({
+    anthropic,
+    google,
+    googleInteractions,
+    openaiResponses,
+    openaiCompletions,
+    // OpenRouter's image_config rules call back into its media adapter, so the
+    // audit needs that handle to reach them at all.
+    openrouterMedia: new OpenRouterMediaAdapter({ apiKey: 'k' }),
+  }),
+);
 
 // ── walk every shipped spec file ─────────────────────────────────────────────
 function walk(dir: string, out: string[] = []): string[] {
@@ -560,6 +568,64 @@ for (const d of RETRIEVAL_DRIVES) {
   }
 }
 
+
+// ── also drive every MCP spec DIRECTLY ───────────────────────────────────────
+//
+// The transport builds its own composed registry, so the proxy cannot see inside
+// it. The inputs reach the guarded rules: a modern era, a modern version with NO
+// era (the discover probe), each of the three name-bearing methods, and a session
+// on both wires.
+const MCP_CFG = { url: 'https://mcp.example.com/mcp', headers: { 'x-tenant': 'acme' } };
+const MODERN = '2026-07-28';
+
+const OAUTH_ORIGIN = 'https://mcp.example.com';
+const OAUTH_DRIVES: Drive[] = [
+  { id: 'mcp-oauth/discover.oauth', input: {}, config: { origin: OAUTH_ORIGIN } },
+  { id: 'mcp-oauth/discover.oidc', input: {}, config: { origin: OAUTH_ORIGIN } },
+  { id: 'mcp-oauth/register', input: { registrationEndpoint: `${OAUTH_ORIGIN}/reg`, metadata: { client_name: 'x' } }, config: {} },
+  { id: 'mcp-oauth/register', input: { registrationEndpoint: `${OAUTH_ORIGIN}/reg`, metadata: { client_name: 'x', application_type: 'web' } }, config: {} },
+  { id: 'mcp-oauth/token.exchange', input: { tokenEndpoint: `${OAUTH_ORIGIN}/token`, code: 'c', code_verifier: 'v', client_id: 'id', redirect_uri: 'http://127.0.0.1/cb' }, config: {} },
+  { id: 'mcp-oauth/token.exchange', input: { tokenEndpoint: `${OAUTH_ORIGIN}/token`, code: 'c', code_verifier: 'v', client_id: 'id', redirect_uri: 'http://127.0.0.1/cb', client_secret: 's', resource: 'r' }, config: {} },
+  { id: 'mcp-oauth/token.refresh', input: { tokenEndpoint: `${OAUTH_ORIGIN}/token`, refresh_token: 'rt', client_id: 'id' }, config: {} },
+  { id: 'mcp-oauth/token.refresh', input: { tokenEndpoint: `${OAUTH_ORIGIN}/token`, refresh_token: 'rt', client_id: 'id', client_secret: 's' }, config: {} },
+  { id: 'mcp-oauth/authorize', input: { authorizationEndpoint: `${OAUTH_ORIGIN}/authorize`, client_id: 'id', redirect_uri: 'http://127.0.0.1/cb', code_challenge: 'ch' }, config: {} },
+  { id: 'mcp-oauth/authorize', input: { authorizationEndpoint: `${OAUTH_ORIGIN}/authorize`, client_id: 'id', redirect_uri: 'http://127.0.0.1/cb', code_challenge: 'ch', scope: 's', state: 'st', resource: 'r' }, config: {} },
+];
+
+const MCP_DRIVES: Drive[] = [
+  { id: 'mcp/http.request', input: { id: 1, method: 'tools/list', era: 'handshake' }, config: MCP_CFG },
+  { id: 'mcp/http.request', input: { id: 2, method: 'tools/list', era: 'handshake', sessionId: 's1', protocolVersion: '2025-11-25' }, config: MCP_CFG },
+  { id: 'mcp/http.request', input: { id: 3, method: 'tools/call', params: { name: 'search' }, era: 'modern', protocolVersion: MODERN }, config: MCP_CFG },
+  { id: 'mcp/http.request', input: { id: 4, method: 'prompts/get', params: { name: 'p' }, era: 'modern', protocolVersion: MODERN }, config: MCP_CFG },
+  { id: 'mcp/http.request', input: { id: 5, method: 'resources/read', params: { uri: 'file:///x' }, era: 'modern', protocolVersion: MODERN }, config: MCP_CFG },
+  { id: 'mcp/http.request', input: { id: 6, method: 'tools/call', params: { name: 'поиск' }, era: 'modern', protocolVersion: MODERN }, config: MCP_CFG },
+  // The probe: modern by DECLARED version while the era is still handshake.
+  { id: 'mcp/http.request', input: { id: 7, method: 'server/discover', era: 'handshake', protocolVersion: MODERN }, config: MCP_CFG },
+  // A modern session id must NOT be echoed back.
+  { id: 'mcp/http.request', input: { id: 8, method: 'tools/list', era: 'modern', protocolVersion: MODERN, sessionId: 's1' }, config: MCP_CFG },
+  { id: 'mcp/http.notify', input: { method: 'notifications/initialized', era: 'handshake' }, config: MCP_CFG },
+  { id: 'mcp/http.longLived', input: { id: 9, method: 'subscriptions/listen', params: { filter: {} }, era: 'modern', protocolVersion: MODERN }, config: MCP_CFG },
+  { id: 'mcp/http.message', input: { message: { jsonrpc: '2.0', id: 1, result: {} }, era: 'handshake' }, config: MCP_CFG },
+  { id: 'mcp/http.events', input: { era: 'handshake' }, config: MCP_CFG },
+  { id: 'mcp/http.events', input: { era: 'handshake', lastEventId: 'ev-1' }, config: MCP_CFG },
+  { id: 'mcp/http.close', input: { era: 'handshake', sessionId: 's1' }, config: MCP_CFG },
+  // Auth headers arrive resolved, and must beat everything the spec set before them.
+  { id: 'mcp/http.request', input: { id: 10, method: 'tools/list', era: 'handshake', authHeaders: { authorization: 'Bearer t' } }, config: MCP_CFG },
+];
+
+let mcpBuilds = 0;
+const mcpFailures: string[] = [];
+for (const d of [...MCP_DRIVES, ...OAUTH_DRIVES]) {
+  const spec = mcpSpec(d.id);
+  const note = (kind: string, name: string) => rulesFired.add(`${d.id}|${kind}|${name}`);
+  try {
+    buildFromSpec(spec, d.input as never, recorded, d.flavor ?? spec.provider, note, d.config);
+    mcpBuilds++;
+  } catch (e) {
+    mcpFailures.push(`${d.id}: ${(e as Error).message}`);
+  }
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 const CHAT = new Set(subjects.map((s) => s.specId));
 const line = (s: string) => console.log(s);
@@ -573,6 +639,8 @@ line(`service builds       : ${serviceBuilds}/${SERVICE_DRIVES.length} service s
 for (const f of serviceFailures) line(`  DRIVE FAILED  ${f}`);
 line(`retrieval builds     : ${retrievalBuilds}/${RETRIEVAL_DRIVES.length} retrieval specs driven`);
 for (const f of retrievalFailures) line(`  DRIVE FAILED  ${f}`);
+line(`mcp builds           : ${mcpBuilds}/${MCP_DRIVES.length + OAUTH_DRIVES.length} mcp + oauth specs driven`);
+for (const f of mcpFailures) line(`  DRIVE FAILED  ${f}`);
 line('');
 
 if (missing.length) {
