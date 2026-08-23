@@ -1,7 +1,6 @@
 /** Google Gemini provider adapter (generateContent API). */
 
 import type { SSEEvent } from '../../../network/types';
-import { resolveVoice } from '../../audio/voices';
 import type {
   AudioOutputPart,
   ContentPart,
@@ -12,7 +11,11 @@ import type {
   VideoOutputPart,
 } from '../../types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
-import { googleRequestTier, googleBilledTier } from './tiers';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { chatSpec, isChatSpec } from '../../../wire/chat-specs';
+import { makeRegistry } from '../../wire-transforms';
+import { googleBilledTier } from './tiers';
 import type { NormalizedRequest } from '../../types/request';
 import {
   emptyUsage,
@@ -22,12 +25,9 @@ import {
   type Usage,
 } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
-import { isFunctionTool } from '../../types/tools';
 import { AUDIO_PCM16_SAMPLE_RATE_HZ } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
 import {
-  GOOGLE_THINKING_BUDGETS,
-  GOOGLE_THINKING_LEVELS,
   googleUsesThinkingBudget,
 } from './constants';
 import { sseJson } from '../_shared/sse';
@@ -74,162 +74,29 @@ export class GoogleAdapter implements ProviderAdapter {
     return ''; // set dynamically per request (includes model in URL)
   }
 
+  /** Named code the spec cannot express as data — content assembly. */
+  private readonly wireRegistry: Registry = makeRegistry({ google: this });
+
+  /** The spec that builds this model's request.
+   *
+   *  Two nodes, keyed on the one thing that differs on the wire: 2.5 takes a token
+   *  `thinkingBudget` and 400s on `thinkingLevel`, 3.x takes the level. Catalog pin
+   *  first, then the catalog's per-model trait, then the id — the same order the
+   *  hand-written path used, so an unpinned or uncatalogued model is unaffected. */
+  private specIdFor(req: NormalizedRequest): string {
+    if (isChatSpec(req.wireSpec) && req.wireSpec.startsWith('google/generate')) return req.wireSpec;
+    const usesBudget = req.wire?.thinking
+      ? req.wire.thinking === 'budget'
+      : googleUsesThinkingBudget(req.model);
+    return usesBudget ? 'google/generate@2.5' : 'google/generate@3';
+  }
+
   buildRequest(req: NormalizedRequest): ProviderHttpRequest {
-    const model = req.model.startsWith('models/') ? req.model : `models/${req.model}`;
-    const contents: unknown[] = [];
-
-    for (const msg of req.messages) {
-      if (msg.role === 'system') continue; // handled via systemInstruction
-      contents.push(this.buildContent(msg));
-    }
-
-    const config: Record<string, unknown> = {};
-    if (req.maxTokens) config.maxOutputTokens = req.maxTokens;
-    if (req.temperature !== undefined) config.temperature = req.temperature;
-    if (req.topP !== undefined) config.topP = req.topP;
-    if (req.topK !== undefined) config.topK = req.topK;
-    if (req.seed !== undefined) config.seed = req.seed;
-    if (req.presencePenalty !== undefined) config.presencePenalty = req.presencePenalty;
-    if (req.frequencyPenalty !== undefined) config.frequencyPenalty = req.frequencyPenalty;
-    if (req.stop) config.stopSequences = req.stop;
-
-    // Audio output (when requested via outputModalities): generateContent returns
-    // inline audio with responseModalities:['AUDIO'] + an optional speechConfig voice.
-    if (req.outputModalities?.includes('audio')) {
-      config.responseModalities = ['AUDIO'];
-      const voice = resolveVoice('google', req.audio?.voice);
-      if (voice) {
-        config.speechConfig = { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } } };
-      }
-    }
-
-    const body: Record<string, unknown> = {
-      contents,
-      generationConfig: config,
-    };
-
-    // Service tier — top-level request field (Google accepts flex|standard|priority).
-    const tier = googleRequestTier(req.serviceTier);
-    if (tier) body.serviceTier = tier;
-
-    if (req.system) {
-      body.systemInstruction = { parts: [{ text: req.system }] };
-    }
-
-    if (req.tools?.length) {
-      const fnTools = req.tools.filter(isFunctionTool);
-      const tools: Record<string, unknown>[] = [];
-      if (fnTools.length) {
-        tools.push({
-          functionDeclarations: fnTools.map((t) => ({
-            name: t.name,
-            description: t.description,
-            // `parametersJsonSchema`, NOT `parameters`. The two are mutually exclusive
-            // (sending both is a 400) and accept different things:
-            //
-            //   parameters            a narrow OpenAPI subset. Anything outside it is
-            //                         rejected outright with `Unknown name "<keyword>"` —
-            //                         measured: additionalProperties (at any depth),
-            //                         $schema, $ref, $defs, definitions, const, examples,
-            //                         exclusiveMinimum/Maximum, multipleOf, uniqueItems,
-            //                         patternProperties, propertyNames, if/then,
-            //                         readOnly, deprecated, and `type` as an array.
-            //   parametersJsonSchema  full JSON Schema.
-            //
-            // We passed callers' schemas straight into `parameters`, so any tool defined
-            // with `additionalProperties: false` — which OpenAI's strict mode requires —
-            // failed on EVERY Gemini model. A consuming app had to delete it from its
-            // manifest, degrading its OpenAI schema to keep Google working.
-            //
-            // Sanitising into the subset was the obvious fix and is the wrong one: it
-            // silently drops constraints and cannot express a `$ref` at all. Verified on
-            // every tool-capable model we ship (2.5 pro/flash/flash-lite, 3-flash,
-            // 3.1-pro incl. customtools, 3.1-flash-lite, 3.5-flash/-lite, 3.6-flash,
-            // gemma-4-26b/-31b) that this field takes the schema unchanged and the model
-            // still calls the tool.
-            parametersJsonSchema: t.parameters,
-          })),
-        });
-      }
-      // Unified web_search builtin → Gemini grounded search.
-      if (req.tools.some((t) => !isFunctionTool(t) && t.type === 'web_search')) {
-        tools.push({ googleSearch: {} });
-      }
-      // Unified code_interpreter builtin → Gemini code execution.
-      if (req.tools.some((t) => !isFunctionTool(t) && t.type === 'code_interpreter')) {
-        tools.push({ codeExecution: {} });
-      }
-      // Unified web_fetch builtin → Gemini URL context (reads user-provided URLs).
-      if (req.tools.some((t) => !isFunctionTool(t) && t.type === 'web_fetch')) {
-        tools.push({ urlContext: {} });
-      }
-      if (tools.length) body.tools = tools;
-    }
-
-    if (req.toolChoice) {
-      const mode =
-        req.toolChoice === 'auto'
-          ? 'AUTO'
-          : req.toolChoice === 'none'
-            ? 'NONE'
-            : req.toolChoice === 'required'
-              ? 'ANY'
-              : 'AUTO';
-      body.toolConfig = { functionCallingConfig: { mode } };
-    }
-
-    if (req.thinking && req.thinking.mode !== 'off') {
-      const effort = req.thinking.effort ?? 'high';
-      // Gemini 2.5 only accepts a token `thinkingBudget` (it 400s on thinkingLevel);
-      // 3.x+ uses `thinkingLevel`. `hidden` stops thoughts being returned.
-      const thinkingConfig: Record<string, unknown> = {
-        includeThoughts: req.thinking.visibility !== 'hidden',
-      };
-      // Catalog first, id-parse as the fallback (see the Anthropic adapter note).
-      const usesBudget = req.wire?.thinking
-        ? req.wire.thinking === 'budget'
-        : googleUsesThinkingBudget(req.model);
-      if (usesBudget) {
-        thinkingConfig.thinkingBudget = GOOGLE_THINKING_BUDGETS[effort] ?? GOOGLE_THINKING_BUDGETS.high;
-      } else {
-        thinkingConfig.thinkingLevel = GOOGLE_THINKING_LEVELS[effort] ?? 'HIGH';
-      }
-      (config as Record<string, unknown>).thinkingConfig = thinkingConfig;
-    }
-
-    if (req.structured) {
-      config.responseMimeType = 'application/json';
-      config.responseJsonSchema = req.structured.schema;
-    }
-
-    // Provider-specific options passthrough (e.g. responseModalities for image/audio gen)
-    if (req.providerOptions) {
-      if (req.providerOptions.responseModalities) {
-        config.responseModalities = req.providerOptions.responseModalities;
-      }
-      if (req.providerOptions.speechConfig) {
-        config.speechConfig = req.providerOptions.speechConfig;
-      }
-      if (req.providerOptions.imageConfig) {
-        config.imageConfig = req.providerOptions.imageConfig;
-      }
-      if (req.providerOptions.translationConfig) {
-        config.translationConfig = req.providerOptions.translationConfig;
-      }
-      // Explicit context cache (`cachedContents/…`). Top-level on the request body, NOT
-      // inside generationConfig. This passthrough used to live on the Interactions adapter,
-      // but google 2.13 removed `cached_content` from the Interactions request model and the
-      // endpoint now 400s "Unknown parameter" — while generateContent still accepts and
-      // validates it (live 2026-07-27: a bogus name returns 403 "CachedContent not found",
-      // i.e. the field is recognised). See interactions.ts for the removal note.
-      const cachedContent = req.providerOptions.cachedContent;
-      if (typeof cachedContent === 'string' && cachedContent) body.cachedContent = cachedContent;
-    }
-
-    return {
-      body,
-      path: `/v1beta/${model}:generateContent`,
-    };
+    return buildFromSpec(
+      chatSpec(this.specIdFor(req)),
+      req,
+      this.wireRegistry,
+    ) as ProviderHttpRequest;
   }
 
   enableStreaming(providerReq: ProviderHttpRequest, req: NormalizedRequest): void {
@@ -240,7 +107,8 @@ export class GoogleAdapter implements ProviderAdapter {
   /** Map tool call IDs to function names (Google needs name in functionResponse) */
   private toolCallNames: Map<string, string> = new Map();
 
-  private buildContent(msg: {
+  /** Reached through the wire registry while building this adapter's own request. */
+  buildContent(msg: {
     role: string;
     content: string | ContentPart[];
   }): Record<string, unknown> {
