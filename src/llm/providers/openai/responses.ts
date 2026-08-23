@@ -15,6 +15,10 @@ import type {
   ToolCallPart,
   ToolCaller,
 } from '../../types/messages';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { chatSpec } from '../../../wire/chat-specs';
+import { makeRegistry } from '../../wire-transforms';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import type { NormalizedRequest } from '../../types/request';
 import {
@@ -25,11 +29,9 @@ import {
   type Usage,
 } from '../../types/response';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
-import { ensureAdditionalProperties, strictSupport } from '../../types/schema-utils';
 import type { StreamEvent } from '../../types/stream';
-import { isFunctionTool } from '../../types/tools';
-import { buildNativeModeration, parseNativeModeration } from '../../moderation/native';
-import { openaiBilledTier, openaiRequestTier } from './tiers';
+import { parseNativeModeration } from '../../moderation/native';
+import { openaiBilledTier, } from './tiers';
 import { extractFinishReason } from '../_shared/response-utils';
 import { sseJson } from '../_shared/sse';
 
@@ -238,141 +240,27 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     return '/v1/responses';
   }
 
+  /** Named code the spec cannot express as data — message/input assembly. Carries
+   *  `this`, so a subclass drives the same rules with its own overrides. */
+  protected readonly wireRegistry: Registry = makeRegistry({ openaiResponses: this });
+
+  /** Which flavor overlay patches the shared spec. Subclasses for
+   *  OpenAI-compatible backends override this and nothing else. */
+  protected readonly wireFlavor: string = 'openai';
+
   buildRequest(req: NormalizedRequest): ProviderHttpRequest {
-    const input: unknown[] = [];
-
-    // Build input array from messages. `toolNames` accumulates call_id → tool name as assistant
-    // turns go past, so a later tool result can name the tool that produced it: the API wants
-    // `name` on `function_call_output`, and only the matching call knows what it was.
-    const toolNames = new Map<string, string>();
-    for (const msg of req.messages) {
-      input.push(...this.buildInputItems(msg, toolNames));
-    }
-
-    const body: Record<string, unknown> = {
-      model: req.model,
-      input,
-    };
-
-    // System prompt → instructions
-    if (req.system) {
-      body.instructions = req.system;
-    }
-
-    // Chain continuation — provider reconstructs context from its stored state.
-    if (req.previousResponseId) {
-      body.previous_response_id = req.previousResponseId;
-    }
-
-    if (req.maxTokens) body.max_output_tokens = req.maxTokens;
-    if (req.temperature !== undefined) body.temperature = req.temperature;
-    if (req.topP !== undefined) body.top_p = req.topP;
-    // The Responses API has NO seed on OpenAI (live 2026-07-28: 400 "Unknown parameter:
-    // 'seed'") but xAI's Responses surface accepts it. Gate to xAI only — OpenRouter's
-    // Responses surface is unverified, so it is left out rather than guessed at.
-    if (this.name === 'xai' && req.seed !== undefined) body.seed = req.seed;
-    // No top_k on any Responses surface.
-    const tier = openaiRequestTier(req.serviceTier);
-    if (tier) body.service_tier = tier;
-
-    // Inline moderation — native passthrough (skip when the caller forced emulation).
-    // `providerOptions.moderationPolicy` opts into OpenAI server-side blocking and
-    // can ride even without a unified `moderation` request.
-    const modPolicy = req.providerOptions?.moderationPolicy;
-    if ((req.moderation && req.moderation.mode !== 'emulate') || modPolicy) {
-      body.moderation = buildNativeModeration(req.moderation, modPolicy);
-    }
-
-    // Explicit prompt caching (gpt-5.6+). OpenAI caches IMPLICITLY by default, so
-    // the unified `cache` config already "just works" here — this passthrough is
-    // for manual control (`{ mode:'explicit'|'implicit', ttl:'30m' }` + per-part
-    // breakpoints). True-OpenAI only; xai/openrouter inherit this builder.
-    if (this.name === 'openai' && req.providerOptions?.promptCacheOptions) {
-      body.prompt_cache_options = req.providerOptions.promptCacheOptions;
-    }
-
-    // Tools — function tools (flat format, strict) + built-in tools (passthrough)
-    if (req.tools?.length) {
-      body.tools = req.tools.map((t) => {
-        if (isFunctionTool(t)) {
-          // Strict is the default because it is what makes OpenAI constrain the
-          // arguments during generation. But OpenAI's strict mode requires EVERY
-          // property to be listed in `required`, at every depth, and rejects the
-          // request outright when one is not — "'required' is required to be
-          // supplied". Defaulting strict on without checking meant any tool with an
-          // optional parameter 400'd, which is most real MCP tools; the DeepWiki
-          // server happens to declare everything required, which is why the whole
-          // example corpus never hit it.
-          const params = ensureAdditionalProperties(t.parameters);
-          return {
-            type: 'function',
-            name: t.name,
-            description: t.description,
-            parameters: params,
-            strict: t.strict ?? strictSupport(params, 'openai').ok,
-            // Programmatic tool calling (Responses): who may call it + return schema.
-            ...(t.allowedCallers ? { allowed_callers: t.allowedCallers } : {}),
-            ...(t.outputSchema ? { output_schema: t.outputSchema } : {}),
-          };
-        }
-        // Built-in tool: pass type + params directly. code_interpreter needs a
-        // container; default to an auto (ephemeral) one when none is supplied.
-        const builtin: Record<string, unknown> = { type: t.type, ...t.params };
-        if (t.type === 'code_interpreter' && builtin.container === undefined) {
-          builtin.container = { type: 'auto' };
-        }
-        return builtin;
-      });
-    }
-
-    if (req.toolChoice) {
-      if (typeof req.toolChoice === 'string') {
-        body.tool_choice = req.toolChoice;
-      } else {
-        body.tool_choice = { type: 'function', name: req.toolChoice.name };
-      }
-    }
-
-    // Structured output → text.format
-    if (req.structured) {
-      // Same all-properties-required constraint as function tools: a response schema
-      // with an optional field is rejected outright under strict, so strict is
-      // defaulted on only where the schema can satisfy it.
-      const schema = ensureAdditionalProperties(req.structured.schema);
-      body.text = {
-        format: {
-          type: 'json_schema',
-          name: req.structured.name ?? 'response',
-          schema,
-          strict: req.structured.strict ?? strictSupport(schema, 'openai').ok,
-        },
-      };
-    }
-
-    // Reasoning
-    if (req.thinking && req.thinking.mode !== 'off') {
-      const visibility = req.thinking.visibility ?? 'full';
-      // `summary` controls how much reasoning is surfaced: full -> 'auto' (fullest
-      // the model offers), summary -> 'concise', hidden -> omit it entirely.
-      const summary = visibility === 'hidden' ? null : visibility === 'summary' ? 'concise' : 'auto';
-      // Execution mode (standard | pro) is Responses-only — chat-completions rejects
-      // it — so it's a providerOptions passthrough, not a unified ThinkingConfig knob.
-      const mode = req.providerOptions?.reasoningMode;
-      body.reasoning = {
-        effort: req.thinking.effort ?? 'medium',
-        ...(summary !== null ? { summary } : {}),
-        ...(mode ? { mode } : {}),
-        // Cross-turn reasoning persistence (gpt-5/o-series, Responses only).
-        ...(req.thinking.context ? { context: req.thinking.context } : {}),
-      };
-    }
-
-    return { body };
+    return buildFromSpec(
+      chatSpec('openai/responses'),
+      req,
+      this.wireRegistry,
+      this.wireFlavor,
+    ) as ProviderHttpRequest;
   }
 
   /** Convert a universal Message to Responses API input items.
    *  `toolNames` is threaded across messages so a tool result can name its originating call. */
-  private buildInputItems(msg: Message, toolNames = new Map<string, string>()): unknown[] {
+  /** Reached through the wire registry while building the request. */
+  buildInputItems(msg: Message, toolNames = new Map<string, string>()): unknown[] {
     const items: unknown[] = [];
 
     if (msg.role === 'user' || msg.role === 'system') {

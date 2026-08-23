@@ -6,13 +6,10 @@
  *  - Encrypted reasoning via include: ["reasoning.encrypted_content"]
  */
 
-import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
-import type { NormalizedRequest } from '../../types/request';
+import type { ProviderAdapter, } from '../../types/provider';
 import type { FileOutput } from '../../types/response';
-import { isFunctionTool } from '../../types/tools';
 import { bytesToBase64 } from '../../../util/base64';
 import { OpenAIResponsesAdapter } from '../openai/responses';
-import { xaiRequestTier } from './tiers';
 
 export interface XAIResponsesAdapterConfig {
   apiKey: string;
@@ -58,42 +55,10 @@ export class XAIResponsesAdapter extends OpenAIResponsesAdapter {
     return this._baseURL ?? 'https://api.x.ai';
   }
 
-  override buildRequest(req: NormalizedRequest): ProviderHttpRequest {
-    const result = super.buildRequest(req);
-    const body = result.body as Record<string, unknown>;
-
-    // xAI: system prompt goes in input as role:system, not as instructions
-    if (req.system && body.instructions) {
-      const input = body.input as unknown[];
-      input.unshift({ role: 'system', content: req.system });
-      delete body.instructions;
-    }
-
-    // xAI reasoning models reason automatically — remove reasoning param
-    // Only grok-4.20-multi-agent uses reasoning.effort (for agent count)
-    if (!req.model.includes('multi-agent')) {
-      delete body.reasoning;
-    }
-
-    // Service tier: the inherited OpenAI map can emit auto/flex/scale, which xAI
-    // rejects (its enum is DEFAULT|PRIORITY only). Remap from the unified tier.
-    const xaiTier = xaiRequestTier(req.serviceTier);
-    if (xaiTier) body.service_tier = xaiTier;
-    else delete body.service_tier;
-
-    // Code-execution output files are returned only when explicitly requested via
-    // `include`. xAI accepts the OpenAI-style token here (its own `code_execution_*`
-    // strings 400). Without it, `code_interpreter_call` yields empty logs and no file.
-    const usesCodeInterpreter = req.tools?.some(
-      (t) => !isFunctionTool(t) && t.type === 'code_interpreter',
-    );
-    if (usesCodeInterpreter) {
-      const include = new Set([...((body.include as string[]) ?? []), 'code_interpreter_call.outputs']);
-      body.include = [...include];
-    }
-
-    return result;
-  }
+  /** Everything this class used to do to `super.buildRequest()` — the max_tokens
+   *  rename, the reasoning strip, the tier remap, the routing passthrough — is the
+   *  `xai` overlay in the shared spec. Naming the flavor IS the override now. */
+  protected override readonly wireFlavor: string = 'xai';
 
   /** xAI embeds code-execution files inline in the `logs` payload — extend the base
    *  extraction (which handles OpenAI-style annotations / image URLs) with the xAI shape. */

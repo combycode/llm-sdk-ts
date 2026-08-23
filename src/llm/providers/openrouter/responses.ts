@@ -2,8 +2,7 @@
  *  Drop-in replacement for OpenAI Responses API at openrouter.ai/api/v1/responses.
  *  Stateless: no previous_response_id support (beta limitation). */
 
-import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
-import type { NormalizedRequest } from '../../types/request';
+import type { ProviderAdapter, } from '../../types/provider';
 import { OpenAIResponsesAdapter } from '../openai/responses';
 
 export interface OpenRouterResponsesAdapterConfig {
@@ -26,14 +25,8 @@ export class OpenRouterResponsesAdapter extends OpenAIResponsesAdapter {
     return '/api/v1/responses';
   }
 
-  override buildRequest(req: NormalizedRequest): ProviderHttpRequest {
-    const result = super.buildRequest(req);
-
-    // Pass through provider routing options
-    if (req.providerOptions?.openrouter) {
-      Object.assign(result.body, req.providerOptions.openrouter);
-    }
-
-    return result;
-  }
+  /** Everything this class used to do to `super.buildRequest()` — the max_tokens
+   *  rename, the reasoning strip, the tier remap, the routing passthrough — is the
+   *  `openrouter` overlay in the shared spec. Naming the flavor IS the override now. */
+  protected override readonly wireFlavor: string = 'openrouter';
 }

@@ -1,7 +1,10 @@
 /** OpenAI provider adapter (Chat Completions API). */
 
 import type { SSEEvent } from '../../../network/types';
-import { resolveVoice } from '../../audio/voices';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { chatSpec } from '../../../wire/chat-specs';
+import { makeRegistry } from '../../wire-transforms';
 import type { AudioFormat } from '../../types/audio';
 import type { ContentPart, MediaOutputPart, TextPart, ToolCallPart } from '../../types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
@@ -12,11 +15,8 @@ import {
   type Usage,
 } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
-import { isFunctionTool } from '../../types/tools';
-import { ensureAdditionalProperties, strictSupport } from '../../types/schema-utils';
-import { buildNativeModeration, parseNativeModeration } from '../../moderation/native';
-import { openaiBilledTier, openaiRequestTier } from './tiers';
-import { DEFAULT_MAX_TOKENS } from '../_shared/constants';
+import { parseNativeModeration } from '../../moderation/native';
+import { openaiBilledTier, } from './tiers';
 import { extractFinishReason } from '../_shared/response-utils';
 import { sseJson } from '../_shared/sse';
 
@@ -39,7 +39,7 @@ function docFilenameForMime(mimeType: string): string {
 
 /** OpenAI chat audio OUTPUT format. Supports wav/mp3/flac/opus/pcm16; aac is not
  *  supported there, so it falls back to wav. */
-function toOpenAIAudioFormat(format: AudioFormat | undefined): string {
+function _toOpenAIAudioFormat(format: AudioFormat | undefined): string {
   if (!format || format === 'aac') return 'wav';
   return format;
 }
@@ -76,114 +76,21 @@ export class OpenAIAdapter implements ProviderAdapter {
     return '/v1/chat/completions';
   }
 
+  /** Named code the spec cannot express as data — message/input assembly. Carries
+   *  `this`, so a subclass drives the same rules with its own overrides. */
+  protected readonly wireRegistry: Registry = makeRegistry({ openaiCompletions: this });
+
+  /** Which flavor overlay patches the shared spec. Subclasses for
+   *  OpenAI-compatible backends override this and nothing else. */
+  protected readonly wireFlavor: string = 'openai';
+
   buildRequest(req: NormalizedRequest): ProviderHttpRequest {
-    const messages: Record<string, unknown>[] = [];
-
-    if (req.system) {
-      messages.push({ role: 'system', content: req.system });
-    }
-
-    for (const msg of req.messages) {
-      messages.push(...this.buildMessages(msg));
-    }
-
-    const body: Record<string, unknown> = {
-      model: req.model,
-      messages,
-      max_completion_tokens: req.maxTokens ?? DEFAULT_MAX_TOKENS,
-    };
-
-    if (req.temperature !== undefined) body.temperature = req.temperature;
-    if (req.topP !== undefined) body.top_p = req.topP;
-    // `seed` is accepted by chat-completions on all three backends that share this builder
-    // (openai / xai / openrouter — live-verified 2026-07-28).
-    if (req.seed !== undefined) body.seed = req.seed;
-    // `top_k` is NOT an OpenAI field, but xAI and OpenRouter accept it on this surface.
-    // Gate by provider so OpenAI never receives a parameter it does not define.
-    if (this.name !== 'openai' && req.topK !== undefined) body.top_k = req.topK;
-    if (req.presencePenalty !== undefined) body.presence_penalty = req.presencePenalty;
-    if (req.frequencyPenalty !== undefined) body.frequency_penalty = req.frequencyPenalty;
-    if (req.stop) body.stop = req.stop;
-    const tier = openaiRequestTier(req.serviceTier);
-    if (tier) body.service_tier = tier;
-
-    // Inline moderation — native passthrough (skip when the caller forced emulation).
-    // `providerOptions.moderationPolicy` opts into OpenAI server-side blocking.
-    const modPolicy = req.providerOptions?.moderationPolicy;
-    if ((req.moderation && req.moderation.mode !== 'emulate') || modPolicy) {
-      body.moderation = buildNativeModeration(req.moderation, modPolicy);
-    }
-
-    // Explicit prompt caching (gpt-5.6+). OpenAI caches IMPLICITLY by default, so
-    // the unified `cache` config already works here — this is manual control only.
-    // True-OpenAI only; xai/openrouter inherit this builder.
-    if (this.name === 'openai' && req.providerOptions?.promptCacheOptions) {
-      body.prompt_cache_options = req.providerOptions.promptCacheOptions;
-    }
-
-    // Audio input (gpt-audio): the model only *processes* input audio when audio
-    // output is also enabled, so we always enable it here. Voice/format come from
-    // req.audio (alias-resolved); the spoken reply + transcript arrive on
-    // `message.audio` (parsed + surfaced as media in parseResponse).
-    const hasAudioInput = req.messages.some(
-      (m) => Array.isArray(m.content) && m.content.some((p) => p.type === 'audio'),
-    );
-    if (hasAudioInput) {
-      body.modalities = ['text', 'audio'];
-      body.audio = {
-        voice: resolveVoice('openai', req.audio?.voice) ?? 'alloy',
-        format: toOpenAIAudioFormat(req.audio?.format),
-      };
-    }
-
-    if (req.tools?.length) {
-      // Chat Completions only supports function tools; skip BuiltinTool entries.
-      body.tools = req.tools.filter(isFunctionTool).map((t) => {
-        // Strict is OPT-IN on this API, as it has always been. It was briefly defaulted
-        // on for consistency with Responses, but measured against both providers it
-        // changes nothing about argument quality (40/40 conformant either way) and only
-        // adds exposure to provider-side schema rules. Asking for it conforms the schema
-        // too, since strict without `additionalProperties: false` is rejected.
-        const params = ensureAdditionalProperties(t.parameters);
-        const strict = t.strict === true;
-        return {
-          type: 'function',
-          function: {
-            name: t.name,
-            description: t.description,
-            parameters: strict ? params : t.parameters,
-            ...(strict ? { strict: true } : {}),
-          },
-        };
-      });
-    }
-
-    if (req.toolChoice) {
-      if (typeof req.toolChoice === 'string') body.tool_choice = req.toolChoice;
-      else body.tool_choice = { type: 'function', function: { name: req.toolChoice.name } };
-    }
-
-    if (req.thinking && req.thinking.mode !== 'off') {
-      body.reasoning = { effort: req.thinking.effort ?? 'medium' };
-    }
-
-    if (req.structured) {
-      // Strict json_schema requires `additionalProperties: false` and every property
-      // in `required`. Neither was enforced here, so a schema missing either was
-      // rejected by the API rather than degraded — the same failure as function tools.
-      const schema = ensureAdditionalProperties(req.structured.schema);
-      const strict = req.structured.strict ?? strictSupport(schema, 'openai').ok;
-      body.response_format = {
-        type: 'json_schema',
-        json_schema: {
-          name: req.structured.name ?? 'response',
-          schema: strict ? schema : req.structured.schema,
-          strict,
-        },
-      };
-    }
-
-    return { body };
+    return buildFromSpec(
+      chatSpec('openai/chat-completions'),
+      req,
+      this.wireRegistry,
+      this.wireFlavor,
+    ) as ProviderHttpRequest;
   }
 
   /** One universal message can become SEVERAL chat-completions messages.
@@ -194,7 +101,8 @@ export class OpenAIAdapter implements ProviderAdapter {
    *  the rest unanswered and the provider rejected the whole request with
    *  "No tool output found for function call <id>" — so parallel tools were broken on
    *  every chat-completions backend. */
-  private buildMessages(msg: {
+  /** Reached through the wire registry while building the request. */
+  buildMessages(msg: {
     role: string;
     content: string | ContentPart[];
   }): Record<string, unknown>[] {

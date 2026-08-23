@@ -1,11 +1,9 @@
 /** OpenRouter provider adapter — OpenAI-compatible with extensions. */
 
 import type { SSEEvent } from '../../../network/types';
-import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
-import type { NormalizedRequest } from '../../types/request';
+import type { ProviderAdapter, } from '../../types/provider';
 import type { CompletionResponse } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
-import { isFunctionTool } from '../../types/tools';
 import { OpenAIAdapter, type OpenAIStreamState } from '../openai/completions';
 
 export interface OpenRouterAdapterConfig {
@@ -38,31 +36,10 @@ export class OpenRouterAdapter extends OpenAIAdapter {
     return '/api/v1/chat/completions';
   }
 
-  override buildRequest(req: NormalizedRequest): ProviderHttpRequest {
-    const result = super.buildRequest(req);
-    const body = result.body as Record<string, unknown>;
-
-    // OpenRouter uses max_tokens (not max_completion_tokens)
-    if (body.max_completion_tokens) {
-      body.max_tokens = body.max_completion_tokens;
-      delete body.max_completion_tokens;
-    }
-
-    // Unified web_search builtin → OpenRouter web search via the `:online` model
-    // suffix. (super.buildRequest drops the builtin; openrouter has no tool form.)
-    if (req.tools?.some((t) => !isFunctionTool(t) && t.type === 'web_search')) {
-      const model = body.model as string | undefined;
-      if (model && !model.endsWith(':online')) body.model = `${model}:online`;
-      if (Array.isArray(body.tools) && body.tools.length === 0) delete body.tools;
-    }
-
-    // Pass through provider routing options
-    if (req.providerOptions?.openrouter) {
-      Object.assign(body, req.providerOptions.openrouter);
-    }
-
-    return result;
-  }
+  /** Everything this class used to do to `super.buildRequest()` — the max_tokens
+   *  rename, the reasoning strip, the tier remap, the routing passthrough — is the
+   *  `openrouter` overlay in the shared spec. Naming the flavor IS the override now. */
+  protected override readonly wireFlavor: string = 'openrouter';
 
   override parseResponse(raw: unknown, latencyMs: number): CompletionResponse {
     const result = super.parseResponse(raw, latencyMs);

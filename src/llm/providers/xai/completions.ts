@@ -6,8 +6,7 @@
  */
 
 import type { SSEEvent } from '../../../network/types';
-import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
-import type { NormalizedRequest } from '../../types/request';
+import type { ProviderAdapter, } from '../../types/provider';
 import type { CompletionResponse } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
 import { OpenAIAdapter, type OpenAIStreamState } from '../openai/completions';
@@ -29,22 +28,10 @@ export class XAIAdapter extends OpenAIAdapter {
     return this._baseURL ?? 'https://api.x.ai';
   }
 
-  override buildRequest(req: NormalizedRequest): ProviderHttpRequest {
-    const result = super.buildRequest(req);
-
-    const body = result.body as Record<string, unknown>;
-    // xAI uses max_tokens, not max_completion_tokens
-    if (body.max_completion_tokens) {
-      body.max_tokens = body.max_completion_tokens;
-      delete body.max_completion_tokens;
-    }
-
-    // xAI reasoning is via model variant, not parameter
-    // grok-4.20-reasoning, grok-4-1-fast-reasoning reason automatically
-    delete body.reasoning;
-
-    return result;
-  }
+  /** Everything this class used to do to `super.buildRequest()` — the max_tokens
+   *  rename, the reasoning strip, the tier remap, the routing passthrough — is the
+   *  `xai` overlay in the shared spec. Naming the flavor IS the override now. */
+  protected override readonly wireFlavor: string = 'xai';
 
   override parseResponse(raw: unknown, latencyMs: number): CompletionResponse {
     const result = super.parseResponse(raw, latencyMs);
