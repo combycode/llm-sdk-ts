@@ -1,0 +1,8 @@
+{
+  "id": "xai/batch.cancel",
+  "extends": "xai/batch.base",
+  "envelope": {
+    "method": "POST",
+    "url": { "$join": [{ "$config": "baseURL" }, "/v1/batches/", { "$": "batchId" }, "/cancel"] }
+  }
+}

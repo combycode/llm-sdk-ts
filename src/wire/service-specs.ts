@@ -77,6 +77,16 @@ import filesGoogleGetInfo from './specs/files/google.getInfo.json' with { type: 
 import filesGoogleList from './specs/files/google.list.json' with { type: 'json' };
 import filesXaiUpload from './specs/files/xai.upload.json' with { type: 'json' };
 
+// ── added so nothing the library does is left undescribed ────────────────────
+import filesGoogleFinishUpload from './specs/files/google.finishUpload.json' with { type: 'json' };
+import mediaXaiVideosStatus from './specs/xai-media/videos.status.json' with { type: 'json' };
+import mediaXaiVideosCancel from './specs/xai-media/videos.cancel.json' with { type: 'json' };
+import mediaXaiDownload from './specs/xai-media/download.json' with { type: 'json' };
+import batchXaiCancel from './specs/batch/xai.cancel.json' with { type: 'json' };
+import batchOpenaiCreate from './specs/batch/openai.create.json' with { type: 'json' };
+import moderationOpenai from './specs/moderation/openai.json' with { type: 'json' };
+import transcriptionOpenai from './specs/transcription/openai.json' with { type: 'json' };
+
 const DELTAS = new Map<string, SpecDelta>(
   (
     [
@@ -131,6 +141,14 @@ const DELTAS = new Map<string, SpecDelta>(
       filesGoogleGetInfo,
       filesGoogleList,
       filesXaiUpload,
+      filesGoogleFinishUpload,
+      mediaXaiVideosStatus,
+      mediaXaiVideosCancel,
+      mediaXaiDownload,
+      batchXaiCancel,
+      batchOpenaiCreate,
+      moderationOpenai,
+      transcriptionOpenai,
     ] as unknown as SpecDelta[]
   ).map((s) => [s.id, s]),
 );

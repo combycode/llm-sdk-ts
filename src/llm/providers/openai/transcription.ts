@@ -20,7 +20,13 @@ import type {
   TranscriptSegment,
   TranscriptWord,
 } from '../../types/audio';
-import type { EngineFetch } from '../../../network/types';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { MultipartField } from '../../../wire/interpreter';
+import { toFormData } from '../../wire-multipart';
+import type { Registry } from '../../../wire/interpreter';
+import { serviceSpec } from '../../../wire/service-specs';
+import { makeRegistry } from '../../wire-transforms';
+import type { EngineFetch, HttpRequest } from '../../../network/types';
 
 export interface OpenAITranscriptionAdapterConfig {
   apiKey: string;
@@ -66,20 +72,47 @@ export class OpenAITranscriptionAdapter {
     this.baseURL = config.baseURL ?? 'https://api.openai.com';
   }
 
-  async transcribe(
-    req: TranscriptionRequest,
-    fetch: EngineFetch,
-  ): Promise<OpenAITranscriptionResult> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1/audio/transcriptions`,
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.apiKey}` },
-      body: buildForm(req),
+  /** Named code these specs need. */
+  private readonly wireRegistry: Registry = makeRegistry({});
+
+  /** The multipart spec names the FIELDS; the audio bytes come from the request.
+   *  `wordTimestamps` with `diarization` is rejected before this point: they select
+   *  different response formats and no model serves both. */
+  buildTranscribeRequest(req: TranscriptionRequest): HttpRequest {
+    if (req.wordTimestamps && req.diarization) {
+      throw new Error(
+        'transcribe: wordTimestamps and diarization cannot be combined \u2014 they select different ' +
+          'OpenAI response formats (verbose_json vs diarized_json), and no model serves both.',
+      );
+    }
+    const built = buildFromSpec(
+      serviceSpec('openai/transcriptions'),
+      req as never,
+      this.wireRegistry,
+      'openai',
+      undefined,
+      { baseURL: this.baseURL, apiKey: this.apiKey },
+    ) as unknown as Record<string, unknown>;
+    const { multipart, body, ...rest } = built;
+    return {
+      ...rest,
+      body: toFormData(multipart as MultipartField[], {
+        data: req.bytes,
+        filename: filenameFor(req.mimeType),
+        mimeType: req.mimeType,
+      }),
       rawBody: true,
       provider: 'openai',
       model: req.model,
       responseType: 'json',
-    });
+    } as HttpRequest;
+  }
+
+  async transcribe(
+    req: TranscriptionRequest,
+    fetch: EngineFetch,
+  ): Promise<OpenAITranscriptionResult> {
+    const res = await fetch(this.buildTranscribeRequest(req));
     if (res.status >= 400) {
       throw new Error(`OpenAI transcription failed (${res.status}): ${JSON.stringify(res.body)}`);
     }
@@ -89,7 +122,7 @@ export class OpenAITranscriptionAdapter {
 
 /** Multipart body. Arrays repeat the key with a `[]` suffix — the scalar spelling
  *  (`languages=en`) is accepted and then silently ignored, so it must not be used. */
-function buildForm(req: TranscriptionRequest): FormData {
+function _buildForm(req: TranscriptionRequest): FormData {
   if (req.wordTimestamps && req.diarization) {
     throw new Error(
       'transcribe: wordTimestamps and diarization cannot be combined — they select different ' +

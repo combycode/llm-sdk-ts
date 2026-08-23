@@ -56,10 +56,6 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
     };
   }
 
-  private authHeaders(): Record<string, string> {
-    return { authorization: `Bearer ${this.apiKey}`, 'content-type': 'application/json' };
-  }
-
   /** Named code the specs cannot express as data — image-source normalisation. */
   private readonly wireRegistry: Registry = makeRegistry({ openaiResponses: this });
 
@@ -82,7 +78,14 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
       undefined,
       { baseURL: this.baseURL, apiKey: this.apiKey },
     );
-    return { ...(built as object), provider: 'openai', model, responseType } as HttpRequest;
+    const { noBody, body, ...rest } = built as unknown as Record<string, unknown>;
+    return {
+      ...rest,
+      ...(noBody ? {} : { body }),
+      provider: 'openai',
+      model,
+      responseType,
+    } as HttpRequest;
   }
 
   // ─── request builders ──────────────────────────────────────────────────
@@ -130,6 +133,16 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
   /** Sora video submission. */
   buildVideoRequest(req: VideoGenRequest, model = req.model ?? 'sora-2'): HttpRequest {
     return this.fromSpec('openai/videos', req, model, 'json');
+  }
+
+  /** Poll a Sora job. */
+  buildVideoStatusRequest(videoId: string): HttpRequest {
+    // Routed under '' as it always was: the poll is not billed to a model.
+    return this.fromSpec('openai/videos.status', { videoId }, '', 'json');
+  }
+  /** Download the finished video: bytes, hence arraybuffer. */
+  buildVideoContentRequest(videoId: string): HttpRequest {
+    return this.fromSpec('openai/videos.content', { videoId }, '', 'arraybuffer');
   }
 
   async generateImage(req: ImageGenRequest, fetch: EngineFetch): Promise<RawMediaResult[]> {
@@ -185,15 +198,7 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
   }
 
   async getVideoStatus(videoId: string, fetch: EngineFetch): Promise<VideoStatus> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1/videos/${videoId}`,
-      method: 'GET',
-      headers: this.authHeaders(),
-      body: undefined,
-      provider: 'openai',
-      model: '',
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildVideoStatusRequest(videoId));
     if (res.status >= 400) return { status: 'failed', error: `HTTP ${res.status}` };
 
     const data = res.body as Record<string, unknown>;
@@ -208,15 +213,7 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
   }
 
   async downloadVideo(videoId: string, fetch: EngineFetch): Promise<RawMediaResult> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1/videos/${videoId}/content`,
-      method: 'GET',
-      headers: { authorization: `Bearer ${this.apiKey}` },
-      body: undefined,
-      provider: 'openai',
-      model: '',
-      responseType: 'arraybuffer',
-    });
+    const res = await fetch(this.buildVideoContentRequest(videoId));
     if (res.status >= 400) throw new Error(`OpenAI Sora download failed: HTTP ${res.status}`);
     return { data: res.body as Uint8Array, mimeType: 'video/mp4' };
   }

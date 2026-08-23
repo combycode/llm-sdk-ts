@@ -282,6 +282,6 @@ describe('the shipped spec set is intact', () => {
   });
 
   it('ships the whole set, so a dropped file is a failure not a silent gap', () => {
-    expect(WIRE_SPECS.size).toBe(74);
+    expect(WIRE_SPECS.size).toBe(87);
   });
 });

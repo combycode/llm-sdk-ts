@@ -34,6 +34,7 @@ import spec_google_batch_getStatus from './specs/batch/google.getStatus.json';
 import spec_google_batch_submit from './specs/batch/google.submit.json';
 import spec_google_embeddings from './specs/embeddings/google.json';
 import spec_google_files_delete from './specs/files/google.delete.json';
+import spec_google_files_finishUpload from './specs/files/google.finishUpload.json';
 import spec_google_files_getInfo from './specs/files/google.getInfo.json';
 import spec_google_files_list from './specs/files/google.list.json';
 import spec_google_files_startUpload from './specs/files/google.startUpload.json';
@@ -44,13 +45,17 @@ import spec_google_generate_2_5 from './specs/google-chain/generate@2.5.json';
 import spec_google_generate_3 from './specs/google-chain/generate@3.json';
 import spec_google_imagen_predict from './specs/google-media/imagen.json';
 import spec_google_interactions from './specs/google-interactions.json';
+import spec_google_media_download from './specs/google-media/download.json';
 import spec_google_media_generateContent from './specs/google-media/generateContent.base.json';
+import spec_google_media_operation_cancel from './specs/google-media/operation.cancel.json';
+import spec_google_media_operation_status from './specs/google-media/operation.status.json';
 import spec_google_media_predict from './specs/google-media/predict.base.json';
 import spec_google_realtime from './specs/realtime/google.json';
 import spec_google_veo_predictLongRunning from './specs/google-media/veo.json';
 import spec_openai_audio_speech from './specs/openai-media/audio.speech.json';
 import spec_openai_batch_base from './specs/batch/openai.base.json';
 import spec_openai_batch_cancel from './specs/batch/openai.cancel.json';
+import spec_openai_batch_create from './specs/batch/openai.create.json';
 import spec_openai_batch_getResults from './specs/batch/openai.getResults.json';
 import spec_openai_batch_getStatus from './specs/batch/openai.getStatus.json';
 import spec_openai_batch_uploadJsonl from './specs/batch/openai.uploadJsonl.json';
@@ -66,9 +71,13 @@ import spec_openai_images_generations from './specs/openai-media/images.generati
 import spec_openai_images_generations_dall_e from './specs/openai-media/images.generations.dalle.json';
 import spec_openai_media_base from './specs/openai-media/media.base.json';
 import spec_openai_media_images from './specs/openai-media/images.base.json';
+import spec_openai_moderations from './specs/moderation/openai.json';
 import spec_openai_realtime from './specs/realtime/openai.json';
 import spec_openai_responses from './specs/openai-responses.json';
+import spec_openai_transcriptions from './specs/transcription/openai.json';
 import spec_openai_videos from './specs/openai-media/videos.json';
+import spec_openai_videos_content from './specs/openai-media/videos.content.json';
+import spec_openai_videos_status from './specs/openai-media/videos.status.json';
 import spec_openrouter_embeddings from './specs/embeddings/openrouter.json';
 import spec_openrouter_media_audio from './specs/openrouter-media/audio.json';
 import spec_openrouter_media_base from './specs/openrouter-media/base.json';
@@ -76,6 +85,7 @@ import spec_openrouter_media_image from './specs/openrouter-media/image.json';
 import spec_openrouter_media_imageEdit from './specs/openrouter-media/image.edit.json';
 import spec_xai_batch_addRequests from './specs/batch/xai.addRequests.json';
 import spec_xai_batch_base from './specs/batch/xai.base.json';
+import spec_xai_batch_cancel from './specs/batch/xai.cancel.json';
 import spec_xai_batch_create from './specs/batch/xai.create.json';
 import spec_xai_batch_getResults from './specs/batch/xai.getResults.json';
 import spec_xai_batch_getStatus from './specs/batch/xai.getStatus.json';
@@ -84,10 +94,13 @@ import spec_xai_images_base from './specs/xai-media/images.base.json';
 import spec_xai_images_edits from './specs/xai-media/images.edits.json';
 import spec_xai_images_generations from './specs/xai-media/images.generations.json';
 import spec_xai_media_base from './specs/xai-media/base.json';
+import spec_xai_media_download from './specs/xai-media/download.json';
 import spec_xai_tts from './specs/xai-media/tts.json';
+import spec_xai_videos_cancel from './specs/xai-media/videos.cancel.json';
 import spec_xai_videos_edits from './specs/xai-media/videos.edits.json';
 import spec_xai_videos_extensions from './specs/xai-media/videos.extensions.json';
 import spec_xai_videos_generations from './specs/xai-media/videos.generations.json';
+import spec_xai_videos_status from './specs/xai-media/videos.status.json';
 
 /** All shipped specs, keyed by `provider/api@version` id. */
 export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDelta>([
@@ -111,6 +124,7 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['google/batch.submit', spec_google_batch_submit as unknown as SpecDelta],
   ['google/embeddings', spec_google_embeddings as unknown as SpecDelta],
   ['google/files.delete', spec_google_files_delete as unknown as SpecDelta],
+  ['google/files.finishUpload', spec_google_files_finishUpload as unknown as SpecDelta],
   ['google/files.getInfo', spec_google_files_getInfo as unknown as SpecDelta],
   ['google/files.list', spec_google_files_list as unknown as SpecDelta],
   ['google/files.startUpload', spec_google_files_startUpload as unknown as SpecDelta],
@@ -121,13 +135,17 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['google/generate@3', spec_google_generate_3 as unknown as SpecDelta],
   ['google/imagen@predict', spec_google_imagen_predict as unknown as SpecDelta],
   ['google/interactions', spec_google_interactions as unknown as SpecDelta],
+  ['google/media.download', spec_google_media_download as unknown as SpecDelta],
   ['google/media.generateContent', spec_google_media_generateContent as unknown as SpecDelta],
+  ['google/media.operation.cancel', spec_google_media_operation_cancel as unknown as SpecDelta],
+  ['google/media.operation.status', spec_google_media_operation_status as unknown as SpecDelta],
   ['google/media.predict', spec_google_media_predict as unknown as SpecDelta],
   ['google/realtime', spec_google_realtime as unknown as SpecDelta],
   ['google/veo@predictLongRunning', spec_google_veo_predictLongRunning as unknown as SpecDelta],
   ['openai/audio.speech', spec_openai_audio_speech as unknown as SpecDelta],
   ['openai/batch.base', spec_openai_batch_base as unknown as SpecDelta],
   ['openai/batch.cancel', spec_openai_batch_cancel as unknown as SpecDelta],
+  ['openai/batch.create', spec_openai_batch_create as unknown as SpecDelta],
   ['openai/batch.getResults', spec_openai_batch_getResults as unknown as SpecDelta],
   ['openai/batch.getStatus', spec_openai_batch_getStatus as unknown as SpecDelta],
   ['openai/batch.uploadJsonl', spec_openai_batch_uploadJsonl as unknown as SpecDelta],
@@ -143,9 +161,13 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['openai/images.generations@dall-e', spec_openai_images_generations_dall_e as unknown as SpecDelta],
   ['openai/media.base', spec_openai_media_base as unknown as SpecDelta],
   ['openai/media.images', spec_openai_media_images as unknown as SpecDelta],
+  ['openai/moderations', spec_openai_moderations as unknown as SpecDelta],
   ['openai/realtime', spec_openai_realtime as unknown as SpecDelta],
   ['openai/responses', spec_openai_responses as unknown as SpecDelta],
+  ['openai/transcriptions', spec_openai_transcriptions as unknown as SpecDelta],
   ['openai/videos', spec_openai_videos as unknown as SpecDelta],
+  ['openai/videos.content', spec_openai_videos_content as unknown as SpecDelta],
+  ['openai/videos.status', spec_openai_videos_status as unknown as SpecDelta],
   ['openrouter/embeddings', spec_openrouter_embeddings as unknown as SpecDelta],
   ['openrouter/media.audio', spec_openrouter_media_audio as unknown as SpecDelta],
   ['openrouter/media.base', spec_openrouter_media_base as unknown as SpecDelta],
@@ -153,6 +175,7 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['openrouter/media.imageEdit', spec_openrouter_media_imageEdit as unknown as SpecDelta],
   ['xai/batch.addRequests', spec_xai_batch_addRequests as unknown as SpecDelta],
   ['xai/batch.base', spec_xai_batch_base as unknown as SpecDelta],
+  ['xai/batch.cancel', spec_xai_batch_cancel as unknown as SpecDelta],
   ['xai/batch.create', spec_xai_batch_create as unknown as SpecDelta],
   ['xai/batch.getResults', spec_xai_batch_getResults as unknown as SpecDelta],
   ['xai/batch.getStatus', spec_xai_batch_getStatus as unknown as SpecDelta],
@@ -161,10 +184,13 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['xai/images.edits', spec_xai_images_edits as unknown as SpecDelta],
   ['xai/images.generations', spec_xai_images_generations as unknown as SpecDelta],
   ['xai/media.base', spec_xai_media_base as unknown as SpecDelta],
+  ['xai/media.download', spec_xai_media_download as unknown as SpecDelta],
   ['xai/tts', spec_xai_tts as unknown as SpecDelta],
+  ['xai/videos.cancel', spec_xai_videos_cancel as unknown as SpecDelta],
   ['xai/videos.edits', spec_xai_videos_edits as unknown as SpecDelta],
   ['xai/videos.extensions', spec_xai_videos_extensions as unknown as SpecDelta],
   ['xai/videos.generations', spec_xai_videos_generations as unknown as SpecDelta],
+  ['xai/videos.status', spec_xai_videos_status as unknown as SpecDelta],
 ]);
 
 /** Resolve a spec id to its flattened form, walking `extends`. */

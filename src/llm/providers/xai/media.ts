@@ -65,8 +65,30 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
       'xai',
       undefined,
       { baseURL: this.baseURL, apiKey: this.apiKey },
-    );
-    return { ...(built as object), provider: 'xai', model, responseType } as HttpRequest;
+    ) as unknown as Record<string, unknown>;
+    const { noBody, body, ...rest } = built;
+    return {
+      ...rest,
+      ...(noBody ? {} : { body }),
+      provider: 'xai',
+      model,
+      responseType,
+    } as HttpRequest;
+  }
+
+  /** Poll a video job. All three xAI video endpoints return a request_id that is
+   *  polled here. */
+  buildVideoStatusRequest(operationId: string): HttpRequest {
+    return this.fromSpec('xai/videos.status', { operationId }, '');
+  }
+  buildVideoCancelRequest(operationId: string): HttpRequest {
+    return this.fromSpec('xai/videos.cancel', { operationId }, '');
+  }
+  /** Fetch bytes from a URL xAI put in its own response - a generated image or a
+   *  finished video. The URL is an input because xAI chose it; the auth headers
+   *  are still ours, which is why it is a spec and not a bare fetch. */
+  buildDownloadRequest(downloadUrl: string, model = ''): HttpRequest {
+    return this.fromSpec('xai/media.download', { downloadUrl }, model, 'arraybuffer');
   }
 
   /** Text-to-image. */
@@ -132,15 +154,7 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
           revisedPrompt: item.revised_prompt as string | undefined,
         });
       } else if (item.url) {
-        const imgRes = await fetch({
-          url: item.url as string,
-          method: 'GET',
-          headers: {},
-          body: undefined,
-          provider: 'xai',
-          model,
-          responseType: 'arraybuffer',
-        });
+        const imgRes = await fetch(this.buildDownloadRequest(item.url as string, model));
         results.push({
           data: imgRes.body as Uint8Array,
           mimeType: imgRes.headers['content-type'] ?? 'image/png',
@@ -177,15 +191,7 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
   }
 
   async getVideoStatus(operationId: string, fetch: EngineFetch): Promise<VideoStatus> {
-    const res = await fetch({
-      url: `${this.baseURL}/v1/videos/${operationId}`,
-      method: 'GET',
-      headers: { authorization: `Bearer ${this.apiKey}` },
-      body: undefined,
-      provider: 'xai',
-      model: '',
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildVideoStatusRequest(operationId));
     if (res.status >= 400) return { status: 'failed', error: `HTTP ${res.status}` };
 
     const data = res.body as Record<string, unknown>;
@@ -206,15 +212,7 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
   }
 
   async downloadVideo(operationId: string, fetch: EngineFetch): Promise<RawMediaResult> {
-    const statusRes = await fetch({
-      url: `${this.baseURL}/v1/videos/${operationId}`,
-      method: 'GET',
-      headers: { authorization: `Bearer ${this.apiKey}` },
-      body: undefined,
-      provider: 'xai',
-      model: '',
-      responseType: 'json',
-    });
+    const statusRes = await fetch(this.buildVideoStatusRequest(operationId));
     if (statusRes.status >= 400) {
       throw new Error(`xAI video download failed: HTTP ${statusRes.status}`);
     }
@@ -240,28 +238,12 @@ export class XAIMediaAdapter implements MediaProviderAdapter {
     // and it can be re-submitted as a `sourceVideo`. Node/Bun fetch the bytes.
     if (isBrowser()) return base;
 
-    const videoRes = await fetch({
-      url: downloadUrl,
-      method: 'GET',
-      headers: {},
-      body: undefined,
-      provider: 'xai',
-      model: '',
-      responseType: 'arraybuffer',
-    });
+    const videoRes = await fetch(this.buildDownloadRequest(downloadUrl));
 
     return { ...base, data: videoRes.body as Uint8Array };
   }
 
   async cancelVideo(operationId: string, fetch: EngineFetch): Promise<void> {
-    await fetch({
-      url: `${this.baseURL}/v1/videos/${operationId}/cancel`,
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.apiKey}` },
-      body: {},
-      provider: 'xai',
-      model: '',
-      responseType: 'json',
-    });
+    await fetch(this.buildVideoCancelRequest(operationId));
   }
 }

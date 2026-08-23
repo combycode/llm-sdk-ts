@@ -93,7 +93,11 @@ export interface WireSpec {
     /** `json` (default), `multipart`, or `none` for GET/DELETE with no body.
      *  Multipart matters: a FormData body JSON-stringifies to `{}`, so comparing
      *  it as JSON would pass vacuously no matter what the fields are. */
-    bodyKind?: 'json' | 'multipart' | 'none';
+    /** `json` (default), `multipart`, `none` for a bodyless GET/DELETE, or
+     *  `raw` when the body is caller-supplied BYTES the spec cannot describe —
+     *  a file being streamed to an upload session. The spec still owns the URL,
+     *  method and headers; only the payload comes from outside. */
+    bodyKind?: 'json' | 'multipart' | 'none' | 'raw';
     headers?: { name: string; value: Json; when?: Cond }[];
   };
   /** Model-id → variant flags. The migration target is a catalog pin; the
@@ -108,7 +112,17 @@ export interface WireSpec {
   fields?: FieldRule[];
   blocks?: BlockRule[];
   /** Multipart form fields, in order, when `envelope.bodyKind` is 'multipart'. */
-  multipart?: { name: string; value?: Json; file?: boolean; when?: Cond }[];
+  multipart?: {
+    name: string;
+    value?: Json;
+    file?: boolean;
+    when?: Cond;
+    /** Emit ONE field per array element instead of a single array-valued
+     *  field. Real forms use repeated keys for lists — OpenAI's transcription
+     *  takes `languages[]` once per language — and a single field holding an
+     *  array is a different request the server will not accept. */
+    repeat?: boolean;
+  }[];
   /** Non-HTTP surfaces. A realtime session is not one request: it is a
    *  connection descriptor plus a sequence of outbound frames, so those are
    *  named operations rather than a single envelope+body. */
@@ -388,6 +402,8 @@ export interface BuiltRequest {
   path?: string;
   url?: string;
   method?: string;
+  /** The body is caller-supplied bytes (bodyKind 'raw'). */
+  rawBody?: boolean;
   /** Present instead of a JSON body when bodyKind is 'multipart'. */
   multipart?: MultipartField[];
   /** True when the spec declares the request carries no body at all. */
@@ -481,7 +497,13 @@ export function buildFromSpec(
         fields.push({ name: f.name, kind: 'file' });
       } else {
         const v = evalTemplate(f.value, ctx, reg);
-        if (v !== OMIT && v !== undefined) fields.push({ name: f.name, kind: 'value', value: v });
+        if (v === OMIT || v === undefined) {
+          // nothing to append
+        } else if (f.repeat && Array.isArray(v)) {
+          for (const item of v) fields.push({ name: f.name, kind: 'value', value: item as Json });
+        } else {
+          fields.push({ name: f.name, kind: 'value', value: v });
+        }
       }
       onUse?.('block', `multipart:${f.name}`);
     }
@@ -517,6 +539,8 @@ export function buildFromSpec(
   const out: BuiltRequest = { body: ctx.body };
   if (ctx.multipart) out.multipart = ctx.multipart;
   if (spec.envelope?.bodyKind === 'none') out.noBody = true;
+  // `raw`: the caller attaches the bytes; say so rather than emitting an empty body.
+  if (spec.envelope?.bodyKind === 'raw') out.rawBody = true;
   const headers: Record<string, string> = {};
   for (const h of spec.envelope?.headers ?? []) {
     if (!evalCond(h.when, ctx, reg)) continue;

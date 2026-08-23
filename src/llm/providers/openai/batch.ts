@@ -2,7 +2,8 @@
  *  All HTTP flows through the injected EngineFetch (NetworkEngine queue). */
 
 import { buildFromSpec } from '../../../wire/interpreter';
-import type { Registry } from '../../../wire/interpreter';
+import type { MultipartField, Registry } from '../../../wire/interpreter';
+import { toFormData } from '../../wire-multipart';
 import { serviceSpec } from '../../../wire/service-specs';
 import { makeRegistry } from '../../wire-transforms';
 import type { EngineFetch, HttpRequest } from '../../../network/types';
@@ -26,10 +27,6 @@ export class OpenAIBatchAdapter implements BatchProviderAdapter {
   constructor(config: OpenAIBatchAdapterConfig) {
     this.apiKey = config.apiKey;
     this.baseURL = config.baseURL ?? 'https://api.openai.com';
-  }
-
-  private bearer(): Record<string, string> {
-    return { authorization: `Bearer ${this.apiKey}` };
   }
 
   /** Batch rules need no adapter handles: the request list is mapped by the spec. */
@@ -62,6 +59,37 @@ export class OpenAIBatchAdapter implements BatchProviderAdapter {
     } as HttpRequest;
   }
 
+  /** The FIRST call of submit: the requests go up as a JSONL file. The spec names
+   *  the multipart fields; the bytes are the serialised batch. */
+  buildUploadJsonlRequest(jsonl: string): HttpRequest {
+    const built = buildFromSpec(
+      serviceSpec('openai/batch.uploadJsonl'),
+      {} as never,
+      this.wireRegistry,
+      'openai',
+      undefined,
+      { baseURL: this.baseURL, apiKey: this.apiKey },
+    ) as unknown as Record<string, unknown>;
+    const { multipart, body, ...rest } = built;
+    return {
+      ...rest,
+      body: toFormData(multipart as MultipartField[], {
+        data: new TextEncoder().encode(jsonl),
+        filename: 'batch_input.jsonl',
+        mimeType: 'application/jsonl',
+      }),
+      rawBody: true,
+      provider: 'openai',
+      model: 'batch',
+      responseType: 'json',
+    } as HttpRequest;
+  }
+
+  /** The SECOND call of submit: the JSONL is uploaded first, then the batch is
+   *  created referencing that file id. */
+  buildCreateRequest(fileId: string): HttpRequest {
+    return this.fromSpec('openai/batch.create', { fileId });
+  }
   buildStatusRequest(batchId: string): HttpRequest {
     return this.fromSpec('openai/batch.getStatus', { batchId });
   }
@@ -86,37 +114,12 @@ export class OpenAIBatchAdapter implements BatchProviderAdapter {
       )
       .join('\n');
 
-    const form = new FormData();
-    form.append('file', new Blob([jsonl], { type: 'application/jsonl' }), 'batch_input.jsonl');
-    form.append('purpose', 'batch');
-
-    const uploadRes = await fetch({
-      url: `${this.baseURL}/v1/files`,
-      method: 'POST',
-      headers: this.bearer(),
-      body: form,
-      rawBody: true,
-      provider: 'openai',
-      model: 'batch',
-      responseType: 'json',
-    });
+    const uploadRes = await fetch(this.buildUploadJsonlRequest(jsonl));
     if (uploadRes.status >= 400)
       throw new Error(`OpenAI file upload failed: ${JSON.stringify(uploadRes.body)}`);
     const file = (uploadRes.body as Record<string, unknown>) ?? {};
 
-    const batchRes = await fetch({
-      url: `${this.baseURL}/v1/batches`,
-      method: 'POST',
-      headers: { ...this.bearer(), 'content-type': 'application/json' },
-      body: {
-        input_file_id: file.id,
-        endpoint: '/v1/responses',
-        completion_window: '24h',
-      },
-      provider: 'openai',
-      model: 'batch',
-      responseType: 'json',
-    });
+    const batchRes = await fetch(this.buildCreateRequest(file.id as string));
     if (batchRes.status >= 400)
       throw new Error(`OpenAI batch create failed: ${JSON.stringify(batchRes.body)}`);
     const batch = (batchRes.body as Record<string, unknown>) ?? {};

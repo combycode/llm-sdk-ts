@@ -28,6 +28,11 @@ import googleGeminiImageEdit from './specs/google-media/gemini-image-edit.json' 
 import googleGeminiTts from './specs/google-media/gemini-tts.json' with { type: 'json' };
 import googleImagen from './specs/google-media/imagen.json' with { type: 'json' };
 import googleVeo from './specs/google-media/veo.json' with { type: 'json' };
+import openaiVideosStatus from './specs/openai-media/videos.status.json' with { type: 'json' };
+import openaiVideosContent from './specs/openai-media/videos.content.json' with { type: 'json' };
+import googleOpStatus from './specs/google-media/operation.status.json' with { type: 'json' };
+import googleOpCancel from './specs/google-media/operation.cancel.json' with { type: 'json' };
+import googleMediaDownload from './specs/google-media/download.json' with { type: 'json' };
 
 const DELTAS = new Map<string, SpecDelta>(
   (
@@ -46,6 +51,11 @@ const DELTAS = new Map<string, SpecDelta>(
       googleGeminiTts,
       googleImagen,
       googleVeo,
+      openaiVideosStatus,
+      openaiVideosContent,
+      googleOpStatus,
+      googleOpCancel,
+      googleMediaDownload,
     ] as unknown as SpecDelta[]
   ).map((s) => [s.id, s]),
 );

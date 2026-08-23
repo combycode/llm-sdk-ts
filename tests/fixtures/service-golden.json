@@ -1,8 +1,8 @@
 {
   "_doc": "What the embeddings and seamless-media adapters sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed.",
-  "frozenAtCommit": "5f7f6ab05cf044072327f75033888bc250f64ac3",
+  "frozenAtCommit": "e0493a270e74e71812fc74db1528d2868e53cd80",
   "counts": {
-    "cases": 66
+    "cases": 84
   },
   "index": {
     "embeddings/openai/single": {
@@ -1115,6 +1115,321 @@
       "rawBody": true,
       "responseType": "json",
       "url": "https://api.x.ai/v1/files"
+    },
+    "lifecycle/openai/videoStatus": {
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "GET",
+      "model": "",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/videos/video_123"
+    },
+    "lifecycle/openai/videoDownload": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "GET",
+      "model": "",
+      "provider": "openai",
+      "responseType": "arraybuffer",
+      "url": "https://api.openai.com/v1/videos/video_123/content"
+    },
+    "lifecycle/google/videoStatus": {
+      "headers": {
+        "x-goog-api-key": "k"
+      },
+      "method": "GET",
+      "model": "operations",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1/operations/op_1?key=k"
+    },
+    "lifecycle/google/videoDownload": {
+      "headers": {
+        "x-goog-api-key": "k"
+      },
+      "method": "GET",
+      "model": "operations",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1/operations/op_1?key=k"
+    },
+    "lifecycle/google/videoDownload.1": {
+      "headers": {
+        "x-goog-api-key": "k"
+      },
+      "method": "GET",
+      "model": "operations",
+      "provider": "google",
+      "responseType": "arraybuffer",
+      "url": "https://generativelanguage.googleapis.com/v/1.mp4?key=k"
+    },
+    "lifecycle/google/videoCancel": {
+      "body": {},
+      "headers": {
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "operations",
+      "provider": "google",
+      "responseType": "json",
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1/operations/op_1:cancel?key=k"
+    },
+    "lifecycle/xai/videoStatus": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "GET",
+      "model": "",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/videos/req_1"
+    },
+    "lifecycle/xai/videoDownload": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "GET",
+      "model": "",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/videos/req_1"
+    },
+    "lifecycle/xai/videoDownload.1": {
+      "headers": {},
+      "method": "GET",
+      "model": "",
+      "provider": "xai",
+      "responseType": "arraybuffer",
+      "url": "https://cdn.x.ai/v/1.mp4"
+    },
+    "lifecycle/xai/videoCancel": {
+      "body": {},
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "POST",
+      "model": "",
+      "provider": "xai",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/videos/req_1/cancel"
+    },
+    "moderation/string": {
+      "body": {
+        "input": "hello",
+        "model": "omni-moderation-latest"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "omni-moderation-latest",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/moderations"
+    },
+    "moderation/array": {
+      "body": {
+        "input": [
+          "a",
+          "b"
+        ],
+        "model": "omni-moderation-latest"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "omni-moderation-latest",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/moderations"
+    },
+    "moderation/parts": {
+      "body": {
+        "input": [
+          {
+            "text": "hi",
+            "type": "text"
+          }
+        ],
+        "model": "omni-moderation-latest"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "model": "omni-moderation-latest",
+      "provider": "openai",
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/moderations"
+    },
+    "transcription/minimal": {
+      "body": {
+        "__formData": [
+          {
+            "filename": "audio.wav",
+            "name": "file",
+            "size": 3,
+            "type": "audio/wav"
+          },
+          {
+            "name": "model",
+            "value": "gpt-transcribe"
+          }
+        ]
+      },
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "POST",
+      "model": "gpt-transcribe",
+      "provider": "openai",
+      "rawBody": true,
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/audio/transcriptions"
+    },
+    "transcription/language": {
+      "body": {
+        "__formData": [
+          {
+            "filename": "audio.wav",
+            "name": "file",
+            "size": 3,
+            "type": "audio/wav"
+          },
+          {
+            "name": "model",
+            "value": "gpt-transcribe"
+          },
+          {
+            "name": "language",
+            "value": "en"
+          }
+        ]
+      },
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "POST",
+      "model": "gpt-transcribe",
+      "provider": "openai",
+      "rawBody": true,
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/audio/transcriptions"
+    },
+    "transcription/lists": {
+      "body": {
+        "__formData": [
+          {
+            "filename": "audio.mp3",
+            "name": "file",
+            "size": 3,
+            "type": "audio/mpeg"
+          },
+          {
+            "name": "model",
+            "value": "gpt-transcribe"
+          },
+          {
+            "name": "languages[]",
+            "value": "en"
+          },
+          {
+            "name": "languages[]",
+            "value": "fr"
+          },
+          {
+            "name": "keywords[]",
+            "value": "orxa"
+          },
+          {
+            "name": "keywords[]",
+            "value": "combycode"
+          }
+        ]
+      },
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "POST",
+      "model": "gpt-transcribe",
+      "provider": "openai",
+      "rawBody": true,
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/audio/transcriptions"
+    },
+    "transcription/wordTimestamps": {
+      "body": {
+        "__formData": [
+          {
+            "filename": "audio.wav",
+            "name": "file",
+            "size": 3,
+            "type": "audio/wav"
+          },
+          {
+            "name": "model",
+            "value": "gpt-transcribe"
+          },
+          {
+            "name": "response_format",
+            "value": "verbose_json"
+          },
+          {
+            "name": "timestamp_granularities[]",
+            "value": "segment"
+          },
+          {
+            "name": "timestamp_granularities[]",
+            "value": "word"
+          }
+        ]
+      },
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "POST",
+      "model": "gpt-transcribe",
+      "provider": "openai",
+      "rawBody": true,
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/audio/transcriptions"
+    },
+    "transcription/diarization": {
+      "body": {
+        "__formData": [
+          {
+            "filename": "audio.wav",
+            "name": "file",
+            "size": 3,
+            "type": "audio/wav"
+          },
+          {
+            "name": "model",
+            "value": "gpt-transcribe"
+          },
+          {
+            "name": "response_format",
+            "value": "diarized_json"
+          }
+        ]
+      },
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "POST",
+      "model": "gpt-transcribe",
+      "provider": "openai",
+      "rawBody": true,
+      "responseType": "json",
+      "url": "https://api.openai.com/v1/audio/transcriptions"
     }
   }
 }

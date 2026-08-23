@@ -3,7 +3,11 @@
  *  https://platform.openai.com/docs/api-reference/moderations/create
  *  All HTTP flows through the injected EngineFetch. */
 
-import type { EngineFetch } from '../../../network/types';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { serviceSpec } from '../../../wire/service-specs';
+import { makeRegistry } from '../../wire-transforms';
+import type { EngineFetch, HttpRequest } from '../../../network/types';
 import type {
   ModerationCategories,
   ModerationContentPart,
@@ -31,20 +35,46 @@ export class OpenAIModerationAdapter {
     this.baseURL = config.baseURL ?? OPENAI_MODERATION_BASE_URL;
   }
 
+  /** Named code these specs need. */
+  private readonly wireRegistry: Registry = makeRegistry({});
+
+  /** Build one request from its spec, then add the engine metadata.
+   *
+   *  `bodyKind: none` arrives as `noBody` and `raw` as `rawBody`; the engine wants
+   *  the body field absent in the first case and the caller's bytes in the second. */
+  private fromSpec(
+    specId: string,
+    input: object,
+    model: string,
+    responseType: 'json' | 'text' | 'arraybuffer' = 'json',
+    rawBytes?: unknown,
+  ): HttpRequest {
+    const built = buildFromSpec(serviceSpec(specId), input as never, this.wireRegistry, 'openai', undefined, { baseURL: this.baseURL, apiKey: this.apiKey }) as unknown as Record<string, unknown>;
+    const { noBody, rawBody, body, ...rest } = built;
+    return {
+      ...rest,
+      ...(rawBody ? { body: rawBytes, rawBody: true } : noBody ? {} : { body }),
+      provider: 'openai',
+      model,
+      responseType,
+    } as HttpRequest;
+  }
+
+  /** Report-only classification. `input` reaches the wire untouched: string,
+   *  array of strings, or content parts are all accepted. */
+  buildModerateRequest(
+    input: string | string[] | ModerationContentPart | ModerationContentPart[],
+    model: string,
+  ): HttpRequest {
+    return this.fromSpec('openai/moderations', { model, input }, model);
+  }
+
   async moderate(
     input: string | string[] | ModerationContentPart | ModerationContentPart[],
     model: string,
     fetch: EngineFetch,
   ): Promise<ModerationResult[]> {
-    const res = await fetch({
-      url: `${this.baseURL}${OPENAI_MODERATION_PATH}`,
-      method: 'POST',
-      headers: { authorization: `Bearer ${this.apiKey}`, 'content-type': 'application/json' },
-      body: { model, input },
-      provider: 'openai',
-      model,
-      responseType: 'json',
-    });
+    const res = await fetch(this.buildModerateRequest(input, model));
 
     if (res.status >= 400) {
       throw new Error(`OpenAI moderations failed (${res.status}): ${JSON.stringify(res.body)}`);

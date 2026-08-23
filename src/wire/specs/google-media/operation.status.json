@@ -1,0 +1,33 @@
+{
+  "id": "google/media.operation.status",
+  "provider": "google",
+  "api": "media",
+  "_note": "Veo returns a long-running operation; this polls it. `operationId` is the full resource name the submit call returned, so the path is just the version prefix plus that name.",
+  "envelope": {
+    "method": "GET",
+    "bodyKind": "none",
+    "url": {
+      "$join": [
+        {
+          "$config": "baseURL"
+        },
+        "/v1beta/",
+        {
+          "$": "operationId"
+        },
+        "?key=",
+        {
+          "$config": "apiKey"
+        }
+      ]
+    },
+    "headers": [
+      {
+        "name": "x-goog-api-key",
+        "value": {
+          "$config": "apiKey"
+        }
+      }
+    ]
+  }
+}

@@ -243,3 +243,86 @@ export const FILE_REMOTE_ID: Record<string, string> = {
   google: 'https://generativelanguage.googleapis.com/v1beta/files/abc',
   xai: 'file_abc',
 };
+
+// ── media lifecycle, moderation, transcription ───────────────────────────────
+//
+// The generation call is only half of a media job: the rest is polling the
+// operation, downloading the bytes, and cancelling. Those were the last requests
+// in the library with no spec, on the reasoning that a server-supplied URL cannot
+// be described — which was wrong. A URL that arrives at runtime is an INPUT, the
+// same as a batch id.
+export interface LifecycleCase {
+  provider: 'openai' | 'google' | 'xai';
+  op: 'videoStatus' | 'videoDownload' | 'videoCancel';
+}
+
+export const LIFECYCLE_CASES: LifecycleCase[] = [
+  { provider: 'openai', op: 'videoStatus' },
+  { provider: 'openai', op: 'videoDownload' },
+  { provider: 'google', op: 'videoStatus' },
+  { provider: 'google', op: 'videoDownload' },
+  { provider: 'google', op: 'videoCancel' },
+  { provider: 'xai', op: 'videoStatus' },
+  { provider: 'xai', op: 'videoDownload' },
+  { provider: 'xai', op: 'videoCancel' },
+];
+
+export const OPERATION_ID: Record<string, string> = {
+  openai: 'video_123',
+  google: 'models/veo-3.1/operations/op_1',
+  xai: 'req_1',
+};
+
+/** Moderation takes a string, an array, or content parts — all three reach the
+ *  wire untouched, so all three are frozen. */
+export const MODERATION_CASES: Array<{ name: string; input: unknown }> = [
+  { name: 'string', input: 'hello' },
+  { name: 'array', input: ['a', 'b'] },
+  { name: 'parts', input: [{ type: 'text', text: 'hi' }] },
+];
+
+/** Transcription's multipart is the richest in the library: repeated keys and two
+ *  mutually exclusive response formats. */
+export const TRANSCRIPTION_CASES: Array<{ name: string; req: Record<string, unknown> }> = [
+  {
+    name: 'minimal',
+    req: { model: 'gpt-transcribe', bytes: new Uint8Array([1, 2, 3]), mimeType: 'audio/wav' },
+  },
+  {
+    name: 'language',
+    req: {
+      model: 'gpt-transcribe',
+      bytes: new Uint8Array([1, 2, 3]),
+      mimeType: 'audio/wav',
+      language: 'en',
+    },
+  },
+  {
+    name: 'lists',
+    req: {
+      model: 'gpt-transcribe',
+      bytes: new Uint8Array([1, 2, 3]),
+      mimeType: 'audio/mpeg',
+      languages: ['en', 'fr'],
+      keywords: ['orxa', 'combycode'],
+    },
+  },
+  {
+    name: 'wordTimestamps',
+    req: {
+      model: 'gpt-transcribe',
+      bytes: new Uint8Array([1, 2, 3]),
+      mimeType: 'audio/wav',
+      wordTimestamps: true,
+    },
+  },
+  {
+    name: 'diarization',
+    req: {
+      model: 'gpt-transcribe',
+      bytes: new Uint8Array([1, 2, 3]),
+      mimeType: 'audio/wav',
+      diarization: true,
+    },
+  },
+];

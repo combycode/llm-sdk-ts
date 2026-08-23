@@ -86,6 +86,29 @@ export class GoogleFileAdapter implements FileProviderAdapter {
       byteLength,
     });
   }
+  /** Step TWO of the resumable upload. The URL came back in a response header, so
+   *  it is an INPUT to the spec rather than something the spec can build - the same
+   *  way batchId is. */
+  buildFinishUploadRequest(uploadUrl: string, file: FileAttachment, data: Uint8Array): HttpRequest {
+    const built = buildFromSpec(
+      serviceSpec('google/files.finishUpload'),
+      { uploadUrl, mimeType: file.mimeType } as never,
+      this.wireRegistry,
+      'google',
+      undefined,
+      { baseURL: this.baseURL, apiKey: this.apiKey },
+    ) as unknown as Record<string, unknown>;
+    const { rawBody, body, ...rest } = built;
+    return {
+      ...rest,
+      body: data,
+      rawBody: true,
+      provider: 'google',
+      model: 'files',
+      responseType: 'json',
+    } as HttpRequest;
+  }
+
   buildDeleteRequest(remoteId: string): HttpRequest {
     return this.fromSpec('google/files.delete', { name: googleFileName(remoteId) });
   }
@@ -112,20 +135,7 @@ export class GoogleFileAdapter implements FileProviderAdapter {
     const uploadUrl = header(startRes.headers ?? {}, 'x-goog-upload-url');
     if (!uploadUrl) throw new Error('No upload URL returned from Google');
 
-    const uploadRes = await fetch({
-      url: uploadUrl,
-      method: 'POST',
-      headers: {
-        'X-Goog-Upload-Command': 'upload, finalize',
-        'X-Goog-Upload-Offset': '0',
-        'Content-Type': file.mimeType,
-      },
-      body: data,
-      rawBody: true,
-      provider: 'google',
-      model: 'files',
-      responseType: 'json',
-    });
+    const uploadRes = await fetch(this.buildFinishUploadRequest(uploadUrl, file, data));
 
     if (uploadRes.status >= 400) {
       throw new Error(

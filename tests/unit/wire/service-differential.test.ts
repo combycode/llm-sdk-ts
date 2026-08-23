@@ -26,6 +26,10 @@ import { OpenAIFileAdapter } from '../../../src/llm/providers/openai/files';
 import { GoogleFileAdapter } from '../../../src/llm/providers/google/files';
 import { XAIFileAdapter } from '../../../src/llm/providers/xai/files';
 import { FileAttachment } from '../../../src/plugins/files/attachment';
+import { OpenAIMediaAdapter } from '../../../src/llm/providers/openai/media';
+import { GoogleMediaAdapter } from '../../../src/llm/providers/google/media';
+import { OpenAIModerationAdapter } from '../../../src/llm/providers/openai/moderations';
+import { OpenAITranscriptionAdapter } from '../../../src/llm/providers/openai/transcription';
 import {
   EMBED_CASES,
   OPENROUTER_MEDIA_CASES,
@@ -38,6 +42,10 @@ import {
   BATCH_ID,
   FILE_CASES,
   FILE_REMOTE_ID,
+  LIFECYCLE_CASES,
+  OPERATION_ID,
+  MODERATION_CASES,
+  TRANSCRIPTION_CASES,
 } from './service-corpus';
 import type {
   AudioGenRequest,
@@ -371,5 +379,94 @@ describe('files still send what was frozen', () => {
       });
     }
     expect({ compared: compared > 0, drift: drift.slice(0, 3) }).toEqual({ compared: true, drift: [] });
+  });
+});
+
+const LIFECYCLE_ADAPTERS: Record<string, Record<string, (...x: never[]) => Promise<unknown>>> = {
+  openai: new OpenAIMediaAdapter({ apiKey: K }) as unknown as Record<string, (...x: never[]) => Promise<unknown>>,
+  google: new GoogleMediaAdapter({ apiKey: K }) as unknown as Record<string, (...x: never[]) => Promise<unknown>>,
+  xai: xai as unknown as Record<string, (...x: never[]) => Promise<unknown>>,
+};
+const LIFECYCLE_RESPONSE = {
+  status: 'completed',
+  id: 'video_123',
+  video: { url: 'https://cdn.x.ai/v/1.mp4', duration: 5 },
+  response: {
+    generateVideoResponse: {
+      generatedSamples: [{ video: { uri: 'https://generativelanguage.googleapis.com/v/1.mp4' } }],
+    },
+  },
+  done: true,
+};
+const LIFECYCLE_METHOD: Record<string, string> = {
+  videoStatus: 'getVideoStatus',
+  videoDownload: 'downloadVideo',
+  videoCancel: 'cancelVideo',
+};
+
+describe('media lifecycle still sends what was frozen', () => {
+  it('poll, download and cancel across openai, google and xai', async () => {
+    const drift: string[] = [];
+    let compared = 0;
+    for (const c of LIFECYCLE_CASES) {
+      const a = LIFECYCLE_ADAPTERS[c.provider];
+      const seenAll: unknown[] = [];
+      const fetch = (async (r: unknown) => {
+        seenAll.push(r);
+        return { status: 200, headers: {}, body: LIFECYCLE_RESPONSE };
+      }) as never;
+      try {
+        await a[LIFECYCLE_METHOD[c.op]]?.(OPERATION_ID[c.provider] as never, fetch);
+      } catch {
+        /* the fake response may not parse; the requests are already captured */
+      }
+      if (!seenAll.length) {
+        drift.push(`lifecycle/${c.provider}/${c.op}: no request made`);
+        continue;
+      }
+      seenAll.forEach((r, i) => {
+        const key = `lifecycle/${c.provider}/${c.op}${i ? `.${i}` : ''}`;
+        compared++;
+        const now = onWire(r);
+        const was = onWire(index[key]);
+        if (now !== was) drift.push(`${key}:\n    frozen: ${was}\n    now:    ${now}`);
+      });
+    }
+    expect({ compared: compared > 0, drift: drift.slice(0, 3) }).toEqual({ compared: true, drift: [] });
+  });
+});
+
+describe('moderation and transcription still send what was frozen', () => {
+  it('all input shapes and every multipart branch', async () => {
+    const drift: string[] = [];
+    const moderations = new OpenAIModerationAdapter({ apiKey: K });
+    for (const c of MODERATION_CASES) {
+      const { fetch, seen } = capturing({ results: [] });
+      try {
+        await moderations.moderate(c.input as never, 'omni-moderation-latest', fetch);
+      } catch {
+        /* as above */
+      }
+      const key = `moderation/${c.name}`;
+      if (!seen.length) { drift.push(`${key}: no request made`); continue; }
+      if (onWire(seen[0]) !== onWire(index[key])) {
+        drift.push(`${key}:\n    frozen: ${onWire(index[key])}\n    now:    ${onWire(seen[0])}`);
+      }
+    }
+    const transcriber = new OpenAITranscriptionAdapter({ apiKey: K });
+    for (const c of TRANSCRIPTION_CASES) {
+      const { fetch, seen } = capturing({ text: 'hi' });
+      try {
+        await transcriber.transcribe(c.req as never, fetch);
+      } catch {
+        /* as above */
+      }
+      const key = `transcription/${c.name}`;
+      if (!seen.length) { drift.push(`${key}: no request made`); continue; }
+      if (onWire(seen[0]) !== onWire(index[key])) {
+        drift.push(`${key}:\n    frozen: ${onWire(index[key])}\n    now:    ${onWire(seen[0])}`);
+      }
+    }
+    expect(drift.slice(0, 3)).toEqual([]);
   });
 });

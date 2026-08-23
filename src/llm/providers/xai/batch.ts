@@ -44,10 +44,6 @@ export class XAIBatchAdapter implements BatchProviderAdapter {
     this.baseURL = config.baseURL ?? 'https://api.x.ai';
   }
 
-  private bearer(): Record<string, string> {
-    return { authorization: `Bearer ${this.apiKey}` };
-  }
-
   /** Batch rules need no adapter handles: the request list is mapped by the spec. */
   private readonly wireRegistry: Registry = makeRegistry({});
 
@@ -86,6 +82,9 @@ export class XAIBatchAdapter implements BatchProviderAdapter {
   }
   buildStatusRequest(batchId: string): HttpRequest {
     return this.fromSpec('xai/batch.getStatus', { batchId });
+  }
+  buildCancelRequest(batchId: string): HttpRequest {
+    return this.fromSpec('xai/batch.cancel', { batchId });
   }
   buildResultsRequest(batchId: string): HttpRequest {
     return this.fromSpec('xai/batch.getResults', { batchId });
@@ -153,14 +152,6 @@ export class XAIBatchAdapter implements BatchProviderAdapter {
   }
 
   async cancel(batchId: string, fetch: EngineFetch): Promise<void> {
-    await fetch({
-      url: `${this.baseURL}/v1/batches/${batchId}/cancel`,
-      method: 'POST',
-      headers: this.bearer(),
-      body: {},
-      provider: 'xai',
-      model: 'batch',
-      responseType: 'json',
-    });
+    await fetch(this.buildCancelRequest(batchId));
   }
 }
