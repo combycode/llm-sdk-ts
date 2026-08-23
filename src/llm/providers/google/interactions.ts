@@ -13,6 +13,10 @@ import type {
   ToolCallPart,
   VideoOutputPart,
 } from '../../types/messages';
+import { buildFromSpec } from '../../../wire/interpreter';
+import type { Registry } from '../../../wire/interpreter';
+import { chatSpec } from '../../../wire/chat-specs';
+import { makeRegistry } from '../../wire-transforms';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import type { NormalizedRequest } from '../../types/request';
 import {
@@ -21,10 +25,8 @@ import {
   type Usage,
 } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
-import { isFunctionTool } from '../../types/tools';
 import { AUDIO_PCM16_SAMPLE_RATE_HZ } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
-import { GOOGLE_INTERACTION_THINKING_LEVELS } from './constants';
 import { sseJson } from '../_shared/sse';
 
 export interface GoogleInteractionsAdapterConfig {
@@ -65,95 +67,23 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
     return '/v1beta/interactions';
   }
 
+  /** Named code the spec cannot express as data — input-item assembly. */
+  private readonly wireRegistry: Registry = makeRegistry({ googleInteractions: this });
+
   buildRequest(req: NormalizedRequest): ProviderHttpRequest {
-    const model = req.model.startsWith('models/') ? req.model : `models/${req.model}`;
-
-    // Input is the step_list (post May-2026 schema). The server-state brain has
-    // already trimmed `req.messages` to just the new turn(s) when chaining, and
-    // set `previousResponseId` to the prior interaction id.
-    const input: unknown[] = [];
-    for (const msg of req.messages) {
-      input.push(...this.buildInputItems(msg));
-    }
-
-    const body: Record<string, unknown> = { model, input };
-    if (req.previousResponseId) {
-      body.previous_interaction_id = req.previousResponseId;
-    }
-
-    if (req.system) {
-      body.system_instruction = req.system;
-    }
-
-    // Generation config
-    const genConfig: Record<string, unknown> = {};
-    if (req.maxTokens) genConfig.max_output_tokens = req.maxTokens;
-    // KEEP temperature/top_p. google 2.15 DELETED both from the Interactions `GenerationConfig`
-    // type, which looks exactly like the pattern that made us strip penalties (07-14) and
-    // cached_content (07-27) — but the wire says otherwise: probed 2026-08-06 on gemini-3.6-flash,
-    // `temperature: 0.5` + `top_p: 0.9` returned 200, and the invalid twin (`"warm"` / `-7`) was
-    // rejected 400, so the fields are read AND validated. The removal is SDK-typing-only.
-    // Stripping them here would be the regression. Re-probe before ever changing this.
-    if (req.temperature !== undefined) genConfig.temperature = req.temperature;
-    if (req.topP !== undefined) genConfig.top_p = req.topP;
-    // Unlike the penalties above, Interactions DOES accept top_k and seed
-    // (live-verified 2026-07-28: both 200). Do not assume this surface mirrors the
-    // penalties' rejection — it was probed field by field.
-    if (req.topK !== undefined) genConfig.top_k = req.topK;
-    if (req.seed !== undefined) genConfig.seed = req.seed;
-    // NOTE: the Interactions API does NOT accept presence_penalty / frequency_penalty
-    // (live 2026-07-14: 400 "Unknown parameter 'presence_penalty' at 'generation_config'";
-    // upstream removed them from the Interactions GenerationConfig in google 2.11). They
-    // remain valid on generateContent — do not emit them here.
-    if (req.stop) genConfig.stop_sequences = req.stop;
-
-    // Tools — only function tools are accepted on this surface.
-    if (req.tools?.length) {
-      body.tools = req.tools.filter(isFunctionTool).map((t) => ({
-        type: 'function',
-        name: t.name,
-        description: t.description,
-        parameters: t.parameters,
-      }));
-    }
-
-    // Thinking — the Interactions GenerationConfig takes `thinking_level` DIRECTLY
-    // (not wrapped in a thinking_config; wrapping 400s "Unknown parameter
-    // 'thinking_config'"). It has no token-budget field, so it's thinkingLevel-only.
-    if (req.thinking && req.thinking.mode !== 'off') {
-      genConfig.thinking_level =
-        GOOGLE_INTERACTION_THINKING_LEVELS[req.thinking.effort ?? 'high'] ?? 'high';
-    }
-
-    if (Object.keys(genConfig).length > 0) body.generation_config = genConfig;
-
-    // NOTE: `cached_content` was REMOVED from the Interactions request model in google
-    // 2.13 (both `CreateModelInteraction` and `Interaction`). We used to forward
-    // `providerOptions.cachedContent` here; the endpoint now hard-rejects it — live
-    // 2026-07-27: 400 "Unknown parameter 'cached_content'". Explicit cached content
-    // remains valid on generateContent, so the passthrough lives there only. Do NOT
-    // re-add it here from a stale SDK reference (this is the same trap as the
-    // Interactions penalties removed on 2026-07-14).
-    // NOTE: the SDK's interactions create params also list `safety_settings` +
-    // `labels`, but the Gemini Developer API REJECTS both ("not available on the
-    // Gemini API … available on the Gemini Enterprise Agent Platform" — live-verified
-    // 2026-07-14). They are Vertex/Enterprise-only, so we do NOT forward them here.
-
-    // Structured output — polymorphic response_format (response_mime_type removed).
-    if (req.structured) {
-      body.response_format = {
-        type: 'text',
-        mime_type: 'application/json',
-        schema: req.structured.schema,
-      };
-    }
-
-    return { body };
+    // One shape, no chain: the Interactions wire does not vary by model version,
+    // so there is nothing for a pin to choose between.
+    return buildFromSpec(
+      chatSpec('google/interactions'),
+      req,
+      this.wireRegistry,
+    ) as ProviderHttpRequest;
   }
 
   // step_list input items (post May-2026): user turns -> {type:'user_input'},
   // assistant turns -> {type:'model_output'}, tool results -> {type:'function_result'}.
-  private buildInputItems(msg: Message): unknown[] {
+  /** Reached through the wire registry while building the request. */
+  buildInputItems(msg: Message): unknown[] {
     const items: unknown[] = [];
 
     if (msg.role === 'user' || msg.role === 'system') {
