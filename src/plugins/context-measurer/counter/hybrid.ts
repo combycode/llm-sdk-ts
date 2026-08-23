@@ -6,7 +6,7 @@ import type { ModelCatalog } from '../../../catalog/catalog';
 import type { EngineFetch } from '../../../network/types';
 import type { CalibrationStore } from '../types';
 import { HeuristicCounter } from './heuristic';
-import { TiktokenCounter } from './tiktoken';
+import { TiktokenCounter, isTiktokenUnavailable } from './tiktoken';
 import { CountApiCounter, AnthropicCountApi, GoogleCountApi } from './count-api';
 
 export interface HybridCounterConfig {
@@ -37,6 +37,8 @@ export class HybridTokenCounter implements TokenCounter {
    *  counter. See CONSTITUTION.md standing decisions (2026-08-08). */
   private _tiktoken?: TiktokenCounter;
   private countApi: CountApiCounter;
+  /** Said once per counter, not once per call. */
+  private warnedNoTiktoken = false;
   private readonly _config: HybridCounterConfig;
 
   constructor(config: HybridCounterConfig) {
@@ -73,11 +75,51 @@ export class HybridTokenCounter implements TokenCounter {
   }
 
   async measure(text: string, ctx?: TokenCountContext): Promise<number> {
-    return this.strategyFor(ctx).measure(text, ctx);
+    return this.withoutOptionalPeer(ctx, (c) => c.measure(text, ctx), () => this.heuristic.measure(text, ctx));
   }
 
   async measureMessage(msg: Message, ctx?: TokenCountContext): Promise<number> {
-    return this.strategyFor(ctx).measureMessage(msg, ctx);
+    return this.withoutOptionalPeer(
+      ctx,
+      (c) => c.measureMessage(msg, ctx),
+      () => this.heuristic.measureMessage(msg, ctx),
+    );
+  }
+
+  /** Run the chosen strategy, falling back to the heuristic if — and ONLY if —
+   *  the optional `tiktoken` peer is not installed.
+   *
+   *  The catalog can name `tiktoken` for a model without the consumer having
+   *  installed it: it is an optional PEER dependency precisely so that most
+   *  people do not carry its 5.6 MB of wasm. Without this, marking OpenAI models
+   *  as exactly-countable would turn a number into a thrown error for everyone
+   *  who did not opt in — and the guide has always promised the opposite
+   *  ("without it everything still works").
+   *
+   *  Only THAT error is caught. A network failure inside the count API, or a
+   *  genuine tokenizer fault, still surfaces: silently answering with an estimate
+   *  when an exact count was asked for and was possible is how a wrong number
+   *  gets believed. */
+  private async withoutOptionalPeer(
+    ctx: TokenCountContext | undefined,
+    run: (counter: TokenCounter) => Promise<number>,
+    fallback: () => Promise<number>,
+  ): Promise<number> {
+    const counter = this.strategyFor(ctx);
+    try {
+      return await run(counter);
+    } catch (err) {
+      if (!isTiktokenUnavailable(err)) throw err;
+      if (!this.warnedNoTiktoken) {
+        this.warnedNoTiktoken = true;
+        console.warn(
+          '[llm-sdk] the catalog asks for exact tiktoken counting but the optional peer ' +
+            '"tiktoken" is not installed — falling back to the heuristic. Install it (npm i ' +
+            'tiktoken) for exact OpenAI counts, or ignore this if an estimate is fine.',
+        );
+      }
+      return fallback();
+    }
   }
 
   learn(input: LearnInput): void {

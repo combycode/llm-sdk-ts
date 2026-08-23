@@ -30,14 +30,25 @@ interface TiktokenModule {
   get_encoding(name: string): { encode(text: string): Iterable<number> };
 }
 
+/** Marks the one error a caller is allowed to treat as "use something else". */
+export const TIKTOKEN_MISSING = Symbol.for('llm-sdk.tiktokenMissing');
+
 /** Build the error thrown when the optional peer is missing. Exported for tests; not public API. */
 export function tiktokenUnavailableError(cause: unknown): Error {
-  return new Error(
+  return Object.assign(new Error(
     `Local token counting needs the optional peer dependency "tiktoken", which is not installed. ` +
       `Install it (npm i tiktoken) to use exact OpenAI tokenization, or use a counter that does ` +
       `not require it — the heuristic and count-API strategies need no extra packages.`,
     { cause },
-  );
+  ), { [TIKTOKEN_MISSING]: true as const });
+}
+
+/** Is this the "tiktoken is not installed" error, rather than any other failure?
+ *
+ *  Matched on the marker below rather than on the message text, so rewording the
+ *  message cannot silently turn a graceful fallback into a thrown error. */
+export function isTiktokenUnavailable(err: unknown): boolean {
+  return Boolean(err) && (err as { [TIKTOKEN_MISSING]?: true })[TIKTOKEN_MISSING] === true;
 }
 
 const MODEL_TO_ENCODING: Record<string, string> = {

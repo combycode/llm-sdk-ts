@@ -94,6 +94,8 @@ export class GoogleCountApi {
 export class CountApiCounter implements TokenCounter {
   private heuristic: HeuristicCounter;
 
+  private readonly catalog: ModelCatalog | null;
+
   constructor(
     catalog: ModelCatalog | null,
     private readonly providers: {
@@ -101,7 +103,18 @@ export class CountApiCounter implements TokenCounter {
       google?: GoogleCountApi;
     } = {},
   ) {
+    this.catalog = catalog;
     this.heuristic = new HeuristicCounter(catalog);
+  }
+
+  /** The id to SEND. `ctx.model` is our canonical slug — `claude-haiku-4.5` —
+   *  which is not what the provider answers to: its callable id is the dated
+   *  `claude-haiku-4-5-20251001`. The chat path translates through the catalog;
+   *  this one did not, so the moment a model's slug and api id differed the count
+   *  endpoint returned 404. Nothing noticed while the strategy was never
+   *  selected. */
+  private apiModel(ctx: TokenCountContext): string {
+    return this.catalog?.resolveModelId(ctx.provider!, ctx.model!) ?? ctx.model!;
   }
 
   estimate(text: string, ctx?: TokenCountContext): number {
@@ -115,17 +128,18 @@ export class CountApiCounter implements TokenCounter {
   async measure(text: string, ctx?: TokenCountContext): Promise<number> {
     const api = this.apiFor(ctx);
     if (!api) return this.heuristic.measure(text, ctx);
-    return api.countText(ctx!.model!, text);
+    return api.countText(this.apiModel(ctx!), text);
   }
 
   async measureMessage(msg: Message, ctx?: TokenCountContext): Promise<number> {
     const api = this.apiFor(ctx);
     if (!api) return this.heuristic.measureMessage(msg, ctx);
     const content = msg.content;
-    if (typeof content === 'string') return api.countText(ctx!.model!, content);
+    const model = this.apiModel(ctx!);
+    if (typeof content === 'string') return api.countText(model, content);
     // Multi-part — best effort: serialize and count.
     void messageChars(msg);
-    return api.countText(ctx!.model!, JSON.stringify(msg.content).slice(0, 100_000));
+    return api.countText(model, JSON.stringify(msg.content).slice(0, 100_000));
   }
 
   learn(input: LearnInput): void {

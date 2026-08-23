@@ -44,7 +44,12 @@
     "family": "router",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/free": {
     "providerModelName": "openrouter/free",
@@ -89,7 +94,12 @@
     "family": "router",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/fusion": {
     "providerModelName": "openrouter/fusion",
@@ -130,7 +140,12 @@
     "family": "router",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/bodybuilder": {
     "providerModelName": "openrouter/bodybuilder",
@@ -174,7 +189,12 @@
     "family": "router",
     "version": "1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/owl-alpha": {
     "providerModelName": "openrouter/owl-alpha",
@@ -219,7 +239,12 @@
     "family": "router",
     "version": "1",
     "status": "preview",
-    "active": true
+    "active": false,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/pareto-code": {
     "providerModelName": "openrouter/pareto-code",
@@ -260,7 +285,12 @@
     "family": "router",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/switchpoint-router": {
     "providerModelName": "switchpoint/router",
@@ -305,7 +335,12 @@
     "family": "router",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": false,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/relace-apply-3": {
     "providerModelName": "relace/relace-apply-3",
@@ -350,7 +385,12 @@
     "family": "relace",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": false,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/relace-search": {
     "providerModelName": "relace/relace-search",
@@ -395,7 +435,12 @@
     "family": "relace",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/morph-v3-fast": {
     "providerModelName": "morph/morph-v3-fast",
@@ -440,7 +485,12 @@
     "family": "morph",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/morph-v3-large": {
     "providerModelName": "morph/morph-v3-large",
@@ -485,12 +535,18 @@
     "family": "morph",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-fable-5": {
     "providerModelName": "anthropic/claude-fable-5",
     "aliases": [
-      "anthropic/claude-fable-5"
+      "anthropic/claude-fable-5",
+      "anthropic/claude-fable-5:batch"
     ],
     "pricing": {
       "inputPerMTok": 10,
@@ -533,7 +589,12 @@
     "version": "5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-opus-4": {
     "providerModelName": "anthropic/claude-opus-4",
@@ -581,12 +642,18 @@
     "version": "4",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-opus-4.1": {
     "providerModelName": "anthropic/claude-opus-4.1",
     "aliases": [
-      "anthropic/claude-opus-4.1"
+      "anthropic/claude-opus-4.1",
+      "anthropic/claude-opus-4.1:batch"
     ],
     "pricing": {
       "inputPerMTok": 15,
@@ -629,12 +696,18 @@
     "version": "4.1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-opus-4.5": {
     "providerModelName": "anthropic/claude-opus-4.5",
     "aliases": [
-      "anthropic/claude-opus-4.5"
+      "anthropic/claude-opus-4.5",
+      "anthropic/claude-opus-4.5:batch"
     ],
     "pricing": {
       "inputPerMTok": 5,
@@ -677,12 +750,18 @@
     "version": "4.5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-opus-4.6": {
     "providerModelName": "anthropic/claude-opus-4.6",
     "aliases": [
-      "anthropic/claude-opus-4.6"
+      "anthropic/claude-opus-4.6",
+      "anthropic/claude-opus-4.6:batch"
     ],
     "pricing": {
       "inputPerMTok": 5,
@@ -725,7 +804,12 @@
     "version": "4.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-opus-4.6-fast": {
     "providerModelName": "anthropic/claude-opus-4.6-fast",
@@ -772,17 +856,23 @@
     "family": "claude-opus",
     "version": "4.6",
     "status": "stable",
-    "active": true,
+    "active": false,
     "deprecation": {
       "shutdownDate": "2026-06-29",
       "source": "openrouter"
     },
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-opus-4.7": {
     "providerModelName": "anthropic/claude-opus-4.7",
     "aliases": [
-      "anthropic/claude-opus-4.7"
+      "anthropic/claude-opus-4.7",
+      "anthropic/claude-opus-4.7:batch"
     ],
     "pricing": {
       "inputPerMTok": 5,
@@ -825,7 +915,12 @@
     "version": "4.7",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-opus-4.7-fast": {
     "providerModelName": "anthropic/claude-opus-4.7-fast",
@@ -872,13 +967,19 @@
     "family": "claude-opus",
     "version": "4.7",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-opus-4.8": {
     "providerModelName": "anthropic/claude-opus-4.8",
     "aliases": [
-      "anthropic/claude-opus-4.8"
+      "anthropic/claude-opus-4.8",
+      "anthropic/claude-opus-4.8:batch"
     ],
     "pricing": {
       "inputPerMTok": 5,
@@ -921,7 +1022,12 @@
     "version": "4.8",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-opus-4.8-fast": {
     "providerModelName": "anthropic/claude-opus-4.8-fast",
@@ -969,7 +1075,12 @@
     "version": "4.8",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-sonnet-4": {
     "providerModelName": "anthropic/claude-sonnet-4",
@@ -1017,12 +1128,18 @@
     "version": "4",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-sonnet-4.5": {
     "providerModelName": "anthropic/claude-sonnet-4.5",
     "aliases": [
-      "anthropic/claude-sonnet-4.5"
+      "anthropic/claude-sonnet-4.5",
+      "anthropic/claude-sonnet-4.5:batch"
     ],
     "pricing": {
       "inputPerMTok": 3,
@@ -1065,12 +1182,18 @@
     "version": "4.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-sonnet-4.6": {
     "providerModelName": "anthropic/claude-sonnet-4.6",
     "aliases": [
-      "anthropic/claude-sonnet-4.6"
+      "anthropic/claude-sonnet-4.6",
+      "anthropic/claude-sonnet-4.6:batch"
     ],
     "pricing": {
       "inputPerMTok": 3,
@@ -1113,7 +1236,12 @@
     "version": "4.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-haiku-3": {
     "providerModelName": "anthropic/claude-3-haiku",
@@ -1161,7 +1289,12 @@
     "version": "3",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-haiku-3.5": {
     "providerModelName": "anthropic/claude-3.5-haiku",
@@ -1208,13 +1341,19 @@
     "family": "claude-haiku",
     "version": "3.5",
     "status": "legacy",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-haiku-4.5": {
     "providerModelName": "anthropic/claude-haiku-4.5",
     "aliases": [
-      "anthropic/claude-haiku-4.5"
+      "anthropic/claude-haiku-4.5",
+      "anthropic/claude-haiku-4.5:batch"
     ],
     "pricing": {
       "inputPerMTok": 1,
@@ -1257,14 +1396,20 @@
     "version": "4.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-3.5-turbo": {
     "providerModelName": "openai/gpt-3.5-turbo",
     "aliases": [
       "openai/gpt-3.5-turbo",
       "openai/gpt-3.5-turbo-0613",
-      "openai/gpt-3.5-turbo-16k"
+      "openai/gpt-3.5-turbo-16k",
+      "openai/gpt-3.5-turbo:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.5,
@@ -1305,7 +1450,12 @@
     "version": "3.5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-4": {
     "providerModelName": "openai/gpt-4",
@@ -1351,13 +1501,19 @@
     "version": "4",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-4-turbo": {
     "providerModelName": "openai/gpt-4-turbo",
     "aliases": [
       "openai/gpt-4-turbo",
-      "openai/gpt-4-turbo-preview"
+      "openai/gpt-4-turbo-preview",
+      "openai/gpt-4-turbo:batch"
     ],
     "pricing": {
       "inputPerMTok": 10,
@@ -1399,12 +1555,18 @@
     "version": "4",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-4.1": {
     "providerModelName": "openai/gpt-4.1",
     "aliases": [
-      "openai/gpt-4.1"
+      "openai/gpt-4.1",
+      "openai/gpt-4.1:batch"
     ],
     "pricing": {
       "inputPerMTok": 2,
@@ -1447,12 +1609,18 @@
     "version": "4.1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5": {
     "providerModelName": "openai/gpt-5",
     "aliases": [
-      "openai/gpt-5"
+      "openai/gpt-5",
+      "openai/gpt-5:batch"
     ],
     "pricing": {
       "inputPerMTok": 1.25,
@@ -1495,12 +1663,18 @@
     "version": "5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.1": {
     "providerModelName": "openai/gpt-5.1",
     "aliases": [
-      "openai/gpt-5.1"
+      "openai/gpt-5.1",
+      "openai/gpt-5.1:batch"
     ],
     "pricing": {
       "inputPerMTok": 1.25,
@@ -1543,12 +1717,18 @@
     "version": "5.1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.2": {
     "providerModelName": "openai/gpt-5.2",
     "aliases": [
-      "openai/gpt-5.2"
+      "openai/gpt-5.2",
+      "openai/gpt-5.2:batch"
     ],
     "pricing": {
       "inputPerMTok": 1.75,
@@ -1591,12 +1771,18 @@
     "version": "5.2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.4": {
     "providerModelName": "openai/gpt-5.4",
     "aliases": [
-      "openai/gpt-5.4"
+      "openai/gpt-5.4",
+      "openai/gpt-5.4:batch"
     ],
     "pricing": {
       "inputPerMTok": 2.5,
@@ -1639,12 +1825,18 @@
     "version": "5.4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.5": {
     "providerModelName": "openai/gpt-5.5",
     "aliases": [
-      "openai/gpt-5.5"
+      "openai/gpt-5.5",
+      "openai/gpt-5.5:batch"
     ],
     "pricing": {
       "inputPerMTok": 5,
@@ -1687,7 +1879,12 @@
     "version": "5.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5-chat": {
     "providerModelName": "openai/gpt-5-chat",
@@ -1734,8 +1931,13 @@
     "family": "gpt-chat",
     "version": "5",
     "status": "legacy",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.1-chat": {
     "providerModelName": "openai/gpt-5.1-chat",
@@ -1782,8 +1984,13 @@
     "family": "gpt-chat",
     "version": "5.1",
     "status": "legacy",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.2-chat": {
     "providerModelName": "openai/gpt-5.2-chat",
@@ -1830,12 +2037,17 @@
     "family": "gpt-chat",
     "version": "5.2",
     "status": "stable",
-    "active": true,
+    "active": false,
     "deprecation": {
       "shutdownDate": "2026-08-10",
       "source": "openrouter"
     },
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.3-chat": {
     "providerModelName": "openai/gpt-5.3-chat",
@@ -1882,22 +2094,28 @@
     "family": "gpt-chat",
     "version": "5.3",
     "status": "stable",
-    "active": true,
+    "active": false,
     "deprecation": {
       "shutdownDate": "2026-08-10",
       "source": "openrouter"
     },
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5-codex": {
     "providerModelName": "openai/gpt-5-codex",
     "aliases": [
-      "openai/gpt-5-codex"
+      "openai/gpt-5-codex",
+      "openai/gpt-5-codex:batch"
     ],
     "pricing": {
-      "inputPerMTok": 1.25,
-      "outputPerMTok": 10,
-      "cacheReadPerMTok": 0.125
+      "inputPerMTok": 0.625,
+      "outputPerMTok": 5,
+      "cacheReadPerMTok": 0.0625
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -1934,7 +2152,12 @@
     "family": "gpt-codex",
     "version": "5",
     "status": "legacy",
-    "active": true
+    "active": false,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.1-codex": {
     "providerModelName": "openai/gpt-5.1-codex",
@@ -1981,7 +2204,12 @@
     "family": "gpt-codex",
     "version": "5.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.1-codex-max": {
     "providerModelName": "openai/gpt-5.1-codex-max",
@@ -2028,7 +2256,12 @@
     "family": "gpt-codex",
     "version": "5.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.1-codex-mini": {
     "providerModelName": "openai/gpt-5.1-codex-mini",
@@ -2075,7 +2308,12 @@
     "family": "gpt-codex",
     "version": "5.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.2-codex": {
     "providerModelName": "openai/gpt-5.2-codex",
@@ -2122,7 +2360,12 @@
     "family": "gpt-codex",
     "version": "5.2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.3-codex": {
     "providerModelName": "openai/gpt-5.3-codex",
@@ -2169,12 +2412,18 @@
     "family": "gpt-codex",
     "version": "5.3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-4.1-mini": {
     "providerModelName": "openai/gpt-4.1-mini",
     "aliases": [
-      "openai/gpt-4.1-mini"
+      "openai/gpt-4.1-mini",
+      "openai/gpt-4.1-mini:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.4,
@@ -2217,12 +2466,18 @@
     "version": "4.1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5-mini": {
     "providerModelName": "openai/gpt-5-mini",
     "aliases": [
-      "openai/gpt-5-mini"
+      "openai/gpt-5-mini",
+      "openai/gpt-5-mini:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.25,
@@ -2265,12 +2520,18 @@
     "version": "5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.4-mini": {
     "providerModelName": "openai/gpt-5.4-mini",
     "aliases": [
-      "openai/gpt-5.4-mini"
+      "openai/gpt-5.4-mini",
+      "openai/gpt-5.4-mini:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.75,
@@ -2313,12 +2574,18 @@
     "version": "5.4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-4.1-nano": {
     "providerModelName": "openai/gpt-4.1-nano",
     "aliases": [
-      "openai/gpt-4.1-nano"
+      "openai/gpt-4.1-nano",
+      "openai/gpt-4.1-nano:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.1,
@@ -2361,12 +2628,18 @@
     "version": "4.1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5-nano": {
     "providerModelName": "openai/gpt-5-nano",
     "aliases": [
-      "openai/gpt-5-nano"
+      "openai/gpt-5-nano",
+      "openai/gpt-5-nano:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.05,
@@ -2409,12 +2682,18 @@
     "version": "5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.4-nano": {
     "providerModelName": "openai/gpt-5.4-nano",
     "aliases": [
-      "openai/gpt-5.4-nano"
+      "openai/gpt-5.4-nano",
+      "openai/gpt-5.4-nano:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.2,
@@ -2457,12 +2736,18 @@
     "version": "5.4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5-pro": {
     "providerModelName": "openai/gpt-5-pro",
     "aliases": [
-      "openai/gpt-5-pro"
+      "openai/gpt-5-pro",
+      "openai/gpt-5-pro:batch"
     ],
     "pricing": {
       "inputPerMTok": 15,
@@ -2504,12 +2789,18 @@
     "version": "5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.2-pro": {
     "providerModelName": "openai/gpt-5.2-pro",
     "aliases": [
-      "openai/gpt-5.2-pro"
+      "openai/gpt-5.2-pro",
+      "openai/gpt-5.2-pro:batch"
     ],
     "pricing": {
       "inputPerMTok": 21,
@@ -2551,12 +2842,18 @@
     "version": "5.2",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.4-pro": {
     "providerModelName": "openai/gpt-5.4-pro",
     "aliases": [
-      "openai/gpt-5.4-pro"
+      "openai/gpt-5.4-pro",
+      "openai/gpt-5.4-pro:batch"
     ],
     "pricing": {
       "inputPerMTok": 30,
@@ -2598,12 +2895,18 @@
     "version": "5.4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.5-pro": {
     "providerModelName": "openai/gpt-5.5-pro",
     "aliases": [
-      "openai/gpt-5.5-pro"
+      "openai/gpt-5.5-pro",
+      "openai/gpt-5.5-pro:batch"
     ],
     "pricing": {
       "inputPerMTok": 30,
@@ -2645,7 +2948,12 @@
     "version": "5.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-4o": {
     "providerModelName": "openai/gpt-4o",
@@ -2653,7 +2961,8 @@
       "openai/gpt-4o",
       "openai/gpt-4o-2024-05-13",
       "openai/gpt-4o-2024-08-06",
-      "openai/gpt-4o-2024-11-20"
+      "openai/gpt-4o-2024-11-20",
+      "openai/gpt-4o:batch"
     ],
     "pricing": {
       "inputPerMTok": 2.5,
@@ -2695,13 +3004,19 @@
     "family": "gpt-4o",
     "version": "4o",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-4o-mini": {
     "providerModelName": "openai/gpt-4o-mini",
     "aliases": [
       "openai/gpt-4o-mini",
-      "openai/gpt-4o-mini-2024-07-18"
+      "openai/gpt-4o-mini-2024-07-18",
+      "openai/gpt-4o-mini:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.15,
@@ -2744,7 +3059,12 @@
     "family": "gpt-4o",
     "version": "4o",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-4o-search": {
     "providerModelName": "openai/gpt-4o-search-preview",
@@ -2789,7 +3109,12 @@
     ],
     "family": "gpt-4o",
     "version": "4o",
-    "active": true
+    "active": false,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-4o-mini-search": {
     "providerModelName": "openai/gpt-4o-mini-search-preview",
@@ -2834,7 +3159,12 @@
     ],
     "family": "gpt-4o",
     "version": "4o",
-    "active": true
+    "active": false,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5-image": {
     "providerModelName": "openai/gpt-5-image",
@@ -2906,6 +3236,11 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "openrouter/gpt-5-image-mini": {
@@ -2978,6 +3313,11 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "openrouter/gpt-5.4-image-2": {
@@ -3050,6 +3390,11 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "openrouter/gpt-oss-20b": {
@@ -3060,7 +3405,8 @@
     ],
     "pricing": {
       "inputPerMTok": 0.03,
-      "outputPerMTok": 0.14
+      "outputPerMTok": 0.13,
+      "cacheReadPerMTok": 0.03
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -3097,7 +3443,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-oss-120b": {
     "providerModelName": "openai/gpt-oss-120b",
@@ -3144,7 +3495,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-oss-safeguard-20b": {
     "providerModelName": "openai/gpt-oss-safeguard-20b",
@@ -3190,7 +3546,12 @@
     "family": "gpt-oss",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-audio": {
     "providerModelName": "openai/gpt-audio",
@@ -3236,7 +3597,12 @@
     "family": "gpt-audio",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-audio-mini": {
     "providerModelName": "openai/gpt-audio-mini",
@@ -3282,12 +3648,18 @@
     "family": "gpt-audio",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/o1": {
     "providerModelName": "openai/o1",
     "aliases": [
-      "openai/o1"
+      "openai/o1",
+      "openai/o1:batch"
     ],
     "pricing": {
       "inputPerMTok": 15,
@@ -3329,12 +3701,18 @@
     "family": "o-series",
     "version": "1",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/o1-pro": {
     "providerModelName": "openai/o1-pro",
     "aliases": [
-      "openai/o1-pro"
+      "openai/o1-pro",
+      "openai/o1-pro:batch"
     ],
     "pricing": {
       "inputPerMTok": 150,
@@ -3375,12 +3753,18 @@
     "family": "o-series",
     "version": "1",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/o3": {
     "providerModelName": "openai/o3",
     "aliases": [
-      "openai/o3"
+      "openai/o3",
+      "openai/o3:batch"
     ],
     "pricing": {
       "inputPerMTok": 2,
@@ -3422,13 +3806,20 @@
     "family": "o-series",
     "version": "3",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/o3-mini": {
     "providerModelName": "openai/o3-mini",
     "aliases": [
       "openai/o3-mini",
-      "openai/o3-mini-high"
+      "openai/o3-mini-high",
+      "openai/o3-mini-high:batch",
+      "openai/o3-mini:batch"
     ],
     "pricing": {
       "inputPerMTok": 1.1,
@@ -3469,12 +3860,18 @@
     "family": "o-series",
     "version": "3",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/o3-pro": {
     "providerModelName": "openai/o3-pro",
     "aliases": [
-      "openai/o3-pro"
+      "openai/o3-pro",
+      "openai/o3-pro:batch"
     ],
     "pricing": {
       "inputPerMTok": 20,
@@ -3515,7 +3912,12 @@
     "family": "o-series",
     "version": "3",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/o3-deep-research": {
     "providerModelName": "openai/o3-deep-research",
@@ -3561,14 +3963,21 @@
     ],
     "family": "o-series",
     "version": "3",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/o4-mini": {
     "providerModelName": "openai/o4-mini",
     "aliases": [
       "openai/o4-mini",
-      "openai/o4-mini-high"
+      "openai/o4-mini-high",
+      "openai/o4-mini-high:batch",
+      "openai/o4-mini:batch"
     ],
     "pricing": {
       "inputPerMTok": 1.1,
@@ -3610,7 +4019,12 @@
     "family": "o-series",
     "version": "4",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/o4-mini-deep-research": {
     "providerModelName": "openai/o4-mini-deep-research",
@@ -3656,8 +4070,13 @@
     ],
     "family": "o-series",
     "version": "4",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-3.5-turbo-instruct": {
     "providerModelName": "openai/gpt-3.5-turbo-instruct",
@@ -3701,14 +4120,20 @@
     ],
     "family": "completions",
     "version": "3.5",
-    "active": true
+    "active": false,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-2.5-pro": {
     "providerModelName": "google/gemini-2.5-pro",
     "aliases": [
       "google/gemini-2.5-pro",
       "google/gemini-2.5-pro-preview",
-      "google/gemini-2.5-pro-preview-05-06"
+      "google/gemini-2.5-pro-preview-05-06",
+      "google/gemini-2.5-pro:batch"
     ],
     "pricing": {
       "inputPerMTok": 1.25,
@@ -3752,12 +4177,18 @@
     "version": "2.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-3.1-pro": {
     "providerModelName": "google/gemini-3.1-pro-preview",
     "aliases": [
-      "google/gemini-3.1-pro-preview"
+      "google/gemini-3.1-pro-preview",
+      "google/gemini-3.1-pro-preview:batch"
     ],
     "pricing": {
       "inputPerMTok": 2,
@@ -3801,7 +4232,12 @@
     "version": "3.1",
     "status": "preview",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-3.1-pro-customtools": {
     "providerModelName": "google/gemini-3.1-pro-preview-customtools",
@@ -3850,12 +4286,18 @@
     "version": "3.1",
     "status": "preview",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-2.5-flash": {
     "providerModelName": "google/gemini-2.5-flash",
     "aliases": [
-      "google/gemini-2.5-flash"
+      "google/gemini-2.5-flash",
+      "google/gemini-2.5-flash:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.3,
@@ -3899,12 +4341,18 @@
     "version": "2.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-3-flash": {
     "providerModelName": "google/gemini-3-flash-preview",
     "aliases": [
-      "google/gemini-3-flash-preview"
+      "google/gemini-3-flash-preview",
+      "google/gemini-3-flash-preview:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.5,
@@ -3948,12 +4396,18 @@
     "version": "3",
     "status": "preview",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-3.5-flash": {
     "providerModelName": "google/gemini-3.5-flash",
     "aliases": [
-      "google/gemini-3.5-flash"
+      "google/gemini-3.5-flash",
+      "google/gemini-3.5-flash:batch"
     ],
     "pricing": {
       "inputPerMTok": 1.5,
@@ -3997,13 +4451,19 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-2.5-flash-lite": {
     "providerModelName": "google/gemini-2.5-flash-lite",
     "aliases": [
       "google/gemini-2.5-flash-lite",
-      "google/gemini-2.5-flash-lite-preview-09-2025"
+      "google/gemini-2.5-flash-lite-preview-09-2025",
+      "google/gemini-2.5-flash-lite:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.1,
@@ -4047,13 +4507,19 @@
     "version": "2.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-3.1-flash-lite": {
     "providerModelName": "google/gemini-3.1-flash-lite",
     "aliases": [
       "google/gemini-3.1-flash-lite",
-      "google/gemini-3.1-flash-lite-preview"
+      "google/gemini-3.1-flash-lite-preview",
+      "google/gemini-3.1-flash-lite:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.25,
@@ -4097,7 +4563,12 @@
     "version": "3.1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-2.5-flash-image": {
     "providerModelName": "google/gemini-2.5-flash-image",
@@ -4169,6 +4640,11 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "openrouter/gemini-3-pro-image": {
@@ -4186,7 +4662,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 65536,
+    "contextWindow": 131072,
     "maxOutput": 32768,
     "capabilities": {
       "toolUse": false,
@@ -4242,6 +4718,11 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "openrouter/gemini-3.1-flash-image": {
@@ -4258,8 +4739,8 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 65536,
-    "maxOutput": 65536,
+    "contextWindow": 131072,
+    "maxOutput": 32768,
     "capabilities": {
       "toolUse": false,
       "streaming": true,
@@ -4314,6 +4795,11 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "openrouter/gemma-2-27b": {
@@ -4360,7 +4846,12 @@
     "version": "2",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemma-3-4b": {
     "providerModelName": "google/gemma-3-4b-it",
@@ -4407,7 +4898,12 @@
     "version": "3",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemma-3-12b": {
     "providerModelName": "google/gemma-3-12b-it",
@@ -4454,7 +4950,12 @@
     "version": "3",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemma-3-27b": {
     "providerModelName": "google/gemma-3-27b-it",
@@ -4502,7 +5003,12 @@
     "version": "3",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemma-3n-e4b": {
     "providerModelName": "google/gemma-3n-e4b-it",
@@ -4547,7 +5053,12 @@
     "version": "3",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemma-4-26b-a4b": {
     "providerModelName": "google/gemma-4-26b-a4b-it",
@@ -4556,8 +5067,8 @@
       "google/gemma-4-26b-a4b-it:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.14,
-      "outputPerMTok": 0.42,
+      "inputPerMTok": 0.07,
+      "outputPerMTok": 0.34,
       "cacheReadPerMTok": 0.05
     },
     "preferredApi": "completions",
@@ -4579,7 +5090,7 @@
     "reasoning": {
       "supported": true,
       "automatic": false,
-      "effortControl": false,
+      "effortControl": true,
       "encryptedContent": false,
       "summaryAvailable": false
     },
@@ -4595,7 +5106,12 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemma-4-31b": {
     "providerModelName": "google/gemma-4-31b-it",
@@ -4604,9 +5120,9 @@
       "google/gemma-4-31b-it:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.14,
-      "outputPerMTok": 0.4,
-      "cacheReadPerMTok": 0.09
+      "inputPerMTok": 0.1,
+      "outputPerMTok": 0.34,
+      "cacheReadPerMTok": 0.1
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -4644,7 +5160,12 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/lyria-3-clip": {
     "providerModelName": "google/lyria-3-clip-preview",
@@ -4690,7 +5211,12 @@
     "family": "lyria",
     "version": "3",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/lyria-3-pro": {
     "providerModelName": "google/lyria-3-pro-preview",
@@ -4736,7 +5262,12 @@
     "family": "lyria",
     "version": "3",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/grok-4.20": {
     "providerModelName": "x-ai/grok-4.20",
@@ -4783,7 +5314,12 @@
     "version": "4.20",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/grok-4.20-multi-agent": {
     "providerModelName": "x-ai/grok-4.20-multi-agent",
@@ -4830,7 +5366,12 @@
     "version": "4.20",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/grok-4.3": {
     "providerModelName": "x-ai/grok-4.3",
@@ -4877,7 +5418,12 @@
     "version": "4.3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/grok-build-0.1": {
     "providerModelName": "x-ai/grok-build-0.1",
@@ -4923,7 +5469,12 @@
     "family": "grok",
     "version": "0.1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/deepseek-chat": {
     "providerModelName": "deepseek/deepseek-chat",
@@ -4931,8 +5482,8 @@
       "deepseek/deepseek-chat"
     ],
     "pricing": {
-      "inputPerMTok": 0.2002,
-      "outputPerMTok": 0.8001
+      "inputPerMTok": 0.2574,
+      "outputPerMTok": 1.0287
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -4969,7 +5520,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/deepseek-v3": {
     "providerModelName": "deepseek/deepseek-chat-v3-0324",
@@ -4977,8 +5533,8 @@
       "deepseek/deepseek-chat-v3-0324"
     ],
     "pricing": {
-      "inputPerMTok": 0.27,
-      "outputPerMTok": 1.12,
+      "inputPerMTok": 0.25,
+      "outputPerMTok": 1,
       "cacheReadPerMTok": 0.135
     },
     "preferredApi": "completions",
@@ -5016,7 +5572,12 @@
     "version": "3",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/deepseek-v3.1": {
     "providerModelName": "deepseek/deepseek-chat-v3.1",
@@ -5025,9 +5586,9 @@
       "deepseek/deepseek-v3.1-terminus"
     ],
     "pricing": {
-      "inputPerMTok": 0.25,
-      "outputPerMTok": 0.95,
-      "cacheReadPerMTok": 0.13
+      "inputPerMTok": 0.55,
+      "outputPerMTok": 1.65,
+      "cacheReadPerMTok": 0.55
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -5064,7 +5625,12 @@
     "version": "3.1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/deepseek-v3.2": {
     "providerModelName": "deepseek/deepseek-v3.2",
@@ -5073,9 +5639,9 @@
       "deepseek/deepseek-v3.2-exp"
     ],
     "pricing": {
-      "inputPerMTok": 0.269,
-      "outputPerMTok": 0.4,
-      "cacheReadPerMTok": 0.1345
+      "inputPerMTok": 0.26,
+      "outputPerMTok": 0.38,
+      "cacheReadPerMTok": 0.13
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -5112,17 +5678,24 @@
     "version": "3.2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/deepseek-v4-flash": {
     "providerModelName": "deepseek/deepseek-v4-flash",
     "aliases": [
-      "deepseek/deepseek-v4-flash"
+      "deepseek/deepseek-v4-flash",
+      "~deepseek/deepseek-v4-flash-latest",
+      "deepseek/deepseek-v4-flash-0731"
     ],
     "pricing": {
-      "inputPerMTok": 0.14,
-      "outputPerMTok": 0.28,
-      "cacheReadPerMTok": 0.028
+      "inputPerMTok": 0.04886,
+      "outputPerMTok": 0.09772,
+      "cacheReadPerMTok": 0.009772
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -5158,17 +5731,23 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/deepseek-v4-pro": {
     "providerModelName": "deepseek/deepseek-v4-pro",
     "aliases": [
-      "deepseek/deepseek-v4-pro"
+      "deepseek/deepseek-v4-pro",
+      "deepseek/deepseek-v4-pro-0813"
     ],
     "pricing": {
-      "inputPerMTok": 0.435,
-      "outputPerMTok": 0.87,
-      "cacheReadPerMTok": 0.003625
+      "inputPerMTok": 0.396894,
+      "outputPerMTok": 0.793788,
+      "cacheReadPerMTok": 0.033075
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -5205,7 +5784,12 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/deepseek-r1": {
     "providerModelName": "deepseek/deepseek-r1",
@@ -5221,7 +5805,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 163840,
+    "contextWindow": 64000,
     "maxOutput": 16000,
     "capabilities": {
       "toolUse": true,
@@ -5252,7 +5836,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/deepseek-r1-distill-llama-70b": {
     "providerModelName": "deepseek/deepseek-r1-distill-llama-70b",
@@ -5298,7 +5887,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/deepseek-r1-distill-qwen-32b": {
     "providerModelName": "deepseek/deepseek-r1-distill-qwen-32b",
@@ -5343,8 +5937,13 @@
     "family": "deepseek-r1",
     "version": "1",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-2.5-7b": {
     "providerModelName": "qwen/qwen-2.5-7b-instruct",
@@ -5352,8 +5951,8 @@
       "qwen/qwen-2.5-7b-instruct"
     ],
     "pricing": {
-      "inputPerMTok": 0.04,
-      "outputPerMTok": 0.1
+      "inputPerMTok": 0.1,
+      "outputPerMTok": 0.2
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -5390,7 +5989,12 @@
     "version": "2.5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-2.5-72b": {
     "providerModelName": "qwen/qwen-2.5-72b-instruct",
@@ -5436,7 +6040,12 @@
     "version": "2.5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-2.5-vl-72b": {
     "providerModelName": "qwen/qwen2.5-vl-72b-instruct",
@@ -5483,7 +6092,12 @@
     "family": "qwen",
     "version": "2.5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-8b": {
     "providerModelName": "qwen/qwen3-8b",
@@ -5530,7 +6144,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-14b": {
     "providerModelName": "qwen/qwen3-14b",
@@ -5538,8 +6157,8 @@
       "qwen/qwen3-14b"
     ],
     "pricing": {
-      "inputPerMTok": 0.2275,
-      "outputPerMTok": 0.91
+      "inputPerMTok": 0.12,
+      "outputPerMTok": 0.24
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -5576,7 +6195,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-30b-a3b": {
     "providerModelName": "qwen/qwen3-30b-a3b",
@@ -5586,8 +6210,8 @@
       "qwen/qwen3-30b-a3b-thinking-2507"
     ],
     "pricing": {
-      "inputPerMTok": 0.12,
-      "outputPerMTok": 0.5
+      "inputPerMTok": 0.13,
+      "outputPerMTok": 0.52
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -5624,7 +6248,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-32b": {
     "providerModelName": "qwen/qwen3-32b",
@@ -5670,7 +6299,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-235b-a22b": {
     "providerModelName": "qwen/qwen3-235b-a22b",
@@ -5718,7 +6352,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-next-80b-a3b": {
     "providerModelName": "qwen/qwen3-next-80b-a3b-instruct",
@@ -5767,7 +6406,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.5-9b": {
     "providerModelName": "qwen/qwen3.5-9b",
@@ -5814,7 +6458,12 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.5-27b": {
     "providerModelName": "qwen/qwen3.5-27b",
@@ -5861,7 +6510,12 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.5-35b-a3b": {
     "providerModelName": "qwen/qwen3.5-35b-a3b",
@@ -5869,9 +6523,9 @@
       "qwen/qwen3.5-35b-a3b"
     ],
     "pricing": {
-      "inputPerMTok": 0.14,
-      "outputPerMTok": 1,
-      "cacheReadPerMTok": 0.05
+      "inputPerMTok": 0.25,
+      "outputPerMTok": 1.25,
+      "cacheReadPerMTok": 0.25
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -5909,7 +6563,12 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.5-122b-a10b": {
     "providerModelName": "qwen/qwen3.5-122b-a10b",
@@ -5956,7 +6615,12 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.5-397b-a17b": {
     "providerModelName": "qwen/qwen3.5-397b-a17b",
@@ -6004,7 +6668,12 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.6-27b": {
     "providerModelName": "qwen/qwen3.6-27b",
@@ -6012,9 +6681,9 @@
       "qwen/qwen3.6-27b"
     ],
     "pricing": {
-      "inputPerMTok": 0.3,
-      "outputPerMTok": 2,
-      "cacheReadPerMTok": 0.15
+      "inputPerMTok": 0.6,
+      "outputPerMTok": 3.6,
+      "cacheReadPerMTok": 0.12
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -6052,7 +6721,12 @@
     "version": "3.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.6-35b-a3b": {
     "providerModelName": "qwen/qwen3.6-35b-a3b",
@@ -6100,7 +6774,12 @@
     "version": "3.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-plus": {
     "providerModelName": "qwen/qwen-plus",
@@ -6149,7 +6828,12 @@
     "version": "1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.5-plus": {
     "providerModelName": "qwen/qwen3.5-plus-20260420",
@@ -6197,7 +6881,12 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.6-plus": {
     "providerModelName": "qwen/qwen3.6-plus",
@@ -6244,7 +6933,12 @@
     "version": "3.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.7-plus": {
     "providerModelName": "qwen/qwen3.7-plus",
@@ -6292,7 +6986,12 @@
     "version": "3.7",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-max": {
     "providerModelName": "qwen/qwen3-max",
@@ -6340,7 +7039,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.6-max": {
     "providerModelName": "qwen/qwen3.6-max-preview",
@@ -6348,8 +7052,8 @@
       "qwen/qwen3.6-max-preview"
     ],
     "pricing": {
-      "inputPerMTok": 1.04,
-      "outputPerMTok": 6.24
+      "inputPerMTok": 1.027,
+      "outputPerMTok": 6.162
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -6386,7 +7090,12 @@
     "version": "3.6",
     "status": "preview",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.7-max": {
     "providerModelName": "qwen/qwen3.7-max",
@@ -6433,7 +7142,12 @@
     "version": "3.7",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.5-flash": {
     "providerModelName": "qwen/qwen3.5-flash-02-23",
@@ -6480,7 +7194,12 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3.6-flash": {
     "providerModelName": "qwen/qwen3.6-flash",
@@ -6527,7 +7246,12 @@
     "version": "3.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-2.5-coder-32b": {
     "providerModelName": "qwen/qwen-2.5-coder-32b-instruct",
@@ -6572,7 +7296,12 @@
     "family": "qwen-coder",
     "version": "2.5",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-coder": {
     "providerModelName": "qwen/qwen3-coder",
@@ -6622,7 +7351,12 @@
     "family": "qwen-coder",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-coder-30b-a3b": {
     "providerModelName": "qwen/qwen3-coder-30b-a3b-instruct",
@@ -6631,7 +7365,7 @@
     ],
     "pricing": {
       "inputPerMTok": 0.07,
-      "outputPerMTok": 0.27
+      "outputPerMTok": 0.28
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -6667,7 +7401,12 @@
     "family": "qwen-coder",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-vl-8b": {
     "providerModelName": "qwen/qwen3-vl-8b-instruct",
@@ -6714,7 +7453,12 @@
     "family": "qwen-vl",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-vl-30b-a3b": {
     "providerModelName": "qwen/qwen3-vl-30b-a3b-instruct",
@@ -6723,8 +7467,8 @@
       "qwen/qwen3-vl-30b-a3b-thinking"
     ],
     "pricing": {
-      "inputPerMTok": 0.15,
-      "outputPerMTok": 0.6
+      "inputPerMTok": 0.13,
+      "outputPerMTok": 0.52
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -6761,7 +7505,12 @@
     "family": "qwen-vl",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-vl-32b": {
     "providerModelName": "qwen/qwen3-vl-32b-instruct",
@@ -6807,7 +7556,12 @@
     "family": "qwen-vl",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/qwen-3-vl-235b-a22b": {
     "providerModelName": "qwen/qwen3-vl-235b-a22b-instruct",
@@ -6855,7 +7609,12 @@
     "family": "qwen-vl",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-3-8b": {
     "providerModelName": "meta-llama/llama-3-8b-instruct",
@@ -6899,8 +7658,13 @@
     "family": "llama",
     "version": "3",
     "status": "legacy",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-3-70b": {
     "providerModelName": "meta-llama/llama-3-70b-instruct",
@@ -6945,12 +7709,17 @@
     "family": "llama",
     "version": "3",
     "status": "legacy",
-    "active": true,
+    "active": false,
     "deprecation": {
       "shutdownDate": "2026-06-19",
       "source": "openrouter"
     },
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-3.1-8b": {
     "providerModelName": "meta-llama/llama-3.1-8b-instruct",
@@ -6997,7 +7766,12 @@
     "version": "3.1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-3.1-70b": {
     "providerModelName": "meta-llama/llama-3.1-70b-instruct",
@@ -7043,7 +7817,12 @@
     "version": "3.1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-3.2-1b": {
     "providerModelName": "meta-llama/llama-3.2-1b-instruct",
@@ -7089,7 +7868,12 @@
     "version": "3.2",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-3.2-3b": {
     "providerModelName": "meta-llama/llama-3.2-3b-instruct",
@@ -7136,7 +7920,12 @@
     "version": "3.2",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-3.2-11b-vision": {
     "providerModelName": "meta-llama/llama-3.2-11b-vision-instruct",
@@ -7182,10 +7971,15 @@
     "family": "llama",
     "version": "3.2",
     "status": "legacy",
-    "active": true,
+    "active": false,
     "deprecation": {
       "shutdownDate": "2026-07-17",
       "source": "openrouter"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "openrouter/llama-3.3-70b": {
@@ -7195,8 +7989,8 @@
       "meta-llama/llama-3.3-70b-instruct:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.13,
-      "outputPerMTok": 0.4
+      "inputPerMTok": 0.1,
+      "outputPerMTok": 0.32
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -7233,7 +8027,12 @@
     "version": "3.3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-4-scout": {
     "providerModelName": "meta-llama/llama-4-scout",
@@ -7280,7 +8079,12 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-4-maverick": {
     "providerModelName": "meta-llama/llama-4-maverick",
@@ -7327,7 +8131,12 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-guard-3-8b": {
     "providerModelName": "meta-llama/llama-guard-3-8b",
@@ -7367,8 +8176,13 @@
     "family": "llama-guard",
     "version": "3",
     "status": "stable",
-    "active": true,
-    "contextWindow": 163840
+    "active": false,
+    "contextWindow": 163840,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-guard-4-12b": {
     "providerModelName": "meta-llama/llama-guard-4-12b",
@@ -7414,7 +8228,12 @@
     "family": "llama-guard",
     "version": "4",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/mistral-large": {
     "providerModelName": "mistralai/mistral-large",
@@ -7463,7 +8282,12 @@
     "version": "2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/mistral-medium-3": {
     "providerModelName": "mistralai/mistral-medium-3",
@@ -7512,7 +8336,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/mistral-small": {
     "providerModelName": "mistralai/mistral-small-24b-instruct-2501",
@@ -7561,7 +8390,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/ministral-3b": {
     "providerModelName": "mistralai/ministral-3b-2512",
@@ -7609,12 +8443,18 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/ministral-8b": {
     "providerModelName": "mistralai/ministral-8b-2512",
     "aliases": [
-      "mistralai/ministral-8b-2512"
+      "mistralai/ministral-8b-2512",
+      "mistralai/ministral-8b"
     ],
     "pricing": {
       "inputPerMTok": 0.15,
@@ -7657,7 +8497,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/ministral-14b": {
     "providerModelName": "mistralai/ministral-14b-2512",
@@ -7705,7 +8550,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/mistral-nemo": {
     "providerModelName": "mistralai/mistral-nemo",
@@ -7750,7 +8600,12 @@
     "version": "1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/mistral-saba": {
     "providerModelName": "mistralai/mistral-saba",
@@ -7796,7 +8651,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/mixtral-8x22b": {
     "providerModelName": "mistralai/mixtral-8x22b-instruct",
@@ -7843,7 +8703,12 @@
     "version": "1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/voxtral-small-24b": {
     "providerModelName": "mistralai/voxtral-small-24b-2507",
@@ -7889,7 +8754,12 @@
     "family": "mistral",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/codestral": {
     "providerModelName": "mistralai/codestral-2508",
@@ -7934,7 +8804,12 @@
     "family": "mistral-code",
     "version": "2508",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/devstral": {
     "providerModelName": "mistralai/devstral-2512",
@@ -7980,7 +8855,12 @@
     "family": "mistral-code",
     "version": "2512",
     "status": "stable",
-    "active": true
+    "active": false,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/kimi-k2": {
     "providerModelName": "moonshotai/kimi-k2",
@@ -8028,7 +8908,12 @@
     "version": "2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/kimi-k2.5": {
     "providerModelName": "moonshotai/kimi-k2.5",
@@ -8036,9 +8921,9 @@
       "moonshotai/kimi-k2.5"
     ],
     "pricing": {
-      "inputPerMTok": 0.57,
-      "outputPerMTok": 2.85,
-      "cacheReadPerMTok": 0.095
+      "inputPerMTok": 0.45,
+      "outputPerMTok": 2.25,
+      "cacheReadPerMTok": 0.07
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -8076,7 +8961,12 @@
     "version": "2.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/kimi-k2.6": {
     "providerModelName": "moonshotai/kimi-k2.6",
@@ -8084,9 +8974,9 @@
       "moonshotai/kimi-k2.6"
     ],
     "pricing": {
-      "inputPerMTok": 0.646,
-      "outputPerMTok": 2.72,
-      "cacheReadPerMTok": 0.1088
+      "inputPerMTok": 0.5415,
+      "outputPerMTok": 2.28,
+      "cacheReadPerMTok": 0.0912
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -8124,7 +9014,12 @@
     "version": "2.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/glm-4.5": {
     "providerModelName": "z-ai/glm-4.5",
@@ -8177,7 +9072,12 @@
       "shutdownDate": "2026-12-31",
       "source": "openrouter"
     },
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/glm-4.6": {
     "providerModelName": "z-ai/glm-4.6",
@@ -8225,7 +9125,12 @@
     "version": "4.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/glm-4.7": {
     "providerModelName": "z-ai/glm-4.7",
@@ -8273,7 +9178,12 @@
     "version": "4.7",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/glm-5": {
     "providerModelName": "z-ai/glm-5",
@@ -8282,9 +9192,9 @@
       "z-ai/glm-5-turbo"
     ],
     "pricing": {
-      "inputPerMTok": 0.95,
-      "outputPerMTok": 2.55,
-      "cacheReadPerMTok": 0.2
+      "inputPerMTok": 0.6,
+      "outputPerMTok": 1.92,
+      "cacheReadPerMTok": 0.12
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -8321,7 +9231,12 @@
     "version": "5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/glm-5.1": {
     "providerModelName": "z-ai/glm-5.1",
@@ -8368,7 +9283,12 @@
     "status": "stable",
     "active": true,
     "maxOutput": 128000,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/minimax-01": {
     "providerModelName": "minimax/minimax-01",
@@ -8415,7 +9335,12 @@
     "version": "1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/minimax-m1": {
     "providerModelName": "minimax/minimax-m1",
@@ -8461,7 +9386,12 @@
     "version": "1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/minimax-m2": {
     "providerModelName": "minimax/minimax-m2",
@@ -8510,7 +9440,12 @@
     "version": "2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/minimax-m2.5": {
     "providerModelName": "minimax/minimax-m2.5",
@@ -8518,9 +9453,9 @@
       "minimax/minimax-m2.5"
     ],
     "pricing": {
-      "inputPerMTok": 0.15,
-      "outputPerMTok": 0.9,
-      "cacheReadPerMTok": 0.05
+      "inputPerMTok": 0.27,
+      "outputPerMTok": 1.08,
+      "cacheReadPerMTok": 0.027
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -8557,7 +9492,12 @@
     "version": "2.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/minimax-m2.7": {
     "providerModelName": "minimax/minimax-m2.7",
@@ -8565,9 +9505,9 @@
       "minimax/minimax-m2.7"
     ],
     "pricing": {
-      "inputPerMTok": 0.25,
-      "outputPerMTok": 1,
-      "cacheReadPerMTok": 0.05
+      "inputPerMTok": 0.24,
+      "outputPerMTok": 0.96,
+      "cacheReadPerMTok": 0.048
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -8604,12 +9544,18 @@
     "version": "2.7",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/minimax-m3": {
     "providerModelName": "minimax/minimax-m3",
     "aliases": [
-      "minimax/minimax-m3"
+      "minimax/minimax-m3",
+      "minimax/minimax-m3:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.3,
@@ -8652,7 +9598,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nemotron-nano-9b-v2": {
     "providerModelName": "nvidia/nemotron-nano-9b-v2:free",
@@ -8697,7 +9648,16 @@
     "version": "2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "deprecation": {
+      "shutdownDate": "2026-08-24",
+      "source": "openrouter"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nemotron-nano-12b-v2-vl": {
     "providerModelName": "nvidia/nemotron-nano-12b-v2-vl:free",
@@ -8743,7 +9703,16 @@
     "family": "nemotron",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "deprecation": {
+      "shutdownDate": "2026-08-24",
+      "source": "openrouter"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/llama-3.3-nemotron-super-49b": {
     "providerModelName": "nvidia/llama-3.3-nemotron-super-49b-v1.5",
@@ -8788,12 +9757,17 @@
     "family": "nemotron",
     "version": "1.5",
     "status": "stable",
-    "active": true,
+    "active": false,
     "deprecation": {
       "shutdownDate": "2026-07-17",
       "source": "openrouter"
     },
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nemotron-3-nano-30b-a3b": {
     "providerModelName": "nvidia/nemotron-3-nano-30b-a3b",
@@ -8841,7 +9815,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nemotron-3-super-120b-a12b": {
     "providerModelName": "nvidia/nemotron-3-super-120b-a12b",
@@ -8887,18 +9866,24 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nemotron-3-ultra-550b-a55b": {
     "providerModelName": "nvidia/nemotron-3-ultra-550b-a55b",
     "aliases": [
       "nvidia/nemotron-3-ultra-550b-a55b",
-      "nvidia/nemotron-3-ultra-550b-a55b:free"
+      "nvidia/nemotron-3-ultra-550b-a55b:free",
+      "nvidia/nemotron-3-ultra-550b-a55b:batch"
     ],
     "pricing": {
-      "inputPerMTok": 0.5,
-      "outputPerMTok": 2.2,
-      "cacheReadPerMTok": 0.1
+      "inputPerMTok": 0.6,
+      "outputPerMTok": 3.6,
+      "cacheReadPerMTok": 0.2
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -8935,7 +9920,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nemotron-3.5-content-safety": {
     "providerModelName": "nvidia/nemotron-3.5-content-safety:free",
@@ -8981,7 +9971,12 @@
     "family": "nemotron",
     "version": "3.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nova-micro": {
     "providerModelName": "amazon/nova-micro-v1",
@@ -9027,7 +10022,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nova-lite": {
     "providerModelName": "amazon/nova-lite-v1",
@@ -9074,7 +10074,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nova-2-lite": {
     "providerModelName": "amazon/nova-2-lite-v1",
@@ -9121,7 +10126,12 @@
     "version": "2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nova-pro": {
     "providerModelName": "amazon/nova-pro-v1",
@@ -9168,7 +10178,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nova-premier": {
     "providerModelName": "amazon/nova-premier-v1",
@@ -9216,7 +10231,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/command-r7b": {
     "providerModelName": "cohere/command-r7b-12-2024",
@@ -9262,7 +10282,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/command-r": {
     "providerModelName": "cohere/command-r-08-2024",
@@ -9308,7 +10333,12 @@
     "version": "1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/command-r-plus": {
     "providerModelName": "cohere/command-r-plus-08-2024",
@@ -9354,7 +10384,12 @@
     "version": "1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/command-a": {
     "providerModelName": "cohere/command-a",
@@ -9400,7 +10435,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/phi-4": {
     "providerModelName": "microsoft/phi-4",
@@ -9446,7 +10486,12 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/phi-4-mini": {
     "providerModelName": "microsoft/phi-4-mini-instruct",
@@ -9492,8 +10537,13 @@
     "family": "phi",
     "version": "4",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/wizardlm-2-8x22b": {
     "providerModelName": "microsoft/wizardlm-2-8x22b",
@@ -9537,8 +10587,13 @@
     ],
     "family": "wizardlm",
     "version": "2",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/sonar": {
     "providerModelName": "perplexity/sonar",
@@ -9584,7 +10639,12 @@
     "family": "sonar",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/sonar-pro": {
     "providerModelName": "perplexity/sonar-pro",
@@ -9632,7 +10692,12 @@
     "family": "sonar",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/sonar-reasoning-pro": {
     "providerModelName": "perplexity/sonar-reasoning-pro",
@@ -9678,7 +10743,12 @@
     "family": "sonar",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/sonar-deep-research": {
     "providerModelName": "perplexity/sonar-deep-research",
@@ -9723,7 +10793,12 @@
     "family": "sonar",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/hermes-3-70b": {
     "providerModelName": "nousresearch/hermes-3-llama-3.1-70b",
@@ -9769,7 +10844,12 @@
     "version": "3",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/hermes-3-405b": {
     "providerModelName": "nousresearch/hermes-3-llama-3.1-405b",
@@ -9816,7 +10896,12 @@
     "version": "3",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/hermes-4-70b": {
     "providerModelName": "nousresearch/hermes-4-70b",
@@ -9861,7 +10946,12 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/hermes-4-405b": {
     "providerModelName": "nousresearch/hermes-4-405b",
@@ -9906,7 +10996,12 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/seed-1.6": {
     "providerModelName": "bytedance-seed/seed-1.6",
@@ -9954,7 +11049,12 @@
     "version": "1.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/seed-2.0-lite": {
     "providerModelName": "bytedance-seed/seed-2.0-lite",
@@ -10001,7 +11101,12 @@
     "version": "2.0",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/seed-2.0-mini": {
     "providerModelName": "bytedance-seed/seed-2.0-mini",
@@ -10048,7 +11153,12 @@
     "version": "2.0",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/ui-tars-1.5-7b": {
     "providerModelName": "bytedance/ui-tars-1.5-7b",
@@ -10095,7 +11205,12 @@
     "family": "ui-tars",
     "version": "1.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/jamba-large-1.7": {
     "providerModelName": "ai21/jamba-large-1.7",
@@ -10140,8 +11255,13 @@
     "family": "jamba",
     "version": "1.7",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/aion-1.0": {
     "providerModelName": "aion-labs/aion-1.0",
@@ -10187,8 +11307,13 @@
     "family": "aion",
     "version": "1.0",
     "status": "legacy",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/aion-2.0": {
     "providerModelName": "aion-labs/aion-2.0",
@@ -10235,7 +11360,12 @@
     "version": "2.0",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/olmo-3-32b-think": {
     "providerModelName": "allenai/olmo-3-32b-think",
@@ -10280,8 +11410,13 @@
     "family": "olmo",
     "version": "3",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/trinity-large-thinking": {
     "providerModelName": "arcee-ai/trinity-large-thinking",
@@ -10328,7 +11463,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/trinity-mini": {
     "providerModelName": "arcee-ai/trinity-mini",
@@ -10373,8 +11513,13 @@
     "family": "trinity",
     "version": "1",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/virtuoso-large": {
     "providerModelName": "arcee-ai/virtuoso-large",
@@ -10419,8 +11564,13 @@
     "family": "virtuoso",
     "version": "1",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/coder-large": {
     "providerModelName": "arcee-ai/coder-large",
@@ -10464,7 +11614,12 @@
     "family": "arcee-coder",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": false,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/ernie-4.5-vl-424b": {
     "providerModelName": "baidu/ernie-4.5-vl-424b-a47b",
@@ -10510,7 +11665,12 @@
     "family": "ernie",
     "version": "4.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/cogito-v2.1-671b": {
     "providerModelName": "deepcogito/cogito-v2.1-671b",
@@ -10554,8 +11714,13 @@
     "family": "cogito",
     "version": "2.1",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/rnj-1": {
     "providerModelName": "essentialai/rnj-1-instruct",
@@ -10599,8 +11764,13 @@
     "family": "rnj",
     "version": "1",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/granite-4.0-h-micro": {
     "providerModelName": "ibm-granite/granite-4.0-h-micro",
@@ -10646,7 +11816,12 @@
     "version": "4.0",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/granite-4.1-8b": {
     "providerModelName": "ibm-granite/granite-4.1-8b",
@@ -10693,7 +11868,12 @@
     "version": "4.1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/mercury-2": {
     "providerModelName": "inception/mercury-2",
@@ -10740,7 +11920,12 @@
     "version": "2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/ling-2.6-1t": {
     "providerModelName": "inclusionai/ling-2.6-1t",
@@ -10787,7 +11972,16 @@
     "version": "2.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "deprecation": {
+      "shutdownDate": "2026-08-24",
+      "source": "openrouter"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/ling-2.6-flash": {
     "providerModelName": "inclusionai/ling-2.6-flash",
@@ -10833,8 +12027,17 @@
     "family": "ling",
     "version": "2.6",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "deprecation": {
+      "shutdownDate": "2026-08-24",
+      "source": "openrouter"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/ring-2.6-1t": {
     "providerModelName": "inclusionai/ring-2.6-1t",
@@ -10881,7 +12084,16 @@
     "version": "2.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "deprecation": {
+      "shutdownDate": "2026-08-24",
+      "source": "openrouter"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/inflection-3-pi": {
     "providerModelName": "inflection/inflection-3-pi",
@@ -10926,8 +12138,13 @@
     "family": "inflection",
     "version": "3",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/inflection-3-productivity": {
     "providerModelName": "inflection/inflection-3-productivity",
@@ -10972,8 +12189,13 @@
     "family": "inflection",
     "version": "3",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/lfm-2-24b-a2b": {
     "providerModelName": "liquid/lfm-2-24b-a2b",
@@ -11017,8 +12239,13 @@
     "family": "lfm",
     "version": "2",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/lfm-2.5-1.2b": {
     "providerModelName": "liquid/lfm-2.5-1.2b-instruct:free",
@@ -11063,8 +12290,13 @@
     "family": "lfm",
     "version": "2.5",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/perceptron-mk1": {
     "providerModelName": "perceptron/perceptron-mk1",
@@ -11111,7 +12343,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/intellect-3": {
     "providerModelName": "prime-intellect/intellect-3",
@@ -11156,8 +12393,13 @@
     "family": "intellect",
     "version": "3",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/reka-edge": {
     "providerModelName": "rekaai/reka-edge",
@@ -11204,7 +12446,12 @@
     "version": "1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/reka-flash-3": {
     "providerModelName": "rekaai/reka-flash-3",
@@ -11250,7 +12497,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/step-3.5-flash": {
     "providerModelName": "stepfun/step-3.5-flash",
@@ -11297,7 +12549,12 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/step-3.7-flash": {
     "providerModelName": "stepfun/step-3.7-flash",
@@ -11345,7 +12602,12 @@
     "version": "3.7",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/hunyuan-a13b": {
     "providerModelName": "tencent/hunyuan-a13b-instruct",
@@ -11391,7 +12653,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/hunyuan-hy3": {
     "providerModelName": "tencent/hy3",
@@ -11401,9 +12668,9 @@
       "tencent/hy3:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.063,
-      "outputPerMTok": 0.21,
-      "cacheReadPerMTok": 0.021
+      "inputPerMTok": 0.132,
+      "outputPerMTok": 0.528,
+      "cacheReadPerMTok": 0.033
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -11439,7 +12706,12 @@
     "version": "3",
     "status": "preview",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/solar-pro-3": {
     "providerModelName": "upstage/solar-pro-3",
@@ -11455,7 +12727,7 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 128000,
+    "contextWindow": 131072,
     "capabilities": {
       "toolUse": true,
       "streaming": true,
@@ -11485,7 +12757,13 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "maxOutput": 131072,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/palmyra-x5": {
     "providerModelName": "writer/palmyra-x5",
@@ -11531,7 +12809,12 @@
     "version": "5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/mimo-v2-flash": {
     "providerModelName": "xiaomi/mimo-v2-flash",
@@ -11577,8 +12860,13 @@
     "family": "mimo",
     "version": "2",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/mimo-v2.5": {
     "providerModelName": "xiaomi/mimo-v2.5",
@@ -11627,7 +12915,12 @@
     "version": "2.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/mimo-v2.5-pro": {
     "providerModelName": "xiaomi/mimo-v2.5-pro",
@@ -11674,7 +12967,12 @@
     "version": "2.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nex-n2-pro": {
     "providerModelName": "nex-agi/nex-n2-pro:free",
@@ -11723,7 +13021,12 @@
     "version": "2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/kat-coder-pro-v2": {
     "providerModelName": "kwaipilot/kat-coder-pro-v2",
@@ -11769,7 +13072,12 @@
     "family": "kat-coder",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/laguna-m.1": {
     "providerModelName": "poolside/laguna-m.1:free",
@@ -11815,10 +13123,15 @@
     "family": "laguna",
     "version": "1",
     "status": "preview",
-    "active": true,
+    "active": false,
     "deprecation": {
       "shutdownDate": "2026-07-28",
       "source": "openrouter"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "openrouter/laguna-xs.2": {
@@ -11864,7 +13177,12 @@
     "family": "laguna",
     "version": "2",
     "status": "preview",
-    "active": true
+    "active": false,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/aion-rp-llama-3.1-8b": {
     "providerModelName": "aion-labs/aion-rp-llama-3.1-8b",
@@ -11910,7 +13228,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/magnum-v4-72b": {
     "providerModelName": "anthracite-org/magnum-v4-72b",
@@ -11925,8 +13248,8 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 16384,
-    "maxOutput": 2048,
+    "contextWindow": 32768,
+    "maxOutput": 4096,
     "capabilities": {
       "toolUse": true,
       "streaming": true,
@@ -11956,7 +13279,12 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/dolphin-mistral-24b-venice": {
     "providerModelName": "cognitivecomputations/dolphin-mistral-24b-venice-edition:free",
@@ -12007,7 +13335,12 @@
       "source": "openrouter"
     },
     "maxOutput": 8192,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/mythomax-l2-13b": {
     "providerModelName": "gryphe/mythomax-l2-13b",
@@ -12053,7 +13386,12 @@
     "version": "2",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/weaver": {
     "providerModelName": "mancer/weaver",
@@ -12099,7 +13437,12 @@
     "version": "1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/lunaris-8b": {
     "providerModelName": "sao10k/l3-lunaris-8b",
@@ -12145,7 +13488,12 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/euryale-70b": {
     "providerModelName": "sao10k/l3.1-euryale-70b",
@@ -12193,7 +13541,12 @@
     "version": "3.1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/cydonia-24b-v4.1": {
     "providerModelName": "thedrummer/cydonia-24b-v4.1",
@@ -12240,7 +13593,12 @@
     "version": "4.1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/rocinante-12b": {
     "providerModelName": "thedrummer/rocinante-12b",
@@ -12285,8 +13643,13 @@
     "family": "roleplay-finetunes",
     "version": "1",
     "status": "stable",
-    "active": true,
-    "wireSpec": "openai/chat-completions"
+    "active": false,
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/skyfall-36b-v2": {
     "providerModelName": "thedrummer/skyfall-36b-v2",
@@ -12333,7 +13696,12 @@
     "version": "2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/unslopnemo-12b": {
     "providerModelName": "thedrummer/unslopnemo-12b",
@@ -12348,8 +13716,8 @@
     "supportedApis": [
       "completions"
     ],
-    "contextWindow": 32768,
-    "maxOutput": 32768,
+    "contextWindow": 1024000,
+    "maxOutput": 1024000,
     "capabilities": {
       "toolUse": true,
       "streaming": true,
@@ -12379,7 +13747,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/remm-slerp-l2-13b": {
     "providerModelName": "undi95/remm-slerp-l2-13b",
@@ -12425,12 +13798,18 @@
     "version": "2",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-sonnet-5": {
     "providerModelName": "anthropic/claude-sonnet-5",
     "aliases": [
-      "anthropic/claude-sonnet-5"
+      "anthropic/claude-sonnet-5",
+      "anthropic/claude-sonnet-5:batch"
     ],
     "pricing": {
       "inputPerMTok": 2,
@@ -12473,17 +13852,23 @@
     "version": "5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.6-luna": {
     "providerModelName": "openai/gpt-5.6-luna",
     "aliases": [
-      "openai/gpt-5.6-luna"
+      "openai/gpt-5.6-luna",
+      "openai/gpt-5.6-luna:batch"
     ],
     "pricing": {
-      "inputPerMTok": 1,
-      "outputPerMTok": 6,
-      "cacheReadPerMTok": 0.1
+      "inputPerMTok": 0.2,
+      "outputPerMTok": 1.2,
+      "cacheReadPerMTok": 0.02
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -12521,17 +13906,23 @@
     "version": "5.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.6-terra": {
     "providerModelName": "openai/gpt-5.6-terra",
     "aliases": [
-      "openai/gpt-5.6-terra"
+      "openai/gpt-5.6-terra",
+      "openai/gpt-5.6-terra:batch"
     ],
     "pricing": {
-      "inputPerMTok": 2.5,
-      "outputPerMTok": 15,
-      "cacheReadPerMTok": 0.25
+      "inputPerMTok": 2,
+      "outputPerMTok": 12,
+      "cacheReadPerMTok": 0.2
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -12569,17 +13960,23 @@
     "version": "5.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.6-sol": {
     "providerModelName": "openai/gpt-5.6-sol",
     "aliases": [
-      "openai/gpt-5.6-sol"
+      "openai/gpt-5.6-sol",
+      "openai/gpt-5.6-sol:batch"
     ],
     "pricing": {
-      "inputPerMTok": 5,
-      "outputPerMTok": 30,
-      "cacheReadPerMTok": 0.5
+      "inputPerMTok": 2,
+      "outputPerMTok": 10,
+      "cacheReadPerMTok": 0.2
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -12617,17 +14014,23 @@
     "version": "5.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.6-luna-pro": {
     "providerModelName": "openai/gpt-5.6-luna-pro",
     "aliases": [
-      "openai/gpt-5.6-luna-pro"
+      "openai/gpt-5.6-luna-pro",
+      "openai/gpt-5.6-luna-pro:batch"
     ],
     "pricing": {
-      "inputPerMTok": 1,
-      "outputPerMTok": 6,
-      "cacheReadPerMTok": 0.1
+      "inputPerMTok": 0.2,
+      "outputPerMTok": 1.2,
+      "cacheReadPerMTok": 0.02
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -12665,17 +14068,23 @@
     "version": "5.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.6-terra-pro": {
     "providerModelName": "openai/gpt-5.6-terra-pro",
     "aliases": [
-      "openai/gpt-5.6-terra-pro"
+      "openai/gpt-5.6-terra-pro",
+      "openai/gpt-5.6-terra-pro:batch"
     ],
     "pricing": {
-      "inputPerMTok": 2.5,
-      "outputPerMTok": 15,
-      "cacheReadPerMTok": 0.25
+      "inputPerMTok": 2,
+      "outputPerMTok": 12,
+      "cacheReadPerMTok": 0.2
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -12713,17 +14122,23 @@
     "version": "5.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gpt-5.6-sol-pro": {
     "providerModelName": "openai/gpt-5.6-sol-pro",
     "aliases": [
-      "openai/gpt-5.6-sol-pro"
+      "openai/gpt-5.6-sol-pro",
+      "openai/gpt-5.6-sol-pro:batch"
     ],
     "pricing": {
-      "inputPerMTok": 5,
-      "outputPerMTok": 30,
-      "cacheReadPerMTok": 0.5
+      "inputPerMTok": 2,
+      "outputPerMTok": 10,
+      "cacheReadPerMTok": 0.2
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -12761,7 +14176,12 @@
     "version": "5.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-3.1-flash-lite-image": {
     "providerModelName": "google/gemini-3.1-flash-lite-image",
@@ -12832,6 +14252,11 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "openrouter/grok-4.5": {
@@ -12879,17 +14304,24 @@
     "version": "4.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/glm-5.2": {
     "providerModelName": "z-ai/glm-5.2",
     "aliases": [
-      "z-ai/glm-5.2"
+      "z-ai/glm-5.2",
+      "z-ai/glm-5.2:batch",
+      "z-ai/glm-5.2:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.7756,
-      "outputPerMTok": 2.4376,
-      "cacheReadPerMTok": 0.14404
+      "inputPerMTok": 0.966,
+      "outputPerMTok": 3.036,
+      "cacheReadPerMTok": 0.1932
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -12926,7 +14358,12 @@
     "version": "5.2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/glm-5v-turbo": {
     "providerModelName": "z-ai/glm-5v-turbo",
@@ -12977,6 +14414,11 @@
     "deprecation": {
       "shutdownDate": "2098-12-31",
       "source": "openrouter"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "openrouter/aion-3.0-mini": {
@@ -13024,7 +14466,12 @@
     "version": "3.0",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/aion-3.0": {
     "providerModelName": "aion-labs/aion-3.0",
@@ -13071,7 +14518,12 @@
     "version": "3.0",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/nex-n2-mini": {
     "providerModelName": "nex-agi/nex-n2-mini",
@@ -13119,7 +14571,12 @@
     "version": "2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/laguna-xs.2.1": {
     "providerModelName": "poolside/laguna-xs-2.1",
@@ -13166,7 +14623,12 @@
     "family": "laguna",
     "version": "2.1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/fugu-ultra": {
     "providerModelName": "sakana/fugu-ultra",
@@ -13215,7 +14677,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/north-mini-code": {
     "providerModelName": "cohere/north-mini-code:free",
@@ -13260,17 +14727,23 @@
     "family": "north-code",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/kimi-k2.7-code": {
     "providerModelName": "moonshotai/kimi-k2.7-code",
     "aliases": [
-      "moonshotai/kimi-k2.7-code"
+      "moonshotai/kimi-k2.7-code",
+      "moonshotai/kimi-k2.7-code:batch"
     ],
     "pricing": {
-      "inputPerMTok": 0.73,
-      "outputPerMTok": 3.5,
-      "cacheReadPerMTok": 0.15
+      "inputPerMTok": 0.67,
+      "outputPerMTok": 3.4,
+      "cacheReadPerMTok": 0.17
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -13307,7 +14780,12 @@
     "family": "kimi-code",
     "version": "2.7",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/auto-beta": {
     "providerModelName": "openrouter/auto-beta",
@@ -13351,7 +14829,12 @@
     "family": "router",
     "version": "1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-opus-5-fast": {
     "providerModelName": "anthropic/claude-opus-5-fast",
@@ -13399,12 +14882,18 @@
     "version": "5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/claude-opus-5": {
     "providerModelName": "anthropic/claude-opus-5",
     "aliases": [
-      "anthropic/claude-opus-5"
+      "anthropic/claude-opus-5",
+      "anthropic/claude-opus-5:batch"
     ],
     "pricing": {
       "inputPerMTok": 5,
@@ -13447,17 +14936,23 @@
     "version": "5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-3.6-flash": {
     "providerModelName": "google/gemini-3.6-flash",
     "aliases": [
-      "google/gemini-3.6-flash"
+      "google/gemini-3.6-flash",
+      "google/gemini-3.6-flash:batch"
     ],
     "pricing": {
-      "inputPerMTok": 1.5,
-      "outputPerMTok": 7.5,
-      "cacheReadPerMTok": 0.15
+      "inputPerMTok": 0.75,
+      "outputPerMTok": 3.75,
+      "cacheReadPerMTok": 0.075
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -13496,12 +14991,18 @@
     "version": "3.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/gemini-3.5-flash-lite": {
     "providerModelName": "google/gemini-3.5-flash-lite",
     "aliases": [
-      "google/gemini-3.5-flash-lite"
+      "google/gemini-3.5-flash-lite",
+      "google/gemini-3.5-flash-lite:batch"
     ],
     "pricing": {
       "inputPerMTok": 0.3,
@@ -13545,7 +15046,12 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/kimi-k3": {
     "providerModelName": "moonshotai/kimi-k3",
@@ -13592,16 +15098,23 @@
     "version": "3",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/ling-3.0-flash": {
     "providerModelName": "inclusionai/ling-3.0-flash:free",
     "aliases": [
-      "inclusionai/ling-3.0-flash:free"
+      "inclusionai/ling-3.0-flash:free",
+      "inclusionai/ling-3.0-flash"
     ],
     "pricing": {
-      "inputPerMTok": 0,
-      "outputPerMTok": 0
+      "inputPerMTok": 0.021,
+      "outputPerMTok": 0.063,
+      "cacheReadPerMTok": 0.0042
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -13638,7 +15151,12 @@
     "version": "3.0",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/kat-coder-air-v2.5": {
     "providerModelName": "kwaipilot/kat-coder-air-v2.5",
@@ -13684,7 +15202,12 @@
     "family": "kat-coder",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/kat-coder-pro-v2.5": {
     "providerModelName": "kwaipilot/kat-coder-pro-v2.5",
@@ -13730,7 +15253,12 @@
     "family": "kat-coder",
     "version": "2.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/laguna-s.2.1": {
     "providerModelName": "poolside/laguna-s-2.1",
@@ -13739,9 +15267,9 @@
       "poolside/laguna-s-2.1:free"
     ],
     "pricing": {
-      "inputPerMTok": 0.1,
-      "outputPerMTok": 0.2,
-      "cacheReadPerMTok": 0.01
+      "inputPerMTok": 0.09,
+      "outputPerMTok": 0.18,
+      "cacheReadPerMTok": 0.009
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -13777,7 +15305,12 @@
     "family": "laguna",
     "version": "2.1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/longcat-2.0": {
     "providerModelName": "meituan/longcat-2.0",
@@ -13824,17 +15357,24 @@
     "version": "2.0",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/inkling": {
     "providerModelName": "thinkingmachines/inkling",
     "aliases": [
-      "thinkingmachines/inkling"
+      "thinkingmachines/inkling",
+      "thinkingmachines/inkling:batch",
+      "thinkingmachines/inkling:free"
     ],
     "pricing": {
-      "inputPerMTok": 1,
+      "inputPerMTok": 0.95,
       "outputPerMTok": 4.05,
-      "cacheReadPerMTok": 0.17
+      "cacheReadPerMTok": 0.16
     },
     "preferredApi": "completions",
     "supportedApis": [
@@ -13872,7 +15412,12 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/chat-completions"
+    "wireSpec": "openai/chat-completions",
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "openrouter/muse-spark-1.1": {
     "providerModelName": "meta/muse-spark-1.1",
@@ -13945,6 +15490,1194 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
+  },
+  "openrouter/gemini-3.7-flash": {
+    "providerModelName": "google/gemini-3.7-flash",
+    "aliases": [
+      "google/gemini-3.7-flash",
+      "google/gemini-3.7-flash:batch"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.375,
+      "outputPerMTok": 1.875,
+      "cacheReadPerMTok": 0.0375
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 65536,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "gemini-flash",
+    "version": "3.7",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/grok-4.6": {
+    "providerModelName": "x-ai/grok-4.6",
+    "aliases": [
+      "x-ai/grok-4.6"
+    ],
+    "pricing": {
+      "inputPerMTok": 2,
+      "outputPerMTok": 6,
+      "cacheReadPerMTok": 0.5
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 500000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "grok",
+    "version": "4.6",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/qwen-3.8-27b": {
+    "providerModelName": "qwen/qwen3.8-27b",
+    "aliases": [
+      "qwen/qwen3.8-27b"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.4,
+      "outputPerMTok": 3,
+      "cacheReadPerMTok": 0.05
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1000000,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "qwen",
+    "version": "3.8",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/qwen-3.8-2.4t-a95b": {
+    "providerModelName": "qwen/qwen3.8-2.4t-a95b",
+    "aliases": [
+      "qwen/qwen3.8-2.4t-a95b"
+    ],
+    "pricing": {
+      "inputPerMTok": 2,
+      "outputPerMTok": 6,
+      "cacheReadPerMTok": 0.25
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "qwen",
+    "version": "3.8",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/qwen-3.8-max": {
+    "providerModelName": "qwen/qwen3.8-max",
+    "aliases": [
+      "qwen/qwen3.8-max"
+    ],
+    "pricing": {
+      "inputPerMTok": 2,
+      "outputPerMTok": 6,
+      "cacheReadPerMTok": 0.25
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1000000,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "qwen-max",
+    "version": "3.8",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/qwen-3.7-flash": {
+    "providerModelName": "qwen/qwen3.7-flash",
+    "aliases": [
+      "qwen/qwen3.7-flash"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.03,
+      "outputPerMTok": 0.13,
+      "cacheReadPerMTok": 0.006
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1000000,
+    "maxOutput": 65536,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "qwen-flash",
+    "version": "3.7",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/glm-5.3": {
+    "providerModelName": "z-ai/glm-5.3",
+    "aliases": [
+      "z-ai/glm-5.3"
+    ],
+    "pricing": {
+      "inputPerMTok": 1.4,
+      "outputPerMTok": 4.4,
+      "cacheReadPerMTok": 0.26
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "glm",
+    "version": "5.3",
+    "status": "stable",
+    "active": true,
+    "deprecation": {
+      "shutdownDate": "2098-12-31",
+      "source": "openrouter"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/seed-2.1-turbo": {
+    "providerModelName": "bytedance-seed/seed-2-1-turbo",
+    "aliases": [
+      "bytedance-seed/seed-2-1-turbo"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.5,
+      "outputPerMTok": 2.5
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 262144,
+    "maxOutput": 262144,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "seed",
+    "version": "2.1",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/lfm-2.5-2.6b": {
+    "providerModelName": "liquid/lfm-2.5-2.6b:free",
+    "aliases": [
+      "liquid/lfm-2.5-2.6b:free"
+    ],
+    "pricing": {
+      "inputPerMTok": 0,
+      "outputPerMTok": 0
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 65536,
+    "maxOutput": 8192,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "lfm",
+    "version": "2.5",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/solar-pro-4": {
+    "providerModelName": "upstage/solar-pro4",
+    "aliases": [
+      "upstage/solar-pro4"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.03,
+      "outputPerMTok": 0.12,
+      "cacheReadPerMTok": 0.006
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 524288,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "solar",
+    "version": "4",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/muse-spark-1.2-contributor": {
+    "providerModelName": "meta/muse-spark-1.2-contributor",
+    "aliases": [
+      "meta/muse-spark-1.2-contributor"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.1,
+      "outputPerMTok": 0.2,
+      "cacheReadPerMTok": 0.002
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": true,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "image",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "image"
+    ],
+    "family": "muse",
+    "version": "1.2",
+    "status": "stable",
+    "active": true,
+    "mediaParams": {
+      "aspectRatio": {
+        "values": [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ]
+      },
+      "imageSize": {
+        "values": [
+          "0.5K",
+          "1K",
+          "2K",
+          "4K"
+        ],
+        "default": "1K"
+      }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
+  },
+  "openrouter/muse-glimmer-30b": {
+    "providerModelName": "meta/muse-glimmer-30b",
+    "aliases": [
+      "meta/muse-glimmer-30b"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.35,
+      "outputPerMTok": 1.5,
+      "cacheReadPerMTok": 0.04
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": true,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "image",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "image"
+    ],
+    "family": "muse",
+    "version": "1",
+    "status": "stable",
+    "active": true,
+    "mediaParams": {
+      "aspectRatio": {
+        "values": [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ]
+      },
+      "imageSize": {
+        "values": [
+          "0.5K",
+          "1K",
+          "2K",
+          "4K"
+        ],
+        "default": "1K"
+      }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
+  },
+  "openrouter/muse-spark-1.2": {
+    "providerModelName": "meta/muse-spark-1.2",
+    "aliases": [
+      "meta/muse-spark-1.2"
+    ],
+    "pricing": {
+      "inputPerMTok": 1.25,
+      "outputPerMTok": 4.25,
+      "cacheReadPerMTok": 0.15
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": true,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "image",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "image"
+    ],
+    "family": "muse",
+    "version": "1.2",
+    "status": "stable",
+    "active": true,
+    "mediaParams": {
+      "aspectRatio": {
+        "values": [
+          "1:1",
+          "2:3",
+          "3:2",
+          "3:4",
+          "4:3",
+          "4:5",
+          "5:4",
+          "9:16",
+          "16:9",
+          "21:9"
+        ]
+      },
+      "imageSize": {
+        "values": [
+          "0.5K",
+          "1K",
+          "2K",
+          "4K"
+        ],
+        "default": "1K"
+      }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
+  },
+  "openrouter/ox-alpha": {
+    "providerModelName": "stealth/ox-alpha",
+    "aliases": [
+      "stealth/ox-alpha"
+    ],
+    "pricing": {
+      "inputPerMTok": 0,
+      "outputPerMTok": 0
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "ox",
+    "version": "alpha",
+    "status": "preview",
+    "active": true,
+    "deprecation": {
+      "shutdownDate": "2098-12-31",
+      "source": "openrouter"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/hy-mt2-1.8b": {
+    "providerModelName": "tencent/hy-mt2-1.8b",
+    "aliases": [
+      "tencent/hy-mt2-1.8b"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.044,
+      "outputPerMTok": 0.177
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 8192,
+    "maxOutput": 4096,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "hy-mt",
+    "version": "2",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/hy-mt2-30b-a3b": {
+    "providerModelName": "tencent/hy-mt2-30b-a3b",
+    "aliases": [
+      "tencent/hy-mt2-30b-a3b"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.074,
+      "outputPerMTok": 0.295
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 8192,
+    "maxOutput": 4096,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "hy-mt",
+    "version": "2",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/hy-mt2-7b": {
+    "providerModelName": "tencent/hy-mt2-7b",
+    "aliases": [
+      "tencent/hy-mt2-7b"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.074,
+      "outputPerMTok": 0.295
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 8192,
+    "maxOutput": 4096,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "hy-mt",
+    "version": "2",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/dots-3-note": {
+    "providerModelName": "dots-studio/dots-3-note-preview:free",
+    "aliases": [
+      "dots-studio/dots-3-note-preview:free"
+    ],
+    "pricing": {
+      "inputPerMTok": 0,
+      "outputPerMTok": 0
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 512000,
+    "maxOutput": 512000,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "dots",
+    "version": "3",
+    "status": "preview",
+    "active": true,
+    "deprecation": {
+      "shutdownDate": "2026-09-30",
+      "source": "openrouter"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/seed-2.0-code": {
+    "providerModelName": "bytedance-seed/seed-2.0-code",
+    "aliases": [
+      "bytedance-seed/seed-2.0-code"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.5,
+      "outputPerMTok": 3
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 262144,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "code",
+    "inputModalities": [
+      "text",
+      "image"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "seed-code",
+    "version": "2.0",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
+  },
+  "openrouter/nvidia/nemotron-3.5-lightning": {
+    "providerModelName": "nvidia/nemotron-3.5-lightning",
+    "aliases": [
+      "nvidia/nemotron-3.5-lightning",
+      "nvidia/nemotron-3.5-lightning:free"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.08,
+      "outputPerMTok": 0.2,
+      "cacheReadPerMTok": 0.04
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 262144,
+    "maxOutput": 131072,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": false,
+      "audio": false,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "_unplaced/nvidia/nemotron-3.5-lightning",
+    "version": "?",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
+  },
+  "openrouter/thinkingmachines/inkling-small": {
+    "providerModelName": "thinkingmachines/inkling-small",
+    "aliases": [
+      "thinkingmachines/inkling-small",
+      "thinkingmachines/inkling-small:free"
+    ],
+    "pricing": {
+      "inputPerMTok": 0.45,
+      "outputPerMTok": 1.2,
+      "cacheReadPerMTok": 0.1
+    },
+    "preferredApi": "completions",
+    "supportedApis": [
+      "completions"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 262144,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "_unplaced/thinkingmachines/inkling-small",
+    "version": "?",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "wireSpec": "openai/chat-completions"
   }
 }

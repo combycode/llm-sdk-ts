@@ -53,14 +53,15 @@
     "status": "legacy",
     "active": false,
     "deprecation": {
-      "date": "2026-05-14",
+      "date": "2026-06-15",
       "source": "litellm"
     },
-    "wire": {
-      "thinking": "budgeted",
-      "topK": false
-    },
-    "wireSpec": "anthropic/messages@4.0"
+    "wireSpec": "anthropic/messages@4.0",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
+    }
   },
   "anthropic/claude-opus-4.1": {
     "providerModelName": "claude-opus-4-1-20250805",
@@ -114,16 +115,17 @@
     "family": "claude-opus",
     "version": "4.1",
     "status": "legacy",
-    "active": true,
+    "active": false,
     "deprecation": {
-      "date": "2026-08-05",
-      "source": "litellm"
+      "date": "2026-08-23",
+      "source": "delisted"
     },
-    "wire": {
-      "thinking": "budgeted",
-      "topK": true
-    },
-    "wireSpec": "anthropic/messages@4.1"
+    "wireSpec": "anthropic/messages@4.1",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
+    }
   },
   "anthropic/claude-opus-4.5": {
     "providerModelName": "claude-opus-4-5-20251101",
@@ -178,11 +180,16 @@
     "version": "4.5",
     "status": "legacy",
     "active": true,
-    "wire": {
-      "thinking": "budgeted",
-      "topK": true
+    "wireSpec": "anthropic/messages@4.1",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
     },
-    "wireSpec": "anthropic/messages@4.1"
+    "deprecation": {
+      "date": "2026-11-24",
+      "source": "litellm"
+    }
   },
   "anthropic/claude-opus-4.6": {
     "providerModelName": "claude-opus-4-6",
@@ -224,9 +231,16 @@
     "reasoning": {
       "supported": true,
       "automatic": false,
-      "effortControl": false,
+      "effortControl": true,
+      "effortValues": [
+        "low",
+        "medium",
+        "high",
+        "max"
+      ],
+      "effortMeaning": "thinking_depth",
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -241,11 +255,16 @@
     "version": "4.6",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "adaptive",
-      "topK": true
+    "wireSpec": "anthropic/messages@4.6",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
     },
-    "wireSpec": "anthropic/messages@4.6"
+    "deprecation": {
+      "date": "2027-02-05",
+      "source": "litellm"
+    }
   },
   "anthropic/claude-opus-4.7": {
     "providerModelName": "claude-opus-4-7",
@@ -304,11 +323,16 @@
     "version": "4.7",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "adaptive",
-      "topK": false
+    "wireSpec": "anthropic/messages@4.7",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
     },
-    "wireSpec": "anthropic/messages@4.7"
+    "deprecation": {
+      "date": "2027-04-16",
+      "source": "litellm"
+    }
   },
   "anthropic/claude-opus-4.8": {
     "providerModelName": "claude-opus-4-8",
@@ -367,11 +391,16 @@
     "version": "4.8",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "adaptive",
-      "topK": false
+    "wireSpec": "anthropic/messages@4.7",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
     },
-    "wireSpec": "anthropic/messages@4.7"
+    "deprecation": {
+      "date": "2027-05-28",
+      "source": "litellm"
+    }
   },
   "anthropic/claude-sonnet-4": {
     "providerModelName": "claude-sonnet-4-20250514",
@@ -427,14 +456,15 @@
     "status": "legacy",
     "active": false,
     "deprecation": {
-      "date": "2026-05-14",
+      "date": "2026-06-15",
       "source": "litellm"
     },
-    "wire": {
-      "thinking": "budgeted",
-      "topK": false
-    },
-    "wireSpec": "anthropic/messages@4.0"
+    "wireSpec": "anthropic/messages@4.0",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
+    }
   },
   "anthropic/claude-sonnet-4.5": {
     "providerModelName": "claude-sonnet-4-5-20250929",
@@ -489,11 +519,16 @@
     "version": "4.5",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "budgeted",
-      "topK": true
+    "wireSpec": "anthropic/messages@4.1",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
     },
-    "wireSpec": "anthropic/messages@4.1"
+    "deprecation": {
+      "date": "2026-09-29",
+      "source": "litellm"
+    }
   },
   "anthropic/claude-sonnet-4.6": {
     "providerModelName": "claude-sonnet-4-6",
@@ -531,9 +566,15 @@
     "reasoning": {
       "supported": true,
       "automatic": false,
-      "effortControl": false,
+      "effortControl": true,
+      "effortValues": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -548,11 +589,16 @@
     "version": "4.6",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "adaptive",
-      "topK": true
+    "wireSpec": "anthropic/messages@4.6",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
     },
-    "wireSpec": "anthropic/messages@4.6"
+    "deprecation": {
+      "date": "2027-02-17",
+      "source": "litellm"
+    }
   },
   "anthropic/claude-haiku-4.5": {
     "providerModelName": "claude-haiku-4-5-20251001",
@@ -588,7 +634,7 @@
       "videoGeneration": false
     },
     "reasoning": {
-      "supported": true,
+      "supported": false,
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
@@ -607,11 +653,16 @@
     "version": "4.5",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "budgeted",
-      "topK": true
+    "wireSpec": "anthropic/messages@4.1",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
     },
-    "wireSpec": "anthropic/messages@4.1"
+    "deprecation": {
+      "date": "2026-10-15",
+      "source": "litellm"
+    }
   },
   "anthropic/claude-fable-5": {
     "providerModelName": "claude-fable-5",
@@ -666,11 +717,16 @@
     "version": "5",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "adaptive",
-      "topK": false
+    "wireSpec": "anthropic/messages@4.7",
+    "deprecation": {
+      "date": "2027-06-09",
+      "source": "litellm"
     },
-    "wireSpec": "anthropic/messages@4.7"
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
+    }
   },
   "anthropic/claude-sonnet-5": {
     "providerModelName": "claude-sonnet-5",
@@ -725,11 +781,16 @@
     "version": "5",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "adaptive",
-      "topK": false
+    "wireSpec": "anthropic/messages@4.7",
+    "deprecation": {
+      "date": "2027-06-30",
+      "source": "litellm"
     },
-    "wireSpec": "anthropic/messages@4.7"
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
+    }
   },
   "anthropic/claude-mythos-5": {
     "providerModelName": "claude-mythos-5",
@@ -781,11 +842,14 @@
     "status": "stable",
     "active": false,
     "availability": "limited",
-    "wire": {
-      "thinking": "adaptive",
-      "topK": false
-    },
-    "wireSpec": "anthropic/messages@4.7"
+    "wireSpec": "anthropic/messages@4.7",
+    "contextWindow": 1000000,
+    "maxOutput": 128000,
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
+    }
   },
   "anthropic/claude-opus-5": {
     "providerModelName": "claude-opus-5",
@@ -844,10 +908,15 @@
     "version": "5",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "adaptive",
-      "topK": false
+    "wireSpec": "anthropic/messages@4.7",
+    "deprecation": {
+      "date": "2027-07-24",
+      "source": "litellm"
     },
-    "wireSpec": "anthropic/messages@4.7"
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 3.5,
+      "countApiAvailable": true
+    }
   }
 }

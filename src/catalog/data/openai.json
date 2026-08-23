@@ -47,7 +47,17 @@
     "version": "3.5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "deprecation": {
+      "date": "2026-10-23",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "cl100k_base"
+    }
   },
   "openai/gpt-4": {
     "providerModelName": "gpt-4",
@@ -95,7 +105,17 @@
     "version": "4",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "cl100k_base"
+    },
+    "deprecation": {
+      "date": "2026-10-23",
+      "source": "litellm"
+    }
   },
   "openai/gpt-4-turbo": {
     "providerModelName": "gpt-4-turbo",
@@ -144,7 +164,17 @@
     "version": "4",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "deprecation": {
+      "date": "2026-10-23",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "cl100k_base"
+    }
   },
   "openai/gpt-4.1": {
     "providerModelName": "gpt-4.1",
@@ -194,7 +224,13 @@
     "version": "4.1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5": {
     "providerModelName": "gpt-5",
@@ -244,7 +280,13 @@
     "version": "5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5-search": {
     "providerModelName": "gpt-5-search-api",
@@ -293,7 +335,13 @@
     "family": "gpt",
     "version": "5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.1": {
     "providerModelName": "gpt-5.1",
@@ -343,7 +391,13 @@
     "version": "5.1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.2": {
     "providerModelName": "gpt-5.2",
@@ -393,7 +447,13 @@
     "version": "5.2",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.4": {
     "providerModelName": "gpt-5.4",
@@ -444,9 +504,16 @@
     "reasoning": {
       "supported": true,
       "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "effortControl": true,
+      "effortValues": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -460,7 +527,13 @@
     "version": "5.4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.5": {
     "providerModelName": "gpt-5.5",
@@ -527,7 +600,13 @@
     "version": "5.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5-chat": {
     "providerModelName": "gpt-5-chat-latest",
@@ -576,7 +655,17 @@
     "version": "5",
     "status": "legacy",
     "active": false,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "deprecation": {
+      "date": "2026-07-23",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.1-chat": {
     "providerModelName": "gpt-5.1-chat-latest",
@@ -625,7 +714,17 @@
     "version": "5.1",
     "status": "legacy",
     "active": false,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "deprecation": {
+      "date": "2026-07-23",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.2-chat": {
     "providerModelName": "gpt-5.2-chat-latest",
@@ -675,10 +774,16 @@
     "status": "stable",
     "active": true,
     "deprecation": {
-      "shutdownDate": "2026-08-10",
-      "source": "openrouter"
+      "date": "2026-08-10",
+      "source": "litellm"
     },
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.3-chat": {
     "providerModelName": "gpt-5.3-chat-latest",
@@ -728,10 +833,16 @@
     "status": "stable",
     "active": true,
     "deprecation": {
-      "shutdownDate": "2026-08-10",
-      "source": "openrouter"
+      "date": "2026-08-10",
+      "source": "litellm"
     },
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5-codex": {
     "providerModelName": "gpt-5-codex",
@@ -778,7 +889,17 @@
     "family": "gpt-codex",
     "version": "5",
     "status": "legacy",
-    "active": false
+    "active": false,
+    "deprecation": {
+      "date": "2026-07-23",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.1-codex": {
     "providerModelName": "gpt-5.1-codex",
@@ -825,7 +946,17 @@
     "family": "gpt-codex",
     "version": "5.1",
     "status": "stable",
-    "active": false
+    "active": false,
+    "deprecation": {
+      "date": "2026-07-23",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.1-codex-max": {
     "providerModelName": "gpt-5.1-codex-max",
@@ -872,7 +1003,17 @@
     "family": "gpt-codex",
     "version": "5.1",
     "status": "stable",
-    "active": false
+    "active": false,
+    "deprecation": {
+      "date": "2026-07-23",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.1-codex-mini": {
     "providerModelName": "gpt-5.1-codex-mini",
@@ -919,7 +1060,17 @@
     "family": "gpt-codex",
     "version": "5.1",
     "status": "stable",
-    "active": false
+    "active": false,
+    "deprecation": {
+      "date": "2026-07-23",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.2-codex": {
     "providerModelName": "gpt-5.2-codex",
@@ -966,7 +1117,17 @@
     "family": "gpt-codex",
     "version": "5.2",
     "status": "stable",
-    "active": false
+    "active": false,
+    "deprecation": {
+      "date": "2026-07-23",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.3-codex": {
     "providerModelName": "gpt-5.3-codex",
@@ -979,6 +1140,11 @@
       "cacheReadPerMTok": 0.175,
       "tiers": {
         "priority": {
+          "inputPerMTok": 3.5,
+          "outputPerMTok": 28,
+          "cacheReadPerMTok": 0.35
+        },
+        "fast": {
           "inputPerMTok": 3.5,
           "outputPerMTok": 28,
           "cacheReadPerMTok": 0.35
@@ -1020,7 +1186,13 @@
     "family": "gpt-codex",
     "version": "5.3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-4.1-mini": {
     "providerModelName": "gpt-4.1-mini",
@@ -1052,11 +1224,18 @@
       "videoGeneration": false
     },
     "reasoning": {
-      "supported": false,
+      "supported": true,
       "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "effortControl": true,
+      "effortValues": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -1070,7 +1249,13 @@
     "version": "4.1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5-mini": {
     "providerModelName": "gpt-5-mini",
@@ -1104,9 +1289,16 @@
     "reasoning": {
       "supported": true,
       "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "effortControl": true,
+      "effortValues": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -1120,7 +1312,13 @@
     "version": "5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.4-mini": {
     "providerModelName": "gpt-5.4-mini",
@@ -1171,9 +1369,16 @@
     "reasoning": {
       "supported": true,
       "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "effortControl": true,
+      "effortValues": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -1187,7 +1392,13 @@
     "version": "5.4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-4.1-nano": {
     "providerModelName": "gpt-4.1-nano",
@@ -1219,11 +1430,18 @@
       "videoGeneration": false
     },
     "reasoning": {
-      "supported": false,
+      "supported": true,
       "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "effortControl": true,
+      "effortValues": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -1237,7 +1455,17 @@
     "version": "4.1",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    },
+    "deprecation": {
+      "date": "2026-10-23",
+      "source": "litellm"
+    }
   },
   "openai/gpt-5-nano": {
     "providerModelName": "gpt-5-nano",
@@ -1271,9 +1499,16 @@
     "reasoning": {
       "supported": true,
       "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "effortControl": true,
+      "effortValues": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -1287,7 +1522,13 @@
     "version": "5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.4-nano": {
     "providerModelName": "gpt-5.4-nano",
@@ -1333,9 +1574,16 @@
     "reasoning": {
       "supported": true,
       "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "effortControl": true,
+      "effortValues": [
+        "none",
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -1349,7 +1597,13 @@
     "version": "5.4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5-pro": {
     "providerModelName": "gpt-5-pro",
@@ -1397,7 +1651,13 @@
     "version": "5",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.2-pro": {
     "providerModelName": "gpt-5.2-pro",
@@ -1445,7 +1705,13 @@
     "version": "5.2",
     "status": "legacy",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.4-pro": {
     "providerModelName": "gpt-5.4-pro",
@@ -1487,9 +1753,15 @@
     "reasoning": {
       "supported": true,
       "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "effortControl": true,
+      "effortValues": [
+        "medium",
+        "high",
+        "xhigh"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -1503,7 +1775,13 @@
     "version": "5.4",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.5-pro": {
     "providerModelName": "gpt-5.5-pro",
@@ -1561,7 +1839,13 @@
     "version": "5.5",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-4o": {
     "providerModelName": "gpt-4o",
@@ -1612,7 +1896,13 @@
     "family": "gpt-4o",
     "version": "4o",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-4o-mini": {
     "providerModelName": "gpt-4o-mini",
@@ -1663,7 +1953,13 @@
     "family": "gpt-4o",
     "version": "4o",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-4o-search": {
     "providerModelName": "gpt-4o-search-preview",
@@ -1709,7 +2005,13 @@
     ],
     "family": "gpt-4o",
     "version": "4o",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-4o-mini-search": {
     "providerModelName": "gpt-4o-mini-search-preview",
@@ -1755,7 +2057,13 @@
     ],
     "family": "gpt-4o",
     "version": "4o",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-image-1": {
     "providerModelName": "gpt-image-1",
@@ -1841,6 +2149,17 @@
         "max": 10,
         "default": 1
       }
+    },
+    "mediaOnly": true,
+    "deprecation": {
+      "date": "2026-10-23",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
     }
   },
   "openai/gpt-image-1-mini": {
@@ -1934,6 +2253,17 @@
         "max": 10,
         "default": 1
       }
+    },
+    "mediaOnly": true,
+    "deprecation": {
+      "date": "2026-12-01",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
     }
   },
   "openai/gpt-image-1.5": {
@@ -2028,6 +2358,17 @@
         "max": 10,
         "default": 1
       }
+    },
+    "mediaOnly": true,
+    "deprecation": {
+      "date": "2026-12-01",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
     }
   },
   "openai/gpt-image-2": {
@@ -2123,6 +2464,13 @@
         "max": 10,
         "default": 1
       }
+    },
+    "mediaOnly": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
     }
   },
   "openai/gpt-audio": {
@@ -2171,7 +2519,17 @@
     "family": "gpt-audio",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    },
+    "deprecation": {
+      "date": "2027-01-20",
+      "source": "litellm"
+    }
   },
   "openai/gpt-audio-1.5": {
     "providerModelName": "gpt-audio-1.5",
@@ -2220,7 +2578,13 @@
     "family": "gpt-audio",
     "version": "1.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-audio-mini": {
     "providerModelName": "gpt-audio-mini",
@@ -2269,7 +2633,17 @@
     "family": "gpt-audio",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "deprecation": {
+      "date": "2027-01-20",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-realtime": {
     "providerModelName": "gpt-realtime",
@@ -2320,7 +2694,17 @@
     "family": "gpt-realtime",
     "version": "1",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    },
+    "deprecation": {
+      "date": "2027-01-20",
+      "source": "litellm"
+    }
   },
   "openai/gpt-realtime-1.5": {
     "providerModelName": "gpt-realtime-1.5",
@@ -2370,7 +2754,13 @@
     "family": "gpt-realtime",
     "version": "1.5",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-realtime-2": {
     "providerModelName": "gpt-realtime-2",
@@ -2420,7 +2810,13 @@
     "family": "gpt-realtime",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-realtime-mini": {
     "providerModelName": "gpt-realtime-mini",
@@ -2471,7 +2867,17 @@
     "family": "gpt-realtime",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "deprecation": {
+      "date": "2027-01-20",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-realtime-translate": {
     "providerModelName": "gpt-realtime-translate",
@@ -2515,7 +2921,14 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "contextWindow": 128000
+    "contextWindow": 16000,
+    "maxOutput": 2000,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-realtime-whisper": {
     "providerModelName": "gpt-realtime-whisper",
@@ -2559,7 +2972,13 @@
     "version": "1",
     "status": "stable",
     "active": true,
-    "contextWindow": 128000
+    "contextWindow": 128000,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/o1": {
     "providerModelName": "o1",
@@ -2592,10 +3011,16 @@
     },
     "reasoning": {
       "supported": true,
-      "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "automatic": true,
+      "effortControl": true,
+      "effortValues": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -2608,7 +3033,17 @@
     "family": "o-series",
     "version": "1",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    },
+    "deprecation": {
+      "date": "2026-10-23",
+      "source": "litellm"
+    }
   },
   "openai/o1-pro": {
     "providerModelName": "o1-pro",
@@ -2655,7 +3090,17 @@
     "family": "o-series",
     "version": "1",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "deprecation": {
+      "date": "2026-10-23",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/o3": {
     "providerModelName": "o3",
@@ -2688,10 +3133,16 @@
     },
     "reasoning": {
       "supported": true,
-      "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "automatic": true,
+      "effortControl": true,
+      "effortValues": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -2704,7 +3155,13 @@
     "family": "o-series",
     "version": "3",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/o3-mini": {
     "providerModelName": "o3-mini",
@@ -2737,10 +3194,16 @@
     },
     "reasoning": {
       "supported": true,
-      "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "automatic": true,
+      "effortControl": true,
+      "effortValues": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -2752,7 +3215,17 @@
     "family": "o-series",
     "version": "3",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    },
+    "deprecation": {
+      "date": "2026-10-23",
+      "source": "litellm"
+    }
   },
   "openai/o3-pro": {
     "providerModelName": "o3-pro",
@@ -2799,7 +3272,13 @@
     "family": "o-series",
     "version": "3",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/o4-mini": {
     "providerModelName": "o4-mini",
@@ -2839,10 +3318,16 @@
     },
     "reasoning": {
       "supported": true,
-      "automatic": false,
-      "effortControl": false,
-      "encryptedContent": false,
-      "summaryAvailable": false
+      "automatic": true,
+      "effortControl": true,
+      "effortValues": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
+      "encryptedContent": true,
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -2855,7 +3340,17 @@
     "family": "o-series",
     "version": "4",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    },
+    "deprecation": {
+      "date": "2026-10-23",
+      "source": "litellm"
+    }
   },
   "openai/sora-2": {
     "providerModelName": "sora-2",
@@ -2928,6 +3423,16 @@
         ],
         "default": "720x1280"
       }
+    },
+    "deprecation": {
+      "date": "2026-09-24",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
     }
   },
   "openai/sora-2-pro": {
@@ -3005,6 +3510,16 @@
         ],
         "default": "720x1280"
       }
+    },
+    "deprecation": {
+      "date": "2026-09-24",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
     }
   },
   "openai/text-embedding-3-small": {
@@ -3050,7 +3565,13 @@
     "family": "text-embedding",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/text-embedding-3-large": {
     "providerModelName": "text-embedding-3-large",
@@ -3095,7 +3616,13 @@
     "family": "text-embedding",
     "version": "3",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/text-embedding-ada-002": {
     "providerModelName": "text-embedding-ada-002",
@@ -3140,7 +3667,13 @@
     "family": "text-embedding",
     "version": "2",
     "status": "legacy",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/tts-1": {
     "providerModelName": "tts-1",
@@ -3220,6 +3753,13 @@
         "max": 4,
         "default": 1
       }
+    },
+    "mediaOnly": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
     }
   },
   "openai/tts-1-hd": {
@@ -3300,6 +3840,13 @@
         "max": 4,
         "default": 1
       }
+    },
+    "mediaOnly": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
     }
   },
   "openai/gpt-4o-mini-tts": {
@@ -3383,6 +3930,12 @@
         "max": 4,
         "default": 1
       }
+    },
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
     }
   },
   "openai/whisper-1": {
@@ -3427,7 +3980,13 @@
     "version": "1",
     "status": "legacy",
     "active": true,
-    "contextWindow": 16000
+    "contextWindow": 16000,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-4o-transcribe": {
     "providerModelName": "gpt-4o-transcribe",
@@ -3474,7 +4033,13 @@
     "family": "whisper",
     "version": "4o",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-4o-transcribe-diarize": {
     "providerModelName": "gpt-4o-transcribe-diarize",
@@ -3522,7 +4087,13 @@
     "family": "whisper",
     "version": "4o",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-4o-mini-transcribe": {
     "providerModelName": "gpt-4o-mini-transcribe",
@@ -3571,7 +4142,13 @@
     "family": "whisper",
     "version": "4o",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/omni-moderation": {
     "providerModelName": "omni-moderation-2024-09-26",
@@ -3618,7 +4195,13 @@
     "family": "moderation",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-realtime-2.1-mini": {
     "providerModelName": "gpt-realtime-2.1-mini",
@@ -3666,7 +4249,13 @@
     "family": "gpt-realtime",
     "version": "2.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-realtime-2.1": {
     "providerModelName": "gpt-realtime-2.1",
@@ -3714,7 +4303,13 @@
     "family": "gpt-realtime",
     "version": "2.1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.6-sol": {
     "providerModelName": "gpt-5.6-sol",
@@ -3722,9 +4317,9 @@
       "gpt-5.6-sol"
     ],
     "pricing": {
-      "inputPerMTok": 5,
-      "outputPerMTok": 30,
-      "cacheReadPerMTok": 0.5,
+      "inputPerMTok": 4,
+      "outputPerMTok": 20,
+      "cacheReadPerMTok": 0.4,
       "tiers": {
         "batch": {
           "inputPerMTok": 2.5,
@@ -3740,6 +4335,11 @@
           "inputPerMTok": 10,
           "outputPerMTok": 60,
           "cacheReadPerMTok": 1
+        },
+        "fast": {
+          "inputPerMTok": 8,
+          "outputPerMTok": 40,
+          "cacheReadPerMTok": 0.8
         }
       }
     },
@@ -3781,7 +4381,13 @@
     "version": "5.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.6-terra": {
     "providerModelName": "gpt-5.6-terra",
@@ -3789,9 +4395,9 @@
       "gpt-5.6-terra"
     ],
     "pricing": {
-      "inputPerMTok": 2.5,
-      "outputPerMTok": 15,
-      "cacheReadPerMTok": 0.25,
+      "inputPerMTok": 2,
+      "outputPerMTok": 12,
+      "cacheReadPerMTok": 0.2,
       "tiers": {
         "batch": {
           "inputPerMTok": 1.25,
@@ -3807,6 +4413,11 @@
           "inputPerMTok": 5,
           "outputPerMTok": 30,
           "cacheReadPerMTok": 0.5
+        },
+        "fast": {
+          "inputPerMTok": 4,
+          "outputPerMTok": 24,
+          "cacheReadPerMTok": 0.4
         }
       }
     },
@@ -3848,7 +4459,13 @@
     "version": "5.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   },
   "openai/gpt-5.6-luna": {
     "providerModelName": "gpt-5.6-luna",
@@ -3856,9 +4473,9 @@
       "gpt-5.6-luna"
     ],
     "pricing": {
-      "inputPerMTok": 1,
-      "outputPerMTok": 6,
-      "cacheReadPerMTok": 0.1,
+      "inputPerMTok": 0.2,
+      "outputPerMTok": 1.2,
+      "cacheReadPerMTok": 0.02,
       "tiers": {
         "batch": {
           "inputPerMTok": 0.5,
@@ -3874,6 +4491,11 @@
           "inputPerMTok": 2,
           "outputPerMTok": 12,
           "cacheReadPerMTok": 0.2
+        },
+        "fast": {
+          "inputPerMTok": 0.4,
+          "outputPerMTok": 2.4,
+          "cacheReadPerMTok": 0.04
         }
       }
     },
@@ -3915,6 +4537,114 @@
     "version": "5.6",
     "status": "stable",
     "active": true,
-    "wireSpec": "openai/responses"
+    "wireSpec": "openai/responses",
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
+  },
+  "openai/gpt-live-transcribe": {
+    "providerModelName": "gpt-live-transcribe",
+    "aliases": [
+      "gpt-live-transcribe"
+    ],
+    "pricing": {
+      "perMinute": 0.017
+    },
+    "preferredApi": "responses",
+    "supportedApis": [
+      "responses",
+      "completions"
+    ],
+    "contextWindow": 16000,
+    "capabilities": {
+      "toolUse": false,
+      "streaming": true,
+      "structuredOutput": false,
+      "vision": false,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "stt",
+    "inputModalities": [
+      "text",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "whisper",
+    "version": "1",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
+  },
+  "openai/gpt-transcribe": {
+    "providerModelName": "gpt-transcribe",
+    "aliases": [
+      "gpt-transcribe"
+    ],
+    "pricing": {
+      "perMinute": 0.0045
+    },
+    "preferredApi": "responses",
+    "supportedApis": [
+      "responses",
+      "completions"
+    ],
+    "contextWindow": 16000,
+    "capabilities": {
+      "toolUse": false,
+      "streaming": true,
+      "structuredOutput": false,
+      "vision": false,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "stt",
+    "inputModalities": [
+      "text",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "whisper",
+    "version": "1",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "tiktoken",
+      "charsPerTokenDefault": 3.8,
+      "countApiAvailable": false,
+      "tiktokenEncoding": "o200k_base"
+    }
   }
 }

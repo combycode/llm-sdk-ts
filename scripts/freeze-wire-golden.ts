@@ -24,8 +24,20 @@
  *  Run: bun run scripts/freeze-wire-golden.ts
  *  It refuses to overwrite unless --force is passed, because re-freezing after a
  *  behaviour change is how a golden corpus quietly becomes a copy of the bug.
+ *
+ *  ── --add-new, for models that arrive later ────────────────────────────────
+ *  A catalog import brings models that did not exist at 2.3.0, so there is no
+ *  2.3.0 behaviour to compare them against — but leaving them out breaks the
+ *  corpus's coverage invariant, and coverage is what stops a model from quietly
+ *  going unchecked. `--add-new` captures ONLY models absent from the index and
+ *  leaves every existing entry untouched, so the 2.3.0 baseline survives.
+ *
+ *  The content-addressing makes this stronger than it sounds: a new model that
+ *  behaves like its already-frozen siblings lands on a body hash that is ALREADY
+ *  in the file. A genuinely new body is therefore the interesting case, and the
+ *  run says how many there were.
  */
-import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ModelCatalog, type ModelInfo } from '../src/catalog/catalog';
 import { fnv1a32Hex } from '../src/util/hash';
@@ -43,8 +55,9 @@ import pkg from '../package.json' with { type: 'json' };
 
 const OUT = resolve(import.meta.dir, '../tests/fixtures/wire-golden.json');
 const force = process.argv.includes('--force');
+const addNew = process.argv.includes('--add-new');
 
-if (existsSync(OUT) && !force) {
+if (existsSync(OUT) && !force && !addNew) {
   console.error(
     `refusing to overwrite ${OUT}\n` +
       `A golden corpus is only worth what it was frozen from. Re-freezing after a\n` +
@@ -79,12 +92,30 @@ const catalog = new ModelCatalog();
 catalog.loadProviderDefaults();
 const subjects = subjectsFrom(catalog.list() as ModelInfo[], adapters);
 
-const bodies: Record<string, unknown> = {};
-const index: Record<string, Record<string, string>> = {};
+// --add-new starts from what is already frozen and only appends.
+const prior = addNew && existsSync(OUT)
+  ? (JSON.parse(readFileSync(OUT, 'utf8')) as {
+      bodies: Record<string, unknown>;
+      index: Record<string, Record<string, string>>;
+      frozenAt?: string;
+      addedLater?: Record<string, string>;
+    })
+  : undefined;
+
+const bodies: Record<string, unknown> = { ...(prior?.bodies ?? {}) };
+const index: Record<string, Record<string, string>> = { ...(prior?.index ?? {}) };
+const addedLater: Record<string, string> = { ...(prior?.addedLater ?? {}) };
+const priorBodyCount = Object.keys(bodies).length;
+let added = 0;
 let count = 0;
 
 for (const s of subjects) {
   const key = s.key;
+  if (addNew && index[key]) continue; // already frozen — never re-capture
+  if (addNew) {
+    added++;
+    addedLater[key] = pkg.version;
+  }
   index[key] = {};
   for (const shape of SHAPES) {
     const wire = onWire(s.adapter.buildRequest(shape.req(s.model) as never));
@@ -110,9 +141,13 @@ const out = {
     'Bodies are stored once each, keyed by a hash of themselves, with the model id ' +
     'replaced by "$MODEL". Regenerate ONLY with scripts/freeze-wire-golden.ts --force, ' +
     'and only when the wire genuinely changed — say why in the commit.',
-  frozenAt: pkg.version,
+  frozenAt: prior?.frozenAt ?? pkg.version,
+  // Models that arrived after the freeze, and the version they were captured at.
+  // Their baseline is that version, not the original one — worth knowing when a
+  // diff shows up on one of them.
+  ...(Object.keys(addedLater).length ? { addedLater } : {}),
   shapes: SHAPES.map((s) => s.name),
-  counts: { models: subjects.length, shapes: SHAPES.length, bodies: count, distinct: Object.keys(bodies).length },
+  counts: { models: Object.keys(index).length, shapes: SHAPES.length, bodies: count, distinct: Object.keys(bodies).length },
   bodies,
   index,
 };
@@ -120,6 +155,14 @@ const out = {
 mkdirSync(dirname(OUT), { recursive: true });
 writeFileSync(OUT, `${JSON.stringify(out, null, 2)}\n`);
 
-console.log(`froze ${count} bodies (${Object.keys(bodies).length} distinct) from ${subjects.length} models`);
+if (addNew) {
+  const newBodies = Object.keys(bodies).length - priorBodyCount;
+  console.log(
+    `added ${added} model(s) not previously frozen — ${newBodies} genuinely new bodies ` +
+      `(0 means each one behaves exactly like an already-frozen sibling)`,
+  );
+} else {
+  console.log(`froze ${count} bodies (${Object.keys(bodies).length} distinct) from ${subjects.length} models`);
+}
 console.log(`  version : ${pkg.version}`);
 console.log(`  file    : ${OUT}`);

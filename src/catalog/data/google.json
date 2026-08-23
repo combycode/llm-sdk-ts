@@ -48,7 +48,7 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -63,10 +63,12 @@
     "version": "2.5",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "budget"
-    },
-    "wireSpec": "google/generate@2.5"
+    "wireSpec": "google/generate@2.5",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-3.1-pro": {
     "providerModelName": "gemini-3.1-pro-preview",
@@ -116,9 +118,15 @@
     "reasoning": {
       "supported": true,
       "automatic": false,
-      "effortControl": false,
+      "effortControl": true,
+      "effortValues": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -133,10 +141,12 @@
     "version": "3.1",
     "status": "preview",
     "active": true,
-    "wire": {
-      "thinking": "level"
-    },
-    "wireSpec": "google/generate@3"
+    "wireSpec": "google/generate@3",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-3.1-pro-customtools": {
     "providerModelName": "gemini-3.1-pro-preview-customtools",
@@ -185,10 +195,12 @@
     "version": "3.1",
     "status": "preview",
     "active": true,
-    "wire": {
-      "thinking": "level"
-    },
-    "wireSpec": "google/generate@3"
+    "wireSpec": "google/generate@3",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-2.5-flash": {
     "providerModelName": "gemini-2.5-flash",
@@ -243,7 +255,7 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -258,10 +270,12 @@
     "version": "2.5",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "budget"
-    },
-    "wireSpec": "google/generate@2.5"
+    "wireSpec": "google/generate@2.5",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-3-flash": {
     "providerModelName": "gemini-3-flash-preview",
@@ -314,9 +328,16 @@
     "reasoning": {
       "supported": true,
       "automatic": false,
-      "effortControl": false,
+      "effortControl": true,
+      "effortValues": [
+        "minimal",
+        "low",
+        "medium",
+        "high"
+      ],
+      "effortMeaning": "thinking_depth",
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -331,10 +352,12 @@
     "version": "3",
     "status": "preview",
     "active": true,
-    "wire": {
-      "thinking": "level"
-    },
-    "wireSpec": "google/generate@3"
+    "wireSpec": "google/generate@3",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-3.5-flash": {
     "providerModelName": "gemini-3.5-flash",
@@ -400,10 +423,12 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "level"
-    },
-    "wireSpec": "google/generate@3"
+    "wireSpec": "google/generate@3",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-2.5-flash-lite": {
     "providerModelName": "gemini-2.5-flash-lite",
@@ -473,10 +498,12 @@
     "version": "2.5",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "budget"
-    },
-    "wireSpec": "google/generate@2.5"
+    "wireSpec": "google/generate@2.5",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-3.1-flash-lite": {
     "providerModelName": "gemini-3.1-flash-lite",
@@ -547,10 +574,16 @@
     "version": "3.1",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "level"
+    "wireSpec": "google/generate@3",
+    "deprecation": {
+      "date": "2027-05-07",
+      "source": "litellm"
     },
-    "wireSpec": "google/generate@3"
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-2.5-flash-image": {
     "providerModelName": "gemini-2.5-flash-image",
@@ -627,6 +660,15 @@
         ],
         "default": "1:1"
       }
+    },
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    },
+    "deprecation": {
+      "date": "2026-10-02",
+      "source": "litellm"
     }
   },
   "google/gemini-3-pro-image": {
@@ -663,7 +705,8 @@
           "inputPerMTok": 3.6,
           "outputPerMTok": 21.6
         }
-      }
+      },
+      "perImage": 0.134
     },
     "preferredApi": "generate",
     "supportedApis": [
@@ -728,6 +771,11 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "google/gemini-3.1-flash-image": {
@@ -756,7 +804,8 @@
             "4k": 0.076
           }
         }
-      }
+      },
+      "perImage": 0.067
     },
     "preferredApi": "generate",
     "supportedApis": [
@@ -776,7 +825,7 @@
       "videoGeneration": false
     },
     "reasoning": {
-      "supported": true,
+      "supported": false,
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
@@ -822,6 +871,11 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
     }
   },
   "google/nano-banana-pro": {
@@ -892,6 +946,11 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "google/gemini-2.5-flash-tts": {
@@ -907,7 +966,8 @@
           "inputPerMTok": 0.25,
           "outputPerMTok": 5
         }
-      }
+      },
+      "audioOutputPerMTok": 10
     },
     "preferredApi": "generate",
     "supportedApis": [
@@ -980,7 +1040,13 @@
         ],
         "default": "Kore"
       }
-    }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "mediaOnly": true
   },
   "google/gemini-2.5-pro-tts": {
     "providerModelName": "gemini-2.5-pro-preview-tts",
@@ -995,7 +1061,8 @@
           "inputPerMTok": 0.5,
           "outputPerMTok": 10
         }
-      }
+      },
+      "audioOutputPerMTok": 20
     },
     "preferredApi": "generate",
     "supportedApis": [
@@ -1070,6 +1137,11 @@
         ],
         "default": "Kore"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "google/gemini-3.1-flash-tts": {
@@ -1158,6 +1230,11 @@
         ],
         "default": "Kore"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "google/gemini-2.5-flash-native-audio": {
@@ -1208,7 +1285,12 @@
     "family": "gemini-audio",
     "version": "2.5",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-3.1-flash-live": {
     "providerModelName": "gemini-3.1-flash-live-preview",
@@ -1260,7 +1342,12 @@
     "family": "gemini-audio",
     "version": "3.1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-3.5-live-translate": {
     "providerModelName": "gemini-3.5-live-translate-preview",
@@ -1309,7 +1396,12 @@
     "family": "gemini-audio",
     "version": "3.5",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-embedding-1": {
     "providerModelName": "gemini-embedding-001",
@@ -1354,7 +1446,16 @@
     "family": "gemini-embedding",
     "version": "1",
     "status": "stable",
-    "active": true
+    "active": true,
+    "deprecation": {
+      "date": "2028-05-14",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "google/gemini-embedding-2": {
     "providerModelName": "gemini-embedding-2",
@@ -1404,7 +1505,12 @@
     "family": "gemini-embedding",
     "version": "2",
     "status": "stable",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "google/gemma-4-26b-a4b": {
     "providerModelName": "gemma-4-26b-a4b-it",
@@ -1451,10 +1557,12 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "level"
-    },
-    "wireSpec": "google/generate@3"
+    "wireSpec": "google/generate@3",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemma-4-31b": {
     "providerModelName": "gemma-4-31b-it",
@@ -1502,10 +1610,12 @@
     "version": "4",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "level"
-    },
-    "wireSpec": "google/generate@3"
+    "wireSpec": "google/generate@3",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/imagen-4": {
     "providerModelName": "imagen-4.0-generate-001",
@@ -1554,7 +1664,7 @@
     "family": "imagen",
     "version": "4.0",
     "status": "stable",
-    "active": true,
+    "active": false,
     "mediaParams": {
       "aspectRatio": {
         "values": [
@@ -1578,7 +1688,17 @@
         "max": 4,
         "default": 1
       }
-    }
+    },
+    "deprecation": {
+      "date": "2026-08-17",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "mediaOnly": true
   },
   "google/imagen-4-fast": {
     "providerModelName": "imagen-4.0-fast-generate-001",
@@ -1622,7 +1742,7 @@
     "family": "imagen",
     "version": "4.0",
     "status": "stable",
-    "active": true,
+    "active": false,
     "mediaParams": {
       "aspectRatio": {
         "values": [
@@ -1639,7 +1759,17 @@
         "max": 4,
         "default": 1
       }
-    }
+    },
+    "deprecation": {
+      "date": "2026-08-17",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "mediaOnly": true
   },
   "google/imagen-4-ultra": {
     "providerModelName": "imagen-4.0-ultra-generate-001",
@@ -1683,7 +1813,7 @@
     "family": "imagen",
     "version": "4.0",
     "status": "stable",
-    "active": true,
+    "active": false,
     "mediaParams": {
       "aspectRatio": {
         "values": [
@@ -1707,6 +1837,15 @@
         "max": 4,
         "default": 1
       }
+    },
+    "deprecation": {
+      "date": "2026-08-17",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "google/veo-2": {
@@ -1751,7 +1890,7 @@
     "family": "veo",
     "version": "2.0",
     "status": "legacy",
-    "active": true,
+    "active": false,
     "mediaParams": {
       "aspectRatio": {
         "values": [
@@ -1768,7 +1907,17 @@
         ],
         "default": "8"
       }
-    }
+    },
+    "deprecation": {
+      "date": "2026-06-30",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "mediaOnly": true
   },
   "google/veo-3": {
     "providerModelName": "veo-3.0-generate-001",
@@ -1778,9 +1927,7 @@
     "pricing": {
       "perSecond": 0.4,
       "perUnit": {
-        "720p": 0.1,
-        "1080p": 0.12,
-        "4k": 0.3
+        "default": 0.4
       }
     },
     "preferredApi": "generate",
@@ -1817,7 +1964,7 @@
     "family": "veo",
     "version": "3.0",
     "status": "stable",
-    "active": true,
+    "active": false,
     "mediaParams": {
       "aspectRatio": {
         "values": [
@@ -1842,7 +1989,13 @@
         ],
         "default": "720p"
       }
-    }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "mediaOnly": true
   },
   "google/veo-3-fast": {
     "providerModelName": "veo-3.0-fast-generate-001",
@@ -1891,7 +2044,7 @@
     "family": "veo",
     "version": "3.0",
     "status": "stable",
-    "active": true,
+    "active": false,
     "mediaParams": {
       "aspectRatio": {
         "values": [
@@ -1916,7 +2069,13 @@
         ],
         "default": "720p"
       }
-    }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "mediaOnly": true
   },
   "google/veo-3.1": {
     "providerModelName": "veo-3.1-generate-preview",
@@ -1990,7 +2149,13 @@
         ],
         "default": "720p"
       }
-    }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "mediaOnly": true
   },
   "google/veo-3.1-fast": {
     "providerModelName": "veo-3.1-fast-generate-preview",
@@ -2064,7 +2229,13 @@
         ],
         "default": "720p"
       }
-    }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    },
+    "mediaOnly": true
   },
   "google/veo-3.1-lite": {
     "providerModelName": "veo-3.1-lite-generate-preview",
@@ -2137,6 +2308,11 @@
         ],
         "default": "720p"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "google/lyria-3-clip": {
@@ -2183,7 +2359,12 @@
     "family": "lyria",
     "version": "3",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "google/lyria-3-pro": {
     "providerModelName": "lyria-3-pro-preview",
@@ -2229,7 +2410,12 @@
     "family": "lyria",
     "version": "3",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "google/gemini-2.5-computer-use": {
     "providerModelName": "gemini-2.5-computer-use-preview-10-2025",
@@ -2275,7 +2461,12 @@
     "family": "other",
     "version": "2.5",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-robotics-er-1.5": {
     "providerModelName": "gemini-robotics-er-1.5-preview",
@@ -2324,7 +2515,16 @@
     "family": "other",
     "version": "1.5",
     "status": "preview",
-    "active": true
+    "active": false,
+    "deprecation": {
+      "date": "2026-04-30",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "google/gemini-robotics-er-1.6": {
     "providerModelName": "gemini-robotics-er-1.6-preview",
@@ -2377,7 +2577,16 @@
     "family": "other",
     "version": "1.6",
     "status": "preview",
-    "active": true
+    "active": true,
+    "deprecation": {
+      "date": "2026-08-31",
+      "source": "litellm"
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   },
   "google/gemini-3.1-flash-lite-image": {
     "providerModelName": "gemini-3.1-flash-lite-image",
@@ -2389,6 +2598,17 @@
       "outputPerMTok": 1.5,
       "perUnit": {
         "1k": 0.0336
+      },
+      "perImage": 0.0336,
+      "tiers": {
+        "batch": {
+          "inputPerMTok": 0.125,
+          "outputPerMTok": 0.75,
+          "perImage": 0.0168,
+          "perUnit": {
+            "1k": 0.0168
+          }
+        }
       }
     },
     "preferredApi": "generate",
@@ -2452,6 +2672,11 @@
         ],
         "default": "1K"
       }
+    },
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
     }
   },
   "google/gemini-omni-flash": {
@@ -2498,7 +2723,12 @@
     "family": "gemini-audio",
     "version": "1",
     "status": "preview",
-    "active": true
+    "active": true,
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-3.6-flash": {
     "providerModelName": "gemini-3.6-flash",
@@ -2507,9 +2737,9 @@
       "gemini-flash-latest"
     ],
     "pricing": {
-      "inputPerMTok": 1.5,
-      "outputPerMTok": 7.5,
-      "cacheReadPerMTok": 0.15,
+      "inputPerMTok": 0.75,
+      "outputPerMTok": 3.75,
+      "cacheReadPerMTok": 0.075,
       "tiers": {
         "batch": {
           "inputPerMTok": 0.75,
@@ -2565,10 +2795,12 @@
     "version": "3.6",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "level"
-    },
-    "wireSpec": "google/generate@3"
+    "wireSpec": "google/generate@3",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
   },
   "google/gemini-3.5-flash-lite": {
     "providerModelName": "gemini-3.5-flash-lite",
@@ -2635,9 +2867,196 @@
     "version": "3.5",
     "status": "stable",
     "active": true,
-    "wire": {
-      "thinking": "level"
+    "wireSpec": "google/generate@3",
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
+    }
+  },
+  "google/gemini-3.7-flash": {
+    "providerModelName": "gemini-3.7-flash",
+    "aliases": [
+      "gemini-3.7-flash"
+    ],
+    "pricing": {
+      "inputPerMTok": 1.5,
+      "outputPerMTok": 7.5,
+      "cacheReadPerMTok": 0.15,
+      "tiers": {
+        "batch": {
+          "inputPerMTok": 0.75,
+          "outputPerMTok": 3.75,
+          "cacheReadPerMTok": 0.075
+        },
+        "flex": {
+          "inputPerMTok": 0.75,
+          "outputPerMTok": 3.75,
+          "cacheReadPerMTok": 0.075
+        },
+        "priority": {
+          "inputPerMTok": 2.7,
+          "outputPerMTok": 13.5,
+          "cacheReadPerMTok": 0.27
+        }
+      }
+    },
+    "preferredApi": "generate",
+    "supportedApis": [
+      "generate"
+    ],
+    "contextWindow": 1048576,
+    "maxOutput": 65536,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "chat",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "gemini-flash",
+    "version": "3.7",
+    "status": "stable",
+    "active": true,
+    "tokenizer": {
+      "strategy": "count_api",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": true
     },
     "wireSpec": "google/generate@3"
+  },
+  "google/gemini-robotics-er-2": {
+    "providerModelName": "gemini-robotics-er-2-preview",
+    "aliases": [
+      "gemini-robotics-er-2-preview"
+    ],
+    "pricing": {
+      "inputPerMTok": 2,
+      "outputPerMTok": 10,
+      "cacheReadPerMTok": 0.2,
+      "tiers": {
+        "batch": {
+          "inputPerMTok": 1,
+          "outputPerMTok": 5,
+          "cacheReadPerMTok": 0.1
+        }
+      }
+    },
+    "preferredApi": "generate",
+    "supportedApis": [
+      "generate"
+    ],
+    "contextWindow": 131072,
+    "maxOutput": 65536,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": true,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false,
+      "webSearch": true
+    },
+    "reasoning": {
+      "supported": true,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "robotics",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "other",
+    "version": "2",
+    "status": "preview",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
+  },
+  "google/gemini-robotics-er-2-streaming": {
+    "providerModelName": "gemini-robotics-er-2-streaming-preview",
+    "aliases": [
+      "gemini-robotics-er-2-streaming-preview"
+    ],
+    "pricing": {
+      "inputPerMTok": 2,
+      "outputPerMTok": 10
+    },
+    "preferredApi": "generate",
+    "supportedApis": [
+      "generate"
+    ],
+    "contextWindow": 131072,
+    "maxOutput": 65536,
+    "capabilities": {
+      "toolUse": true,
+      "streaming": true,
+      "structuredOutput": false,
+      "vision": true,
+      "audio": true,
+      "video": false,
+      "imageGeneration": false,
+      "audioGeneration": false,
+      "videoGeneration": false,
+      "webSearch": true
+    },
+    "reasoning": {
+      "supported": false,
+      "automatic": false,
+      "effortControl": false,
+      "encryptedContent": false,
+      "summaryAvailable": false
+    },
+    "type": "robotics",
+    "inputModalities": [
+      "text",
+      "image",
+      "audio"
+    ],
+    "outputModalities": [
+      "text"
+    ],
+    "family": "other",
+    "version": "2",
+    "status": "preview",
+    "active": true,
+    "tokenizer": {
+      "strategy": "heuristic",
+      "charsPerTokenDefault": 4,
+      "countApiAvailable": false
+    }
   }
 }

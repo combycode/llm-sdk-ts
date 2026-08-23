@@ -8,6 +8,21 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **A model ships as callable only if it has been called.** The catalog-loader's probe was
+  advisory; 366 of 440 names had never been verified. Now `active: true` requires either a real
+  request that answered (`verifiedBy: 'probe'`) or the provider's own model list naming it
+  (`verifiedBy: 'listed'`, the only evidence available for an image or TTS model). Everything else
+  ships `active: false` — present, priced, but not offered to `selectModel`.
+
+  A name is called ONCE: later runs check the listing instead, which is free. A verified name that
+  disappears from the list is marked deprecated rather than re-probed. Verification went from
+  74/440 to 395/470.
+
+- **`scripts/pin-catalog.ts` and `freeze-wire-golden.ts --add-new`** — a catalog import brings
+  models with no wire-spec pin and no entry in the frozen request corpus, and the library asserts
+  both. Deriving the pin and appending only the unseen models keeps those invariants true without
+  re-freezing a baseline that exists to be stable.
+
 - **The last four hand-built surfaces are spec-driven**: exact token counting, live model listing,
   file-content retrieval and the provenance check. With those, **every request the library sends
   comes from a spec** — 145 of them. Nothing in `src/` assembles a URL, a header set or a body by
@@ -57,6 +72,17 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   against a provider, which is how both defects below survived.
 
 ### Changed
+
+- **The catalog is current again, and the chain that maintains it works end to end.** The
+  catalog-loader's export pointed at the catalogs' old home, which was BOTH its write target and
+  its merge base — so the "never drop a shipped model, never blank a price" guarantee silently
+  guaranteed nothing, and a run would have dropped 10 models and all 284 `wireSpec` pins. Repointed,
+  and it now refuses to run at all if the merge base is missing.
+
+  With it fixed, a full run brought the catalog up to date: +99 models discovered, 57 prices
+  changed (all four provider pricing pages had moved), 42 tokenizer strategies delivered, 61 models
+  marked `active: false`, and 48 given a deprecation date the sources announced. The `wire` field
+  removed in 3.0.0 was still riding along on 26 entries and is now dropped.
 
 - **The catalog is loaded by default** (BREAKING, behaviour). `createEngine()` and `LLMClient` used
   to start with an EMPTY catalog unless the caller passed `catalog: 'defaults'`. Three things fell
@@ -141,6 +167,23 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   and by a live end-to-end run on both providers.
 
 ### Fixed
+
+- **Exact token counting works, for the first time.** `HybridTokenCounter` picks its strategy from
+  the catalog's `tokenizer.strategy`, and no shipped model declared one — so every count fell back
+  to the 4-chars-per-token estimate and neither exact path had ever run. All 455 models now carry a
+  strategy: `count_api` for Anthropic and Google chat models, `tiktoken` for OpenAI, `heuristic`
+  elsewhere. On one Cyrillic line the difference is 9 estimated versus **19 actual**.
+
+  Two defects surfaced the moment the strategy was selected:
+
+  - The count endpoint was sent our canonical SLUG (`claude-haiku-4.5`) rather than the callable id
+    (`claude-haiku-4-5-20251001`), so the first model whose ids differed answered 404. The chat path
+    translates through the catalog; this one did not.
+  - A model marked `tiktoken` threw when the optional `tiktoken` peer was not installed, turning a
+    number into an error for anyone who had not opted in — while the guide promised the opposite.
+    The counter now falls back to the heuristic and says so once. Only that specific error is
+    caught: a network failure inside the count API still surfaces, because quietly answering with
+    an estimate when an exact count was asked for is how a wrong number gets believed.
 
 - **xAI hosted retrieval said "ready" before anything was searchable.** `indexStatus()` derived
   readiness from the collection's `documents_count`, which reaches 1 the moment a document is
