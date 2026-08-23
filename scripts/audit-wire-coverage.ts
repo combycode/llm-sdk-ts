@@ -28,7 +28,13 @@ import { join, relative, resolve } from 'node:path';
 import { ModelCatalog, type ModelInfo } from '../src/catalog/catalog';
 import { WIRE_SPECS } from '../src/wire/registry';
 import { resolveSpec, type SpecDelta } from '../src/wire/inherit';
-import { buildFromSpec, type Registry, type WireSpec } from '../src/wire/interpreter';
+import {
+  buildConnection,
+  buildFrames,
+  buildFromSpec,
+  type Registry,
+  type WireSpec,
+} from '../src/wire/interpreter';
 import { makeRegistry } from '../src/llm/wire-transforms';
 import { AnthropicAdapter } from '../src/llm/providers/anthropic/messages';
 import { GoogleAdapter } from '../src/llm/providers/google/generate';
@@ -41,7 +47,119 @@ import { OpenRouterAdapter } from '../src/llm/providers/openrouter/completions';
 import { OpenRouterResponsesAdapter } from '../src/llm/providers/openrouter/responses';
 import { SHAPES, subjectsFrom, type Adapterish } from '../tests/unit/wire/wire-corpus';
 import { MEDIA_SUITES, type MediaCase } from '../tests/unit/wire/media-corpus';
+import {
+  EMBED_CASES,
+  XAI_MEDIA_CASES,
+  OPENROUTER_MEDIA_CASES,
+  REALTIME_CASES,
+  BATCH_CASES,
+  BATCH_REQUESTS,
+  BATCH_ID,
+  FILE_CASES,
+  FILE_REMOTE_ID,
+  type OrMediaCase,
+  type XaiMediaCase,
+} from '../tests/unit/wire/service-corpus';
+import { OpenAIEmbeddingAdapter } from '../src/llm/providers/openai/embeddings';
+import { OpenRouterEmbeddingAdapter } from '../src/llm/providers/openrouter/embeddings';
+import { GoogleEmbeddingAdapter } from '../src/llm/providers/google/embeddings';
+import { XAIMediaAdapter } from '../src/llm/providers/xai/media';
+import { OpenRouterMediaAdapter } from '../src/llm/providers/openrouter/media';
+import {
+  OpenAIRealtimeAdapter,
+  buildOpenAISessionUpdate,
+  buildOpenAITurnFrames,
+} from '../src/llm/providers/openai/realtime';
+import {
+  GoogleRealtimeAdapter,
+  buildGoogleSetupFrame,
+  buildGoogleTurnFrames,
+} from '../src/llm/providers/google/realtime';
+import { AnthropicBatchAdapter } from '../src/llm/providers/anthropic/batch';
+import { OpenAIBatchAdapter } from '../src/llm/providers/openai/batch';
+import { GoogleBatchAdapter } from '../src/llm/providers/google/batch';
+import { XAIBatchAdapter } from '../src/llm/providers/xai/batch';
+import { AnthropicFileAdapter } from '../src/llm/providers/anthropic/files';
+import { OpenAIFileAdapter } from '../src/llm/providers/openai/files';
+import { GoogleFileAdapter } from '../src/llm/providers/google/files';
+import { XAIFileAdapter } from '../src/llm/providers/xai/files';
+import { FileAttachment } from '../src/plugins/files/attachment';
+import type {
+  AudioGenRequest,
+  ImageEditRequest,
+  ImageGenRequest,
+  VideoGenRequest,
+} from '../src/plugins/media/types';
+
+const EMBED_ADAPTERS = {
+  openai: new OpenAIEmbeddingAdapter({ apiKey: 'k' }),
+  openrouter: new OpenRouterEmbeddingAdapter({ apiKey: 'k' }),
+  google: new GoogleEmbeddingAdapter({ apiKey: 'k' }),
+};
+const xaiMedia = new XAIMediaAdapter({ apiKey: 'k' });
+const orMedia = new OpenRouterMediaAdapter({ apiKey: 'k' });
+const RT_AUDIT = {
+  openai: {
+    adapter: new OpenAIRealtimeAdapter({ apiKey: 'k' }),
+    open: buildOpenAISessionUpdate,
+    turn: buildOpenAITurnFrames,
+  },
+  google: {
+    adapter: new GoogleRealtimeAdapter({ apiKey: 'k' }),
+    open: buildGoogleSetupFrame,
+    turn: buildGoogleTurnFrames,
+  },
+};
+const BATCH_ADAPTERS = {
+  anthropic: new AnthropicBatchAdapter({ apiKey: 'k' }),
+  openai: new OpenAIBatchAdapter({ apiKey: 'k' }),
+  google: new GoogleBatchAdapter({ apiKey: 'k', model: 'gemini-3-flash' }),
+  xai: new XAIBatchAdapter({ apiKey: 'k' }),
+};
+const FILE_ADAPTERS = {
+  anthropic: new AnthropicFileAdapter({ apiKey: 'k' }),
+  openai: new OpenAIFileAdapter({ apiKey: 'k' }),
+  google: new GoogleFileAdapter({ apiKey: 'k' }),
+  xai: new XAIFileAdapter({ apiKey: 'k' }),
+};
+const AUDIT_ATTACHMENT = new FileAttachment({
+  filename: 'note.txt',
+  mimeType: 'text/plain',
+  sizeBytes: 5,
+  content: { type: 'buffer', mimeType: 'text/plain', data: new Uint8Array([104, 101, 108, 108, 111]) },
+});
+const SERVICE_RESPONSE = {
+  id: 'x',
+  name: 'x',
+  uri: 'https://generativelanguage.googleapis.com/v1beta/files/abc',
+  file: { uri: 'https://generativelanguage.googleapis.com/v1beta/files/abc' },
+  batch: { name: 'x' },
+  output_file_id: 'file_out',
+  data: [{ embedding: [0.1], b64_json: 'AAAA' }],
+  files: [],
+  embedding: { values: [0.1] },
+  choices: [
+    { message: { images: [{ image_url: { url: 'data:image/png;base64,AAAA' } }], audio: { data: 'AAAA' } } },
+  ],
+};
+
+const runXaiMedia = (c: XaiMediaCase, fetch: never): Promise<unknown> =>
+  c.kind === 'image'
+    ? xaiMedia.generateImage(c.req as ImageGenRequest, fetch)
+    : c.kind === 'imageEdit'
+      ? xaiMedia.editImage(c.req as ImageEditRequest, fetch)
+      : c.kind === 'audio'
+        ? xaiMedia.generateAudio(c.req as AudioGenRequest, fetch)
+        : xaiMedia.submitVideo(c.req as VideoGenRequest, fetch);
+
+const runOrMedia = (c: OrMediaCase, fetch: never): Promise<unknown> =>
+  c.kind === 'image'
+    ? orMedia.generateImage(c.req as ImageGenRequest, fetch)
+    : c.kind === 'imageEdit'
+      ? orMedia.editImage(c.req as ImageEditRequest, fetch)
+      : orMedia.generateAudio(c.req as AudioGenRequest, fetch);
 import { mediaSpec } from '../src/wire/media-specs';
+import { serviceSpec } from '../src/wire/service-specs';
 
 const MEDIA_BASE: Record<string, string> = {
   openai: 'https://api.openai.com',
@@ -100,6 +218,9 @@ const base = makeRegistry({
   googleInteractions,
   openaiResponses,
   openaiCompletions,
+  // OpenRouter's image_config rules call back into its media adapter, so the
+  // audit needs that handle to reach them at all.
+  openrouterMedia: new OpenRouterMediaAdapter({ apiKey: 'k' }),
 });
 
 // ── walk every shipped spec file ─────────────────────────────────────────────
@@ -273,6 +394,111 @@ for (const { provider, cases } of MEDIA_SUITES) {
   }
 }
 
+// ── also drive every SERVICE spec DIRECTLY ───────────────────────────────────
+//
+// Driving them through the adapters does not work: each adapter builds its OWN
+// registry, so the proxy below never sees those calls and the audit reports live
+// code as never-fired. Executed here against the audit's registry instead, which
+// is the only arrangement that can actually observe a transform running.
+//
+// The inputs are chosen to reach the GUARDED rules — a source image so the ref
+// transforms fire, an image_config so its predicate is true, an audio frame so
+// the realtime encoder runs. A spec driven only through its happy path measures
+// nothing about the branches.
+const OPENAI_B = 'https://api.openai.com';
+const GOOGLE_B = 'https://generativelanguage.googleapis.com';
+const ANTHROPIC_B = 'https://api.anthropic.com';
+const XAI_B = 'https://api.x.ai';
+const OR_B = 'https://openrouter.ai';
+const A_CFG = { baseURL: ANTHROPIC_B, apiKey: 'k', apiVersion: '2023-06-01' };
+const PNGSRC = { type: 'base64', mimeType: 'image/png', data: 'aGk=' };
+const MP4SRC = { type: 'base64', mimeType: 'video/mp4', data: 'AAAAGGZ0' };
+
+interface Drive {
+  id: string;
+  input: Record<string, unknown>;
+  config: Record<string, unknown>;
+  flavor?: string;
+  op?: 'connect' | 'open' | 'send';
+}
+
+const SERVICE_DRIVES: Drive[] = [
+  // embeddings — `asArray` lives here: one string must reach the wire as an array.
+  { id: 'openai/embeddings', input: { model: 'm', input: 'hi' }, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'openai/embeddings', input: { model: 'm', input: ['a', 'b'] }, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'openrouter/embeddings', input: { model: 'm', input: 'hi' }, config: { baseURL: OR_B, apiKey: 'k' } },
+  { id: 'google/embeddings', input: { model: 'm', text: 'hi' }, config: { baseURL: GOOGLE_B, apiKey: 'k' } },
+
+  // xai media — the source-ref transforms only fire when a source is present.
+  { id: 'xai/images.generations', input: { model: 'grok-2-image', prompt: 'a cat' }, config: { baseURL: XAI_B, apiKey: 'k' }, flavor: 'xai' },
+  { id: 'xai/images.edits', input: { model: 'grok-2-image', prompt: 'hat', sourceImage: PNGSRC }, config: { baseURL: XAI_B, apiKey: 'k' }, flavor: 'xai' },
+  { id: 'xai/tts', input: { model: 'grok-tts', input: 'hi', params: { voice: 'eve', format: 'wav' } }, config: { baseURL: XAI_B, apiKey: 'k' }, flavor: 'xai' },
+  { id: 'xai/videos.generations', input: { model: 'grok-video', prompt: 'wave', sourceImage: PNGSRC }, config: { baseURL: XAI_B, apiKey: 'k' }, flavor: 'xai' },
+  { id: 'xai/videos.extensions', input: { model: 'grok-video', prompt: 'more', sourceVideo: MP4SRC }, config: { baseURL: XAI_B, apiKey: 'k' }, flavor: 'xai' },
+  { id: 'xai/videos.edits', input: { model: 'grok-video', prompt: 'night', sourceVideo: MP4SRC }, config: { baseURL: XAI_B, apiKey: 'k' }, flavor: 'xai' },
+
+  // openrouter media — image_config appears only when a param asks for it.
+  { id: 'openrouter/media.image', input: { model: 'm', prompt: 'a cat', params: { aspectRatio: '16:9', imageSize: '1K', strength: 0.5 } }, config: { baseURL: OR_B, apiKey: 'k' }, flavor: 'openrouter' },
+  { id: 'openrouter/media.imageEdit', input: { model: 'm', prompt: 'hat', sourceImage: PNGSRC }, config: { baseURL: OR_B, apiKey: 'k' }, flavor: 'openrouter' },
+  { id: 'openrouter/media.audio', input: { model: 'm', input: 'hi', params: { voice: 'alloy' } }, config: { baseURL: OR_B, apiKey: 'k' }, flavor: 'openrouter' },
+
+  // batch — requestCount and xaiBatchName are both submit-time.
+  { id: 'anthropic/batch.submit', input: { requests: BATCH_REQUESTS }, config: A_CFG },
+  { id: 'anthropic/batch.getStatus', input: { batchId: BATCH_ID }, config: A_CFG },
+  { id: 'anthropic/batch.getResults', input: { batchId: BATCH_ID }, config: A_CFG },
+  { id: 'anthropic/batch.cancel', input: { batchId: BATCH_ID }, config: A_CFG },
+  { id: 'openai/batch.uploadJsonl', input: { requests: BATCH_REQUESTS }, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'openai/batch.getStatus', input: { batchId: BATCH_ID }, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'openai/batch.getResults', input: { fileId: 'file_out' }, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'openai/batch.cancel', input: { batchId: BATCH_ID }, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'google/batch.submit', input: { requests: BATCH_REQUESTS }, config: { baseURL: GOOGLE_B, apiKey: 'k', model: 'gemini-3-flash' } },
+  { id: 'google/batch.getStatus', input: { batchId: BATCH_ID }, config: { baseURL: GOOGLE_B, apiKey: 'k' } },
+  { id: 'google/batch.getResults', input: { batchId: BATCH_ID }, config: { baseURL: GOOGLE_B, apiKey: 'k' } },
+  { id: 'google/batch.cancel', input: { batchId: BATCH_ID }, config: { baseURL: GOOGLE_B, apiKey: 'k' } },
+  { id: 'xai/batch.create', input: { requests: BATCH_REQUESTS }, config: { baseURL: XAI_B, apiKey: 'k' } },
+  { id: 'xai/batch.addRequests', input: { batchId: BATCH_ID, requests: BATCH_REQUESTS }, config: { baseURL: XAI_B, apiKey: 'k' } },
+  { id: 'xai/batch.getStatus', input: { batchId: BATCH_ID }, config: { baseURL: XAI_B, apiKey: 'k' } },
+  { id: 'xai/batch.getResults', input: { batchId: BATCH_ID }, config: { baseURL: XAI_B, apiKey: 'k' } },
+
+  // files
+  { id: 'anthropic/files.upload', input: {}, config: A_CFG },
+  { id: 'anthropic/files.delete', input: { remoteId: 'f' }, config: A_CFG },
+  { id: 'anthropic/files.getInfo', input: { remoteId: 'f' }, config: A_CFG },
+  { id: 'anthropic/files.list', input: {}, config: A_CFG },
+  { id: 'openai/files.upload', input: {}, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'openai/files.delete', input: { remoteId: 'f' }, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'openai/files.getInfo', input: { remoteId: 'f' }, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'openai/files.list', input: {}, config: { baseURL: OPENAI_B, apiKey: 'k' } },
+  { id: 'xai/files.upload', input: {}, config: { baseURL: XAI_B, apiKey: 'k' } },
+  { id: 'google/files.startUpload', input: { filename: 'n.txt', mimeType: 'text/plain', byteLength: 5 }, config: { baseURL: GOOGLE_B, apiKey: 'k' } },
+  { id: 'google/files.delete', input: { name: 'abc' }, config: { baseURL: GOOGLE_B, apiKey: 'k' } },
+  { id: 'google/files.getInfo', input: { name: 'abc' }, config: { baseURL: GOOGLE_B, apiKey: 'k' } },
+  { id: 'google/files.list', input: {}, config: { baseURL: GOOGLE_B, apiKey: 'k' } },
+
+  // realtime — three operations; the audio and turn transforms only fire on send.
+  { id: 'openai/realtime', input: { model: 'gpt-realtime' }, config: { apiKey: 'k' }, op: 'connect' },
+  { id: 'openai/realtime', input: { model: 'gpt-realtime', modalities: ['text', 'audio'], voice: 'alloy', instructions: 'x' }, config: { apiKey: 'k' }, op: 'open' },
+  { id: 'openai/realtime', input: { text: 'hi', audio: new Uint8Array([1, 2]), turnComplete: true }, config: { apiKey: 'k' }, op: 'send' },
+  { id: 'google/realtime', input: { model: 'm' }, config: { wsBase: 'wss://x', apiVersion: 'v1beta', apiKey: 'k' }, op: 'connect' },
+  { id: 'google/realtime', input: { model: 'm', modalities: ['audio'], voice: 'Kore', instructions: 'x' }, config: { wsBase: 'wss://x', apiVersion: 'v1beta', apiKey: 'k' }, op: 'open' },
+  { id: 'google/realtime', input: { text: 'hi', audio: new Uint8Array([1, 2]), turnComplete: false }, config: { wsBase: 'wss://x', apiVersion: 'v1beta', apiKey: 'k' }, op: 'send' },
+];
+
+let serviceBuilds = 0;
+const serviceFailures: string[] = [];
+for (const d of SERVICE_DRIVES) {
+  const spec = serviceSpec(d.id);
+  const note = (kind: string, name: string) => rulesFired.add(`${d.id}|${kind}|${name}`);
+  try {
+    if (d.op === 'connect') buildConnection(spec, 'connect', d.input, recorded, d.config);
+    else if (d.op) buildFrames(spec, d.op, d.input, recorded, d.config);
+    else buildFromSpec(spec, d.input as never, recorded, d.flavor ?? spec.provider, note, d.config);
+    serviceBuilds++;
+  } catch (e) {
+    serviceFailures.push(`${d.id}${d.op ? `/${d.op}` : ''}: ${(e as Error).message}`);
+  }
+}
+
 // ── report ───────────────────────────────────────────────────────────────────
 const CHAT = new Set(subjects.map((s) => s.specId));
 const line = (s: string) => console.log(s);
@@ -282,6 +508,8 @@ line(`interpreter builtins : ${hardcoded.size}  (${[...hardcoded].sort().join(',
 line(`specs driven here    : ${CHAT.size}  (${[...CHAT].sort().join(', ')})`);
 line(`chat builds          : ${builds}  (${subjects.length} subjects x ${SHAPES.length} shapes)`);
 line(`media builds         : ${mediaBuilds}  (${mediaSpecIds.size} media specs driven)`);
+line(`service builds       : ${serviceBuilds}/${SERVICE_DRIVES.length} service specs driven`);
+for (const f of serviceFailures) line(`  DRIVE FAILED  ${f}`);
 line('');
 
 if (missing.length) {
@@ -303,7 +531,13 @@ for (const kind of ['predicates', 'transforms', 'builders', 'effects'] as Kind[]
   line(`  referenced, never fired   (${refdNotFired.length}): ${refdNotFired.join(', ') || '-'}`);
 }
 line('');
-line('Names referenced only by specs this audit does not drive (media/realtime/CRUD)');
-line('appear as "referenced, never fired" — that is a COVERAGE gap, not dead code.');
+const stillDark = ['predicates', 'transforms', 'builders', 'effects'].some((k) =>
+  Object.keys(base[k as Kind]).some((n) => !fired.has(`${k}.${n}`)),
+);
+line(
+  stillDark
+    ? 'Some named code is referenced but never executed. That is a COVERAGE gap, not dead code: it looks covered and is not.'
+    : 'Every named piece of code any spec can reach was EXECUTED by this run.',
+);
 
 process.exit(missing.length ? 1 : 0);
