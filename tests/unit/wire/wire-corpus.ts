@@ -125,7 +125,7 @@ export const SHAPES: Shape[] = [
           role: 'user',
           content: [
             { type: 'text', text: 'what is this' },
-            { type: 'image', source: { type: 'base64', mediaType: 'image/png', data: 'aGk=' } },
+            { type: 'image', source: { type: 'base64', mimeType: 'image/png', data: 'aGk=' } },
           ],
         },
       ],
@@ -135,6 +135,27 @@ export const SHAPES: Shape[] = [
   {
     name: 'moderation',
     req: (model) => ({ model, messages: U, moderation: { mode: 'report' } }),
+  },
+  {
+    // Audio INPUT, which is a content part rather than a request field. The audit
+    // caught this: `openaiAudioFormat` and `resolveVoiceOpenAI` sit behind the
+    // `hasAudioInput` guard in a spec the corpus already drove 6,380 times, and
+    // neither ever fired, because no frozen request carried an audio part. It is
+    // the branch that makes gpt-audio work at all.
+    name: 'content.audio',
+    req: (model) => ({
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: 'transcribe' },
+            { type: 'audio', source: { type: 'base64', mimeType: 'audio/wav', data: 'UklGRg==' } },
+          ],
+        },
+      ],
+      audio: { voice: 'alloy', format: 'wav' },
+    }),
   },
   {
     name: 'providerOptions',

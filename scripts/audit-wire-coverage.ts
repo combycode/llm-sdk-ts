@@ -1,0 +1,250 @@
+/** Is every piece of named code the specs can reach actually reachable, reached,
+ *  and correct — and does anything the specs name not exist?
+ *
+ *  This exists because "no spec references X" was asserted from a single grep of a
+ *  single directory, and that is not evidence. The name could appear under any of
+ *  FIVE different keys, in specs the grep did not cover, or be reached only by a
+ *  model generation the corpus never builds.
+ *
+ *  Two passes, because they answer different questions and neither is sufficient:
+ *
+ *    STATIC   parse every shipped spec, collect every named reference under all
+ *             five forms, and diff against the registry.
+ *               referenced but missing -> the spec throws at runtime. A BUG.
+ *               present but unreferenced -> dead code, safe to delete.
+ *    DYNAMIC  drive the corpus and record what actually fires.
+ *               referenced but never fired -> untested path, NOT dead. The most
+ *               dangerous category: it looks covered and is not.
+ *
+ *  A name can be referenced statically and still never fire (guarded by a
+ *  predicate no corpus case satisfies), so the second pass cannot be inferred from
+ *  the first.
+ *
+ *  Run: bun run scripts/audit-wire-coverage.ts
+ *  Exit 1 if a spec names code that does not exist.
+ */
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path';
+import { ModelCatalog, type ModelInfo } from '../src/catalog/catalog';
+import { WIRE_SPECS } from '../src/wire/registry';
+import { resolveSpec, type SpecDelta } from '../src/wire/inherit';
+import { buildFromSpec, type Registry, type WireSpec } from '../src/wire/interpreter';
+import { makeRegistry } from '../src/llm/wire-transforms';
+import { AnthropicAdapter } from '../src/llm/providers/anthropic/messages';
+import { GoogleAdapter } from '../src/llm/providers/google/generate';
+import { GoogleInteractionsAdapter } from '../src/llm/providers/google/interactions';
+import { OpenAIResponsesAdapter } from '../src/llm/providers/openai/responses';
+import { OpenAIAdapter } from '../src/llm/providers/openai/completions';
+import { XAIAdapter } from '../src/llm/providers/xai/completions';
+import { XAIResponsesAdapter } from '../src/llm/providers/xai/responses';
+import { OpenRouterAdapter } from '../src/llm/providers/openrouter/completions';
+import { OpenRouterResponsesAdapter } from '../src/llm/providers/openrouter/responses';
+import { SHAPES, subjectsFrom, type Adapterish } from '../tests/unit/wire/wire-corpus';
+
+const SPEC_DIR = resolve(import.meta.dir, '../src/wire/specs');
+const K = 'k';
+
+const anthropic = new AnthropicAdapter({ apiKey: K });
+const google = new GoogleAdapter({ apiKey: K });
+const googleInteractions = new GoogleInteractionsAdapter({ apiKey: K });
+const openaiResponses = new OpenAIResponsesAdapter({ apiKey: K });
+const openaiCompletions = new OpenAIAdapter({ apiKey: K });
+
+const adapters: Record<string, Record<string, Adapterish | undefined>> = {
+  anthropic: { messages: anthropic },
+  google: { generate: google, interactions: googleInteractions },
+  openai: { responses: openaiResponses, completions: openaiCompletions },
+  xai: {
+    responses: new XAIResponsesAdapter({ apiKey: K }),
+    completions: new XAIAdapter({ apiKey: K }),
+  },
+  openrouter: {
+    responses: new OpenRouterResponsesAdapter({ apiKey: K }),
+    completions: new OpenRouterAdapter({ apiKey: K }),
+  },
+};
+
+const base = makeRegistry({
+  anthropic,
+  google,
+  googleInteractions,
+  openaiResponses,
+  openaiCompletions,
+});
+
+// ── walk every shipped spec file ─────────────────────────────────────────────
+function walk(dir: string, out: string[] = []): string[] {
+  for (const e of readdirSync(dir)) {
+    const p = join(dir, e);
+    if (statSync(p).isDirectory()) walk(p, out);
+    else if (p.endsWith('.json')) out.push(p);
+  }
+  return out;
+}
+const specFiles = walk(SPEC_DIR);
+
+/** Every registry name a spec references, under every key the interpreter reads.
+ *
+ *  The five forms are not interchangeable and a search for one finds none of the
+ *  others: `pred` (conditions), `$call` (templates), `fn` (variant selectors),
+ *  `call` (field / block / overlay), and bare strings inside `effects`. */
+type Kind = 'predicates' | 'transforms' | 'builders' | 'effects';
+const refs: Record<Kind, Map<string, string[]>> = {
+  predicates: new Map(),
+  transforms: new Map(),
+  builders: new Map(),
+  effects: new Map(),
+};
+const note = (kind: Kind, name: string, where: string) => {
+  const m = refs[kind];
+  if (!m.has(name)) m.set(name, []);
+  const list = m.get(name) as string[];
+  if (!list.includes(where)) list.push(where);
+};
+
+function scan(node: unknown, file: string, inBlock = false): void {
+  if (Array.isArray(node)) {
+    for (const x of node) scan(x, file, inBlock);
+    return;
+  }
+  if (!node || typeof node !== 'object') return;
+  const o = node as Record<string, unknown>;
+
+  if (typeof o.pred === 'string') note('predicates', o.pred, file);
+  if (typeof o.$call === 'string') note('transforms', o.$call, file);
+  if (typeof o.fn === 'string') note('transforms', o.fn, file);
+  // `call` is a transform on a field/overlay and a builder on a block. Record it
+  // under both rather than guessing: a name present in either registry is fine,
+  // and the dynamic pass says which one actually ran.
+  if (typeof o.call === 'string') {
+    note('transforms', o.call, file);
+    note('builders', o.call, file);
+    note('effects', o.call, file);
+  }
+  if (Array.isArray(o.effects)) {
+    for (const e of o.effects) if (typeof e === 'string') note('effects', e, file);
+  }
+  for (const v of Object.values(o)) scan(v, file, inBlock);
+}
+
+for (const f of specFiles) {
+  scan(JSON.parse(readFileSync(f, 'utf8')), relative(SPEC_DIR, f).replaceAll('\\', '/'));
+}
+
+/** Registry entries the INTERPRETER calls by name, with no spec reference at all.
+ *
+ *  The first version of this audit missed these and reported `isFunctionTool` as
+ *  unreferenced dead code. It is the opposite of dead: `evalCond` calls it from
+ *  four places to implement the built-in `isFunctionTool` / `builtin` / `hasTool` /
+ *  `hasFunctionTool` conditions, which five shipped specs rely on. No spec ever
+ *  names it, so scanning specs alone cannot see it — and deleting it on that
+ *  evidence would have broken every builtin-tool rule in the library.
+ *
+ *  Read out of the source rather than listed from memory, so a newly added
+ *  hardcoded call cannot quietly reopen the same hole. */
+const INTERPRETER_SRC = readFileSync(resolve(import.meta.dir, '../src/wire/interpreter.ts'), 'utf8');
+const hardcoded = new Set<string>();
+const HARDCODED_RE = /reg\.(transforms|builders|predicates|effects)\.([A-Za-z_]\w*)/g;
+for (const m of INTERPRETER_SRC.matchAll(HARDCODED_RE)) {
+  hardcoded.add(`${m[1]}.${m[2]}`);
+  note(m[1] as Kind, m[2] as string, '<interpreter builtin>');
+}
+
+// ── static: does everything a spec names exist? ──────────────────────────────
+const missing: string[] = [];
+for (const kind of Object.keys(refs) as Kind[]) {
+  for (const [name, where] of refs[kind]) {
+    // `call` is recorded under three kinds; it only has to exist in one of them.
+    const anywhere =
+      name in base.transforms || name in base.builders || name in base.predicates || name in base.effects;
+    if (!anywhere) missing.push(`${kind}.${name} — named in ${where.join(', ')}`);
+  }
+}
+
+// ── dynamic: what actually fires when the corpus runs ────────────────────────
+const fired = new Set<string>();
+function recording(reg: Registry): Registry {
+  const wrap = (kind: Kind) =>
+    new Proxy(reg[kind] as Record<string, (...a: unknown[]) => unknown>, {
+      get(target, prop: string) {
+        const fn = target[prop];
+        if (typeof fn !== 'function') return fn;
+        return (...args: unknown[]) => {
+          fired.add(`${kind}.${prop}`);
+          return fn(...args);
+        };
+      },
+    });
+  return {
+    transforms: wrap('transforms'),
+    builders: wrap('builders'),
+    predicates: wrap('predicates'),
+    effects: wrap('effects'),
+  } as Registry;
+}
+const recorded = recording(base);
+
+const byId = WIRE_SPECS as unknown as Map<string, SpecDelta>;
+const cache = new Map<string, WireSpec>();
+const spec = (id: string): WireSpec => {
+  let s = cache.get(id);
+  if (!s) {
+    s = resolveSpec(id, byId);
+    cache.set(id, s);
+  }
+  return s;
+};
+
+const catalog = new ModelCatalog();
+catalog.loadProviderDefaults();
+const subjects = subjectsFrom(catalog.list() as ModelInfo[], adapters);
+
+/** Spec rules that fired, from the interpreter's own coverage hook. */
+const rulesFired = new Set<string>();
+let builds = 0;
+for (const s of subjects) {
+  for (const shape of SHAPES) {
+    buildFromSpec(
+      spec(s.specId),
+      shape.req(s.model) as never,
+      recorded,
+      s.flavor,
+      (kind, name) => rulesFired.add(`${s.specId}|${kind}|${name}`),
+    );
+    builds++;
+  }
+}
+
+// ── report ───────────────────────────────────────────────────────────────────
+const CHAT = new Set(subjects.map((s) => s.specId));
+const line = (s: string) => console.log(s);
+
+line(`specs on disk        : ${specFiles.length}`);
+line(`interpreter builtins : ${hardcoded.size}  (${[...hardcoded].sort().join(', ')})`);
+line(`specs driven here    : ${CHAT.size}  (${[...CHAT].sort().join(', ')})`);
+line(`corpus builds        : ${builds}  (${subjects.length} subjects x ${SHAPES.length} shapes)`);
+line('');
+
+if (missing.length) {
+  line(`NAMED BUT MISSING (${missing.length}) — these throw at runtime:`);
+  for (const m of missing) line(`  ${m}`);
+} else {
+  line('NAMED BUT MISSING: none — every name any spec uses exists in the registry');
+}
+line('');
+
+for (const kind of ['predicates', 'transforms', 'builders', 'effects'] as Kind[]) {
+  const all = Object.keys(base[kind]).sort();
+  const unref = all.filter((n) => !refs[kind].has(n) && !refs.transforms.has(n));
+  const refdNotFired = all.filter(
+    (n) => (refs[kind].has(n) || refs.transforms.has(n)) && !fired.has(`${kind}.${n}`),
+  );
+  line(`${kind}: ${all.length} defined`);
+  line(`  unreferenced by ANY spec  (${unref.length}): ${unref.join(', ') || '-'}`);
+  line(`  referenced, never fired   (${refdNotFired.length}): ${refdNotFired.join(', ') || '-'}`);
+}
+line('');
+line('Names referenced only by specs this audit does not drive (media/realtime/CRUD)');
+line('appear as "referenced, never fired" — that is a COVERAGE gap, not dead code.');
+
+process.exit(missing.length ? 1 : 0);

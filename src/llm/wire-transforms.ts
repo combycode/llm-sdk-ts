@@ -12,7 +12,6 @@ import type { Ctx, Registry } from '../wire/interpreter';
 import { ensureAdditionalProperties, strictSupport } from './types/schema-utils';
 import { resolveVoice } from './audio/voices';
 import { buildNativeModeration } from './moderation/native';
-import { anthropicThinkingShape } from './providers/anthropic/constants';
 import { googleRequestTier } from './providers/google/tiers';
 import { openaiRequestTier } from './providers/openai/tiers';
 import { xaiRequestTier } from './providers/xai/tiers';
@@ -155,7 +154,6 @@ export function makeRegistry(a: AdapterHandles): Registry {
     /** Version arithmetic: family-then-version ids compared against 4.6.
      *  This is the one variant that resists being data, and it is exactly the
      *  knowledge a catalog spec-pin would carry instead. */
-    anthropicAdaptiveThinking: (model: any) => anthropicThinkingShape(String(model)) === 'adaptive',
   };
 
   const builders: Registry['builders'] = {

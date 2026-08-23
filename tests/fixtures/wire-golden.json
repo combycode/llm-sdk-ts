@@ -23,13 +23,14 @@
     "content.multimodal",
     "serverState",
     "moderation",
+    "content.audio",
     "providerOptions"
   ],
   "counts": {
     "models": 290,
-    "shapes": 22,
-    "bodies": 6380,
-    "distinct": 507
+    "shapes": 23,
+    "bodies": 6670,
+    "distinct": 523
   },
   "bodies": {
     "30387636": {
@@ -52,27 +53,6 @@
         }
       },
       "path": "/v1beta/models/gemini-3-flash-preview:generateContent"
-    },
-    "31024478": {
-      "body": {
-        "contents": [
-          {
-            "parts": [
-              {
-                "text": "what is this"
-              },
-              {
-                "inlineData": {
-                  "data": "aGk="
-                }
-              }
-            ],
-            "role": "user"
-          }
-        ],
-        "generationConfig": {}
-      },
-      "path": "/v1beta/models/gemini-2.5-flash-lite:generateContent"
     },
     "35659862": {
       "body": {
@@ -134,6 +114,28 @@
         "model": "openai/gpt-oss-120b:online"
       }
     },
+    "63452793": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemma-4-31b-it:generateContent"
+    },
     "66063906": {
       "body": {
         "input": [
@@ -143,6 +145,30 @@
           }
         ],
         "instructions": "sys",
+        "model": "$MODEL"
+      }
+    },
+    "73950945": {
+      "body": {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "what is this",
+                "type": "text"
+              },
+              {
+                "image_url": {
+                  "detail": "auto",
+                  "url": "data:image/png;base64,aGk="
+                },
+                "type": "image_url"
+              }
+            ],
+            "role": "user"
+          }
+        ],
         "model": "$MODEL"
       }
     },
@@ -693,7 +719,7 @@
       },
       "headers": {}
     },
-    "2f6a05b6": {
+    "b3b150a8": {
       "body": {
         "max_tokens": 4096,
         "messages": [
@@ -706,9 +732,32 @@
               {
                 "source": {
                   "data": "aGk=",
+                  "media_type": "image/png",
                   "type": "base64"
                 },
                 "type": "image"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL"
+      },
+      "headers": {}
+    },
+    "ca484b37": {
+      "body": {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "transcribe",
+                "type": "text"
+              },
+              {
+                "text": "[unsupported: audio]",
+                "type": "text"
               }
             ],
             "role": "user"
@@ -1187,7 +1236,7 @@
         "service_tier": "priority"
       }
     },
-    "2079ae85": {
+    "76614b9e": {
       "body": {
         "input": [
           {
@@ -1197,7 +1246,7 @@
                 "type": "input_text"
               },
               {
-                "image_url": "data:undefined;base64,aGk=",
+                "image_url": "data:image/png;base64,aGk=",
                 "type": "input_image"
               }
             ],
@@ -1231,6 +1280,22 @@
         "moderation": {
           "model": "omni-moderation-latest"
         }
+      }
+    },
+    "d882d12b": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "transcribe",
+                "type": "input_text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL"
       }
     },
     "df863fa1": {
@@ -1683,7 +1748,7 @@
       },
       "path": "/v1beta/models/gemini-2.5-pro:generateContent"
     },
-    "f5a64eca": {
+    "5e4e176b": {
       "body": {
         "contents": [
           {
@@ -1693,7 +1758,30 @@
               },
               {
                 "inlineData": {
-                  "data": "aGk="
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-2.5-pro:generateContent"
+    },
+    "80b3d798": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "transcribe"
+              },
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
                 }
               }
             ],
@@ -2166,7 +2254,7 @@
       },
       "path": "/v1beta/models/gemini-3.1-pro-preview:generateContent"
     },
-    "6c180b18": {
+    "6f4a52c5": {
       "body": {
         "contents": [
           {
@@ -2176,7 +2264,30 @@
               },
               {
                 "inlineData": {
-                  "data": "aGk="
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview:generateContent"
+    },
+    "4374e7d2": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "transcribe"
+              },
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
                 }
               }
             ],
@@ -2649,7 +2760,7 @@
       },
       "path": "/v1beta/models/gemini-3.1-pro-preview-customtools:generateContent"
     },
-    "a291f0f7": {
+    "e724dc32": {
       "body": {
         "contents": [
           {
@@ -2659,7 +2770,30 @@
               },
               {
                 "inlineData": {
-                  "data": "aGk="
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview-customtools:generateContent"
+    },
+    "998228f1": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "transcribe"
+              },
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
                 }
               }
             ],
@@ -3132,7 +3266,7 @@
       },
       "path": "/v1beta/models/gemini-2.5-flash:generateContent"
     },
-    "b1d08547": {
+    "528912b6": {
       "body": {
         "contents": [
           {
@@ -3142,7 +3276,30 @@
               },
               {
                 "inlineData": {
-                  "data": "aGk="
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-2.5-flash:generateContent"
+    },
+    "83bbd425": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "transcribe"
+              },
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
                 }
               }
             ],
@@ -3594,7 +3751,7 @@
       },
       "path": "/v1beta/models/gemini-3-flash-preview:generateContent"
     },
-    "54d7bd3c": {
+    "6a1a271d": {
       "body": {
         "contents": [
           {
@@ -3604,7 +3761,30 @@
               },
               {
                 "inlineData": {
-                  "data": "aGk="
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3-flash-preview:generateContent"
+    },
+    "68fc8a22": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "transcribe"
+              },
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
                 }
               }
             ],
@@ -4077,7 +4257,7 @@
       },
       "path": "/v1beta/models/gemini-3.5-flash:generateContent"
     },
-    "5adb6a48": {
+    "5681858d": {
       "body": {
         "contents": [
           {
@@ -4087,7 +4267,30 @@
               },
               {
                 "inlineData": {
-                  "data": "aGk="
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.5-flash:generateContent"
+    },
+    "dce6418e": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "transcribe"
+              },
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
                 }
               }
             ],
@@ -4493,6 +4696,50 @@
         ],
         "generationConfig": {},
         "serviceTier": "priority"
+      },
+      "path": "/v1beta/models/gemini-2.5-flash-lite:generateContent"
+    },
+    "7a597c8b": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "what is this"
+              },
+              {
+                "inlineData": {
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-2.5-flash-lite:generateContent"
+    },
+    "acd449aa": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "transcribe"
+              },
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
       },
       "path": "/v1beta/models/gemini-2.5-flash-lite:generateContent"
     },
@@ -4958,7 +5205,7 @@
       },
       "path": "/v1beta/models/gemini-3.1-flash-lite:generateContent"
     },
-    "742a409d": {
+    "276d2f36": {
       "body": {
         "contents": [
           {
@@ -4968,7 +5215,30 @@
               },
               {
                 "inlineData": {
-                  "data": "aGk="
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.1-flash-lite:generateContent"
+    },
+    "8218713f": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "transcribe"
+              },
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
                 }
               }
             ],
@@ -5441,7 +5711,7 @@
       },
       "path": "/v1beta/models/gemma-4-26b-a4b-it:generateContent"
     },
-    "907c3dce": {
+    "6cb70977": {
       "body": {
         "contents": [
           {
@@ -5451,7 +5721,30 @@
               },
               {
                 "inlineData": {
-                  "data": "aGk="
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemma-4-26b-a4b-it:generateContent"
+    },
+    "3f96f700": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "transcribe"
+              },
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
                 }
               }
             ],
@@ -5924,17 +6217,18 @@
       },
       "path": "/v1beta/models/gemma-4-31b-it:generateContent"
     },
-    "a6b1d966": {
+    "a69bae88": {
       "body": {
         "contents": [
           {
             "parts": [
               {
-                "text": "what is this"
+                "text": "transcribe"
               },
               {
                 "inlineData": {
-                  "data": "aGk="
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
                 }
               }
             ],
@@ -6407,7 +6701,7 @@
       },
       "path": "/v1beta/models/gemini-3.6-flash:generateContent"
     },
-    "f2c892b5": {
+    "d237fc80": {
       "body": {
         "contents": [
           {
@@ -6417,7 +6711,30 @@
               },
               {
                 "inlineData": {
-                  "data": "aGk="
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.6-flash:generateContent"
+    },
+    "9692becf": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "transcribe"
+              },
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
                 }
               }
             ],
@@ -6890,7 +7207,7 @@
       },
       "path": "/v1beta/models/gemini-3.5-flash-lite:generateContent"
     },
-    "b3f79019": {
+    "f3e67db2": {
       "body": {
         "contents": [
           {
@@ -6900,7 +7217,30 @@
               },
               {
                 "inlineData": {
-                  "data": "aGk="
+                  "data": "aGk=",
+                  "mimeType": "image/png"
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.5-flash-lite:generateContent"
+    },
+    "8331cce3": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "transcribe"
+              },
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
                 }
               }
             ],
@@ -7441,30 +7781,6 @@
         "service_tier": "priority"
       }
     },
-    "ab62e2f4": {
-      "body": {
-        "max_tokens": 4096,
-        "messages": [
-          {
-            "content": [
-              {
-                "text": "what is this",
-                "type": "text"
-              },
-              {
-                "image_url": {
-                  "detail": "auto",
-                  "url": "data:undefined;base64,aGk="
-                },
-                "type": "image_url"
-              }
-            ],
-            "role": "user"
-          }
-        ],
-        "model": "$MODEL"
-      }
-    },
     "b51d27cd": {
       "body": {
         "max_tokens": 4096,
@@ -7478,6 +7794,38 @@
         "moderation": {
           "model": "omni-moderation-latest"
         }
+      }
+    },
+    "3a79fdf5": {
+      "body": {
+        "audio": {
+          "format": "wav",
+          "voice": "alloy"
+        },
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "transcribe",
+                "type": "text"
+              },
+              {
+                "input_audio": {
+                  "data": "UklGRg==",
+                  "format": "wav"
+                },
+                "type": "input_audio"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "modalities": [
+          "text",
+          "audio"
+        ],
+        "model": "$MODEL"
       }
     },
     "1d7cbd18": {
@@ -10392,7 +10740,7 @@
         ]
       }
     },
-    "e162585d": {
+    "80aa6f67": {
       "body": {
         "input": [
           {
@@ -10403,6 +10751,7 @@
               },
               {
                 "data": "aGk=",
+                "mime_type": "image/png",
                 "type": "image"
               }
             ],
@@ -10428,6 +10777,27 @@
         "model": "models/gemini-3.1-pro",
         "previous_interaction_id": "resp_1"
       }
+    },
+    "f900fcd1": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "transcribe",
+                "type": "text"
+              },
+              {
+                "data": "UklGRg==",
+                "mime_type": "audio/wav",
+                "type": "audio"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro"
+      }
     }
   },
   "index": {
@@ -10450,9 +10820,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-4-1-20250805": {
@@ -10474,9 +10845,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-4-5-20251101": {
@@ -10498,9 +10870,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-4-6": {
@@ -10522,9 +10895,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-4-7": {
@@ -10546,9 +10920,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-4-8": {
@@ -10570,9 +10945,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-sonnet-4-20250514": {
@@ -10594,9 +10970,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-sonnet-4-5-20250929": {
@@ -10618,9 +10995,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-sonnet-4-6": {
@@ -10642,9 +11020,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-haiku-4-5-20251001": {
@@ -10666,9 +11045,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-fable-5": {
@@ -10690,9 +11070,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-sonnet-5": {
@@ -10714,9 +11095,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-mythos-5": {
@@ -10738,9 +11120,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "anthropic/claude-opus-5": {
@@ -10762,9 +11145,10 @@
       "cache.auto": "66aefab5",
       "tier": "2cbf8753",
       "audio.out": "9ec64032",
-      "content.multimodal": "2f6a05b6",
+      "content.multimodal": "b3b150a8",
       "serverState": "9ec64032",
       "moderation": "9ec64032",
+      "content.audio": "ca484b37",
       "providerOptions": "9dde0163"
     },
     "openai/gpt-3.5-turbo": {
@@ -10786,9 +11170,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-4": {
@@ -10810,9 +11195,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-4-turbo": {
@@ -10834,9 +11220,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-4.1": {
@@ -10858,9 +11245,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5": {
@@ -10882,9 +11270,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.1": {
@@ -10906,9 +11295,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.2": {
@@ -10930,9 +11320,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.4": {
@@ -10954,9 +11345,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.5": {
@@ -10978,9 +11370,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5-chat-latest": {
@@ -11002,9 +11395,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.1-chat-latest": {
@@ -11026,9 +11420,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.2-chat-latest": {
@@ -11050,9 +11445,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.3-chat-latest": {
@@ -11074,9 +11470,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-4.1-mini": {
@@ -11098,9 +11495,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5-mini": {
@@ -11122,9 +11520,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.4-mini": {
@@ -11146,9 +11545,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-4.1-nano": {
@@ -11170,9 +11570,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5-nano": {
@@ -11194,9 +11595,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.4-nano": {
@@ -11218,9 +11620,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5-pro": {
@@ -11242,9 +11645,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.2-pro": {
@@ -11266,9 +11670,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.4-pro": {
@@ -11290,9 +11695,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.5-pro": {
@@ -11314,9 +11720,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-4o": {
@@ -11338,9 +11745,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-4o-mini": {
@@ -11362,9 +11770,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/o1": {
@@ -11386,9 +11795,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/o1-pro": {
@@ -11410,9 +11820,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/o3": {
@@ -11434,9 +11845,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/o3-mini": {
@@ -11458,9 +11870,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/o3-pro": {
@@ -11482,9 +11895,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/o4-mini": {
@@ -11506,9 +11920,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.6-sol": {
@@ -11530,9 +11945,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.6-terra": {
@@ -11554,9 +11970,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "openai/gpt-5.6-luna": {
@@ -11578,9 +11995,10 @@
       "cache.auto": "5b142130",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "df863fa1"
     },
     "google/gemini-2.5-pro": {
@@ -11602,9 +12020,10 @@
       "cache.auto": "601d144d",
       "tier": "3e52d791",
       "audio.out": "5f07ba61",
-      "content.multimodal": "f5a64eca",
+      "content.multimodal": "5e4e176b",
       "serverState": "5c795dae",
       "moderation": "5c795dae",
+      "content.audio": "80b3d798",
       "providerOptions": "031bf5cf"
     },
     "google/gemini-3.1-pro-preview": {
@@ -11626,9 +12045,10 @@
       "cache.auto": "0c9a62d3",
       "tier": "a3ea25a7",
       "audio.out": "0bdf1e37",
-      "content.multimodal": "6c180b18",
+      "content.multimodal": "6f4a52c5",
       "serverState": "5b981a6c",
       "moderation": "5b981a6c",
+      "content.audio": "4374e7d2",
       "providerOptions": "6c7e1a99"
     },
     "google/gemini-3.1-pro-preview-customtools": {
@@ -11650,9 +12070,10 @@
       "cache.auto": "a9772778",
       "tier": "fe2c8b14",
       "audio.out": "23c43784",
-      "content.multimodal": "a291f0f7",
+      "content.multimodal": "e724dc32",
       "serverState": "3c306cd3",
       "moderation": "3c306cd3",
+      "content.audio": "998228f1",
       "providerOptions": "0d960d7e"
     },
     "google/gemini-2.5-flash": {
@@ -11674,9 +12095,10 @@
       "cache.auto": "6b7c1ea0",
       "tier": "e38b2d9c",
       "audio.out": "952a4bcc",
-      "content.multimodal": "b1d08547",
+      "content.multimodal": "528912b6",
       "serverState": "f102f223",
       "moderation": "f102f223",
+      "content.audio": "83bbd425",
       "providerOptions": "8cf4a7c2"
     },
     "google/gemini-3-flash-preview": {
@@ -11698,9 +12120,10 @@
       "cache.auto": "fae1a287",
       "tier": "c8da340b",
       "audio.out": "23f5765b",
-      "content.multimodal": "54d7bd3c",
+      "content.multimodal": "6a1a271d",
       "serverState": "daa673e0",
       "moderation": "daa673e0",
+      "content.audio": "68fc8a22",
       "providerOptions": "4dd7bdf1"
     },
     "google/gemini-3.5-flash": {
@@ -11722,9 +12145,10 @@
       "cache.auto": "76ab21ff",
       "tier": "0cf381db",
       "audio.out": "7ded564b",
-      "content.multimodal": "5adb6a48",
+      "content.multimodal": "5681858d",
       "serverState": "2ff6c724",
       "moderation": "2ff6c724",
+      "content.audio": "dce6418e",
       "providerOptions": "fc90b4a9"
     },
     "google/gemini-2.5-flash-lite": {
@@ -11746,9 +12170,10 @@
       "cache.auto": "fd6ae6b1",
       "tier": "88ba46d5",
       "audio.out": "98534445",
-      "content.multimodal": "31024478",
+      "content.multimodal": "7a597c8b",
       "serverState": "7673e98c",
       "moderation": "7673e98c",
+      "content.audio": "acd449aa",
       "providerOptions": "02af1bbf"
     },
     "google/gemini-3.1-flash-lite": {
@@ -11770,9 +12195,10 @@
       "cache.auto": "e1b0688c",
       "tier": "d41d8828",
       "audio.out": "175d4118",
-      "content.multimodal": "742a409d",
+      "content.multimodal": "276d2f36",
       "serverState": "40bc36b9",
       "moderation": "40bc36b9",
+      "content.audio": "8218713f",
       "providerOptions": "b897f4b2"
     },
     "google/gemma-4-26b-a4b-it": {
@@ -11794,9 +12220,10 @@
       "cache.auto": "bcab9f7d",
       "tier": "142855d9",
       "audio.out": "95957ec9",
-      "content.multimodal": "907c3dce",
+      "content.multimodal": "6cb70977",
       "serverState": "f203ef0a",
       "moderation": "f203ef0a",
+      "content.audio": "3f96f700",
       "providerOptions": "e64ddcc3"
     },
     "google/gemma-4-31b-it": {
@@ -11818,9 +12245,10 @@
       "cache.auto": "f008e261",
       "tier": "b50e8725",
       "audio.out": "498a5735",
-      "content.multimodal": "a6b1d966",
+      "content.multimodal": "63452793",
       "serverState": "8067f7ba",
       "moderation": "8067f7ba",
+      "content.audio": "a69bae88",
       "providerOptions": "74399e77"
     },
     "google/gemini-3.6-flash": {
@@ -11842,9 +12270,10 @@
       "cache.auto": "cb67e53e",
       "tier": "381b76aa",
       "audio.out": "18a25a9a",
-      "content.multimodal": "f2c892b5",
+      "content.multimodal": "d237fc80",
       "serverState": "3fe3ac51",
       "moderation": "3fe3ac51",
+      "content.audio": "9692becf",
       "providerOptions": "4d90071c"
     },
     "google/gemini-3.5-flash-lite": {
@@ -11866,9 +12295,10 @@
       "cache.auto": "19bdf050",
       "tier": "e27a70e4",
       "audio.out": "17ba5a14",
-      "content.multimodal": "b3f79019",
+      "content.multimodal": "f3e67db2",
       "serverState": "b2f1953d",
       "moderation": "b2f1953d",
+      "content.audio": "8331cce3",
       "providerOptions": "ec1ea636"
     },
     "xai/grok-4.20-0309-reasoning": {
@@ -11890,9 +12320,10 @@
       "cache.auto": "e2d746d5",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "9694b55f"
     },
     "xai/grok-4.20-0309-non-reasoning": {
@@ -11914,9 +12345,10 @@
       "cache.auto": "e2d746d5",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "9694b55f"
     },
     "xai/grok-4.20-multi-agent-0309": {
@@ -11938,9 +12370,10 @@
       "cache.auto": "e2d746d5",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "9694b55f"
     },
     "xai/grok-4.3": {
@@ -11962,9 +12395,10 @@
       "cache.auto": "e2d746d5",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "9694b55f"
     },
     "xai/grok-4.5": {
@@ -11986,9 +12420,10 @@
       "cache.auto": "e2d746d5",
       "tier": "e538231a",
       "audio.out": "d9c84240",
-      "content.multimodal": "2079ae85",
+      "content.multimodal": "76614b9e",
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
+      "content.audio": "d882d12b",
       "providerOptions": "9694b55f"
     },
     "openrouter/anthropic/claude-fable-5": {
@@ -12010,9 +12445,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4": {
@@ -12034,9 +12470,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.1": {
@@ -12058,9 +12495,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.5": {
@@ -12082,9 +12520,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.6": {
@@ -12106,9 +12545,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.6-fast": {
@@ -12130,9 +12570,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.7": {
@@ -12154,9 +12595,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.7-fast": {
@@ -12178,9 +12620,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.8": {
@@ -12202,9 +12645,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-4.8-fast": {
@@ -12226,9 +12670,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-sonnet-4": {
@@ -12250,9 +12695,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-sonnet-4.5": {
@@ -12274,9 +12720,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-sonnet-4.6": {
@@ -12298,9 +12745,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-3-haiku": {
@@ -12322,9 +12770,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-3.5-haiku": {
@@ -12346,9 +12795,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-haiku-4.5": {
@@ -12370,9 +12820,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-3.5-turbo": {
@@ -12394,9 +12845,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4": {
@@ -12418,9 +12870,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4-turbo": {
@@ -12442,9 +12895,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4.1": {
@@ -12466,9 +12920,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5": {
@@ -12490,9 +12945,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.1": {
@@ -12514,9 +12970,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.2": {
@@ -12538,9 +12995,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.4": {
@@ -12562,9 +13020,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.5": {
@@ -12586,9 +13045,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5-chat": {
@@ -12610,9 +13070,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.1-chat": {
@@ -12634,9 +13095,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.2-chat": {
@@ -12658,9 +13120,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.3-chat": {
@@ -12682,9 +13145,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4.1-mini": {
@@ -12706,9 +13170,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5-mini": {
@@ -12730,9 +13195,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.4-mini": {
@@ -12754,9 +13220,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4.1-nano": {
@@ -12778,9 +13245,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5-nano": {
@@ -12802,9 +13270,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.4-nano": {
@@ -12826,9 +13295,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5-pro": {
@@ -12850,9 +13320,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.2-pro": {
@@ -12874,9 +13345,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.4-pro": {
@@ -12898,9 +13370,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.5-pro": {
@@ -12922,9 +13395,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4o": {
@@ -12946,9 +13420,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-4o-mini": {
@@ -12970,9 +13445,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-oss-20b": {
@@ -12994,9 +13470,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-oss-120b": {
@@ -13018,9 +13495,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o1": {
@@ -13042,9 +13520,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o1-pro": {
@@ -13066,9 +13545,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o3": {
@@ -13090,9 +13570,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o3-mini": {
@@ -13114,9 +13595,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o3-pro": {
@@ -13138,9 +13620,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o3-deep-research": {
@@ -13162,9 +13645,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o4-mini": {
@@ -13186,9 +13670,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/o4-mini-deep-research": {
@@ -13210,9 +13695,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-2.5-pro": {
@@ -13234,9 +13720,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.1-pro-preview": {
@@ -13258,9 +13745,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.1-pro-preview-customtools": {
@@ -13282,9 +13770,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-2.5-flash": {
@@ -13306,9 +13795,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3-flash-preview": {
@@ -13330,9 +13820,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.5-flash": {
@@ -13354,9 +13845,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-2.5-flash-lite": {
@@ -13378,9 +13870,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.1-flash-lite": {
@@ -13402,9 +13895,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-2-27b-it": {
@@ -13426,9 +13920,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-3-4b-it": {
@@ -13450,9 +13945,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-3-12b-it": {
@@ -13474,9 +13970,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-3-27b-it": {
@@ -13498,9 +13995,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-3n-e4b-it": {
@@ -13522,9 +14020,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-4-26b-a4b-it": {
@@ -13546,9 +14045,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemma-4-31b-it": {
@@ -13570,9 +14070,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/x-ai/grok-4.20": {
@@ -13594,9 +14095,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/x-ai/grok-4.20-multi-agent": {
@@ -13618,9 +14120,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/x-ai/grok-4.3": {
@@ -13642,9 +14145,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-chat": {
@@ -13666,9 +14170,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-chat-v3-0324": {
@@ -13690,9 +14195,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-chat-v3.1": {
@@ -13714,9 +14220,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-v3.2": {
@@ -13738,9 +14245,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-v4-flash": {
@@ -13762,9 +14270,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-v4-pro": {
@@ -13786,9 +14295,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-r1": {
@@ -13810,9 +14320,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-r1-distill-llama-70b": {
@@ -13834,9 +14345,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/deepseek/deepseek-r1-distill-qwen-32b": {
@@ -13858,9 +14370,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen-2.5-7b-instruct": {
@@ -13882,9 +14395,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen-2.5-72b-instruct": {
@@ -13906,9 +14420,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-8b": {
@@ -13930,9 +14445,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-14b": {
@@ -13954,9 +14470,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-30b-a3b": {
@@ -13978,9 +14495,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-32b": {
@@ -14002,9 +14520,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-235b-a22b": {
@@ -14026,9 +14545,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-next-80b-a3b-instruct": {
@@ -14050,9 +14570,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-9b": {
@@ -14074,9 +14595,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-27b": {
@@ -14098,9 +14620,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-35b-a3b": {
@@ -14122,9 +14645,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-122b-a10b": {
@@ -14146,9 +14670,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-397b-a17b": {
@@ -14170,9 +14695,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.6-27b": {
@@ -14194,9 +14720,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.6-35b-a3b": {
@@ -14218,9 +14745,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen-plus": {
@@ -14242,9 +14770,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-plus-20260420": {
@@ -14266,9 +14795,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.6-plus": {
@@ -14290,9 +14820,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.7-plus": {
@@ -14314,9 +14845,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3-max": {
@@ -14338,9 +14870,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.6-max-preview": {
@@ -14362,9 +14895,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.7-max": {
@@ -14386,9 +14920,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.5-flash-02-23": {
@@ -14410,9 +14945,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/qwen/qwen3.6-flash": {
@@ -14434,9 +14970,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3-8b-instruct": {
@@ -14458,9 +14995,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3-70b-instruct": {
@@ -14482,9 +15020,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3.1-8b-instruct": {
@@ -14506,9 +15045,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3.1-70b-instruct": {
@@ -14530,9 +15070,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3.2-1b-instruct": {
@@ -14554,9 +15095,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3.2-3b-instruct": {
@@ -14578,9 +15120,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-3.3-70b-instruct": {
@@ -14602,9 +15145,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-4-scout": {
@@ -14626,9 +15170,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/meta-llama/llama-4-maverick": {
@@ -14650,9 +15195,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mistral-large": {
@@ -14674,9 +15220,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mistral-medium-3": {
@@ -14698,9 +15245,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mistral-small-24b-instruct-2501": {
@@ -14722,9 +15270,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/ministral-3b-2512": {
@@ -14746,9 +15295,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/ministral-8b-2512": {
@@ -14770,9 +15320,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/ministral-14b-2512": {
@@ -14794,9 +15345,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mistral-nemo": {
@@ -14818,9 +15370,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mistral-saba": {
@@ -14842,9 +15395,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/mistralai/mixtral-8x22b-instruct": {
@@ -14866,9 +15420,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/moonshotai/kimi-k2": {
@@ -14890,9 +15445,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/moonshotai/kimi-k2.5": {
@@ -14914,9 +15470,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/moonshotai/kimi-k2.6": {
@@ -14938,9 +15495,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-4.5": {
@@ -14962,9 +15520,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-4.6": {
@@ -14986,9 +15545,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-4.7": {
@@ -15010,9 +15570,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-5": {
@@ -15034,9 +15595,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-5.1": {
@@ -15058,9 +15620,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-01": {
@@ -15082,9 +15645,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-m1": {
@@ -15106,9 +15670,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-m2": {
@@ -15130,9 +15695,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-m2.5": {
@@ -15154,9 +15720,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-m2.7": {
@@ -15178,9 +15745,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/minimax/minimax-m3": {
@@ -15202,9 +15770,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/nvidia/nemotron-nano-9b-v2:free": {
@@ -15226,9 +15795,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/nvidia/llama-3.3-nemotron-super-49b-v1.5": {
@@ -15250,9 +15820,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/nvidia/nemotron-3-nano-30b-a3b": {
@@ -15274,9 +15845,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/nvidia/nemotron-3-super-120b-a12b": {
@@ -15298,9 +15870,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/nvidia/nemotron-3-ultra-550b-a55b": {
@@ -15322,9 +15895,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/amazon/nova-micro-v1": {
@@ -15346,9 +15920,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/amazon/nova-lite-v1": {
@@ -15370,9 +15945,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/amazon/nova-2-lite-v1": {
@@ -15394,9 +15970,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/amazon/nova-pro-v1": {
@@ -15418,9 +15995,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/amazon/nova-premier-v1": {
@@ -15442,9 +16020,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/cohere/command-r7b-12-2024": {
@@ -15466,9 +16045,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/cohere/command-r-08-2024": {
@@ -15490,9 +16070,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/cohere/command-r-plus-08-2024": {
@@ -15514,9 +16095,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/cohere/command-a": {
@@ -15538,9 +16120,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/microsoft/phi-4": {
@@ -15562,9 +16145,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/microsoft/phi-4-mini-instruct": {
@@ -15586,9 +16170,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/microsoft/wizardlm-2-8x22b": {
@@ -15610,9 +16195,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/nousresearch/hermes-3-llama-3.1-70b": {
@@ -15634,9 +16220,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/nousresearch/hermes-3-llama-3.1-405b": {
@@ -15658,9 +16245,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/nousresearch/hermes-4-70b": {
@@ -15682,9 +16270,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/nousresearch/hermes-4-405b": {
@@ -15706,9 +16295,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/bytedance-seed/seed-1.6": {
@@ -15730,9 +16320,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/bytedance-seed/seed-2.0-lite": {
@@ -15754,9 +16345,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/bytedance-seed/seed-2.0-mini": {
@@ -15778,9 +16370,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/ai21/jamba-large-1.7": {
@@ -15802,9 +16395,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/aion-labs/aion-1.0": {
@@ -15826,9 +16420,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/aion-labs/aion-2.0": {
@@ -15850,9 +16445,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/allenai/olmo-3-32b-think": {
@@ -15874,9 +16470,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/arcee-ai/trinity-large-thinking": {
@@ -15898,9 +16495,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/arcee-ai/trinity-mini": {
@@ -15922,9 +16520,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/arcee-ai/virtuoso-large": {
@@ -15946,9 +16545,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/deepcogito/cogito-v2.1-671b": {
@@ -15970,9 +16570,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/essentialai/rnj-1-instruct": {
@@ -15994,9 +16595,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/ibm-granite/granite-4.0-h-micro": {
@@ -16018,9 +16620,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/ibm-granite/granite-4.1-8b": {
@@ -16042,9 +16645,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/inception/mercury-2": {
@@ -16066,9 +16670,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/inclusionai/ling-2.6-1t": {
@@ -16090,9 +16695,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/inclusionai/ling-2.6-flash": {
@@ -16114,9 +16720,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/inclusionai/ring-2.6-1t": {
@@ -16138,9 +16745,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/inflection/inflection-3-pi": {
@@ -16162,9 +16770,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/inflection/inflection-3-productivity": {
@@ -16186,9 +16795,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/liquid/lfm-2-24b-a2b": {
@@ -16210,9 +16820,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/liquid/lfm-2.5-1.2b-instruct:free": {
@@ -16234,9 +16845,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/perceptron/perceptron-mk1": {
@@ -16258,9 +16870,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/prime-intellect/intellect-3": {
@@ -16282,9 +16895,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/rekaai/reka-edge": {
@@ -16306,9 +16920,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/rekaai/reka-flash-3": {
@@ -16330,9 +16945,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/stepfun/step-3.5-flash": {
@@ -16354,9 +16970,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/stepfun/step-3.7-flash": {
@@ -16378,9 +16995,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/tencent/hunyuan-a13b-instruct": {
@@ -16402,9 +17020,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/tencent/hy3": {
@@ -16426,9 +17045,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/upstage/solar-pro-3": {
@@ -16450,9 +17070,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/writer/palmyra-x5": {
@@ -16474,9 +17095,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/xiaomi/mimo-v2-flash": {
@@ -16498,9 +17120,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/xiaomi/mimo-v2.5": {
@@ -16522,9 +17145,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/xiaomi/mimo-v2.5-pro": {
@@ -16546,9 +17170,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/nex-agi/nex-n2-pro:free": {
@@ -16570,9 +17195,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/aion-labs/aion-rp-llama-3.1-8b": {
@@ -16594,9 +17220,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthracite-org/magnum-v4-72b": {
@@ -16618,9 +17245,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/cognitivecomputations/dolphin-mistral-24b-venice-edition:free": {
@@ -16642,9 +17270,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/gryphe/mythomax-l2-13b": {
@@ -16666,9 +17295,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/mancer/weaver": {
@@ -16690,9 +17320,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/sao10k/l3-lunaris-8b": {
@@ -16714,9 +17345,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/sao10k/l3.1-euryale-70b": {
@@ -16738,9 +17370,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/thedrummer/cydonia-24b-v4.1": {
@@ -16762,9 +17395,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/thedrummer/rocinante-12b": {
@@ -16786,9 +17420,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/thedrummer/skyfall-36b-v2": {
@@ -16810,9 +17445,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/thedrummer/unslopnemo-12b": {
@@ -16834,9 +17470,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/undi95/remm-slerp-l2-13b": {
@@ -16858,9 +17495,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-sonnet-5": {
@@ -16882,9 +17520,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-luna": {
@@ -16906,9 +17545,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-terra": {
@@ -16930,9 +17570,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-sol": {
@@ -16954,9 +17595,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-luna-pro": {
@@ -16978,9 +17620,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-terra-pro": {
@@ -17002,9 +17645,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/openai/gpt-5.6-sol-pro": {
@@ -17026,9 +17670,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/x-ai/grok-4.5": {
@@ -17050,9 +17695,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/z-ai/glm-5.2": {
@@ -17074,9 +17720,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/aion-labs/aion-3.0-mini": {
@@ -17098,9 +17745,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/aion-labs/aion-3.0": {
@@ -17122,9 +17770,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/nex-agi/nex-n2-mini": {
@@ -17146,9 +17795,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/sakana/fugu-ultra": {
@@ -17170,9 +17820,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-5-fast": {
@@ -17194,9 +17845,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/anthropic/claude-opus-5": {
@@ -17218,9 +17870,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.6-flash": {
@@ -17242,9 +17895,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/google/gemini-3.5-flash-lite": {
@@ -17266,9 +17920,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/moonshotai/kimi-k3": {
@@ -17290,9 +17945,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/inclusionai/ling-3.0-flash:free": {
@@ -17314,9 +17970,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/meituan/longcat-2.0": {
@@ -17338,9 +17995,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "openrouter/thinkingmachines/inkling": {
@@ -17362,9 +18020,10 @@
       "cache.auto": "5054e235",
       "tier": "557070e4",
       "audio.out": "4e4ed97a",
-      "content.multimodal": "ab62e2f4",
+      "content.multimodal": "73950945",
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
+      "content.audio": "3a79fdf5",
       "providerOptions": "1d7cbd18"
     },
     "google:interactions/gemini-3.1-pro": {
@@ -17386,9 +18045,10 @@
       "cache.auto": "dd44b0fe",
       "tier": "9033373b",
       "audio.out": "9033373b",
-      "content.multimodal": "e162585d",
+      "content.multimodal": "80aa6f67",
       "serverState": "f262b7e3",
       "moderation": "9033373b",
+      "content.audio": "f900fcd1",
       "providerOptions": "9033373b"
     }
   }

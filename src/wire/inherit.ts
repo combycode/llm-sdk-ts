@@ -61,6 +61,26 @@ function place<T>(list: T[], keyOf: (v: T) => string, placements: Deltas['placeB
  *  is deliberately shared: a CHAIN picks the delta sequence by walking parents, a
  *  MATRIX picks it by selecting features. Behind the resolver they are the same
  *  operation — see `compose.ts`. */
+/** A removal that matches nothing is ALWAYS a mistake — a typo, or a delta left
+ *  behind after the base renamed the thing it meant to drop.
+ *
+ *  It used to filter silently, and silence is the worst possible behaviour here:
+ *  whether a missed removal shows up on the wire depends on rule ORDER. Renaming
+ *  the block `anthropic/messages@4.6` removes changed nothing at all, because the
+ *  adaptive block it adds writes to the same key and happens to come later. Move
+ *  the order and the retired `budget_tokens` shape ships to a 4.6+ model instead,
+ *  which is a 400 on every thinking request. A chain whose removals can quietly
+ *  no-op is not a chain you can reason about. */
+function requirePresent(op: string, names: string[], present: string[], id?: string): void {
+  const absent = names.filter((n) => !present.includes(n));
+  if (absent.length) {
+    throw new Error(
+      `${id ?? 'spec'}: ${op} names ${absent.map((a) => `"${a}"`).join(', ')}, ` +
+        `which the base does not define. Present: ${present.join(', ') || '(none)'}`,
+    );
+  }
+}
+
 export function applyDelta(base: WireSpec, delta: SpecDelta): WireSpec {
   const out = clone(base);
   if (delta.id) out.id = delta.id;
@@ -88,11 +108,13 @@ export function applyDelta(base: WireSpec, delta: SpecDelta): WireSpec {
 
   out.fields = mergeKeyed<FieldRule>(out.fields ?? [], delta.fields, (f) => f.to);
   if (delta.removeFields?.length) {
+    requirePresent('removeFields', delta.removeFields, out.fields.map((f) => f.to), delta.id);
     out.fields = out.fields.filter((f) => !delta.removeFields!.includes(f.to));
   }
 
   out.blocks = mergeKeyed<BlockRule>(out.blocks ?? [], delta.blocks, (b) => b.name);
   if (delta.removeBlocks?.length) {
+    requirePresent('removeBlocks', delta.removeBlocks, out.blocks.map((b) => b.name), delta.id);
     out.blocks = out.blocks.filter((b) => !delta.removeBlocks!.includes(b.name));
   }
   out.blocks = place(out.blocks, (b) => b.name, delta.placeBlocks);
