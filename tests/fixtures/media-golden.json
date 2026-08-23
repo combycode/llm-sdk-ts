@@ -1,6 +1,6 @@
 {
-  "_doc": "What the hand-written media adapters sent, frozen before the spec-driven migration. Regenerate ONLY with scripts/freeze-media-golden.ts --force, and only when the wire genuinely changed — say why in the commit.",
-  "frozenAtCommit": "16acc3e633b42e5f918259a82ad7c20b724c28d7",
+  "_doc": "What the hand-written media adapters sent, frozen before the spec-driven migration. Regenerate ONLY with scripts/freeze-media-golden.ts --force, and only when the wire genuinely changed \u2014 say why in the commit. REFROZEN 2026-08-23 for one deliberate change: the Google API key moved out of the URL and into the x-goog-api-key header. 21 artifacts across the two corpora changed and every one differs ONLY in that way, checked pairwise against the previous fixture; the key set is identical. Verified live first \u2014 google files, image, tts and batch all pass with header auth.",
+  "frozenAtCommit": "959608fe5e89d2df73d70e5176a493fc3e874114",
   "counts": {
     "cases": 21
   },
@@ -220,13 +220,14 @@
         }
       },
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "imagen-4.0-generate-001",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict"
     },
     "google/image.imagen.params": {
       "body": {
@@ -242,13 +243,14 @@
         }
       },
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "imagen-4.0-generate-001",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict"
     },
     "google/image.gemini.minimal": {
       "body": {
@@ -268,13 +270,14 @@
         }
       },
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "gemini-2.5-flash-image",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent"
     },
     "google/image.gemini.params": {
       "body": {
@@ -298,13 +301,14 @@
         }
       },
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "gemini-2.5-flash-image",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent"
     },
     "google/imageEdit.gemini": {
       "body": {
@@ -330,13 +334,14 @@
         }
       },
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "gemini-2.5-flash-image",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent"
     },
     "google/audio.tts": {
       "body": {
@@ -363,13 +368,14 @@
         }
       },
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "gemini-2.5-flash-preview-tts",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent"
     },
     "google/audio.tts.defaultVoice": {
       "body": {
@@ -396,13 +402,14 @@
         }
       },
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "gemini-2.5-flash-preview-tts",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent"
     },
     "google/video.veo.minimal": {
       "body": {
@@ -414,13 +421,14 @@
         "parameters": {}
       },
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "veo-3.1-generate-preview",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning"
     },
     "google/video.veo.params": {
       "body": {
@@ -436,13 +444,14 @@
         }
       },
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "veo-3.1-generate-preview",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning"
     },
     "google/video.veo.fromImage": {
       "body": {
@@ -458,13 +467,14 @@
         "parameters": {}
       },
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "veo-3.1-generate-preview",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1-generate-preview:predictLongRunning"
     }
   }
 }

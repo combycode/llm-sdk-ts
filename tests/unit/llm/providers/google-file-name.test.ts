@@ -16,16 +16,18 @@ const K = 'k';
 const BASE = 'https://generativelanguage.googleapis.com';
 const adapter = new GoogleFileAdapter({ apiKey: K });
 
-/** Capture the URL a method would request. */
-async function urlFor(run: (f: any) => Promise<unknown>): Promise<string> {
-  let url = '';
+/** Capture the request a method would make. */
+async function reqFor(run: (f: any) => Promise<unknown>): Promise<{ url: string; headers: Record<string, string> }> {
+  let seen: any = {};
   const fetch = (async (r: any) => {
-    url = r.url;
+    seen = r;
     return { status: 200, headers: {}, body: { name: 'files/abc', uri: 'u' } };
   }) as any;
   await run(fetch);
-  return url;
+  return { url: seen.url ?? '', headers: seen.headers ?? {} };
 }
+
+const urlFor = async (run: (f: any) => Promise<unknown>): Promise<string> => (await reqFor(run)).url;
 
 describe('googleFileName normalises every id form', () => {
   it('full uri (what upload() and list() return)', () => {
@@ -47,7 +49,9 @@ describe('googleFileName normalises every id form', () => {
 });
 
 describe('the URL is right for every id form', () => {
-  const expected = `${BASE}/v1beta/files/abc?key=${K}`;
+  // No `?key=`: the credential is a header. A key in a query string is copied into
+  // every access log and telemetry span the request passes through.
+  const expected = `${BASE}/v1beta/files/abc`;
 
   for (const [label, id] of [
     ['full uri', `${BASE}/v1beta/files/abc`],
@@ -62,4 +66,16 @@ describe('the URL is right for every id form', () => {
       expect(await urlFor((f) => adapter.getInfo(id, f))).toBe(expected);
     });
   }
+
+  it('sends the key as a header and never in the url', async () => {
+    for (const call of [
+      (f: any) => adapter.delete('abc', f),
+      (f: any) => adapter.getInfo('abc', f),
+      (f: any) => adapter.list(f),
+    ]) {
+      const { url, headers } = await reqFor(call);
+      expect(headers['x-goog-api-key']).toBe(K);
+      expect(url).not.toContain('key=');
+    }
+  });
 });

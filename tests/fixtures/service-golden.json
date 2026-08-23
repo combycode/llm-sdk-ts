@@ -1,6 +1,6 @@
 {
-  "_doc": "What the embeddings and seamless-media adapters sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed.",
-  "frozenAtCommit": "e0493a270e74e71812fc74db1528d2868e53cd80",
+  "_doc": "What the embeddings and seamless-media adapters sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed. REFROZEN 2026-08-23 for one deliberate change: the Google API key moved out of the URL and into the x-goog-api-key header. 21 artifacts across the two corpora changed and every one differs ONLY in that way, checked pairwise against the previous fixture; the key set is identical. Verified live first \u2014 google files, image, tts and batch all pass with header auth.",
+  "frozenAtCommit": "959608fe5e89d2df73d70e5176a493fc3e874114",
   "counts": {
     "cases": 84
   },
@@ -795,38 +795,45 @@
         }
       },
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "gemini-3-flash",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:batchGenerateContent?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:batchGenerateContent"
     },
     "batch/google/getStatus": {
-      "headers": {},
+      "headers": {
+        "x-goog-api-key": "k"
+      },
       "method": "GET",
       "model": "gemini-3-flash",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/batch_abc?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/batch_abc"
     },
     "batch/google/getResults": {
-      "headers": {},
+      "headers": {
+        "x-goog-api-key": "k"
+      },
       "method": "GET",
       "model": "gemini-3-flash",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/batch_abc?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/batch_abc"
     },
     "batch/google/cancel": {
       "body": {},
-      "headers": {},
+      "headers": {
+        "x-goog-api-key": "k"
+      },
       "method": "POST",
       "model": "gemini-3-flash",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/batch_abc:cancel?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/batch_abc:cancel"
     },
     "batch/xai/submit": {
       "body": {
@@ -1043,13 +1050,14 @@
         "X-Goog-Upload-Command": "start",
         "X-Goog-Upload-Header-Content-Length": "5",
         "X-Goog-Upload-Header-Content-Type": "text/plain",
-        "X-Goog-Upload-Protocol": "resumable"
+        "X-Goog-Upload-Protocol": "resumable",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "files",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/upload/v1beta/files?key=k"
+      "url": "https://generativelanguage.googleapis.com/upload/v1beta/files"
     },
     "files/google/upload.1": {
       "body": {
@@ -1068,28 +1076,34 @@
       "url": "https://upload.example/session"
     },
     "files/google/delete": {
-      "headers": {},
+      "headers": {
+        "x-goog-api-key": "k"
+      },
       "method": "DELETE",
       "model": "files",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/files/abc?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/files/abc"
     },
     "files/google/getInfo": {
-      "headers": {},
+      "headers": {
+        "x-goog-api-key": "k"
+      },
       "method": "GET",
       "model": "files",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/files/abc?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/files/abc"
     },
     "files/google/list": {
-      "headers": {},
+      "headers": {
+        "x-goog-api-key": "k"
+      },
       "method": "GET",
       "model": "files",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/files?key=k&pageSize=100"
+      "url": "https://generativelanguage.googleapis.com/v1beta/files?pageSize=100"
     },
     "files/xai/upload": {
       "body": {
@@ -1145,7 +1159,7 @@
       "model": "operations",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1/operations/op_1?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1/operations/op_1"
     },
     "lifecycle/google/videoDownload": {
       "headers": {
@@ -1155,7 +1169,7 @@
       "model": "operations",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1/operations/op_1?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1/operations/op_1"
     },
     "lifecycle/google/videoDownload.1": {
       "headers": {
@@ -1170,13 +1184,14 @@
     "lifecycle/google/videoCancel": {
       "body": {},
       "headers": {
-        "content-type": "application/json"
+        "content-type": "application/json",
+        "x-goog-api-key": "k"
       },
       "method": "POST",
       "model": "operations",
       "provider": "google",
       "responseType": "json",
-      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1/operations/op_1:cancel?key=k"
+      "url": "https://generativelanguage.googleapis.com/v1beta/models/veo-3.1/operations/op_1:cancel"
     },
     "lifecycle/xai/videoStatus": {
       "headers": {

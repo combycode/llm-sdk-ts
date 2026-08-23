@@ -142,6 +142,20 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **The Google API key no longer travels in the URL.** Twelve endpoints — files, batch, media
+  generation, Imagen, Veo and the long-running-operation polls — sent it as `?key=`, so the
+  credential was copied into every access log, proxy log and telemetry span the request passed
+  through, and could leak through a `Referer`. They now send `x-goog-api-key`, which is what the
+  chat adapter was already fixed to do. One endpoint was sending it BOTH ways.
+
+  `google/realtime` still uses `?key=` and is the one documented exemption: it is a WebSocket
+  handshake and a browser cannot set a header on one. A test enumerates the exemptions and fails if
+  one becomes stale, so the next `?key=` cannot arrive quietly.
+
+  Verified live before the fixtures were re-frozen — google files, image, tts and batch all pass
+  with header auth — and the re-freeze was diffed pairwise: 21 artifacts changed, every one only in
+  that way.
+
 - **The cost ledger recorded a provider call that never happened.** `countTokens()` emitted its
   zero-cost count-API entry whenever the provider was Anthropic or Google and a key was present —
   that is INTENT. The counter picks its strategy from the catalog's `tokenizer.strategy`, and no
