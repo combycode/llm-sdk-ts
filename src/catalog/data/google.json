@@ -54,7 +54,8 @@
     "inputModalities": [
       "text",
       "image",
-      "audio"
+      "audio",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -132,7 +133,8 @@
     "inputModalities": [
       "text",
       "image",
-      "audio"
+      "audio",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -186,7 +188,8 @@
     "inputModalities": [
       "text",
       "image",
-      "audio"
+      "audio",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -261,7 +264,8 @@
     "inputModalities": [
       "text",
       "image",
-      "audio"
+      "audio",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -343,7 +347,8 @@
     "inputModalities": [
       "text",
       "image",
-      "audio"
+      "audio",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -414,7 +419,8 @@
     "inputModalities": [
       "text",
       "image",
-      "audio"
+      "audio",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -489,7 +495,8 @@
     "inputModalities": [
       "text",
       "image",
-      "audio"
+      "audio",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -565,7 +572,8 @@
     "inputModalities": [
       "text",
       "image",
-      "audio"
+      "audio",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -1548,7 +1556,8 @@
     "type": "chat",
     "inputModalities": [
       "text",
-      "image"
+      "image",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -1601,7 +1610,8 @@
     "type": "chat",
     "inputModalities": [
       "text",
-      "image"
+      "image",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -2786,7 +2796,8 @@
     "inputModalities": [
       "text",
       "image",
-      "audio"
+      "audio",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -2858,7 +2869,8 @@
     "inputModalities": [
       "text",
       "image",
-      "audio"
+      "audio",
+      "pdf"
     ],
     "outputModalities": [
       "text"
@@ -2929,7 +2941,8 @@
     "inputModalities": [
       "text",
       "image",
-      "audio"
+      "audio",
+      "pdf"
     ],
     "outputModalities": [
       "text"
