@@ -70,7 +70,7 @@
     "ignore": [],
     "checkPaths": true
   },
-  "_consumerInstall": "Installs the PACKED tarball, never a directory link: a file: dep on the source dir can be symlinked, walking past the files filter and exports map. Typecheck is the free tier; the LIVE run of consumers/feature is what proves behaviour and stays a human step.",
+  "_consumerInstall": "The examples corpus is a consumer too, and it was the only one not typechecked here. G12 runs the example FILES and checks their exit codes, and bun does not typecheck, so an example shipped with three type errors and still ran 20/20 green. It was wired as a directory link for fast iteration; it now takes the packed tarball like the others, which also makes the live runs exercise the artifact a consumer receives -- at the cost of a repack after editing the library, which the gate does for you. Installs the PACKED tarball, never a directory link: a file: dep on the source dir can be symlinked, walking past the files filter and exports map. Typecheck is the free tier; the LIVE run of consumers/feature is what proves behaviour and stays a human step.",
   "consumerInstall": {
     "packDir": "../consumers/.pack",
     "packName": "llm-sdk.tgz",
@@ -92,6 +92,13 @@
       },
       {
         "path": "../consumers/feature",
+        "install": "bun install",
+        "verify": [
+          "bun run typecheck"
+        ]
+      },
+      {
+        "path": "../unified-examples-ts",
         "install": "bun install",
         "verify": [
           "bun run typecheck"
