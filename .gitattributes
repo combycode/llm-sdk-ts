@@ -1,0 +1,12 @@
+# LF in the repository, on every platform.
+#
+# Today this holds only because each clone happens to have core.autocrlf=input;
+# a clone without it writes CRLF working files, and a scripted edit then commits
+# them as a whole-file diff. Stating it here makes it a property of the repo
+# rather than of a machine.
+* text=auto eol=lf
+
+# Frozen request corpora and catalog data are compared byte-for-byte. No filter
+# goes near them, whatever the checkout settings say.
+tests/unit/wire/*.json -text
+src/catalog/data/*.json -text

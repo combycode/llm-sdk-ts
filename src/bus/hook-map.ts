@@ -719,3 +719,24 @@ export interface HookMap {
 
 export type HookName = keyof HookMap;
 export type HookHandler<K extends HookName> = (ctx: HookMap[K]) => void | Promise<void>;
+
+/** One event, as a value. `HookMap` types a SUBSCRIPTION (`on('onCompletion', h)`
+ *  knows its own ctx); this types the STREAM, where the name is not known until
+ *  runtime and the payload has to travel with it.
+ *
+ *  Derived from `HookMap` rather than written out, so the 51 variants cannot drift
+ *  from the 51 hooks: adding an entry above adds a variant here, and a consumer
+ *  switching exhaustively over `type` stops compiling until it handles the new one.
+ *
+ *      hooks.onAny((e) => {
+ *        if (e.type === 'onCompletion') e.ctx.response.usage;   // narrowed
+ *      });
+ *
+ *  The payload stays nested under `ctx` instead of being spread onto the event.
+ *  Spreading would collide with the contexts that already carry their own `type`
+ *  field, and would copy an object on every emit — including the per-chunk ones. */
+export type HookEventOf<K extends HookName> = { readonly type: K; readonly ctx: HookMap[K] };
+
+/** The SDK's whole event stream as a single discriminated union — the portable
+ *  shape: a Rust enum, a Python tagged union, a TS union, all from one catalog. */
+export type HookEvent = { [K in HookName]: HookEventOf<K> }[HookName];

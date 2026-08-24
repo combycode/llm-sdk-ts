@@ -29,7 +29,7 @@ export {
   type ConversationZipOptions,
   type ConversationZipResult,
 } from './helpers/conversation-zip';
-export type { HookHandler, HookMap, HookName, McpConnectContext, McpErrorContext, McpToolCallContext, WarningContext, WarningSource } from './bus/hook-map';
+export type { HookEvent, HookEventOf, HookHandler, HookMap, HookName, McpConnectContext, McpErrorContext, McpToolCallContext, WarningContext, WarningSource } from './bus/hook-map';
 export { AgentBus } from './bus/agent-bus';
 export type { AgentEvent, AgentEventHandler, AgentEventInput, SubscribeOptions } from './bus/agent-bus';
 

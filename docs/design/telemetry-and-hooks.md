@@ -18,13 +18,41 @@ adapter) subscribe.
 into three OpenTelemetry-compatible signals — traces, metrics, and logs — with
 NO `@opentelemetry` package dependency. The adapter is the OTel exporter bridge.
 
+## The stream is one union (`HookEvent`)
+
+`HookMap` types a SUBSCRIPTION: `on('onCompletion', h)` knows its own context.
+The STREAM needs the name to travel with the payload, and that is `HookEvent` —
+one variant per hook, derived from `HookMap` so the two cannot drift:
+
+```ts
+type HookEventOf<K extends HookName> = { readonly type: K; readonly ctx: HookMap[K] };
+type HookEvent = { [K in HookName]: HookEventOf<K> }[HookName];
+
+hooks.onAny((e) => {
+  if (e.type === 'onCompletion') e.ctx.response.usage;   // narrowed, no cast
+});
+```
+
+Two consequences worth naming:
+
+- **A consumer switching over `type` is told by the compiler when a hook is
+  added.** Before, a new event silently fell through every consumer's switch.
+- **This is the shape the ports share.** A Rust `enum` and a Python tagged union
+  are the same 51 variants over the same catalog; a stream typed `(name, ctx:
+  unknown)` has no equivalent in either language, because the consumer's only
+  option is to cast.
+
+The payload stays nested under `ctx` rather than spread onto the event: three
+contexts already carry their own `type` field, and spreading would copy an
+object on every emit — including the per-chunk ones.
+
 ## `HookBus` (`src/bus/hook-bus.ts`)
 
 ```ts
 class HookBus {
   on<K extends HookName>(name: K, handler: HookHandler<K>): () => void
   once<K>(name: K, handler: HookHandler<K>): () => void
-  onAny(handler: AnyHookHandler): () => void     // catch-all for every event
+  onAny(handler: AnyHookHandler): () => void     // every event, as one union
   off(name?: HookName): void                     // remove named or all handlers
   emit<K>(name: K, ctx: HookMap[K]): Promise<void>     // async, sequential
   emitSync<K>(name: K, ctx: HookMap[K]): void           // sync, hot paths
@@ -127,7 +155,7 @@ pointing `./async-context` to the browser file in browser environments.
 ## `TelemetryAdapter` (`src/plugins/telemetry/telemetry.ts`)
 
 Constructed with `(hooks: HookBus, opts?: TelemetryAdapterOptions)`. Calls
-`hooks.onAny((name, ctx) => this.handle(name, ctx))` and stores the unsubscribe
+`hooks.onAny((event) => this.handle(event))` and stores the unsubscribe
 function. `destroy()` unsubscribes.
 
 ```ts
@@ -313,7 +341,8 @@ const traceKey = (ids) => ids.requestId ? `${ids.sessionId ?? '?'}:${ids.request
 
 ## Extension points
 
-- **Subscribe to all events**: `hooks.onAny(handler)` — receives every emit.
+- **Subscribe to all events**: `hooks.onAny(handler)` — receives every emit as a
+  `HookEvent`, narrowed by `event.type`.
 - **Subscribe to specific events**: `hooks.on('onCompletion', handler)`.
 - **Adding a new event**: add the context type to `HookMap` in `hook-map.ts`,
   then `emitSync` or `emit` at the appropriate point. The `TelemetryAdapter`

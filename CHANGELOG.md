@@ -8,6 +8,21 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **The SDK's event stream is one discriminated union** (`HookEvent`). `HookMap` types a
+  subscription — `on('onCompletion', h)` has always known its own context — but the STREAM was
+  `(name, ctx: unknown)`, which pushed the type back onto the subscriber. `HookEvent` gives it one
+  variant per hook, derived from `HookMap` so the 51 cannot drift from the 51:
+
+  ```ts
+  hooks.onAny((e) => {
+    if (e.type === 'onCompletion') e.ctx.response?.usage;   // narrowed, no cast
+  });
+  ```
+
+  This is the shape the Python and Rust ports share: a tagged union and an `enum` over the same
+  catalog. A stream typed `ctx: unknown` has no equivalent in either — the consumer's only move is
+  to cast, which is exactly what the SDK's own telemetry adapter did.
+
 - **A model ships as callable only if it has been called.** The catalog-loader's probe was
   advisory; 366 of 440 names had never been verified. Now `active: true` requires either a real
   request that answered (`verifiedBy: 'probe'`) or the provider's own model list naming it
@@ -73,6 +88,23 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Changed
 
+- **`HookBus.onAny` receives one event object instead of `(name, ctx)`** (BREAKING). Handlers take
+  `(event: HookEvent)`; `event.type` narrows `event.ctx`.
+
+  ```ts
+  hooks.onAny((name, ctx) => { ... });   // before
+  hooks.onAny((event) => { ... });       // after
+  ```
+
+  The SDK's telemetry adapter was the only consumer, and it shows why the old shape was worth
+  breaking: it opened with `const c = ctx as Record<string, unknown>` and then cast per field —
+  `(c.response as { usage?: … })?.usage`, `c.latencyMs as number`, `(c.error as Error)?.message`.
+  Rename a context field and every one of those keeps compiling and quietly reads `undefined`,
+  which for the token and cost fields is a metric that silently goes to zero. All 26 casts in that
+  method are gone (0 left); the switch narrows instead, and the compiler now checks each field against the
+  context it actually belongs to.
+
+  Nothing is allocated when no catch-all is subscribed, so the per-chunk hot path is unchanged.
 - **The catalog is current again, and the chain that maintains it works end to end.** The
   catalog-loader's export pointed at the catalogs' old home, which was BOTH its write target and
   its merge base — so the "never drop a shipped model, never blank a price" guarantee silently

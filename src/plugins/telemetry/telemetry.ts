@@ -11,7 +11,7 @@
  *  into OTLP-compatible JSON for a real OTel exporter to forward. */
 
 import type { HookBus } from '../../bus/hook-bus';
-import type { HookName } from '../../bus/hook-map';
+import type { HookEvent, HookName } from '../../bus/hook-map';
 
 // Types live in ./types; re-exported here so every existing import path — and the
 // public surface via index.ts — is unchanged by the move.
@@ -428,7 +428,7 @@ export class TelemetryAdapter {
     this.sampleRate = opts.sample ?? 1;
     this.maxLineage = this.maxEvents * 2;
     if (opts.onTrace) this.onTrace({ types: opts.types }, opts.onTrace);
-    this.unsub = hooks.onAny((name, ctx) => this.handle(name, ctx));
+    this.unsub = hooks.onAny((event) => this.handle(event));
   }
 
   /** Subscribe to the event stream. Returns an unsubscribe function.
@@ -549,7 +549,8 @@ export class TelemetryAdapter {
     this.unsub();
   }
 
-  private handle(name: HookName, ctx: unknown): void {
+  private handle(event: HookEvent): void {
+    const { type: name, ctx } = event;
     const ids = traceIdsOf(ctx);
     const traceId = traceKey(ids);
 
@@ -568,14 +569,13 @@ export class TelemetryAdapter {
     });
     if (this.events.length > this.maxEvents) this.events.shift();
 
-    const c = ctx as Record<string, unknown>;
-    switch (name) {
+    switch (event.type) {
       case 'onBeforeSubmit':
         if (traceId) this.openSpan(`llm:${traceId}`, traceId, 'llm.request', 'llm', {});
         break;
       case 'onCompletion': {
         this.metrics.completions++;
-        const usage = (c.response as { usage?: Record<string, number> })?.usage;
+        const usage = event.ctx.response?.usage;
         if (usage) {
           this.metrics.inputTokens += usage.inputTokens ?? 0;
           this.metrics.outputTokens += usage.outputTokens ?? 0;
@@ -585,11 +585,11 @@ export class TelemetryAdapter {
           // `gen_ai.operation.name` are REQUIRED by the spec; we previously sent
           // `gen_ai.provider` / `gen_ai.model`, which are not attribute names any
           // backend recognises, so the spans arrived unrecognised as GenAI at all.
-          const responseModel = (c.response as { model?: string } | undefined)?.model;
+          const responseModel = event.ctx.response?.model;
           const attrs = {
-            'gen_ai.provider.name': c.provider,
+            'gen_ai.provider.name': event.ctx.provider,
             'gen_ai.operation.name': 'chat',
-            'gen_ai.request.model': c.model,
+            'gen_ai.request.model': event.ctx.model,
             // The model that actually answered, which can differ from the one asked
             // for (an alias resolving to a dated snapshot, a router picking a peer).
             'gen_ai.response.model': responseModel,
@@ -622,7 +622,7 @@ export class TelemetryAdapter {
             this.recordSpan(llmSpan);
           }
           if (llmSpan) {
-            const response = c.response as { content?: unknown; text?: string } | undefined;
+            const { response } = event.ctx;
             this.emitMessage(llmSpan, 'output', response?.content ?? response?.text);
           }
         }
@@ -632,29 +632,29 @@ export class TelemetryAdapter {
         this.metrics.requests++;
         this.metrics.inFlight++;
         if (traceId)
-          this.openSpan(`http:${traceId}:${c.attempt ?? 0}`, traceId, 'http.request', 'http', {
-            'http.method': c.method,
-            'http.url': typeof c.url === 'string' ? sanitizeUrl(c.url) : c.url,
-            'llm.queue': c.queueName,
+          this.openSpan(`http:${traceId}:${event.ctx.attempt ?? 0}`, traceId, 'http.request', 'http', {
+            'http.method': event.ctx.method,
+            'http.url': sanitizeUrl(event.ctx.url),
+            'llm.queue': event.ctx.queueName,
           });
         break;
       }
       case 'onRequestComplete':
         this.metrics.inFlight = Math.max(0, this.metrics.inFlight - 1);
-        this.recordLatency(c.latencyMs as number);
+        this.recordLatency(event.ctx.latencyMs);
         if (traceId)
-          this.closeSpan(`http:${traceId}:${c.attempt ?? 0}`, (c.status as number) < 400 ? 'ok' : 'error', {
-            'http.status_code': c.status,
+          this.closeSpan(`http:${traceId}:${event.ctx.attempt ?? 0}`, event.ctx.status < 400 ? 'ok' : 'error', {
+            'http.status_code': event.ctx.status,
           });
         break;
       case 'onEnqueue':
-        this.metrics.queueDepth = (c.queueLength as number) ?? this.metrics.queueDepth;
+        this.metrics.queueDepth = event.ctx.queueLength ?? this.metrics.queueDepth;
         break;
       case 'onDequeue':
         // queueDepth is a GAUGE: onEnqueue raises it, onDequeue lowers it. The
         // dequeue event already carries the post-dequeue length, so mirror it
         // here — otherwise the gauge only ever climbs and freezes at its peak.
-        this.metrics.queueDepth = (c.queueLength as number) ?? this.metrics.queueDepth;
+        this.metrics.queueDepth = event.ctx.queueLength ?? this.metrics.queueDepth;
         break;
       case 'onRetry':
         this.metrics.retries++;
@@ -666,10 +666,10 @@ export class TelemetryAdapter {
         this.metrics.errors++;
         break;
       case 'onCostEntry':
-        this.metrics.costUsd += ((c.entry as { cost?: { total?: number } })?.cost?.total ?? 0) as number;
+        this.metrics.costUsd += event.ctx.entry?.cost?.total ?? 0;
         break;
       case 'onMediaGenerated':
-        this.metrics.mediaGenerated += (c.count as number) ?? 1;
+        this.metrics.mediaGenerated += event.ctx.count ?? 1;
         if (traceId) {
           // Media is reported as a single completed event → a point span.
           const now = Date.now();
@@ -684,13 +684,13 @@ export class TelemetryAdapter {
             endTime: now,
             durationMs: 0,
             status: 'ok',
-            attributes: clean({ 'media.type': c.mediaType, 'media.count': c.count }),
+            attributes: clean({ 'media.type': event.ctx.mediaType, 'media.count': event.ctx.count }),
           });
         }
         break;
       // ─── Agent spans ───────────────────────────────────────────────────
       case 'onRunStart': {
-        const runId = c.runId as string | undefined;
+        const runId = event.ctx.runId;
         if (runId) {
           // `traceId` (from the event's trace context), NOT `runId`. The run id is this
           // SPAN's identity; using it as the trace put the agent's own span in a
@@ -701,70 +701,70 @@ export class TelemetryAdapter {
             // The host's own attributes go FIRST so ours win on a key collision: a stray
             // `gen_ai.*` key in a caller's bag must not be able to rewrite the identity
             // of the span.
-            ...(c.attributes as Record<string, unknown> | undefined),
+            ...event.ctx.attributes,
             'gen_ai.operation.name': 'invoke_agent',
             // Named when the agent was given a label; the exported span is then
             // `invoke_agent {label}` rather than the bare operation.
-            'gen_ai.agent.name': c.label,
-            'gen_ai.agent.id': c.agentId,
-            'gen_ai.request.model': c.model,
+            'gen_ai.agent.name': event.ctx.label,
+            'gen_ai.agent.id': event.ctx.agentId,
+            'gen_ai.request.model': event.ctx.model,
             // Ours, not a convention attribute — the GenAI spec has no term for it.
-            'agent.source': c.source,
+            'agent.source': event.ctx.source,
           });
-          this.emitMessage(runSpan, 'input', c.userMessage);
+          this.emitMessage(runSpan, 'input', event.ctx.userMessage);
         }
         break;
       }
       case 'onRunComplete': {
-        const runId = c.runId as string | undefined;
+        const runId = event.ctx.runId;
         if (runId) {
-          this.closeSpan(`agent:${runId}`, (c.reason as string) === 'error' ? 'error' : 'ok', {
-            'agent.reason': c.reason,
+          this.closeSpan(`agent:${runId}`, event.ctx.reason === 'error' ? 'error' : 'ok', {
+            'agent.reason': event.ctx.reason,
           });
         }
         break;
       }
       case 'onRunError': {
-        const runId = c.runId as string | undefined;
+        const runId = event.ctx.runId;
         if (runId) {
           this.closeSpan(`agent:${runId}`, 'error', {
-            'agent.phase': c.phase,
-            'agent.error': (c.error as Error)?.message,
+            'agent.phase': event.ctx.phase,
+            'agent.error': event.ctx.error?.message,
           });
         }
         break;
       }
       // ─── Tool spans ────────────────────────────────────────────────────
       case 'onToolCallStart': {
-        const callId = c.callId as string | undefined;
+        const callId = event.ctx.callId;
         if (callId) {
           // Same mistake as `agent.run`: `callId` identifies the tool call, not the
           // trace. It produced spans whose trace id was literally `t1`.
           this.openSpan(`tool:${callId}`, traceId ?? callId, 'tool.call', 'tool', {
             'gen_ai.operation.name': 'execute_tool',
-            'gen_ai.tool.name': c.toolName,
+            'gen_ai.tool.name': event.ctx.toolName,
             'gen_ai.tool.call.id': callId,
-            'gen_ai.agent.id': c.agentId,
+            'gen_ai.agent.id': event.ctx.agentId,
           });
         }
         break;
       }
       case 'onToolCallComplete': {
-        const callId = c.callId as string | undefined;
+        const callId = event.ctx.callId;
         if (callId) {
           this.closeSpan(`tool:${callId}`, 'ok', {
-            'gen_ai.tool.name': c.toolName,
-            'tool.latency_ms': c.latencyMs,
+            'gen_ai.tool.name': event.ctx.toolName,
+            'tool.latency_ms': event.ctx.latencyMs,
           });
         }
         break;
       }
       case 'onToolCallError': {
-        const callId = c.callId as string | undefined;
+        const callId = event.ctx.callId;
         if (callId) {
           this.closeSpan(`tool:${callId}`, 'error', {
-            'gen_ai.tool.name': c.toolName,
-            'tool.error': (c.error as Error)?.message,
+            'gen_ai.tool.name': event.ctx.toolName,
+            'tool.error': event.ctx.error?.message,
           });
         }
         break;
@@ -772,7 +772,7 @@ export class TelemetryAdapter {
       // ─── MCP spans ─────────────────────────────────────────────────────
       case 'onMcpConnect': {
         // Point span: connect is already done when this fires.
-        const server = c.server as string | undefined;
+        const server = event.ctx.server;
         if (server) {
           const now = Date.now();
           this.recordSpan({
@@ -794,8 +794,8 @@ export class TelemetryAdapter {
             status: 'ok',
             attributes: clean({
               'mcp.server': server,
-              'mcp.transport': c.transport,
-              'mcp.tool_count': c.toolCount,
+              'mcp.transport': event.ctx.transport,
+              'mcp.tool_count': event.ctx.toolCount,
             }),
           });
         }
@@ -803,11 +803,11 @@ export class TelemetryAdapter {
       }
       case 'onMcpToolCall': {
         // Tool call already completed when this fires → point span.
-        const server = c.server as string | undefined;
-        const tool = c.tool as string | undefined;
+        const server = event.ctx.server;
+        const tool = event.ctx.tool;
         if (server && tool) {
           const now = Date.now();
-          const lat = c.latencyMs as number | undefined;
+          const lat = event.ctx.latencyMs;
           this.recordSpan({
             // An MCP tool call happens INSIDE a run, so it belongs to that run's trace.
             // Keying it by server put every call to one server in a single eternal
@@ -821,11 +821,11 @@ export class TelemetryAdapter {
             startTime: now - (lat ?? 0),
             endTime: now,
             durationMs: lat ?? 0,
-            status: (c.isError as boolean) ? 'error' : 'ok',
+            status: event.ctx.isError ? 'error' : 'ok',
             attributes: clean({
               'mcp.server': server,
               'mcp.tool': tool,
-              'mcp.is_error': c.isError,
+              'mcp.is_error': event.ctx.isError,
             }),
           });
         }

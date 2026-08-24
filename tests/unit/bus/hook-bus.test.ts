@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
 import { HookBus } from '../../../src/bus/hook-bus';
+import type { HookEvent } from '../../../src/bus/hook-map';
 
 describe('HookBus', () => {
   it('emits to registered handler', async () => {
@@ -177,18 +178,48 @@ describe('HookBus', () => {
   });
 
   describe('onAny', () => {
-    it('fires for every event with (name, ctx), even with no named handler', async () => {
+    it('fires for every event as { type, ctx }, even with no named handler', async () => {
       const bus = new HookBus();
-      const seen: Array<[string, unknown]> = [];
-      bus.onAny((name, ctx) => {
-        seen.push([name, ctx]);
+      const seen: HookEvent[] = [];
+      bus.onAny((event) => {
+        seen.push(event);
       });
 
       await bus.emit('onWarning', { source: 'agent', code: 'a', message: 'm' });
       bus.emitSync('onCostEntry', { entry: { id: '1' } as never, runningTotal: 1 });
 
-      expect(seen.map(([n]) => n)).toEqual(['onWarning', 'onCostEntry']);
-      expect((seen[0][1] as { code: string }).code).toBe('a');
+      expect(seen.map((e) => e.type)).toEqual(['onWarning', 'onCostEntry']);
+      // The payload is reached by narrowing, not by casting: `e.ctx.code` does not
+      // compile until `e.type` has been checked, which is the whole point of the union.
+      const first = seen[0];
+      if (first?.type !== 'onWarning') throw new Error('expected onWarning');
+      expect(first.ctx.code).toBe('a');
+    });
+
+    it('hands the SAME ctx object through, not a copy', async () => {
+      const bus = new HookBus();
+      let received: unknown;
+      bus.onAny((event) => {
+        received = event.ctx;
+      });
+      const ctx = { source: 'agent', code: 'a', message: 'm' } as const;
+      await bus.emit('onWarning', ctx);
+      // A copy would break every consumer that keys a Map on the context identity,
+      // and would cost an allocation on the per-chunk hot path.
+      expect(received).toBe(ctx);
+    });
+
+    it('allocates nothing when no catch-all is subscribed', () => {
+      // Guards the `anyHandlers.length === 0` early return in emitSync: the stream
+      // hooks fire once per chunk, so an unconditional wrapper object would be a
+      // per-chunk allocation for every consumer who never asked for the stream.
+      const bus = new HookBus();
+      let named = 0;
+      bus.on('onStreamChunk', () => {
+        named++;
+      });
+      bus.emitSync('onStreamChunk', { chunk: 'x' } as never);
+      expect(named).toBe(1);
     });
 
     it('runs alongside named handlers and unsubscribes', async () => {

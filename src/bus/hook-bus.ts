@@ -13,10 +13,30 @@
  *  abort) failed. Plugins that should never break the request must catch
  *  their own errors. */
 
-import type { HookHandler, HookMap, HookName } from './hook-map';
+import type { HookEvent, HookHandler, HookMap, HookName } from './hook-map';
 
-/** Catch-all handler: receives the event name + context for EVERY emit. */
-export type AnyHookHandler = (name: HookName, ctx: unknown) => void | Promise<void>;
+/** Catch-all handler: receives EVERY emit as one discriminated union.
+ *
+ *  It used to receive `(name, ctx: unknown)`, which pushed the type back onto the
+ *  subscriber — and the SDK's own telemetry adapter, the only consumer, answered
+ *  the way anyone would: `ctx as Record<string, unknown>`, then a cast per field —
+ *  26 of them in one method.
+ *  Renaming a context field left those reads compiling and silently `undefined`,
+ *  which for the token and cost fields means a metric that quietly goes to zero.
+ *
+ *  With `HookEvent`, `e.type` narrows `e.ctx` and those casts stop being possible
+ *  to write. */
+export type AnyHookHandler = (event: HookEvent) => void | Promise<void>;
+
+/** Pair a name with its context as a union member.
+ *
+ *  reason: for a generic `K extends HookName`, TS builds `HookEventOf<K>` but will
+ *  not accept it as the union `HookEvent` — it cannot see that K is a single member
+ *  rather than a subset. The cast is confined to this one function, whose signature
+ *  is exactly what it asserts, so every caller stays checked. */
+function hookEvent<K extends HookName>(type: K, ctx: HookMap[K]): HookEvent {
+  return { type, ctx } as HookEvent;
+}
 
 export class HookBus {
   // reason: handlers are keyed by name but stored heterogeneously — each entry is
@@ -77,7 +97,9 @@ export class HookBus {
   async emit<K extends HookName>(name: K, ctx: HookMap[K]): Promise<void> {
     const list = this.handlers.get(name);
     if (list) for (const handler of list) await handler(ctx);
-    for (const any of this.anyHandlers) await any(name, ctx);
+    if (this.anyHandlers.length === 0) return;
+    const event = hookEvent(name, ctx);
+    for (const any of this.anyHandlers) await any(event);
   }
 
   /** Emit synchronously. For hot paths (per-chunk stream events). Async handlers
@@ -86,7 +108,11 @@ export class HookBus {
   emitSync<K extends HookName>(name: K, ctx: HookMap[K]): void {
     const list = this.handlers.get(name);
     if (list) for (const handler of list) handler(ctx);
-    for (const any of this.anyHandlers) any(name, ctx);
+    // Nothing is allocated when no catch-all is subscribed, which is the common
+    // case on the hot paths that use emitSync (one call per stream chunk).
+    if (this.anyHandlers.length === 0) return;
+    const event = hookEvent(name, ctx);
+    for (const any of this.anyHandlers) any(event);
   }
 
   /** Whether any handlers are registered for a hook name. */
