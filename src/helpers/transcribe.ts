@@ -96,7 +96,8 @@ export async function transcribe(opts: TranscribeOptions): Promise<TranscribeRes
       {
         bytes,
         mimeType,
-        model,
+        // The provider's id, not our slug — `model` stays the slug for pricing.
+        model: engine.catalog.resolveModelId(provider, model),
         language: opts.language,
         languages: opts.languages,
         keywords: opts.keywords,

@@ -168,6 +168,15 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **`batch`, `embed`, `transcribe` and `moderate` sent our SLUG instead of the provider's id.**
+  Only `createLLM` translated through the catalog, so those four worked purely for models whose
+  canonical id happens to be the callable one. The moment the sample corpus moved to
+  `claude-haiku-4.5`, every batch request came back `not_found_error: model: claude-haiku-4.5` —
+  two requests, zero successes, and an exit code of 0 to go with it.
+
+  All four now send `providerModelName` while keeping the slug for pricing and catalog lookups,
+  which are keyed by it. A test asserts the distinction and was checked against the unfixed code.
+
 - **Exact token counting works, for the first time.** `HybridTokenCounter` picks its strategy from
   the catalog's `tokenizer.strategy`, and no shipped model declared one — so every count fell back
   to the 4-chars-per-token estimate and neither exact path had ever run. All 455 models now carry a

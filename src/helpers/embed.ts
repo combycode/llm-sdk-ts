@@ -39,7 +39,10 @@ export async function embed(opts: EmbedOptions): Promise<EmbedResult> {
     );
   }
   const adapter = opts.adapter ?? defaultEmbeddingAdapter(provider, apiKey);
-  const result = await adapter.embed({ model, input: opts.input }, engine.fetch);
+  const result = await adapter.embed(
+    { model: engine.catalog.resolveModelId(provider, model), input: opts.input },
+    engine.fetch,
+  );
   emitEmbedCompletion(engine, provider, model, result);
   return result;
 }

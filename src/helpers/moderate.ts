@@ -69,7 +69,11 @@ export async function moderate(
 
   const adapter = new OpenAIModerationAdapter({ apiKey });
   const { wireInput, returnArray } = buildWireInput(opts.input);
-  const results = await adapter.moderate(wireInput, model, engine.fetch);
+  const results = await adapter.moderate(
+    wireInput,
+    engine.catalog.resolveModelId(provider, model),
+    engine.fetch,
+  );
 
   emitModerationZero(engine, provider, model);
 

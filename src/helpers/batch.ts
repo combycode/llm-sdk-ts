@@ -105,17 +105,20 @@ export interface BatchJobRef {
 export async function submitBatch(opts: SubmitBatchOptions): Promise<BatchJob> {
   const engine = opts.engine ?? coreRegistry.get();
   const { provider, model } = resolveModel(opts.model, opts.provider, 'batch');
+  // Translate our normalised slug -> the exact provider-callable id. `model` stays
+  // the slug: pricing and catalog lookups are keyed by it.
+  const sendModel = engine.catalog.resolveModelId(provider, model);
   const apiKey = opts.apiKey ?? engine.apiKeys[provider];
   if (!apiKey) throw noKey('submitBatch', provider);
 
-  const { batchAdapter, completion } = resolveWiring(provider, model, apiKey);
+  const { batchAdapter, completion } = resolveWiring(provider, sendModel, apiKey);
 
   const inputCustomIds: string[] = [];
   const requests: BatchRequest[] = opts.requests.map((req, i) => {
     const customId = req.customId ?? `req-${i}`;
     inputCustomIds.push(customId);
     const normalized: NormalizedRequest = {
-      model,
+      model: sendModel,
       messages: toMessages(req.prompt),
       system: req.system,
       maxTokens: req.maxTokens,
