@@ -8,6 +8,29 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **`createEngine({ checkResponseShapes: true })` — warn when a provider's response stops looking
+  like the one we learned to read.** A bad request returns 400 and you know at once; a bad response
+  returns 200, the parse succeeds, and the field we read is simply gone — for `usage.output_tokens`
+  that is cost reporting silently going to zero.
+
+  Four findings, on the warning bus as `response_shape_*`: a field never seen, a field that was
+  present in every recording and is now absent (what a rename looks like from outside), a
+  discriminator carrying a value nothing branches on (a new content-block type is dropped in
+  silence), and a streaming event type the parser does not handle. Off by default, never changes
+  what is parsed, and each distinct finding is reported **once per client** — a warning that repeats
+  every request is one people switch off.
+
+  The shapes are DERIVED from the recorded response corpus by `bun run derive:shapes`, never
+  hand-written, and a test re-checks every recorded body against them so the description cannot
+  drift from the recordings. Stream shapes are keyed per SSE event type: pooling them was the first
+  attempt and it cost the missing-field check entirely, since `message_start` and
+  `content_block_delta` share almost no fields.
+
+  The value of deriving rather than writing showed up immediately — a hand-written "normal
+  Anthropic response" in the first draft of the test was missing eight fields Anthropic sends on
+  every call (`stop_details`, `usage.service_tier`, `usage.cache_read_input_tokens` among them).
+  The check was right and the hand-written body was wrong.
+
 - **A recorded corpus of what providers send BACK** (`tests/fixtures/response-golden.json`, 42 cells).
   All seven existing corpora describe REQUESTS; the parse side was exercised only against literals
   written by hand in the test files, which tests what the author believed a provider returns. This

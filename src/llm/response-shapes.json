@@ -1,0 +1,3030 @@
+{
+  "anthropic/messages": {
+    "response": {
+      "known": [
+        "content",
+        "content[]",
+        "content[].caller",
+        "content[].caller.type",
+        "content[].id",
+        "content[].input",
+        "content[].input.city",
+        "content[].name",
+        "content[].text",
+        "content[].type",
+        "id",
+        "model",
+        "role",
+        "stop_details",
+        "stop_reason",
+        "stop_sequence",
+        "type",
+        "usage",
+        "usage.cache_creation",
+        "usage.cache_creation.ephemeral_1h_input_tokens",
+        "usage.cache_creation.ephemeral_5m_input_tokens",
+        "usage.cache_creation_input_tokens",
+        "usage.cache_read_input_tokens",
+        "usage.inference_geo",
+        "usage.input_tokens",
+        "usage.output_tokens",
+        "usage.service_tier"
+      ],
+      "expected": [
+        "content",
+        "content[]",
+        "content[].type",
+        "id",
+        "model",
+        "role",
+        "stop_details",
+        "stop_reason",
+        "stop_sequence",
+        "type",
+        "usage",
+        "usage.cache_creation",
+        "usage.cache_creation.ephemeral_1h_input_tokens",
+        "usage.cache_creation.ephemeral_5m_input_tokens",
+        "usage.cache_creation_input_tokens",
+        "usage.cache_read_input_tokens",
+        "usage.inference_geo",
+        "usage.input_tokens",
+        "usage.output_tokens",
+        "usage.service_tier"
+      ],
+      "values": {
+        "content[].caller.type": [
+          "direct"
+        ],
+        "content[].type": [
+          "text",
+          "tool_use"
+        ],
+        "role": [
+          "assistant"
+        ],
+        "stop_reason": [
+          "end_turn",
+          "tool_use"
+        ],
+        "type": [
+          "message"
+        ]
+      }
+    },
+    "stream": {
+      "content_block_delta": {
+        "known": [
+          "delta",
+          "delta.partial_json",
+          "delta.text",
+          "delta.type",
+          "index",
+          "type"
+        ],
+        "expected": [
+          "delta",
+          "delta.type",
+          "index",
+          "type"
+        ],
+        "values": {
+          "delta.type": [
+            "input_json_delta",
+            "text_delta"
+          ],
+          "type": [
+            "content_block_delta"
+          ]
+        }
+      },
+      "content_block_start": {
+        "known": [
+          "content_block",
+          "content_block.caller",
+          "content_block.caller.type",
+          "content_block.id",
+          "content_block.input",
+          "content_block.name",
+          "content_block.text",
+          "content_block.type",
+          "index",
+          "type"
+        ],
+        "expected": [
+          "content_block",
+          "content_block.type",
+          "index",
+          "type"
+        ],
+        "values": {
+          "content_block.caller.type": [
+            "direct"
+          ],
+          "content_block.type": [
+            "text",
+            "tool_use"
+          ],
+          "type": [
+            "content_block_start"
+          ]
+        }
+      },
+      "content_block_stop": {
+        "known": [
+          "index",
+          "type"
+        ],
+        "expected": [
+          "index",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "content_block_stop"
+          ]
+        }
+      },
+      "message_delta": {
+        "known": [
+          "delta",
+          "delta.stop_details",
+          "delta.stop_reason",
+          "delta.stop_sequence",
+          "type",
+          "usage",
+          "usage.cache_creation_input_tokens",
+          "usage.cache_read_input_tokens",
+          "usage.input_tokens",
+          "usage.output_tokens"
+        ],
+        "expected": [
+          "delta",
+          "delta.stop_details",
+          "delta.stop_reason",
+          "delta.stop_sequence",
+          "type",
+          "usage",
+          "usage.cache_creation_input_tokens",
+          "usage.cache_read_input_tokens",
+          "usage.input_tokens",
+          "usage.output_tokens"
+        ],
+        "values": {
+          "delta.stop_reason": [
+            "end_turn",
+            "tool_use"
+          ],
+          "type": [
+            "message_delta"
+          ]
+        }
+      },
+      "message_start": {
+        "known": [
+          "message",
+          "message.content",
+          "message.content[]",
+          "message.id",
+          "message.model",
+          "message.role",
+          "message.stop_details",
+          "message.stop_reason",
+          "message.stop_sequence",
+          "message.type",
+          "message.usage",
+          "message.usage.cache_creation",
+          "message.usage.cache_creation.ephemeral_1h_input_tokens",
+          "message.usage.cache_creation.ephemeral_5m_input_tokens",
+          "message.usage.cache_creation_input_tokens",
+          "message.usage.cache_read_input_tokens",
+          "message.usage.inference_geo",
+          "message.usage.input_tokens",
+          "message.usage.output_tokens",
+          "message.usage.service_tier",
+          "type"
+        ],
+        "expected": [
+          "message",
+          "message.content",
+          "message.content[]",
+          "message.id",
+          "message.model",
+          "message.role",
+          "message.stop_details",
+          "message.stop_reason",
+          "message.stop_sequence",
+          "message.type",
+          "message.usage",
+          "message.usage.cache_creation",
+          "message.usage.cache_creation.ephemeral_1h_input_tokens",
+          "message.usage.cache_creation.ephemeral_5m_input_tokens",
+          "message.usage.cache_creation_input_tokens",
+          "message.usage.cache_read_input_tokens",
+          "message.usage.inference_geo",
+          "message.usage.input_tokens",
+          "message.usage.output_tokens",
+          "message.usage.service_tier",
+          "type"
+        ],
+        "values": {
+          "message.role": [
+            "assistant"
+          ],
+          "message.type": [
+            "message"
+          ],
+          "type": [
+            "message_start"
+          ]
+        }
+      },
+      "message_stop": {
+        "known": [
+          "type"
+        ],
+        "expected": [
+          "type"
+        ],
+        "values": {
+          "type": [
+            "message_stop"
+          ]
+        }
+      },
+      "ping": {
+        "known": [
+          "type"
+        ],
+        "expected": [
+          "type"
+        ],
+        "values": {
+          "type": [
+            "ping"
+          ]
+        }
+      }
+    }
+  },
+  "google/generate": {
+    "response": {
+      "known": [
+        "candidates",
+        "candidates[]",
+        "candidates[].content",
+        "candidates[].content.parts",
+        "candidates[].content.parts[]",
+        "candidates[].content.parts[].functionCall",
+        "candidates[].content.parts[].functionCall.args",
+        "candidates[].content.parts[].functionCall.args.city",
+        "candidates[].content.parts[].functionCall.id",
+        "candidates[].content.parts[].functionCall.name",
+        "candidates[].content.parts[].text",
+        "candidates[].content.parts[].thoughtSignature",
+        "candidates[].content.role",
+        "candidates[].finishMessage",
+        "candidates[].finishReason",
+        "candidates[].index",
+        "modelVersion",
+        "responseId",
+        "usageMetadata",
+        "usageMetadata.candidatesTokenCount",
+        "usageMetadata.promptTokenCount",
+        "usageMetadata.promptTokensDetails",
+        "usageMetadata.promptTokensDetails[]",
+        "usageMetadata.promptTokensDetails[].modality",
+        "usageMetadata.promptTokensDetails[].tokenCount",
+        "usageMetadata.serviceTier",
+        "usageMetadata.totalTokenCount"
+      ],
+      "expected": [
+        "candidates",
+        "candidates[]",
+        "candidates[].content",
+        "candidates[].content.parts",
+        "candidates[].content.parts[]",
+        "candidates[].content.parts[].thoughtSignature",
+        "candidates[].content.role",
+        "candidates[].finishReason",
+        "candidates[].index",
+        "modelVersion",
+        "responseId",
+        "usageMetadata",
+        "usageMetadata.candidatesTokenCount",
+        "usageMetadata.promptTokenCount",
+        "usageMetadata.promptTokensDetails",
+        "usageMetadata.promptTokensDetails[]",
+        "usageMetadata.promptTokensDetails[].modality",
+        "usageMetadata.promptTokensDetails[].tokenCount",
+        "usageMetadata.serviceTier",
+        "usageMetadata.totalTokenCount"
+      ],
+      "values": {
+        "candidates[].content.role": [
+          "model"
+        ],
+        "candidates[].finishReason": [
+          "STOP"
+        ]
+      }
+    },
+    "stream": {
+      "*": {
+        "known": [
+          "candidates",
+          "candidates[]",
+          "candidates[].content",
+          "candidates[].content.parts",
+          "candidates[].content.parts[]",
+          "candidates[].content.parts[].functionCall",
+          "candidates[].content.parts[].functionCall.args",
+          "candidates[].content.parts[].functionCall.args.city",
+          "candidates[].content.parts[].functionCall.id",
+          "candidates[].content.parts[].functionCall.name",
+          "candidates[].content.parts[].text",
+          "candidates[].content.parts[].thoughtSignature",
+          "candidates[].content.role",
+          "candidates[].finishReason",
+          "candidates[].index",
+          "modelVersion",
+          "responseId",
+          "usageMetadata",
+          "usageMetadata.candidatesTokenCount",
+          "usageMetadata.promptTokenCount",
+          "usageMetadata.promptTokensDetails",
+          "usageMetadata.promptTokensDetails[]",
+          "usageMetadata.promptTokensDetails[].modality",
+          "usageMetadata.promptTokensDetails[].tokenCount",
+          "usageMetadata.serviceTier",
+          "usageMetadata.totalTokenCount"
+        ],
+        "expected": [
+          "candidates",
+          "candidates[]",
+          "candidates[].content",
+          "candidates[].content.parts",
+          "candidates[].content.parts[]",
+          "candidates[].content.role",
+          "candidates[].index",
+          "modelVersion",
+          "responseId",
+          "usageMetadata",
+          "usageMetadata.candidatesTokenCount",
+          "usageMetadata.promptTokenCount",
+          "usageMetadata.promptTokensDetails",
+          "usageMetadata.promptTokensDetails[]",
+          "usageMetadata.promptTokensDetails[].modality",
+          "usageMetadata.promptTokensDetails[].tokenCount",
+          "usageMetadata.serviceTier",
+          "usageMetadata.totalTokenCount"
+        ],
+        "values": {
+          "candidates[].content.role": [
+            "model"
+          ],
+          "candidates[].finishReason": [
+            "STOP"
+          ]
+        }
+      }
+    }
+  },
+  "google/interactions": {
+    "response": {
+      "known": [
+        "created",
+        "id",
+        "model",
+        "object",
+        "service_tier",
+        "status",
+        "steps",
+        "steps[]",
+        "steps[].arguments",
+        "steps[].arguments.city",
+        "steps[].content",
+        "steps[].content[]",
+        "steps[].content[].text",
+        "steps[].content[].type",
+        "steps[].id",
+        "steps[].name",
+        "steps[].signature",
+        "steps[].type",
+        "updated",
+        "usage",
+        "usage.input_tokens_by_modality",
+        "usage.input_tokens_by_modality[]",
+        "usage.input_tokens_by_modality[].modality",
+        "usage.input_tokens_by_modality[].tokens",
+        "usage.raw_prompt_token",
+        "usage.total_cached_tokens",
+        "usage.total_input_tokens",
+        "usage.total_output_tokens",
+        "usage.total_thought_tokens",
+        "usage.total_tokens",
+        "usage.total_tool_use_tokens"
+      ],
+      "expected": [
+        "created",
+        "id",
+        "model",
+        "object",
+        "service_tier",
+        "status",
+        "steps",
+        "steps[]",
+        "steps[].signature",
+        "steps[].type",
+        "updated",
+        "usage",
+        "usage.input_tokens_by_modality",
+        "usage.input_tokens_by_modality[]",
+        "usage.input_tokens_by_modality[].modality",
+        "usage.input_tokens_by_modality[].tokens",
+        "usage.raw_prompt_token",
+        "usage.total_cached_tokens",
+        "usage.total_input_tokens",
+        "usage.total_output_tokens",
+        "usage.total_thought_tokens",
+        "usage.total_tokens",
+        "usage.total_tool_use_tokens"
+      ],
+      "values": {
+        "object": [
+          "interaction"
+        ],
+        "status": [
+          "completed",
+          "requires_action"
+        ],
+        "steps[].content[].type": [
+          "text"
+        ],
+        "steps[].type": [
+          "function_call",
+          "model_output",
+          "thought"
+        ]
+      }
+    },
+    "stream": {
+      "interaction.completed": {
+        "known": [
+          "event_type",
+          "interaction",
+          "interaction.created",
+          "interaction.id",
+          "interaction.model",
+          "interaction.object",
+          "interaction.service_tier",
+          "interaction.status",
+          "interaction.updated",
+          "interaction.usage",
+          "interaction.usage.input_tokens_by_modality",
+          "interaction.usage.input_tokens_by_modality[]",
+          "interaction.usage.input_tokens_by_modality[].modality",
+          "interaction.usage.input_tokens_by_modality[].tokens",
+          "interaction.usage.raw_prompt_token",
+          "interaction.usage.total_cached_tokens",
+          "interaction.usage.total_input_tokens",
+          "interaction.usage.total_output_tokens",
+          "interaction.usage.total_thought_tokens",
+          "interaction.usage.total_tokens",
+          "interaction.usage.total_tool_use_tokens"
+        ],
+        "expected": [
+          "event_type",
+          "interaction",
+          "interaction.created",
+          "interaction.id",
+          "interaction.model",
+          "interaction.object",
+          "interaction.service_tier",
+          "interaction.status",
+          "interaction.updated",
+          "interaction.usage",
+          "interaction.usage.input_tokens_by_modality",
+          "interaction.usage.input_tokens_by_modality[]",
+          "interaction.usage.input_tokens_by_modality[].modality",
+          "interaction.usage.input_tokens_by_modality[].tokens",
+          "interaction.usage.raw_prompt_token",
+          "interaction.usage.total_cached_tokens",
+          "interaction.usage.total_input_tokens",
+          "interaction.usage.total_output_tokens",
+          "interaction.usage.total_thought_tokens",
+          "interaction.usage.total_tokens",
+          "interaction.usage.total_tool_use_tokens"
+        ],
+        "values": {
+          "interaction.object": [
+            "interaction"
+          ],
+          "interaction.status": [
+            "completed",
+            "requires_action"
+          ]
+        }
+      },
+      "interaction.created": {
+        "known": [
+          "event_type",
+          "interaction",
+          "interaction.id",
+          "interaction.model",
+          "interaction.object",
+          "interaction.status"
+        ],
+        "expected": [
+          "event_type",
+          "interaction",
+          "interaction.id",
+          "interaction.model",
+          "interaction.object",
+          "interaction.status"
+        ],
+        "values": {
+          "interaction.object": [
+            "interaction"
+          ],
+          "interaction.status": [
+            "in_progress"
+          ]
+        }
+      },
+      "interaction.status_update": {
+        "known": [
+          "event_type",
+          "interaction_id",
+          "status"
+        ],
+        "expected": [
+          "event_type",
+          "interaction_id",
+          "status"
+        ],
+        "values": {
+          "status": [
+            "in_progress"
+          ]
+        }
+      },
+      "step.delta": {
+        "known": [
+          "delta",
+          "delta.arguments",
+          "delta.signature",
+          "delta.text",
+          "delta.type",
+          "event_type",
+          "index"
+        ],
+        "expected": [
+          "delta",
+          "delta.type",
+          "event_type",
+          "index"
+        ],
+        "values": {
+          "delta.type": [
+            "arguments_delta",
+            "text",
+            "thought_signature"
+          ]
+        }
+      },
+      "step.start": {
+        "known": [
+          "event_type",
+          "index",
+          "step",
+          "step.arguments",
+          "step.id",
+          "step.name",
+          "step.type"
+        ],
+        "expected": [
+          "event_type",
+          "index",
+          "step",
+          "step.type"
+        ],
+        "values": {
+          "step.type": [
+            "function_call",
+            "model_output",
+            "thought"
+          ]
+        }
+      },
+      "step.stop": {
+        "known": [
+          "event_type",
+          "index"
+        ],
+        "expected": [
+          "event_type",
+          "index"
+        ]
+      }
+    }
+  },
+  "openai/completions": {
+    "response": {
+      "known": [
+        "choices",
+        "choices[]",
+        "choices[].finish_reason",
+        "choices[].index",
+        "choices[].message",
+        "choices[].message.annotations",
+        "choices[].message.annotations[]",
+        "choices[].message.content",
+        "choices[].message.refusal",
+        "choices[].message.role",
+        "choices[].message.tool_calls",
+        "choices[].message.tool_calls[]",
+        "choices[].message.tool_calls[].function",
+        "choices[].message.tool_calls[].function.arguments",
+        "choices[].message.tool_calls[].function.name",
+        "choices[].message.tool_calls[].id",
+        "choices[].message.tool_calls[].type",
+        "created",
+        "id",
+        "model",
+        "object",
+        "service_tier",
+        "system_fingerprint",
+        "usage",
+        "usage.completion_tokens",
+        "usage.completion_tokens_details",
+        "usage.completion_tokens_details.accepted_prediction_tokens",
+        "usage.completion_tokens_details.audio_tokens",
+        "usage.completion_tokens_details.reasoning_tokens",
+        "usage.completion_tokens_details.rejected_prediction_tokens",
+        "usage.prompt_tokens",
+        "usage.prompt_tokens_details",
+        "usage.prompt_tokens_details.audio_tokens",
+        "usage.prompt_tokens_details.cached_tokens",
+        "usage.total_tokens"
+      ],
+      "expected": [
+        "choices",
+        "choices[]",
+        "choices[].finish_reason",
+        "choices[].index",
+        "choices[].message",
+        "choices[].message.annotations",
+        "choices[].message.annotations[]",
+        "choices[].message.content",
+        "choices[].message.refusal",
+        "choices[].message.role",
+        "created",
+        "id",
+        "model",
+        "object",
+        "service_tier",
+        "system_fingerprint",
+        "usage",
+        "usage.completion_tokens",
+        "usage.completion_tokens_details",
+        "usage.completion_tokens_details.accepted_prediction_tokens",
+        "usage.completion_tokens_details.audio_tokens",
+        "usage.completion_tokens_details.reasoning_tokens",
+        "usage.completion_tokens_details.rejected_prediction_tokens",
+        "usage.prompt_tokens",
+        "usage.prompt_tokens_details",
+        "usage.prompt_tokens_details.audio_tokens",
+        "usage.prompt_tokens_details.cached_tokens",
+        "usage.total_tokens"
+      ],
+      "values": {
+        "choices[].finish_reason": [
+          "stop",
+          "tool_calls"
+        ],
+        "choices[].message.role": [
+          "assistant"
+        ],
+        "choices[].message.tool_calls[].type": [
+          "function"
+        ],
+        "object": [
+          "chat.completion"
+        ]
+      }
+    },
+    "stream": {
+      "*": {
+        "known": [
+          "choices",
+          "choices[]",
+          "choices[].delta",
+          "choices[].delta.content",
+          "choices[].delta.refusal",
+          "choices[].delta.role",
+          "choices[].delta.tool_calls",
+          "choices[].delta.tool_calls[]",
+          "choices[].delta.tool_calls[].function",
+          "choices[].delta.tool_calls[].function.arguments",
+          "choices[].delta.tool_calls[].function.name",
+          "choices[].delta.tool_calls[].id",
+          "choices[].delta.tool_calls[].index",
+          "choices[].delta.tool_calls[].type",
+          "choices[].finish_reason",
+          "choices[].index",
+          "created",
+          "id",
+          "model",
+          "obfuscation",
+          "object",
+          "service_tier",
+          "system_fingerprint",
+          "usage",
+          "usage.completion_tokens",
+          "usage.completion_tokens_details",
+          "usage.completion_tokens_details.accepted_prediction_tokens",
+          "usage.completion_tokens_details.audio_tokens",
+          "usage.completion_tokens_details.reasoning_tokens",
+          "usage.completion_tokens_details.rejected_prediction_tokens",
+          "usage.prompt_tokens",
+          "usage.prompt_tokens_details",
+          "usage.prompt_tokens_details.audio_tokens",
+          "usage.prompt_tokens_details.cached_tokens",
+          "usage.total_tokens"
+        ],
+        "expected": [
+          "choices",
+          "choices[]",
+          "created",
+          "id",
+          "model",
+          "obfuscation",
+          "object",
+          "service_tier",
+          "system_fingerprint",
+          "usage"
+        ],
+        "values": {
+          "choices[].delta.role": [
+            "assistant"
+          ],
+          "choices[].delta.tool_calls[].type": [
+            "function"
+          ],
+          "choices[].finish_reason": [
+            "stop",
+            "tool_calls"
+          ],
+          "object": [
+            "chat.completion.chunk"
+          ]
+        }
+      }
+    }
+  },
+  "openai/responses": {
+    "response": {
+      "known": [
+        "background",
+        "billing",
+        "billing.payer",
+        "completed_at",
+        "created_at",
+        "error",
+        "frequency_penalty",
+        "id",
+        "incomplete_details",
+        "instructions",
+        "max_output_tokens",
+        "max_tool_calls",
+        "metadata",
+        "model",
+        "moderation",
+        "object",
+        "output",
+        "output[]",
+        "output[].arguments",
+        "output[].call_id",
+        "output[].content",
+        "output[].content[]",
+        "output[].content[].annotations",
+        "output[].content[].annotations[]",
+        "output[].content[].logprobs",
+        "output[].content[].logprobs[]",
+        "output[].content[].text",
+        "output[].content[].type",
+        "output[].id",
+        "output[].name",
+        "output[].phase",
+        "output[].role",
+        "output[].status",
+        "output[].type",
+        "parallel_tool_calls",
+        "presence_penalty",
+        "previous_response_id",
+        "prompt_cache_key",
+        "prompt_cache_retention",
+        "reasoning",
+        "reasoning.context",
+        "reasoning.effort",
+        "reasoning.mode",
+        "reasoning.summary",
+        "safety_identifier",
+        "service_tier",
+        "status",
+        "store",
+        "temperature",
+        "text",
+        "text.format",
+        "text.format.description",
+        "text.format.name",
+        "text.format.schema",
+        "text.format.schema.additionalProperties",
+        "text.format.schema.properties",
+        "text.format.schema.properties.city",
+        "text.format.schema.properties.city.type",
+        "text.format.schema.properties.country",
+        "text.format.schema.properties.country.type",
+        "text.format.schema.required",
+        "text.format.schema.required[]",
+        "text.format.schema.type",
+        "text.format.strict",
+        "text.format.type",
+        "text.verbosity",
+        "tool_choice",
+        "tool_usage",
+        "tool_usage.image_gen",
+        "tool_usage.image_gen.input_tokens",
+        "tool_usage.image_gen.input_tokens_details",
+        "tool_usage.image_gen.input_tokens_details.image_tokens",
+        "tool_usage.image_gen.input_tokens_details.text_tokens",
+        "tool_usage.image_gen.output_tokens",
+        "tool_usage.image_gen.output_tokens_details",
+        "tool_usage.image_gen.output_tokens_details.image_tokens",
+        "tool_usage.image_gen.output_tokens_details.text_tokens",
+        "tool_usage.image_gen.total_tokens",
+        "tool_usage.web_search",
+        "tool_usage.web_search.num_requests",
+        "tools",
+        "tools[]",
+        "tools[].description",
+        "tools[].name",
+        "tools[].output_schema",
+        "tools[].parameters",
+        "tools[].parameters.additionalProperties",
+        "tools[].parameters.properties",
+        "tools[].parameters.properties.city",
+        "tools[].parameters.properties.city.type",
+        "tools[].parameters.required",
+        "tools[].parameters.required[]",
+        "tools[].parameters.type",
+        "tools[].strict",
+        "tools[].type",
+        "top_logprobs",
+        "top_p",
+        "truncation",
+        "usage",
+        "usage.input_tokens",
+        "usage.input_tokens_details",
+        "usage.input_tokens_details.cache_write_tokens",
+        "usage.input_tokens_details.cached_tokens",
+        "usage.output_tokens",
+        "usage.output_tokens_details",
+        "usage.output_tokens_details.reasoning_tokens",
+        "usage.total_tokens",
+        "user"
+      ],
+      "expected": [
+        "background",
+        "billing",
+        "billing.payer",
+        "completed_at",
+        "created_at",
+        "error",
+        "frequency_penalty",
+        "id",
+        "incomplete_details",
+        "instructions",
+        "max_output_tokens",
+        "max_tool_calls",
+        "metadata",
+        "model",
+        "moderation",
+        "object",
+        "output",
+        "output[]",
+        "output[].id",
+        "output[].status",
+        "output[].type",
+        "parallel_tool_calls",
+        "presence_penalty",
+        "previous_response_id",
+        "prompt_cache_key",
+        "prompt_cache_retention",
+        "reasoning",
+        "reasoning.context",
+        "reasoning.effort",
+        "reasoning.mode",
+        "reasoning.summary",
+        "safety_identifier",
+        "service_tier",
+        "status",
+        "store",
+        "temperature",
+        "text",
+        "text.format",
+        "text.format.type",
+        "text.verbosity",
+        "tool_choice",
+        "tool_usage",
+        "tool_usage.image_gen",
+        "tool_usage.image_gen.input_tokens",
+        "tool_usage.image_gen.input_tokens_details",
+        "tool_usage.image_gen.input_tokens_details.image_tokens",
+        "tool_usage.image_gen.input_tokens_details.text_tokens",
+        "tool_usage.image_gen.output_tokens",
+        "tool_usage.image_gen.output_tokens_details",
+        "tool_usage.image_gen.output_tokens_details.image_tokens",
+        "tool_usage.image_gen.output_tokens_details.text_tokens",
+        "tool_usage.image_gen.total_tokens",
+        "tool_usage.web_search",
+        "tool_usage.web_search.num_requests",
+        "tools",
+        "tools[]",
+        "top_logprobs",
+        "top_p",
+        "truncation",
+        "usage",
+        "usage.input_tokens",
+        "usage.input_tokens_details",
+        "usage.input_tokens_details.cache_write_tokens",
+        "usage.input_tokens_details.cached_tokens",
+        "usage.output_tokens",
+        "usage.output_tokens_details",
+        "usage.output_tokens_details.reasoning_tokens",
+        "usage.total_tokens",
+        "user"
+      ],
+      "values": {
+        "object": [
+          "response"
+        ],
+        "output[].content[].type": [
+          "output_text"
+        ],
+        "output[].role": [
+          "assistant"
+        ],
+        "output[].status": [
+          "completed"
+        ],
+        "output[].type": [
+          "function_call",
+          "message"
+        ],
+        "status": [
+          "completed"
+        ],
+        "text.format.schema.properties.city.type": [
+          "string"
+        ],
+        "text.format.schema.properties.country.type": [
+          "string"
+        ],
+        "text.format.schema.type": [
+          "object"
+        ],
+        "text.format.type": [
+          "json_schema",
+          "text"
+        ],
+        "tools[].parameters.properties.city.type": [
+          "string"
+        ],
+        "tools[].parameters.type": [
+          "object"
+        ],
+        "tools[].type": [
+          "function"
+        ]
+      }
+    },
+    "stream": {
+      "response.completed": {
+        "known": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.model",
+          "response.moderation",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.output[].arguments",
+          "response.output[].call_id",
+          "response.output[].content",
+          "response.output[].content[]",
+          "response.output[].content[].annotations",
+          "response.output[].content[].annotations[]",
+          "response.output[].content[].logprobs",
+          "response.output[].content[].logprobs[]",
+          "response.output[].content[].text",
+          "response.output[].content[].type",
+          "response.output[].id",
+          "response.output[].name",
+          "response.output[].phase",
+          "response.output[].role",
+          "response.output[].status",
+          "response.output[].type",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.prompt_cache_retention",
+          "response.reasoning",
+          "response.reasoning.context",
+          "response.reasoning.effort",
+          "response.reasoning.mode",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.text.verbosity",
+          "response.tool_choice",
+          "response.tool_usage",
+          "response.tool_usage.image_gen",
+          "response.tool_usage.image_gen.input_tokens",
+          "response.tool_usage.image_gen.input_tokens_details",
+          "response.tool_usage.image_gen.input_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.input_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.output_tokens",
+          "response.tool_usage.image_gen.output_tokens_details",
+          "response.tool_usage.image_gen.output_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.output_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.total_tokens",
+          "response.tool_usage.web_search",
+          "response.tool_usage.web_search.num_requests",
+          "response.tools",
+          "response.tools[]",
+          "response.tools[].description",
+          "response.tools[].name",
+          "response.tools[].output_schema",
+          "response.tools[].parameters",
+          "response.tools[].parameters.additionalProperties",
+          "response.tools[].parameters.properties",
+          "response.tools[].parameters.properties.city",
+          "response.tools[].parameters.properties.city.type",
+          "response.tools[].parameters.required",
+          "response.tools[].parameters.required[]",
+          "response.tools[].parameters.type",
+          "response.tools[].strict",
+          "response.tools[].type",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.usage.input_tokens",
+          "response.usage.input_tokens_details",
+          "response.usage.input_tokens_details.cache_write_tokens",
+          "response.usage.input_tokens_details.cached_tokens",
+          "response.usage.output_tokens",
+          "response.usage.output_tokens_details",
+          "response.usage.output_tokens_details.reasoning_tokens",
+          "response.usage.total_tokens",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.model",
+          "response.moderation",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.output[].id",
+          "response.output[].status",
+          "response.output[].type",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.prompt_cache_retention",
+          "response.reasoning",
+          "response.reasoning.context",
+          "response.reasoning.effort",
+          "response.reasoning.mode",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.text.verbosity",
+          "response.tool_choice",
+          "response.tool_usage",
+          "response.tool_usage.image_gen",
+          "response.tool_usage.image_gen.input_tokens",
+          "response.tool_usage.image_gen.input_tokens_details",
+          "response.tool_usage.image_gen.input_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.input_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.output_tokens",
+          "response.tool_usage.image_gen.output_tokens_details",
+          "response.tool_usage.image_gen.output_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.output_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.total_tokens",
+          "response.tool_usage.web_search",
+          "response.tool_usage.web_search.num_requests",
+          "response.tools",
+          "response.tools[]",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.usage.input_tokens",
+          "response.usage.input_tokens_details",
+          "response.usage.input_tokens_details.cache_write_tokens",
+          "response.usage.input_tokens_details.cached_tokens",
+          "response.usage.output_tokens",
+          "response.usage.output_tokens_details",
+          "response.usage.output_tokens_details.reasoning_tokens",
+          "response.usage.total_tokens",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "response.object": [
+            "response"
+          ],
+          "response.output[].content[].type": [
+            "output_text"
+          ],
+          "response.output[].role": [
+            "assistant"
+          ],
+          "response.output[].status": [
+            "completed"
+          ],
+          "response.output[].type": [
+            "function_call",
+            "message"
+          ],
+          "response.status": [
+            "completed"
+          ],
+          "response.text.format.type": [
+            "text"
+          ],
+          "response.tools[].parameters.properties.city.type": [
+            "string"
+          ],
+          "response.tools[].parameters.type": [
+            "object"
+          ],
+          "response.tools[].type": [
+            "function"
+          ],
+          "type": [
+            "response.completed"
+          ]
+        }
+      },
+      "response.content_part.added": {
+        "known": [
+          "content_index",
+          "item_id",
+          "output_index",
+          "part",
+          "part.annotations",
+          "part.annotations[]",
+          "part.logprobs",
+          "part.logprobs[]",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "content_index",
+          "item_id",
+          "output_index",
+          "part",
+          "part.annotations",
+          "part.annotations[]",
+          "part.logprobs",
+          "part.logprobs[]",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "part.type": [
+            "output_text"
+          ],
+          "type": [
+            "response.content_part.added"
+          ]
+        }
+      },
+      "response.content_part.done": {
+        "known": [
+          "content_index",
+          "item_id",
+          "output_index",
+          "part",
+          "part.annotations",
+          "part.annotations[]",
+          "part.logprobs",
+          "part.logprobs[]",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "content_index",
+          "item_id",
+          "output_index",
+          "part",
+          "part.annotations",
+          "part.annotations[]",
+          "part.logprobs",
+          "part.logprobs[]",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "part.type": [
+            "output_text"
+          ],
+          "type": [
+            "response.content_part.done"
+          ]
+        }
+      },
+      "response.created": {
+        "known": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.model",
+          "response.moderation",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.prompt_cache_retention",
+          "response.reasoning",
+          "response.reasoning.context",
+          "response.reasoning.effort",
+          "response.reasoning.mode",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.text.verbosity",
+          "response.tool_choice",
+          "response.tool_usage",
+          "response.tool_usage.image_gen",
+          "response.tool_usage.image_gen.input_tokens",
+          "response.tool_usage.image_gen.input_tokens_details",
+          "response.tool_usage.image_gen.input_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.input_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.output_tokens",
+          "response.tool_usage.image_gen.output_tokens_details",
+          "response.tool_usage.image_gen.output_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.output_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.total_tokens",
+          "response.tool_usage.web_search",
+          "response.tool_usage.web_search.num_requests",
+          "response.tools",
+          "response.tools[]",
+          "response.tools[].description",
+          "response.tools[].name",
+          "response.tools[].output_schema",
+          "response.tools[].parameters",
+          "response.tools[].parameters.additionalProperties",
+          "response.tools[].parameters.properties",
+          "response.tools[].parameters.properties.city",
+          "response.tools[].parameters.properties.city.type",
+          "response.tools[].parameters.required",
+          "response.tools[].parameters.required[]",
+          "response.tools[].parameters.type",
+          "response.tools[].strict",
+          "response.tools[].type",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.model",
+          "response.moderation",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.prompt_cache_retention",
+          "response.reasoning",
+          "response.reasoning.context",
+          "response.reasoning.effort",
+          "response.reasoning.mode",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.text.verbosity",
+          "response.tool_choice",
+          "response.tool_usage",
+          "response.tool_usage.image_gen",
+          "response.tool_usage.image_gen.input_tokens",
+          "response.tool_usage.image_gen.input_tokens_details",
+          "response.tool_usage.image_gen.input_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.input_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.output_tokens",
+          "response.tool_usage.image_gen.output_tokens_details",
+          "response.tool_usage.image_gen.output_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.output_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.total_tokens",
+          "response.tool_usage.web_search",
+          "response.tool_usage.web_search.num_requests",
+          "response.tools",
+          "response.tools[]",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "response.object": [
+            "response"
+          ],
+          "response.status": [
+            "in_progress"
+          ],
+          "response.text.format.type": [
+            "text"
+          ],
+          "response.tools[].parameters.properties.city.type": [
+            "string"
+          ],
+          "response.tools[].parameters.type": [
+            "object"
+          ],
+          "response.tools[].type": [
+            "function"
+          ],
+          "type": [
+            "response.created"
+          ]
+        }
+      },
+      "response.function_call_arguments.delta": {
+        "known": [
+          "delta",
+          "item_id",
+          "obfuscation",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "delta",
+          "item_id",
+          "obfuscation",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.function_call_arguments.delta"
+          ]
+        }
+      },
+      "response.function_call_arguments.done": {
+        "known": [
+          "arguments",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "arguments",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.function_call_arguments.done"
+          ]
+        }
+      },
+      "response.in_progress": {
+        "known": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.model",
+          "response.moderation",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.prompt_cache_retention",
+          "response.reasoning",
+          "response.reasoning.context",
+          "response.reasoning.effort",
+          "response.reasoning.mode",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.text.verbosity",
+          "response.tool_choice",
+          "response.tool_usage",
+          "response.tool_usage.image_gen",
+          "response.tool_usage.image_gen.input_tokens",
+          "response.tool_usage.image_gen.input_tokens_details",
+          "response.tool_usage.image_gen.input_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.input_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.output_tokens",
+          "response.tool_usage.image_gen.output_tokens_details",
+          "response.tool_usage.image_gen.output_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.output_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.total_tokens",
+          "response.tool_usage.web_search",
+          "response.tool_usage.web_search.num_requests",
+          "response.tools",
+          "response.tools[]",
+          "response.tools[].description",
+          "response.tools[].name",
+          "response.tools[].output_schema",
+          "response.tools[].parameters",
+          "response.tools[].parameters.additionalProperties",
+          "response.tools[].parameters.properties",
+          "response.tools[].parameters.properties.city",
+          "response.tools[].parameters.properties.city.type",
+          "response.tools[].parameters.required",
+          "response.tools[].parameters.required[]",
+          "response.tools[].parameters.type",
+          "response.tools[].strict",
+          "response.tools[].type",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.model",
+          "response.moderation",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.prompt_cache_retention",
+          "response.reasoning",
+          "response.reasoning.context",
+          "response.reasoning.effort",
+          "response.reasoning.mode",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.text.verbosity",
+          "response.tool_choice",
+          "response.tool_usage",
+          "response.tool_usage.image_gen",
+          "response.tool_usage.image_gen.input_tokens",
+          "response.tool_usage.image_gen.input_tokens_details",
+          "response.tool_usage.image_gen.input_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.input_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.output_tokens",
+          "response.tool_usage.image_gen.output_tokens_details",
+          "response.tool_usage.image_gen.output_tokens_details.image_tokens",
+          "response.tool_usage.image_gen.output_tokens_details.text_tokens",
+          "response.tool_usage.image_gen.total_tokens",
+          "response.tool_usage.web_search",
+          "response.tool_usage.web_search.num_requests",
+          "response.tools",
+          "response.tools[]",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "response.object": [
+            "response"
+          ],
+          "response.status": [
+            "in_progress"
+          ],
+          "response.text.format.type": [
+            "text"
+          ],
+          "response.tools[].parameters.properties.city.type": [
+            "string"
+          ],
+          "response.tools[].parameters.type": [
+            "object"
+          ],
+          "response.tools[].type": [
+            "function"
+          ],
+          "type": [
+            "response.in_progress"
+          ]
+        }
+      },
+      "response.output_item.added": {
+        "known": [
+          "item",
+          "item.arguments",
+          "item.call_id",
+          "item.content",
+          "item.content[]",
+          "item.id",
+          "item.name",
+          "item.phase",
+          "item.role",
+          "item.status",
+          "item.type",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item",
+          "item.id",
+          "item.status",
+          "item.type",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "item.role": [
+            "assistant"
+          ],
+          "item.status": [
+            "in_progress"
+          ],
+          "item.type": [
+            "function_call",
+            "message"
+          ],
+          "type": [
+            "response.output_item.added"
+          ]
+        }
+      },
+      "response.output_item.done": {
+        "known": [
+          "item",
+          "item.arguments",
+          "item.call_id",
+          "item.content",
+          "item.content[]",
+          "item.content[].annotations",
+          "item.content[].annotations[]",
+          "item.content[].logprobs",
+          "item.content[].logprobs[]",
+          "item.content[].text",
+          "item.content[].type",
+          "item.id",
+          "item.name",
+          "item.phase",
+          "item.role",
+          "item.status",
+          "item.type",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item",
+          "item.id",
+          "item.status",
+          "item.type",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "item.content[].type": [
+            "output_text"
+          ],
+          "item.role": [
+            "assistant"
+          ],
+          "item.status": [
+            "completed"
+          ],
+          "item.type": [
+            "function_call",
+            "message"
+          ],
+          "type": [
+            "response.output_item.done"
+          ]
+        }
+      },
+      "response.output_text.delta": {
+        "known": [
+          "content_index",
+          "delta",
+          "item_id",
+          "logprobs",
+          "logprobs[]",
+          "obfuscation",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "content_index",
+          "delta",
+          "item_id",
+          "logprobs",
+          "logprobs[]",
+          "obfuscation",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.output_text.delta"
+          ]
+        }
+      },
+      "response.output_text.done": {
+        "known": [
+          "content_index",
+          "item_id",
+          "logprobs",
+          "logprobs[]",
+          "output_index",
+          "sequence_number",
+          "text",
+          "type"
+        ],
+        "expected": [
+          "content_index",
+          "item_id",
+          "logprobs",
+          "logprobs[]",
+          "output_index",
+          "sequence_number",
+          "text",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.output_text.done"
+          ]
+        }
+      }
+    }
+  },
+  "openrouter/completions": {
+    "response": {
+      "known": [
+        "choices",
+        "choices[]",
+        "choices[].finish_reason",
+        "choices[].index",
+        "choices[].logprobs",
+        "choices[].message",
+        "choices[].message.content",
+        "choices[].message.reasoning",
+        "choices[].message.refusal",
+        "choices[].message.role",
+        "choices[].message.tool_calls",
+        "choices[].message.tool_calls[]",
+        "choices[].message.tool_calls[].function",
+        "choices[].message.tool_calls[].function.arguments",
+        "choices[].message.tool_calls[].function.name",
+        "choices[].message.tool_calls[].id",
+        "choices[].message.tool_calls[].index",
+        "choices[].message.tool_calls[].type",
+        "choices[].native_finish_reason",
+        "created",
+        "id",
+        "model",
+        "object",
+        "provider",
+        "service_tier",
+        "system_fingerprint",
+        "usage",
+        "usage.completion_tokens",
+        "usage.completion_tokens_details",
+        "usage.completion_tokens_details.audio_tokens",
+        "usage.completion_tokens_details.image_tokens",
+        "usage.completion_tokens_details.reasoning_tokens",
+        "usage.cost",
+        "usage.cost_details",
+        "usage.cost_details.upstream_inference_completions_cost",
+        "usage.cost_details.upstream_inference_cost",
+        "usage.cost_details.upstream_inference_prompt_cost",
+        "usage.is_byok",
+        "usage.prompt_tokens",
+        "usage.prompt_tokens_details",
+        "usage.prompt_tokens_details.audio_tokens",
+        "usage.prompt_tokens_details.cache_write_tokens",
+        "usage.prompt_tokens_details.cached_tokens",
+        "usage.prompt_tokens_details.video_tokens",
+        "usage.total_tokens"
+      ],
+      "expected": [
+        "choices",
+        "choices[]",
+        "choices[].finish_reason",
+        "choices[].index",
+        "choices[].logprobs",
+        "choices[].message",
+        "choices[].message.content",
+        "choices[].message.reasoning",
+        "choices[].message.refusal",
+        "choices[].message.role",
+        "choices[].native_finish_reason",
+        "created",
+        "id",
+        "model",
+        "object",
+        "provider",
+        "service_tier",
+        "system_fingerprint",
+        "usage",
+        "usage.completion_tokens",
+        "usage.completion_tokens_details",
+        "usage.completion_tokens_details.audio_tokens",
+        "usage.completion_tokens_details.image_tokens",
+        "usage.completion_tokens_details.reasoning_tokens",
+        "usage.cost",
+        "usage.cost_details",
+        "usage.cost_details.upstream_inference_completions_cost",
+        "usage.cost_details.upstream_inference_cost",
+        "usage.cost_details.upstream_inference_prompt_cost",
+        "usage.is_byok",
+        "usage.prompt_tokens",
+        "usage.prompt_tokens_details",
+        "usage.prompt_tokens_details.audio_tokens",
+        "usage.prompt_tokens_details.cache_write_tokens",
+        "usage.prompt_tokens_details.cached_tokens",
+        "usage.prompt_tokens_details.video_tokens",
+        "usage.total_tokens"
+      ],
+      "values": {
+        "choices[].finish_reason": [
+          "stop",
+          "tool_calls"
+        ],
+        "choices[].message.role": [
+          "assistant"
+        ],
+        "choices[].message.tool_calls[].type": [
+          "function"
+        ],
+        "object": [
+          "chat.completion"
+        ]
+      }
+    },
+    "stream": {
+      "*": {
+        "known": [
+          "choices",
+          "choices[]",
+          "choices[].delta",
+          "choices[].delta.content",
+          "choices[].delta.role",
+          "choices[].delta.tool_calls",
+          "choices[].delta.tool_calls[]",
+          "choices[].delta.tool_calls[].function",
+          "choices[].delta.tool_calls[].function.arguments",
+          "choices[].delta.tool_calls[].function.name",
+          "choices[].delta.tool_calls[].id",
+          "choices[].delta.tool_calls[].index",
+          "choices[].delta.tool_calls[].type",
+          "choices[].finish_reason",
+          "choices[].index",
+          "choices[].native_finish_reason",
+          "created",
+          "id",
+          "model",
+          "object",
+          "provider",
+          "service_tier",
+          "usage",
+          "usage.completion_tokens",
+          "usage.completion_tokens_details",
+          "usage.completion_tokens_details.audio_tokens",
+          "usage.completion_tokens_details.image_tokens",
+          "usage.completion_tokens_details.reasoning_tokens",
+          "usage.cost",
+          "usage.cost_details",
+          "usage.cost_details.upstream_inference_completions_cost",
+          "usage.cost_details.upstream_inference_cost",
+          "usage.cost_details.upstream_inference_prompt_cost",
+          "usage.is_byok",
+          "usage.prompt_tokens",
+          "usage.prompt_tokens_details",
+          "usage.prompt_tokens_details.audio_tokens",
+          "usage.prompt_tokens_details.cache_write_tokens",
+          "usage.prompt_tokens_details.cached_tokens",
+          "usage.prompt_tokens_details.video_tokens",
+          "usage.total_tokens"
+        ],
+        "expected": [
+          "choices",
+          "choices[]",
+          "choices[].delta",
+          "choices[].delta.content",
+          "choices[].delta.role",
+          "choices[].finish_reason",
+          "choices[].index",
+          "choices[].native_finish_reason",
+          "created",
+          "id",
+          "model",
+          "object",
+          "provider"
+        ],
+        "values": {
+          "choices[].delta.role": [
+            "assistant"
+          ],
+          "choices[].delta.tool_calls[].type": [
+            "function"
+          ],
+          "choices[].finish_reason": [
+            "stop",
+            "tool_calls"
+          ],
+          "object": [
+            "chat.completion.chunk"
+          ]
+        }
+      }
+    }
+  },
+  "xai/responses": {
+    "response": {
+      "known": [
+        "background",
+        "completed_at",
+        "created_at",
+        "error",
+        "frequency_penalty",
+        "id",
+        "incomplete_details",
+        "instructions",
+        "max_output_tokens",
+        "max_tool_calls",
+        "metadata",
+        "metadata.system_fingerprint",
+        "model",
+        "object",
+        "output",
+        "output[]",
+        "output[].arguments",
+        "output[].call_id",
+        "output[].content",
+        "output[].content[]",
+        "output[].content[].annotations",
+        "output[].content[].annotations[]",
+        "output[].content[].logprobs",
+        "output[].content[].logprobs[]",
+        "output[].content[].text",
+        "output[].content[].type",
+        "output[].id",
+        "output[].name",
+        "output[].role",
+        "output[].status",
+        "output[].summary",
+        "output[].summary[]",
+        "output[].summary[].text",
+        "output[].summary[].type",
+        "output[].type",
+        "parallel_tool_calls",
+        "presence_penalty",
+        "previous_response_id",
+        "prompt_cache_key",
+        "reasoning",
+        "reasoning.effort",
+        "reasoning.summary",
+        "safety_identifier",
+        "service_tier",
+        "status",
+        "store",
+        "temperature",
+        "text",
+        "text.format",
+        "text.format.schema",
+        "text.format.schema.additionalProperties",
+        "text.format.schema.properties",
+        "text.format.schema.properties.city",
+        "text.format.schema.properties.city.type",
+        "text.format.schema.properties.country",
+        "text.format.schema.properties.country.type",
+        "text.format.schema.required",
+        "text.format.schema.required[]",
+        "text.format.schema.type",
+        "text.format.type",
+        "tool_choice",
+        "tools",
+        "tools[]",
+        "tools[].description",
+        "tools[].name",
+        "tools[].parameters",
+        "tools[].parameters.additionalProperties",
+        "tools[].parameters.properties",
+        "tools[].parameters.properties.city",
+        "tools[].parameters.properties.city.type",
+        "tools[].parameters.required",
+        "tools[].parameters.required[]",
+        "tools[].parameters.type",
+        "tools[].strict",
+        "tools[].type",
+        "top_logprobs",
+        "top_p",
+        "truncation",
+        "usage",
+        "usage.context_details",
+        "usage.context_details.input_tokens",
+        "usage.context_details.output_tokens",
+        "usage.cost_in_usd_ticks",
+        "usage.input_tokens",
+        "usage.input_tokens_details",
+        "usage.input_tokens_details.cached_tokens",
+        "usage.num_server_side_tools_used",
+        "usage.num_sources_used",
+        "usage.output_tokens",
+        "usage.output_tokens_details",
+        "usage.output_tokens_details.reasoning_tokens",
+        "usage.total_tokens",
+        "user"
+      ],
+      "expected": [
+        "background",
+        "completed_at",
+        "created_at",
+        "error",
+        "frequency_penalty",
+        "id",
+        "incomplete_details",
+        "instructions",
+        "max_output_tokens",
+        "max_tool_calls",
+        "metadata",
+        "metadata.system_fingerprint",
+        "model",
+        "object",
+        "output",
+        "output[]",
+        "output[].id",
+        "output[].status",
+        "output[].summary",
+        "output[].summary[]",
+        "output[].summary[].text",
+        "output[].summary[].type",
+        "output[].type",
+        "parallel_tool_calls",
+        "presence_penalty",
+        "previous_response_id",
+        "prompt_cache_key",
+        "reasoning",
+        "reasoning.effort",
+        "reasoning.summary",
+        "safety_identifier",
+        "service_tier",
+        "status",
+        "store",
+        "temperature",
+        "text",
+        "text.format",
+        "text.format.type",
+        "tool_choice",
+        "tools",
+        "tools[]",
+        "top_logprobs",
+        "top_p",
+        "truncation",
+        "usage",
+        "usage.context_details",
+        "usage.context_details.input_tokens",
+        "usage.context_details.output_tokens",
+        "usage.cost_in_usd_ticks",
+        "usage.input_tokens",
+        "usage.input_tokens_details",
+        "usage.input_tokens_details.cached_tokens",
+        "usage.num_server_side_tools_used",
+        "usage.num_sources_used",
+        "usage.output_tokens",
+        "usage.output_tokens_details",
+        "usage.output_tokens_details.reasoning_tokens",
+        "usage.total_tokens",
+        "user"
+      ],
+      "values": {
+        "object": [
+          "response"
+        ],
+        "output[].content[].type": [
+          "output_text"
+        ],
+        "output[].role": [
+          "assistant"
+        ],
+        "output[].status": [
+          "completed"
+        ],
+        "output[].summary[].type": [
+          "summary_text"
+        ],
+        "output[].type": [
+          "function_call",
+          "message",
+          "reasoning"
+        ],
+        "status": [
+          "completed"
+        ],
+        "text.format.schema.properties.city.type": [
+          "string"
+        ],
+        "text.format.schema.properties.country.type": [
+          "string"
+        ],
+        "text.format.schema.type": [
+          "object"
+        ],
+        "text.format.type": [
+          "json_schema",
+          "text"
+        ],
+        "tools[].parameters.properties.city.type": [
+          "string"
+        ],
+        "tools[].parameters.type": [
+          "object"
+        ],
+        "tools[].type": [
+          "function"
+        ]
+      }
+    },
+    "stream": {
+      "response.completed": {
+        "known": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.metadata.system_fingerprint",
+          "response.model",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.output[].arguments",
+          "response.output[].call_id",
+          "response.output[].content",
+          "response.output[].content[]",
+          "response.output[].content[].annotations",
+          "response.output[].content[].annotations[]",
+          "response.output[].content[].logprobs",
+          "response.output[].content[].logprobs[]",
+          "response.output[].content[].text",
+          "response.output[].content[].type",
+          "response.output[].id",
+          "response.output[].name",
+          "response.output[].role",
+          "response.output[].status",
+          "response.output[].summary",
+          "response.output[].summary[]",
+          "response.output[].summary[].text",
+          "response.output[].summary[].type",
+          "response.output[].type",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.reasoning",
+          "response.reasoning.effort",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.tool_choice",
+          "response.tools",
+          "response.tools[]",
+          "response.tools[].description",
+          "response.tools[].name",
+          "response.tools[].parameters",
+          "response.tools[].parameters.additionalProperties",
+          "response.tools[].parameters.properties",
+          "response.tools[].parameters.properties.city",
+          "response.tools[].parameters.properties.city.type",
+          "response.tools[].parameters.required",
+          "response.tools[].parameters.required[]",
+          "response.tools[].parameters.type",
+          "response.tools[].strict",
+          "response.tools[].type",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.usage.context_details",
+          "response.usage.context_details.input_tokens",
+          "response.usage.context_details.output_tokens",
+          "response.usage.cost_in_usd_ticks",
+          "response.usage.input_tokens",
+          "response.usage.input_tokens_details",
+          "response.usage.input_tokens_details.cached_tokens",
+          "response.usage.num_server_side_tools_used",
+          "response.usage.num_sources_used",
+          "response.usage.output_tokens",
+          "response.usage.output_tokens_details",
+          "response.usage.output_tokens_details.reasoning_tokens",
+          "response.usage.total_tokens",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.metadata.system_fingerprint",
+          "response.model",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.output[].id",
+          "response.output[].status",
+          "response.output[].summary",
+          "response.output[].summary[]",
+          "response.output[].summary[].text",
+          "response.output[].summary[].type",
+          "response.output[].type",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.reasoning",
+          "response.reasoning.effort",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.tool_choice",
+          "response.tools",
+          "response.tools[]",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.usage.context_details",
+          "response.usage.context_details.input_tokens",
+          "response.usage.context_details.output_tokens",
+          "response.usage.cost_in_usd_ticks",
+          "response.usage.input_tokens",
+          "response.usage.input_tokens_details",
+          "response.usage.input_tokens_details.cached_tokens",
+          "response.usage.num_server_side_tools_used",
+          "response.usage.num_sources_used",
+          "response.usage.output_tokens",
+          "response.usage.output_tokens_details",
+          "response.usage.output_tokens_details.reasoning_tokens",
+          "response.usage.total_tokens",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "response.object": [
+            "response"
+          ],
+          "response.output[].content[].type": [
+            "output_text"
+          ],
+          "response.output[].role": [
+            "assistant"
+          ],
+          "response.output[].status": [
+            "completed"
+          ],
+          "response.output[].summary[].type": [
+            "summary_text"
+          ],
+          "response.output[].type": [
+            "function_call",
+            "message",
+            "reasoning"
+          ],
+          "response.status": [
+            "completed"
+          ],
+          "response.text.format.type": [
+            "text"
+          ],
+          "response.tools[].parameters.properties.city.type": [
+            "string"
+          ],
+          "response.tools[].parameters.type": [
+            "object"
+          ],
+          "response.tools[].type": [
+            "function"
+          ],
+          "type": [
+            "response.completed"
+          ]
+        }
+      },
+      "response.content_part.added": {
+        "known": [
+          "content_index",
+          "item_id",
+          "output_index",
+          "part",
+          "part.annotations",
+          "part.annotations[]",
+          "part.logprobs",
+          "part.logprobs[]",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "content_index",
+          "item_id",
+          "output_index",
+          "part",
+          "part.annotations",
+          "part.annotations[]",
+          "part.logprobs",
+          "part.logprobs[]",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "part.type": [
+            "output_text"
+          ],
+          "type": [
+            "response.content_part.added"
+          ]
+        }
+      },
+      "response.content_part.done": {
+        "known": [
+          "content_index",
+          "item_id",
+          "output_index",
+          "part",
+          "part.annotations",
+          "part.annotations[]",
+          "part.logprobs",
+          "part.logprobs[]",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "content_index",
+          "item_id",
+          "output_index",
+          "part",
+          "part.annotations",
+          "part.annotations[]",
+          "part.logprobs",
+          "part.logprobs[]",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "part.type": [
+            "output_text"
+          ],
+          "type": [
+            "response.content_part.done"
+          ]
+        }
+      },
+      "response.created": {
+        "known": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.metadata.system_fingerprint",
+          "response.model",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.reasoning",
+          "response.reasoning.effort",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.tool_choice",
+          "response.tools",
+          "response.tools[]",
+          "response.tools[].description",
+          "response.tools[].name",
+          "response.tools[].parameters",
+          "response.tools[].parameters.additionalProperties",
+          "response.tools[].parameters.properties",
+          "response.tools[].parameters.properties.city",
+          "response.tools[].parameters.properties.city.type",
+          "response.tools[].parameters.required",
+          "response.tools[].parameters.required[]",
+          "response.tools[].parameters.type",
+          "response.tools[].strict",
+          "response.tools[].type",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.metadata.system_fingerprint",
+          "response.model",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.reasoning",
+          "response.reasoning.effort",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.tool_choice",
+          "response.tools",
+          "response.tools[]",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "response.object": [
+            "response"
+          ],
+          "response.status": [
+            "in_progress"
+          ],
+          "response.text.format.type": [
+            "text"
+          ],
+          "response.tools[].parameters.properties.city.type": [
+            "string"
+          ],
+          "response.tools[].parameters.type": [
+            "object"
+          ],
+          "response.tools[].type": [
+            "function"
+          ],
+          "type": [
+            "response.created"
+          ]
+        }
+      },
+      "response.function_call_arguments.delta": {
+        "known": [
+          "delta",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "delta",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.function_call_arguments.delta"
+          ]
+        }
+      },
+      "response.function_call_arguments.done": {
+        "known": [
+          "arguments",
+          "item_id",
+          "name",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "arguments",
+          "item_id",
+          "name",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.function_call_arguments.done"
+          ]
+        }
+      },
+      "response.in_progress": {
+        "known": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.metadata.system_fingerprint",
+          "response.model",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.reasoning",
+          "response.reasoning.effort",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.tool_choice",
+          "response.tools",
+          "response.tools[]",
+          "response.tools[].description",
+          "response.tools[].name",
+          "response.tools[].parameters",
+          "response.tools[].parameters.additionalProperties",
+          "response.tools[].parameters.properties",
+          "response.tools[].parameters.properties.city",
+          "response.tools[].parameters.properties.city.type",
+          "response.tools[].parameters.required",
+          "response.tools[].parameters.required[]",
+          "response.tools[].parameters.type",
+          "response.tools[].strict",
+          "response.tools[].type",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "response",
+          "response.background",
+          "response.completed_at",
+          "response.created_at",
+          "response.error",
+          "response.frequency_penalty",
+          "response.id",
+          "response.incomplete_details",
+          "response.instructions",
+          "response.max_output_tokens",
+          "response.max_tool_calls",
+          "response.metadata",
+          "response.metadata.system_fingerprint",
+          "response.model",
+          "response.object",
+          "response.output",
+          "response.output[]",
+          "response.parallel_tool_calls",
+          "response.presence_penalty",
+          "response.previous_response_id",
+          "response.prompt_cache_key",
+          "response.reasoning",
+          "response.reasoning.effort",
+          "response.reasoning.summary",
+          "response.safety_identifier",
+          "response.service_tier",
+          "response.status",
+          "response.store",
+          "response.temperature",
+          "response.text",
+          "response.text.format",
+          "response.text.format.type",
+          "response.tool_choice",
+          "response.tools",
+          "response.tools[]",
+          "response.top_logprobs",
+          "response.top_p",
+          "response.truncation",
+          "response.usage",
+          "response.user",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "response.object": [
+            "response"
+          ],
+          "response.status": [
+            "in_progress"
+          ],
+          "response.text.format.type": [
+            "text"
+          ],
+          "response.tools[].parameters.properties.city.type": [
+            "string"
+          ],
+          "response.tools[].parameters.type": [
+            "object"
+          ],
+          "response.tools[].type": [
+            "function"
+          ],
+          "type": [
+            "response.in_progress"
+          ]
+        }
+      },
+      "response.output_item.added": {
+        "known": [
+          "item",
+          "item.arguments",
+          "item.call_id",
+          "item.content",
+          "item.content[]",
+          "item.id",
+          "item.name",
+          "item.role",
+          "item.status",
+          "item.summary",
+          "item.summary[]",
+          "item.type",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item",
+          "item.id",
+          "item.status",
+          "item.type",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "item.role": [
+            "assistant"
+          ],
+          "item.status": [
+            "in_progress"
+          ],
+          "item.type": [
+            "function_call",
+            "message",
+            "reasoning"
+          ],
+          "type": [
+            "response.output_item.added"
+          ]
+        }
+      },
+      "response.output_item.done": {
+        "known": [
+          "item",
+          "item.arguments",
+          "item.call_id",
+          "item.content",
+          "item.content[]",
+          "item.content[].annotations",
+          "item.content[].annotations[]",
+          "item.content[].logprobs",
+          "item.content[].logprobs[]",
+          "item.content[].text",
+          "item.content[].type",
+          "item.id",
+          "item.name",
+          "item.role",
+          "item.status",
+          "item.summary",
+          "item.summary[]",
+          "item.summary[].text",
+          "item.summary[].type",
+          "item.type",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item",
+          "item.id",
+          "item.status",
+          "item.type",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "item.content[].type": [
+            "output_text"
+          ],
+          "item.role": [
+            "assistant"
+          ],
+          "item.status": [
+            "completed"
+          ],
+          "item.summary[].type": [
+            "summary_text"
+          ],
+          "item.type": [
+            "function_call",
+            "message",
+            "reasoning"
+          ],
+          "type": [
+            "response.output_item.done"
+          ]
+        }
+      },
+      "response.output_text.delta": {
+        "known": [
+          "content_index",
+          "delta",
+          "item_id",
+          "logprobs",
+          "logprobs[]",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "content_index",
+          "delta",
+          "item_id",
+          "logprobs",
+          "logprobs[]",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.output_text.delta"
+          ]
+        }
+      },
+      "response.output_text.done": {
+        "known": [
+          "content_index",
+          "item_id",
+          "logprobs",
+          "logprobs[]",
+          "output_index",
+          "sequence_number",
+          "text",
+          "type"
+        ],
+        "expected": [
+          "content_index",
+          "item_id",
+          "logprobs",
+          "logprobs[]",
+          "output_index",
+          "sequence_number",
+          "text",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.output_text.done"
+          ]
+        }
+      },
+      "response.reasoning_summary_part.added": {
+        "known": [
+          "item_id",
+          "output_index",
+          "part",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "summary_index",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "part",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "summary_index",
+          "type"
+        ],
+        "values": {
+          "part.type": [
+            "summary_text"
+          ],
+          "type": [
+            "response.reasoning_summary_part.added"
+          ]
+        }
+      },
+      "response.reasoning_summary_part.done": {
+        "known": [
+          "item_id",
+          "output_index",
+          "part",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "summary_index",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "part",
+          "part.text",
+          "part.type",
+          "sequence_number",
+          "summary_index",
+          "type"
+        ],
+        "values": {
+          "part.type": [
+            "summary_text"
+          ],
+          "type": [
+            "response.reasoning_summary_part.done"
+          ]
+        }
+      },
+      "response.reasoning_summary_text.delta": {
+        "known": [
+          "delta",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "summary_index",
+          "type"
+        ],
+        "expected": [
+          "delta",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "summary_index",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.reasoning_summary_text.delta"
+          ]
+        }
+      },
+      "response.reasoning_summary_text.done": {
+        "known": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "summary_index",
+          "text",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "summary_index",
+          "text",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.reasoning_summary_text.done"
+          ]
+        }
+      }
+    }
+  }
+}

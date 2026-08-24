@@ -72,6 +72,9 @@ export interface EngineHandle {
    *  createMediaOutput, complete) read these to wire LLM clients without
    *  the caller passing apiKey explicitly. */
   apiKeys: Partial<Record<ProviderName, string>>;
+  /** Whether clients built from this engine check response shapes. Read by
+   *  `createLLM`; see `checkResponseShapes` on the options. */
+  checkResponseShapes: boolean;
   /** Build an LLMClient bound to this engine.
    *
    *  Exists so lower layers can obtain a client without importing the helpers
@@ -112,6 +115,18 @@ export interface EngineConfig {
   /** Custom low-level fetch transport — forwarded to the NetworkEngine's queue
    *  (so retry/rate-limit/hooks still apply). Defaults to globalThis.fetch. */
   fetch?: FetchFn;
+  /** Warn when a provider's response stops looking like the one we learned to
+   *  read: a field never seen before, a field that was always present and is now
+   *  absent, or a discriminator carrying a value nothing branches on.
+   *
+   *  OFF by default. It never changes what is parsed — it only emits `onWarning`,
+   *  so subscribe with `hooks.on('onWarning', …)` and look for codes starting
+   *  `response_shape_`. Each distinct finding is reported ONCE per client.
+   *
+   *  Worth turning on in staging and in your test suite: response drift is the
+   *  failure this library gives you the least warning about, because a renamed
+   *  field still parses — into `undefined`. */
+  checkResponseShapes?: boolean;
   /** Catalog wiring. **Defaults to the bundled provider catalogs.**
    *
    *  The catalog is what the adapters read per model: which wire spec builds the
@@ -203,6 +218,7 @@ export function createEngine(config: EngineConfig = {}): EngineHandle {
     cost,
     telemetry,
     apiKeys: config.apiKeys ?? {},
+    checkResponseShapes: config.checkResponseShapes ?? false,
     // Bound inside the literal so the closure captures this handle. The body runs
     // only when a caller asks for a client, so referencing `handle` here is safe.
     createClient: (options) => createLLM({ ...options, engine: handle }),

@@ -50,6 +50,8 @@ import type {
 } from './types/response';
 import type { StreamEvent } from './types/stream';
 import type { LLMClientConfig } from './client-config';
+import { ResponseShapeChecker, type ShapeBook } from './response-shape';
+import RESPONSE_SHAPES from './response-shapes.json' with { type: 'json' };
 import {
   PRIORITY_BACKGROUND,
   PRIORITY_INTERACTIVE,
@@ -79,6 +81,8 @@ export class LLMClient {
   readonly batchable: boolean;
 
   private readonly adapter: ProviderAdapter;
+  /** Present only when the caller asked for the shape check. */
+  private readonly shapeChecker?: ResponseShapeChecker;
   private readonly apiKey: string;
   private readonly fetchFn: EngineFetch;
   private readonly fetchStreamFn: EngineFetchStream | null;
@@ -119,6 +123,12 @@ export class LLMClient {
       config.priority ?? (this.mode === 'background' ? PRIORITY_BACKGROUND : PRIORITY_INTERACTIVE);
 
     this.adapter = resolveAdapter(config, this.api);
+    // One checker per client, because it remembers what it has already reported:
+    // the same drift on every request for the rest of the process is how a
+    // diagnostic gets ignored by the person it is for.
+    this.shapeChecker = config.checkResponseShapes
+      ? new ResponseShapeChecker(this.hooks, this.provider, this.api, RESPONSE_SHAPES as ShapeBook)
+      : undefined;
 
     this.queueName = config.queueName ?? `${config.provider}/${config.model}`;
     this.configName = config.configName ?? `${config.provider}/${config.model}`;
@@ -389,6 +399,8 @@ export class LLMClient {
     }
     const latencyMs = performance.now() - start;
 
+    // Before parsing, so a body the parser silently tolerates is still reported.
+    this.shapeChecker?.checkResponse(response.body);
     const result = this.adapter.parseResponse(response.body, latencyMs);
 
     // Emulated inline moderation (non-OpenAI providers, or forced). Native results
@@ -570,12 +582,16 @@ export class LLMClient {
     // One parser instance per stream — holds any per-stream state (e.g. Google's
     // code-execution latch) in its closure, isolated from concurrent streams.
     const parseStream = this.adapter.createStreamParser();
+    const shapeChecker = this.shapeChecker;
     async function* rawEvents(): AsyncGenerator<StreamEvent> {
       for await (const sseEvent of fetchStream(httpReq, {
         queueName,
         priority,
         ctx: ctx as Record<string, unknown>,
       })) {
+        // Per event, and per event TYPE: an event type the parser does not handle
+        // is skipped in silence, so the reply is simply missing a piece.
+        shapeChecker?.checkStreamEvent(sseEvent);
         for (const ev of parseStream(sseEvent)) yield ev;
       }
     }

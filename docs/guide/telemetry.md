@@ -306,6 +306,49 @@ await agent.complete('What is 2 + 2?');
 unsub(); // stop observing
 ```
 
+## Catching provider drift (`checkResponseShapes`)
+
+A bad request comes back as a 400 and you know at once. A bad **response** comes
+back as a 200: the parse succeeds, the field the SDK reads is not there any more,
+and the value becomes `undefined`. When that field is `usage.output_tokens`, cost
+reporting quietly goes to zero and nothing errors.
+
+Turn the check on and drift is reported on the warning bus:
+
+```ts
+import { createEngine } from '@combycode/llm-sdk';
+
+const engine = createEngine({ checkResponseShapes: true });
+
+engine.hooks.on('onWarning', (ctx) => {
+  if (ctx.code.startsWith('response_shape_')) console.warn(ctx.code, ctx.message);
+});
+```
+
+Four codes, in the order they matter:
+
+| code | what happened |
+| --- | --- |
+| `response_shape_unknown_value` | a discriminator (`type`, `stop_reason`, …) carries a value nothing branches on — a new content-block type is dropped in silence |
+| `response_shape_unknown_event` | a streaming event type the parser does not handle, skipped in silence |
+| `response_shape_missing_field` | a field present in every recorded response is absent — what a rename looks like from outside |
+| `response_shape_unknown_field` | a field never seen before; the provider added something |
+
+It is **off by default**, never changes what is parsed, and reports each distinct
+finding **once per client** — a warning that repeats on every request is one people
+switch off. Turn it on in staging and in your test suite; leave it off in a hot
+production path if you would rather not walk every response body.
+
+The shapes it compares against are **derived from recorded provider responses**
+(`tests/fixtures/response-golden.json`), not hand-written, so they describe what
+providers actually send rather than what someone remembered. That distinction is
+not academic: a hand-written "normal Anthropic response" omits `stop_details`,
+`usage.service_tier` and `usage.cache_read_input_tokens`, all of which arrive on
+every call.
+
+A provider with no recording is not checked, rather than having every field
+called unknown.
+
 ## Related
 
 - [Agent Loop + delegate / chain / consolidate](./agent-loop.md)

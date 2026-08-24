@@ -47,6 +47,7 @@
     "gate": "bun run scripts/gate.ts",
     "gate:selftest": "node ../../quality-gate/selftest.mjs",
     "record:responses": "bun run scripts/record-responses.ts",
+    "derive:shapes": "bun run scripts/derive-response-shapes.ts",
     "gate:snapshot": "bun run scripts/gate.ts --only api-snapshot --update"
   },
   "devDependencies": {

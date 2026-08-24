@@ -51,4 +51,13 @@ export interface LLMClientConfig {
    *  createLLM supplies `engine.catalog`. An empty catalog still yields correct
    *  provider-level defaults, so this is optional. */
   catalog?: ModelCatalog;
+
+  /** Warn when a provider's response stops looking like the one we learned to
+   *  read — a field we have never seen, a field that was always there and is now
+   *  absent, or a discriminator carrying a value nothing branches on.
+   *
+   *  OFF by default and never changes what is parsed: it only emits `onWarning`.
+   *  `createEngine({ checkResponseShapes: true })` turns it on for every client
+   *  the engine builds. See `src/llm/response-shape.ts`. */
+  checkResponseShapes?: boolean;
 }

@@ -59,6 +59,7 @@ export function createLLM(opts: CreateLLMOptions): LLMClient {
     model: sendModel,
     apiKey,
     adapter,
+    checkResponseShapes: opts.checkResponseShapes ?? engine.checkResponseShapes,
     fetch: opts.fetch ?? engine.fetch,
     fetchStream: opts.fetchStream ?? engine.fetchStream,
     hooks: opts.hooks ?? engine.hooks,
