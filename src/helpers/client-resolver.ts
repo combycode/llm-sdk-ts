@@ -125,23 +125,43 @@ export function isNamespacedModelId(modelId: string): boolean {
 }
 
 /** Resolve a model + optional provider to a concrete { provider, model }.
- *  A namespaced id ("provider/model") yields its own provider; a bare model
- *  requires an explicit `provider`. `label` names the caller in the error. */
+ *
+ *  An EXPLICIT provider always wins. It used to lose to the model's prefix, and
+ *  that is not a preference — every OpenRouter model id is `vendor/model`, so
+ *  `createLLM({ provider: 'openrouter', model: 'openai/gpt-5.4-nano' })` resolved
+ *  to the provider `openai` and sent the **OpenRouter key to api.openai.com**.
+ *  Ids whose vendor is not one of our five (`qwen/qwen3`) fared differently and no
+ *  better: the prefix was cast to a ProviderName and failed later as "no default
+ *  adapter for provider 'qwen'".
+ *
+ *  With a provider given, a leading `<provider>/` on the model is redundant and is
+ *  stripped — `openrouter` + `openrouter/openai/gpt-5.4-nano` is the catalog's own
+ *  slug form and means the OpenRouter model `openai/gpt-5.4-nano`.
+ *
+ *  Without one, the `provider/model` prefix is still the documented sugar, and it
+ *  stays permissive about the prefix on purpose: the pricing paths (`estimate`,
+ *  `estimator`) resolve models that are catalogued under a provider nobody can
+ *  CALL — a private deployment, a test fixture — and rejecting those would break
+ *  costing a model you never send. A prefix that is not callable fails where it
+ *  matters, in the adapter factory, naming the provider it could not build.
+ *
+ *  `label` names the caller in the error. */
 export function resolveModel(
   model: string,
   provider: ProviderName | undefined,
   label: string,
 ): { provider: ProviderName; model: string } {
+  if (provider) {
+    const prefix = `${provider}/`;
+    return { provider, model: model.startsWith(prefix) ? model.slice(prefix.length) : model };
+  }
   if (isNamespacedModelId(model)) {
     const [p, m] = parseModelId(model);
     return { provider: p, model: m };
   }
-  if (!provider) {
-    throw new Error(
-      `${label}: bare model "${model}" requires a provider — pass it explicitly or use "provider/model".`,
-    );
-  }
-  return { provider, model };
+  throw new Error(
+    `${label}: bare model "${model}" requires a provider — pass it explicitly or use "provider/model".`,
+  );
 }
 
 /** Recognized tier suffixes for the `model:tier` selector sugar. Deliberately an

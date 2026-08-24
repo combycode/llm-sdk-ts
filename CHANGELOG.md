@@ -8,6 +8,23 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **A recorded corpus of what providers send BACK** (`tests/fixtures/response-golden.json`, 42 cells).
+  All seven existing corpora describe REQUESTS; the parse side was exercised only against literals
+  written by hand in the test files, which tests what the author believed a provider returns. This
+  records the real thing — the pre-parse body, or the ordered SSE events — for seven adapters across
+  six shapes (text, tool call, parallel tool calls, structured output, streaming text, streaming
+  tool call), and replays them through the same `parseResponse` / `createStreamParser` with no
+  network.
+
+  `raw` is the provider's truth and moves only when `bun run record:responses --refresh` is run;
+  `parsed` is our behaviour and is recomputed on every test run, so a parser change surfaces as a
+  failure instead of as a quiet difference in what consumers receive. Two invariants are checked
+  across all providers at once: every non-streaming response yields usage and a finish reason, and
+  every stream ends in a terminal event.
+
+  The corpus was proven to fail on a renamed provider field, on a parser that drops the finish
+  reason, and on a cell quietly disappearing. It found both fixes below in its first run.
+
 - **The SDK's event stream is one discriminated union** (`HookEvent`). `HookMap` types a
   subscription — `on('onCompletion', h)` has always known its own context — but the STREAM was
   `(name, ctx: unknown)`, which pushed the type back onto the subscriber. `HookEvent` gives it one
@@ -199,6 +216,34 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   and by a live end-to-end run on both providers.
 
 ### Fixed
+
+- **An explicit `provider` was ignored whenever the model id contained a slash — sending the API key
+  to the wrong company.** `resolveModel` read the model's `vendor/` prefix first and fell back to the
+  explicit argument only for a bare id. Every OpenRouter model id is `vendor/model`, so the most
+  ordinary OpenRouter call there is —
+
+  ```ts
+  createLLM({ provider: 'openrouter', model: 'openai/gpt-5.4-nano', apiKey })
+  ```
+
+  — resolved to the provider `openai` and sent the **OpenRouter key to api.openai.com**, which
+  answered `Incorrect API key provided: sk-or-v1…`. A vendor outside our five failed differently and
+  no better: the prefix was cast to a `ProviderName`, so `qwen/qwen3` produced a provider literally
+  named `qwen` and died later as "no default adapter for provider 'qwen'".
+
+  An explicit provider now wins, and a redundant leading `<provider>/` is stripped, so the catalog's
+  own `openrouter/openai/gpt-5.4-nano` slug resolves to the OpenRouter model `openai/gpt-5.4-nano`.
+  Prefix parsing without a provider is unchanged and stays permissive — `estimate()` prices models
+  catalogued under providers nobody can call. Affects all nine call sites: `createLLM`, `batch`,
+  `embed`, `moderate`, `transcribe`, `createRealtime`, `countTokens`, `estimate`, `estimator`.
+
+- **Google's `responseId` was thrown away and replaced with a random UUID.** `parseResponse` minted
+  `crypto.randomUUID()` under a comment claiming generateContent returns no id — it returns
+  `responseId` at the top level, and every recorded response carries one. Two consequences: the parse
+  was not deterministic, so the same bytes produced a different `response.id` each time and nothing
+  keyed on it could correlate; and a cache hit, which replays the stored body, reported a different
+  id than the call that populated it. The provider's id is now used, with the generated one kept as
+  a fallback for older payloads.
 
 - **`batch`, `embed`, `transcribe` and `moderate` sent our SLUG instead of the provider's id.**
   Only `createLLM` translated through the catalog, so those four worked purely for models whose

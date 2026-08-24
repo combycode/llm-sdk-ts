@@ -46,6 +46,7 @@
     "gen:registry": "bun run scripts/gen-wire-registry.ts",
     "gate": "bun run scripts/gate.ts",
     "gate:selftest": "node ../../quality-gate/selftest.mjs",
+    "record:responses": "bun run scripts/record-responses.ts",
     "gate:snapshot": "bun run scripts/gate.ts --only api-snapshot --update"
   },
   "devDependencies": {

@@ -289,7 +289,12 @@ export class GoogleAdapter implements ProviderAdapter {
     }
 
     return {
-      id: crypto.randomUUID(), // Google doesn't return a response ID in generateContent
+      // generateContent DOES return an id — `responseId`, at the top level. The
+      // fallback stays for older payloads, but minting one unconditionally made
+      // the parse non-deterministic: the same bytes produced a different id every
+      // time, so nothing keyed on it could correlate, and a cache hit replaying
+      // the stored body reported a different response than the call it cached.
+      id: (r.responseId as string) ?? crypto.randomUUID(),
       model: '',
       content,
       finishReason,

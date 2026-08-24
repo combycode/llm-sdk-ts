@@ -17,7 +17,7 @@ import type {
 import type { AudioPart, ContentPart } from '../llm/types/messages';
 import type { ProviderName } from '../llm/types/provider';
 import { base64ToBytes } from '../util/base64';
-import { isNamespacedModelId, parseModelId } from './client-resolver';
+import { resolveModel } from './client-resolver';
 import { loadContent } from './content';
 import type { EngineHandle } from './engine';
 import { coreRegistry } from './engine';
@@ -79,7 +79,7 @@ export interface TranscribeResult {
 
 export async function transcribe(opts: TranscribeOptions): Promise<TranscribeResult> {
   const engine = opts.engine ?? coreRegistry.get();
-  const { provider, model } = resolveModel(opts.model, opts.provider);
+  const { provider, model } = resolveModel(opts.model, opts.provider, 'transcribe');
   const apiKey = opts.apiKey ?? engine.apiKeys[provider];
   if (!apiKey) {
     throw new Error(
@@ -163,22 +163,6 @@ function normalizeAudio(audio: string | Uint8Array | AudioInput): {
 } {
   if (typeof audio === 'string' || audio instanceof Uint8Array) return { data: audio };
   return { data: audio.data, mimeType: audio.mimeType };
-}
-
-function resolveModel(
-  model: string,
-  provider?: ProviderName,
-): { provider: ProviderName; model: string } {
-  if (isNamespacedModelId(model)) {
-    const [p, m] = parseModelId(model);
-    return { provider: p, model: m };
-  }
-  if (!provider) {
-    throw new Error(
-      `transcribe: bare model "${model}" requires a provider (or use "provider/model").`,
-    );
-  }
-  return { provider, model };
 }
 
 async function loadAudioBytes(

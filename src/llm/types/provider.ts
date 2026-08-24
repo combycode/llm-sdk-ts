@@ -9,6 +9,16 @@ import type { StreamEvent } from './stream';
 
 export type ProviderName = 'anthropic' | 'openai' | 'google' | 'xai' | 'openrouter';
 
+/** The same five names at runtime. A `"vendor/model"` prefix can only be read as
+ *  a provider if it IS one — OpenRouter's own ids are all `vendor/model`, so
+ *  without this check `openai/gpt-5.4-nano` on OpenRouter parses as the provider
+ *  `openai`, and `qwen/qwen3` parses as a provider named `qwen`. */
+export const PROVIDER_NAMES = ['anthropic', 'openai', 'google', 'xai', 'openrouter'] as const;
+
+export function isProviderName(value: string): value is ProviderName {
+  return (PROVIDER_NAMES as readonly string[]).includes(value);
+}
+
 export type ApiType = 'completions' | 'responses' | 'messages' | 'interactions' | 'generate';
 
 export interface ProviderConfig {
