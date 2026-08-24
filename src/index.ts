@@ -385,8 +385,8 @@ export type { ModerateOptions, ModerationCategories, ModerationContentPart, Mode
 export type { ModerationEntry, ModerationReport, ModerationRequest, ModerationStreamOptions, ModerationStreamStrategy } from './llm/moderation/types';
 export { listModels, listModelsLive, clearLiveModelsCache } from './helpers/models';
 export type { ListModelsLiveOptions } from './helpers/models';
-export { select, selectModels } from './helpers/select-model';
-export type { SelectOptions, SelectPrefs } from './helpers/select-model';
+export { select, selectModels, filterFacets, filterAliases } from './helpers/select-model';
+export type { SelectOptions, SelectPrefs, FilterFacet } from './helpers/select-model';
 export { createRealtime } from './helpers/realtime';
 export type { CreateRealtimeOptions } from './helpers/realtime';
 export { transcribe } from './helpers/transcribe';

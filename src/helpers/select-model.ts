@@ -64,6 +64,75 @@ const KNOWN_KEYS = new Set([
   ...Object.keys(BUILTIN_TOOL_KEYS),
 ]);
 
+/** One filter a UI can offer, and what it accepts. */
+export interface FilterFacet {
+  /** The DSL key, e.g. `price`. Write it as `key:value`. */
+  key: string;
+  /** Group heading for a picker. */
+  category: 'what it is' | 'cost' | 'thinking' | 'inputs' | 'hosted tools' | 'availability';
+  /** Short human label. */
+  label: string;
+  /** The values this key accepts. Empty when the key is a bare flag (`vision`),
+   *  which the parser reads as `key:yes`. */
+  values: string[];
+  /** True when the key also accepts `> N` / `< N`, so a picker can offer a number. */
+  numeric: boolean;
+  /** True when a bare `key` (no value) is meaningful — the parser expands it to
+   *  `key:yes`. */
+  bare: boolean;
+}
+
+/** Every clause the query parser understands, as data.
+ *
+ *  Exported because the alternative is a UI hand-listing the same tags: a second
+ *  copy of this vocabulary, drifting from the parser the first time either moves,
+ *  and drifting invisibly because a wrong tag reads as "no models matched" rather
+ *  than as an error. Here the picker and the parser cannot disagree — both come
+ *  from `KNOWN_KEYS`, `CAP_KEYS` and `BUILTIN_TOOL_KEYS` above.
+ *
+ *  `type`, `provider`, `status` and `tier` take their values from the CATALOG
+ *  when one is passed, because those are open sets: a provider ships a new model
+ *  type and a hard-coded list is wrong that day. Without a catalog they come back
+ *  empty rather than guessed — an empty list is honest, a stale list is not. */
+export function filterFacets(catalog?: { list(): ModelInfo[] }): FilterFacet[] {
+  const models = catalog?.list() ?? [];
+  const distinct = (pick: (m: ModelInfo) => string | undefined): string[] =>
+    [...new Set(models.map(pick).filter((v): v is string => !!v))].sort();
+
+  const facets: FilterFacet[] = [
+    { key: 'type', category: 'what it is', label: 'Type', values: distinct((m) => m.type), numeric: false, bare: false },
+    { key: 'provider', category: 'what it is', label: 'Provider', values: distinct((m) => m.provider), numeric: false, bare: false },
+    // The named cutoffs the parser compares against, plus `free` for exactly zero.
+    { key: 'price', category: 'cost', label: 'Price', values: ['free', 'low', 'mid', 'high'], numeric: true, bare: false },
+    // filled below from the models themselves — tiers are per model, not a fixed set
+    { key: 'tier', category: 'cost', label: 'Billing tier', values: [], numeric: false, bare: false },
+    { key: 'context', category: 'inputs', label: 'Context window', values: ['small', 'large'], numeric: true, bare: false },
+    { key: 'reasoning', category: 'thinking', label: 'Reasoning', values: ['yes', 'no'], numeric: false, bare: true },
+    { key: 'status', category: 'availability', label: 'Status', values: distinct((m) => m.status), numeric: false, bare: false },
+    { key: 'active', category: 'availability', label: 'Offered now', values: ['yes', 'no'], numeric: false, bare: true },
+  ];
+
+  for (const key of Object.keys(CAP_KEYS)) {
+    facets.push({ key, category: 'inputs', label: key, values: ['yes', 'no'], numeric: false, bare: true });
+  }
+  for (const key of Object.keys(BUILTIN_TOOL_KEYS)) {
+    facets.push({ key, category: 'hosted tools', label: key.replace(/_/g, ' '), values: ['yes', 'no'], numeric: false, bare: true });
+  }
+
+  // Billing tiers are per model, so they are collected rather than declared.
+  const tiers = [...new Set(models.flatMap((m) => Object.keys(m.pricing?.tiers ?? {})))].sort();
+  const tierFacet = facets.find((f) => f.key === 'tier');
+  if (tierFacet) tierFacet.values = tiers;
+
+  return facets;
+}
+
+/** The shorthand tags the parser expands before matching (`cheap` → `price:low`).
+ *  A picker can show these as one-click presets. */
+export function filterAliases(): Record<string, string> {
+  return { ...DEFAULT_TAGS };
+}
+
 function parseNum(v: string): number {
   const m = /^([\d.]+)\s*([kKmM]?)$/.exec(v.trim());
   if (!m) return Number.NaN;
