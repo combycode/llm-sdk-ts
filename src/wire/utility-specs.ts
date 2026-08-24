@@ -11,6 +11,7 @@ import type { WireSpec } from './interpreter';
 
 import countAnthropic from './specs/count/anthropic.json' with { type: 'json' };
 import countGoogle from './specs/count/google.json' with { type: 'json' };
+import countXai from './specs/count/xai.json' with { type: 'json' };
 
 import modelsOpenai from './specs/models/openai.json' with { type: 'json' };
 import modelsAnthropic from './specs/models/anthropic.json' with { type: 'json' };
@@ -29,7 +30,7 @@ import provenanceOpenai from './specs/provenance/openai.json' with { type: 'json
 const UTILITY_SPECS = new Map<string, SpecDelta>(
   (
     [
-      countAnthropic, countGoogle,
+      countAnthropic, countGoogle, countXai,
       modelsOpenai, modelsAnthropic, modelsGoogle, modelsXai, modelsOpenrouter,
       contentOpenai, contentOpenaiContainer, contentAnthropic, contentGoogle, downloadByUrl,
       provenanceOpenai,

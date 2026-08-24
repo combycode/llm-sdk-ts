@@ -23,7 +23,7 @@ export interface CountTokensOptions {
   provider?: ProviderName;
   /** Text or messages to count. */
   input: string | Message[];
-  /** Key for the exact count-API path (Anthropic/Google). Falls back to engine.apiKeys. */
+  /** Key for the exact count-API path (Anthropic, Google, xAI). Falls back to engine.apiKeys. */
   apiKey?: string;
   /** Use the precise counter where available (default true). false = sync estimate. */
   exact?: boolean;
@@ -35,9 +35,10 @@ export async function countTokens(opts: CountTokensOptions): Promise<number> {
   const { provider, model } = resolveModel(opts.model, opts.provider, 'countTokens');
   const apiKey = opts.apiKey ?? engine.apiKeys[provider];
 
-  const countApiKeys: { anthropic?: string; google?: string } = {};
+  const countApiKeys: { anthropic?: string; google?: string; xai?: string } = {};
   if (apiKey && provider === 'anthropic') countApiKeys.anthropic = apiKey;
   if (apiKey && provider === 'google') countApiKeys.google = apiKey;
+  if (apiKey && provider === 'xai') countApiKeys.xai = apiKey;
 
   const counter = new HybridTokenCounter({ catalog: engine.catalog, countApiKeys, fetch: engine.fetch });
   const ctx = { provider, model };

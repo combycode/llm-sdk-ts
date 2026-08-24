@@ -121,7 +121,7 @@ interface ContextMeasurerConfig {
   counter?: TokenCounter;
   persistence?: Persistence;
   calibrationStore?: CalibrationStore;
-  countApiKeys?: { anthropic?: string; google?: string };
+  countApiKeys?: { anthropic?: string; google?: string; xai?: string };
   thresholds?: Partial<ContextThresholds>;
   calibration?: Partial<CalibrationConfig>;
 }
@@ -160,8 +160,13 @@ Routes per `ModelInfo.tokenizer.strategy` from the catalog:
 - `'tiktoken'` → `TiktokenCounter` (`src/plugins/context-measurer/counter/tiktoken.ts`):
   exact for OpenAI tokenization; requires optional `tiktoken` dep.
 - `'count_api'` → `CountApiCounter` (`src/plugins/context-measurer/counter/count-api.ts`):
-  exact via Anthropic (`/v1/messages/count_tokens`) or Google count-tokens endpoint.
-  Requires `countApiKeys` in config.
+  exact via Anthropic (`/v1/messages/count_tokens`), Google (`:countTokens`) or xAI
+  (`/v1/tokenize-text`). Requires `countApiKeys` in config.
+
+  The three are not equivalent. Anthropic and Google take the message array a completion
+  would send, so their answer is what the completion is billed for. xAI tokenizes a
+  STRING: exact for the text handed to it, and excluding whatever the chat template wraps
+  around it. Worth knowing before treating one number as the other.
 - `'heuristic'` (default) → `HeuristicCounter`
   (`src/plugins/context-measurer/counter/heuristic.ts`): calibration-aware `~chars/4`
   estimate. Reads the correction factor from `CalibrationStore` to converge toward actual

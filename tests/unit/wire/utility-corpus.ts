@@ -14,7 +14,11 @@
  *  keep judging the code after it.
  */
 
-import { AnthropicCountApi, GoogleCountApi } from '../../../src/plugins/context-measurer/counter/count-api';
+import {
+  AnthropicCountApi,
+  GoogleCountApi,
+  XAICountApi,
+} from '../../../src/plugins/context-measurer/counter/count-api';
 import { listModelsLive } from '../../../src/helpers/models';
 import { retrieveFile, streamFile } from '../../../src/llm/files/retrieve';
 import { OpenAIProvenanceAdapter } from '../../../src/llm/providers/openai/provenance';
@@ -47,6 +51,10 @@ export const UTILITY_CASES: UtilityCase[] = [
     system: 'be brief',
   },
   { name: 'google.bare', op: 'count', provider: 'google', model: 'gemini-3-flash', text: 'hello' },
+  // xAI tokenizes TEXT rather than a message array, so its request is the whole
+  // string and its answer excludes the chat framing. Reached over plain REST —
+  // xAI's own SDK uses gRPC for it, which needed checking rather than assuming.
+  { name: 'xai.text', op: 'count', provider: 'xai', model: 'grok-4.3', text: 'hello' },
   // A model id that ALREADY carries the `models/` prefix must not get a second one.
   { name: 'google.prefixed', op: 'count', provider: 'google', model: 'models/gemini-3-flash', text: 'hello' },
 
@@ -128,7 +136,9 @@ export async function driveUtility(c: UtilityCase): Promise<unknown[]> {
           : c.op === 'provenance'
             ? { results: [] }
             : c.op === 'count'
-              ? { input_tokens: 3, totalTokens: 3 }
+              ? // one body covering all three: Anthropic reads `input_tokens`, Google
+                // reads `totalTokens`, xAI counts the length of `token_ids`.
+                { input_tokens: 3, totalTokens: 3, token_ids: [{ token_id: 1 }, { token_id: 2 }, { token_id: 3 }] }
               : new Uint8Array([1, 2, 3]),
     };
   }) as never;
@@ -139,6 +149,9 @@ export async function driveUtility(c: UtilityCase): Promise<unknown[]> {
         if (c.provider === 'anthropic') {
           const api = new AnthropicCountApi(KEY, engineFetch);
           await api.countMessages(c.model!, [{ role: 'user', content: c.text }], c.system);
+        } else if (c.provider === 'xai') {
+          const api = new XAICountApi(KEY, engineFetch);
+          await api.countText(c.model!, c.text!);
         } else {
           const api = new GoogleCountApi(KEY, engineFetch);
           await api.countText(c.model!, c.text!);

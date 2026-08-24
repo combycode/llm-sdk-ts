@@ -60,9 +60,9 @@
     "active": true,
     "wireSpec": "openai/responses",
     "tokenizer": {
-      "strategy": "heuristic",
+      "strategy": "count_api",
       "charsPerTokenDefault": 3.8,
-      "countApiAvailable": false
+      "countApiAvailable": true
     }
   },
   "xai/grok-4.20-non-reasoning": {
@@ -126,9 +126,9 @@
     "wireSpec": "openai/responses",
     "maxOutput": 1000000,
     "tokenizer": {
-      "strategy": "heuristic",
+      "strategy": "count_api",
       "charsPerTokenDefault": 3.8,
-      "countApiAvailable": false
+      "countApiAvailable": true
     }
   },
   "xai/grok-4.20-multi-agent": {
@@ -190,9 +190,9 @@
     "active": true,
     "wireSpec": "openai/responses",
     "tokenizer": {
-      "strategy": "heuristic",
+      "strategy": "count_api",
       "charsPerTokenDefault": 3.8,
-      "countApiAvailable": false
+      "countApiAvailable": true
     }
   },
   "xai/grok-4.3": {
@@ -256,9 +256,9 @@
     "active": true,
     "wireSpec": "openai/responses",
     "tokenizer": {
-      "strategy": "heuristic",
+      "strategy": "count_api",
       "charsPerTokenDefault": 3.8,
-      "countApiAvailable": false
+      "countApiAvailable": true
     }
   },
   "xai/grok-build-0.1": {
@@ -315,9 +315,9 @@
     "status": "preview",
     "active": true,
     "tokenizer": {
-      "strategy": "heuristic",
+      "strategy": "count_api",
       "charsPerTokenDefault": 3.8,
-      "countApiAvailable": false
+      "countApiAvailable": true
     }
   },
   "xai/grok-imagine-image": {
@@ -697,9 +697,9 @@
     "active": true,
     "wireSpec": "openai/responses",
     "tokenizer": {
-      "strategy": "heuristic",
+      "strategy": "count_api",
       "charsPerTokenDefault": 3.8,
-      "countApiAvailable": false
+      "countApiAvailable": true
     }
   },
   "xai/grok-4.6": {
@@ -757,9 +757,9 @@
     "status": "stable",
     "active": true,
     "tokenizer": {
-      "strategy": "heuristic",
+      "strategy": "count_api",
       "charsPerTokenDefault": 3.8,
-      "countApiAvailable": false
+      "countApiAvailable": true
     },
     "wireSpec": "openai/responses"
   },

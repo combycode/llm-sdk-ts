@@ -8,6 +8,20 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **Exact token counting for xAI**, via `/v1/tokenize-text`. Their own SDK reaches the tokenizer over
+  gRPC (`xai_api.Tokenize/TokenizeText`), which made it look like exact counts on xAI would cost a
+  protobuf dependency and an optional peer. Asking the REST host instead: it answers 200 with the
+  same token list, so this is one more spec-built request and the library stays zero-dependency.
+
+  All seven xAI text models now declare `count_api` — measured per model rather than generalised
+  from one success: the five image and video models do not answer the endpoint and stay on the
+  heuristic. On a short Cyrillic line the estimate and the tokenizer differ by 30% on emoji and 23%
+  on code.
+
+  One distinction the guide now spells out: Anthropic and Google count the message array a
+  completion would send, so their answer is what the completion is billed for, while xAI tokenizes
+  a STRING — exact for that text, excluding the chat framing around it.
+
 - **`createEngine({ checkResponseShapes: true })` — warn when a provider's response stops looking
   like the one we learned to read.** A bad request returns 400 and you know at once; a bad response
   returns 200, the parse succeeds, and the field we read is simply gone — for `usage.output_tokens`

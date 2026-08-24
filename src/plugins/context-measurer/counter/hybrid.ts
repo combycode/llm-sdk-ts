@@ -7,7 +7,7 @@ import type { EngineFetch } from '../../../network/types';
 import type { CalibrationStore } from '../types';
 import { HeuristicCounter } from './heuristic';
 import { TiktokenCounter, isTiktokenUnavailable } from './tiktoken';
-import { CountApiCounter, AnthropicCountApi, GoogleCountApi } from './count-api';
+import { CountApiCounter, AnthropicCountApi, GoogleCountApi, XAICountApi } from './count-api';
 
 export interface HybridCounterConfig {
   catalog?: ModelCatalog;
@@ -15,6 +15,7 @@ export interface HybridCounterConfig {
   countApiKeys?: {
     anthropic?: string;
     google?: string;
+    xai?: string;
   };
   /** Required to use the exact count APIs: they are HTTP calls, and every HTTP
    *  call in this library goes through the engine's fetch. Without it the exact
@@ -45,8 +46,9 @@ export class HybridTokenCounter implements TokenCounter {
     this._config = config;
     this.heuristic = new HeuristicCounter(config.catalog ?? null, config.calibrationStore ?? null);
 
-    const countApis: { anthropic?: AnthropicCountApi; google?: GoogleCountApi } = {};
-    const wanted = config.countApiKeys?.anthropic || config.countApiKeys?.google;
+    const countApis: { anthropic?: AnthropicCountApi; google?: GoogleCountApi; xai?: XAICountApi } = {};
+    const wanted =
+      config.countApiKeys?.anthropic || config.countApiKeys?.google || config.countApiKeys?.xai;
     if (wanted && !config.fetch) {
       console.warn(
         '[llm-sdk] HybridTokenCounter: countApiKeys were given without `fetch`, so the exact ' +
@@ -58,6 +60,9 @@ export class HybridTokenCounter implements TokenCounter {
     }
     if (config.fetch && config.countApiKeys?.google) {
       countApis.google = new GoogleCountApi(config.countApiKeys.google, config.fetch);
+    }
+    if (config.fetch && config.countApiKeys?.xai) {
+      countApis.xai = new XAICountApi(config.countApiKeys.xai, config.fetch);
     }
     this.countApi = new CountApiCounter(config.catalog ?? null, countApis);
   }

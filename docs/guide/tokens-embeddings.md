@@ -16,11 +16,26 @@ transcribing speech to text.
 
 | Export | What it does |
 |---|---|
-| `countTokens(opts)` | Count the tokens in a string or message array. Picks the right counter per model: tiktoken for OpenAI, count-API for Anthropic/Google, heuristic otherwise. |
+| `countTokens(opts)` | Count the tokens in a string or message array. Picks the right counter per model, from the catalog: tiktoken for OpenAI, the provider's own endpoint for Anthropic, Google and xAI, heuristic otherwise. |
 | `embed(opts)` | Produce embedding vectors from a string or string array. Works with OpenAI, Google, and OpenRouter. Returns `{ embeddings, dimensions, usage }`. |
 | `transcribe(opts)` | Speech-to-text. OpenAI routes to `/v1/audio/transcriptions`; Google uses a chat-style completion internally. Returns `{ text }`, plus `segments` / `words` / `languages` / `durationSeconds` when the model produces them. |
 | `HybridTokenCounter` | Low-level token counter that tries tiktoken, falls back to count-API, then heuristic. Used by `countTokens` and `estimate()` internally. |
 | `HeuristicCounter` / `TiktokenCounter` / `CountApiCounter` | Individual counters for custom wiring. |
+
+### Which models count exactly
+
+The catalog decides, per model — you do not configure it:
+
+| provider | strategy | endpoint | counts |
+|---|---|---|---|
+| OpenAI | `tiktoken` | local (optional peer dep) | the text, exactly |
+| Anthropic | `count_api` | `/v1/messages/count_tokens` | the whole request, as billed |
+| Google | `count_api` | `:countTokens` | the whole request, as billed |
+| xAI | `count_api` | `/v1/tokenize-text` | the text, exactly — no chat framing |
+| everything else | `heuristic` | none | an estimate, calibrated over time |
+
+xAI's own SDK reaches its tokenizer over gRPC, which is a fact about that SDK: the REST
+endpoint answers the same call, so this needs no protobuf and no extra dependency.
 
 **Wiring a counter yourself?** The exact count APIs are HTTP calls, so they need the engine's fetch
 — the queue, the rate limiter, the retry policy and the telemetry all live there:

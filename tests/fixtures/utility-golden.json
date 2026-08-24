@@ -1,9 +1,9 @@
 {
   "_doc": "What token counting, model listing, file retrieval and the provenance check sent, normalised so the record survives the fetch-shape change. Regenerate ONLY with --force and only when the wire genuinely changed.",
-  "frozenAtCommit": "2a6622c425304b6ce05d96c386d0950e7450b7be",
+  "frozenAtCommit": "889262b9059f193318a757dd557c35bd11472666",
   "counts": {
-    "cases": 16,
-    "requests": 17
+    "cases": 18,
+    "requests": 18
   },
   "index": {
     "utility/count.anthropic.text": {
@@ -22,6 +22,7 @@
         "x-api-key": "k"
       },
       "method": "POST",
+      "responseType": "json",
       "url": "https://api.anthropic.com/v1/messages/count_tokens"
     },
     "utility/count.anthropic.system": {
@@ -41,6 +42,7 @@
         "x-api-key": "k"
       },
       "method": "POST",
+      "responseType": "json",
       "url": "https://api.anthropic.com/v1/messages/count_tokens"
     },
     "utility/count.google.bare": {
@@ -60,7 +62,21 @@
         "x-goog-api-key": "k"
       },
       "method": "POST",
+      "responseType": "json",
       "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:countTokens"
+    },
+    "utility/count.xai.text": {
+      "body": {
+        "model": "grok-4.3",
+        "text": "hello"
+      },
+      "headers": {
+        "authorization": "Bearer k",
+        "content-type": "application/json"
+      },
+      "method": "POST",
+      "responseType": "json",
+      "url": "https://api.x.ai/v1/tokenize-text"
     },
     "utility/count.google.prefixed": {
       "body": {
@@ -79,6 +95,7 @@
         "x-goog-api-key": "k"
       },
       "method": "POST",
+      "responseType": "json",
       "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:countTokens"
     },
     "utility/models.openai": {
@@ -163,6 +180,14 @@
       "responseType": "arraybuffer",
       "url": "https://cdn.example.com/out/r.pdf"
     },
+    "utility/retrieve.openai.container": {
+      "headers": {
+        "authorization": "Bearer k"
+      },
+      "method": "GET",
+      "responseType": "arraybuffer",
+      "url": "https://api.openai.com/v1/containers/cntr-1/files/file-abc/content"
+    },
     "utility/stream.openai.stream": {
       "headers": {
         "authorization": "Bearer k"
@@ -188,15 +213,6 @@
       "method": "POST",
       "responseType": "json",
       "url": "https://api.openai.com/v1/content_provenance_checks"
-    },
-    "utility/retrieve.openai.container": {
-      "_derived": "Written by hand from the pre-migration source, not captured: the case was missing when the freeze ran and the code that produced it is gone. contentRequest() built `${base}/v1/containers/${containerId}/files/${id}/content` with a bearer header.",
-      "headers": {
-        "authorization": "Bearer k"
-      },
-      "method": "GET",
-      "responseType": "arraybuffer",
-      "url": "https://api.openai.com/v1/containers/cntr-1/files/file-abc/content"
     }
   }
 }

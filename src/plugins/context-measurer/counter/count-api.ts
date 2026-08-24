@@ -89,8 +89,52 @@ export class GoogleCountApi {
   }
 }
 
-/** TokenCounter backed by Anthropic/Google count APIs. Falls back to heuristic
- *  for fast estimates and unknown providers. */
+/** xAI tokenizer: POST /v1/tokenize-text
+ *
+ *  Their own SDK reaches this over gRPC (`xai_api.Tokenize/TokenizeText`), which
+ *  is why it looked for a while like exact counting on xAI would cost a protobuf
+ *  dependency. It does not: the REST host answers the same call with the same
+ *  token list, so this is one more spec-built request and the library stays
+ *  zero-dependency.
+ *
+ *  What it counts is TEXT, not a chat request. Anthropic's and Google's endpoints
+ *  take the message array a completion would send, so their answer matches what
+ *  the completion is billed for; this one tokenizes the string you hand it, so it
+ *  is exact for that string and excludes the framing the chat template adds
+ *  around it. Still the right answer to "how many tokens is this content", and
+ *  vastly better than four-chars-per-token — on one Cyrillic line the heuristic
+ *  says 9 where the tokenizer says 19.
+ *
+ *  The response names the list `token_ids` (the proto calls it `tokens`); the
+ *  count is its length. */
+export class XAICountApi {
+  constructor(
+    private readonly apiKey: string,
+    private readonly fetchFn: EngineFetch,
+    private readonly baseURL: string = 'https://api.x.ai',
+  ) {}
+
+  async countText(model: string, text: string): Promise<number> {
+    const res = await this.fetchFn(
+      countRequest(
+        'xai/count.tokenize',
+        { model, text },
+        { baseURL: this.baseURL, apiKey: this.apiKey },
+        'xai',
+      ) as never,
+    );
+
+    if (res.status >= 400) {
+      throw new Error(`xAI tokenize-text failed: ${res.status} ${JSON.stringify(res.body)}`);
+    }
+    const data = (res.body ?? {}) as Record<string, unknown>;
+    const tokens = data.token_ids ?? data.tokens;
+    return Array.isArray(tokens) ? tokens.length : 0;
+  }
+}
+
+/** TokenCounter backed by Anthropic/Google/xAI count APIs. Falls back to
+ *  heuristic for fast estimates and unknown providers. */
 export class CountApiCounter implements TokenCounter {
   private heuristic: HeuristicCounter;
 
@@ -101,6 +145,7 @@ export class CountApiCounter implements TokenCounter {
     private readonly providers: {
       anthropic?: AnthropicCountApi;
       google?: GoogleCountApi;
+      xai?: XAICountApi;
     } = {},
   ) {
     this.catalog = catalog;
@@ -146,10 +191,11 @@ export class CountApiCounter implements TokenCounter {
     this.heuristic.learn(input);
   }
 
-  private apiFor(ctx?: TokenCountContext): AnthropicCountApi | GoogleCountApi | null {
+  private apiFor(ctx?: TokenCountContext): AnthropicCountApi | GoogleCountApi | XAICountApi | null {
     if (!ctx?.provider || !ctx.model) return null;
     if (ctx.provider === 'anthropic') return this.providers.anthropic ?? null;
     if (ctx.provider === 'google') return this.providers.google ?? null;
+    if (ctx.provider === 'xai') return this.providers.xai ?? null;
     return null;
   }
 }
