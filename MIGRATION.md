@@ -84,6 +84,41 @@ Without it the exact strategies are unavailable and counting falls back to the h
 warning — rather than quietly calling the provider outside the queue, the rate limiter, the retry
 policy and the telemetry, which is what the old default did.
 
+## `hooks.onAny` receives one event instead of `(name, ctx)`
+
+Only affects code that subscribes to the WHOLE event stream. `hooks.on('onCompletion', h)` — the
+named subscription — is unchanged.
+
+```ts
+// before
+hooks.onAny((name, ctx) => {
+  if (name === 'onCompletion') {
+    const c = ctx as { response?: { usage?: { inputTokens?: number } } };
+    record(c.response?.usage?.inputTokens ?? 0);
+  }
+});
+
+// after — `event.type` narrows `event.ctx`, so the cast is gone
+hooks.onAny((event) => {
+  if (event.type === 'onCompletion') {
+    record(event.ctx.response.usage?.inputTokens ?? 0);
+  }
+});
+```
+
+The old shape forced every subscriber to cast, and a cast keeps compiling after the field it names
+is renamed — which for a usage or cost field is a metric that silently reads zero. `HookEvent` is
+derived from `HookMap`, so a hook added later becomes a variant your `switch` is told about.
+
+## Google requests carry the API key in a header, not the URL
+
+Behaviour, not signature: no source change, and no key of yours moves. Twelve Google endpoints —
+files, batch, media, embeddings, count — used to append `?key=…` to the URL; they now send
+`x-goog-api-key`. Nothing to update unless something in your infrastructure reads the key OUT of
+the URL: an allowlist matching on the query string, a log scrubber written against `key=`, or a
+proxy that routes on it. Those stop seeing it, which was the point — a URL travels through logs,
+proxies and error reports that a header does not.
+
 ## Nothing else was removed
 
 The band helpers that went with it — `anthropicThinkingShape`, `anthropicAcceptsTopK`,
