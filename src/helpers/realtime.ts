@@ -40,6 +40,9 @@ export interface CreateRealtimeOptions {
 export function createRealtime(opts: CreateRealtimeOptions): RealtimeSession {
   const engine = opts.engine ?? coreRegistry.get();
   const { provider, model } = resolveModel(opts.model, opts.provider, 'createRealtime');
+  // The same catalog translation every other helper does. Without it, a realtime
+  // session was the one path where our slug reached the provider unconverted.
+  const sendModel = engine.catalog.resolveModelId(provider, model);
   const apiKey = opts.apiKey ?? engine.apiKeys[provider];
   if (!apiKey) {
     throw new Error(
@@ -50,7 +53,7 @@ export function createRealtime(opts: CreateRealtimeOptions): RealtimeSession {
   const adapter = resolveAdapter(provider, apiKey);
   const voice = resolveVoice(provider, opts.audio?.voice ?? opts.voice);
   const session = adapter.connect(
-    { model, modalities: opts.modalities, voice, instructions: opts.instructions },
+    { model: sendModel, modalities: opts.modalities, voice, instructions: opts.instructions },
     engine.connect,
   );
 
@@ -59,7 +62,7 @@ export function createRealtime(opts: CreateRealtimeOptions): RealtimeSession {
   // onCompletion so the CostCollector tallies + prices it like any other call.
   session.on('usage', (e) => {
     void engine.hooks
-      .emit('onCompletion', realtimeCompletionContext(provider, model, e.usage))
+      .emit('onCompletion', realtimeCompletionContext(provider, sendModel, e.usage))
       .catch(() => {});
   });
 

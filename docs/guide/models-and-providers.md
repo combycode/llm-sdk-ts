@@ -370,6 +370,38 @@ const wireName = engine.catalog.resolveModelId('anthropic', 'claude-haiku-4.5');
 // -> "claude-haiku-4-5-20251001"
 ```
 
+### Any spelling of a version works
+
+Providers spell the same version more than one way and docs, dashboards and blog
+posts disagree: `gpt-4.1` and `gpt-4-1`, `gemini-2.5-flash` and `gemini-2-5-flash`,
+`claude-haiku-4.5` and `claude-haiku-4-5`. Whichever you write, the catalog finds
+the model -- lookups are insensitive to the separator between two digits, and to
+case:
+
+```ts
+engine.catalog.get('google', 'gemini-2-5-flash')?.model; // -> "gemini-2.5-flash"
+engine.catalog.get('openai', 'GPT-4-1')?.model;          // -> "gpt-4.1"
+```
+
+This matters beyond convenience: a spelling the catalog missed had no price and no
+capabilities, so it silently billed as free and lost tool/vision detection.
+
+**What gets sent** is always an id the provider accepts. If the spelling you wrote
+is itself callable, it is sent unchanged; if it is not, the canonical id goes
+instead, rather than forwarding a 404 back to you:
+
+```ts
+engine.catalog.resolveModelId('google', 'gemini-2-5-flash'); // -> "gemini-2.5-flash"  (corrected)
+engine.catalog.resolveModelId('openai', 'gpt-4-1');          // -> "gpt-4.1"           (corrected)
+```
+
+Every helper shares this one step -- `complete()`, `createLLM()`, `createAgent()`,
+`embed()`, `moderate()`, `transcribe()`, `countTokens()`, `batch()`, media and
+realtime all resolve identically, so a model id behaves the same everywhere.
+
+An id we have never seen is still sent verbatim, so a fine-tune or a model released
+this morning keeps working.
+
 ### Undated Anthropic names
 
 Anthropic's docs put an undated name in front of you -- `claude-haiku-4-5` rather

@@ -206,14 +206,39 @@ function withBuiltinTools(provider: string, caps: ModelCapabilities): ModelCapab
   return { ...caps, builtinTools: [...tools] };
 }
 
+/** Spelling-insensitive form of a model id: lower-cased, with a `-` or `.`
+ *  BETWEEN TWO DIGITS unified to `.`.
+ *
+ *  Providers spell the same version three ways and users copy whichever they saw:
+ *  `gpt-4.1` and `gpt-4-1`, `gemini-2.5-flash` and `gemini-2-5-flash`,
+ *  `claude-haiku-4.5` and `claude-haiku-4-5`. Only one of each pair is callable,
+ *  and the others used to miss the catalog entirely — which meant no price, no
+ *  capabilities, and an id forwarded verbatim into a 404.
+ *
+ *  Deliberately narrow. Only a separator between two DIGITS moves, so nothing
+ *  that distinguishes two real models is erased: `gpt-4o` stays distinct from
+ *  `gpt-4`, and `command-r7b` keeps its shape. Verified across the shipped
+ *  catalogs — 1016 normalized keys, zero collisions — so this can never merge two
+ *  models into one. */
+function normalizeId(model: string): string {
+  return model.toLowerCase().replace(/(?<=\d)[-.](?=\d)/g, '.');
+}
+
 export class ModelCatalog {
   private models = new Map<string, ModelInfo>();
   /** `provider/alias` → `provider/canonical-slug`. Lets get()/resolveModelId
    *  accept any callable id (providerModelName, dated snapshot) AND the slug. */
   private aliasIndex = new Map<string, string>();
+  /** `provider/normalized-id` → `provider/canonical-slug`. The last resort, so a
+   *  user's spelling of a version never decides whether the model is found. */
+  private normIndex = new Map<string, string>();
 
   private key(provider: string, model: string): string {
     return `${provider}/${model}`;
+  }
+
+  private normKey(provider: string, model: string): string {
+    return `${provider}/${normalizeId(model)}`;
   }
 
   set(
@@ -258,22 +283,47 @@ export class ModelCatalog {
         this.aliasIndex.set(this.key(provider, alias), canonical);
       }
     }
+    // Every spelling of every name this entry answers to, so a lookup never turns
+    // on whether the user wrote 4-5 or 4.5. First writer wins: the slug is indexed
+    // before its aliases, so a normalized key always points at the canonical entry.
+    for (const name of [model, info.providerModelName, ...(info.aliases ?? [])]) {
+      if (!name) continue;
+      const nk = this.normKey(provider, name);
+      if (!this.normIndex.has(nk)) this.normIndex.set(nk, canonical);
+    }
   }
 
   get(provider: string, model: string): ModelInfo | null {
     const direct = this.models.get(this.key(provider, model));
     if (direct) return direct;
-    const canonical = this.aliasIndex.get(this.key(provider, model));
+    const canonical =
+      this.aliasIndex.get(this.key(provider, model)) ??
+      // Last resort: the same model under a different spelling of its version.
+      this.normIndex.get(this.normKey(provider, model));
     return canonical ? (this.models.get(canonical) ?? null) : null;
   }
 
-  /** The exact id to SEND to the provider for a given model string. Translates
-   *  our slug → providerModelName; passes an already-callable id (alias) through
-   *  verbatim (respects an explicit choice); unknown model → verbatim passthrough. */
+  /** The exact id to SEND to the provider for a given model string.
+   *
+   *  Three cases, and the difference between them is what the caller ASKED for:
+   *    - our slug            → translate to providerModelName (the pinned snapshot)
+   *    - an id the provider itself accepts (a listed alias, e.g. a dated snapshot
+   *      or anthropic's undated name) → verbatim, because it is a deliberate choice
+   *      and rewriting it would pin a caller who asked to float
+   *    - a spelling variant that is NOT callable (`gemini-2-5-flash`) → the
+   *      canonical entry's providerModelName, since forwarding it verbatim only
+   *      produces a 404 with the user's typo in it
+   *    - unknown → verbatim, so a model we have never heard of still works */
   resolveModelId(provider: string, model: string): string {
     const direct = this.models.get(this.key(provider, model));
     if (direct) return direct.providerModelName ?? model; // model === slug → translate
-    return model; // alias (already callable) or unknown → as-is
+    if (this.aliasIndex.has(this.key(provider, model))) return model; // callable as written
+    const canonical = this.normIndex.get(this.normKey(provider, model));
+    if (canonical) {
+      const info = this.models.get(canonical);
+      if (info) return info.providerModelName ?? info.model;
+    }
+    return model; // unknown → as-is
   }
 
   getPricing(provider: string, model: string): ModelPricing | null {

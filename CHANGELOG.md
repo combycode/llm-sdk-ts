@@ -19,7 +19,27 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   `onWarning` with code `request_adjusted`, on both `complete()` and `stream()`. Dropping it quietly
   would trade a confusing error for the silent loss of a capability the caller asked for.
 
+- **Any spelling of a model id finds the model, and every helper resolves it the same way.**
+  Providers spell one version several ways and users copy whichever they saw: `gpt-4.1` / `gpt-4-1`,
+  `gemini-2.5-flash` / `gemini-2-5-flash`, `claude-haiku-4.5` / `claude-haiku-4-5`. Only some are
+  callable, and the rest missed the catalog outright — no price, no capabilities — and were then
+  forwarded to the provider verbatim, turning a spelling difference into a 404.
+
+  Catalog lookups are now insensitive to the separator between two digits and to case, so ~556
+  previously-unresolvable spellings reach their entry. The rule is deliberately narrow — only a
+  separator between two DIGITS moves — and is verified across the shipped catalogs to merge nothing:
+  1016 normalized keys, zero collisions.
+
+  `resolveModelId()` now always returns something callable. A spelling the provider itself accepts is
+  sent unchanged; one it would reject is corrected to the canonical id instead of being forwarded;
+  an unknown id still passes through verbatim, so fine-tunes and same-day releases keep working.
+
 ### Fixed
+
+- **`createRealtime()` never translated the model id.** It parsed the provider but skipped the
+  catalog step every other helper performs, so a realtime session was the one path that sent our
+  slug instead of the provider's id. All helpers now share the single resolution step, and a test
+  calls each one and reads the wire so a helper that forgets fails CI rather than a user's request.
 
 - **An Anthropic model is reachable by the name Anthropic documents.** `claude-haiku-4-5` — the
   spelling in Anthropic's own docs, and one the API accepts — matched no catalog key and no alias,

@@ -71,17 +71,38 @@ describe('the rule stays anthropic-only', () => {
   // anthropic's convention across providers would mint ids that do not exist
   // (`imagen-4.0-generate`, `command-r7b-12`), and a catalog that prices an
   // uncallable id is a worse lie than one that admits it does not know.
+  //  "Not invented" is about the DATA, not about what a lookup will accept. A
+  //  hyphenated spelling like `gpt-4-1` does resolve — spelling-insensitive lookup
+  //  is a separate, deliberate feature (see model-id-variants.test.ts) and it
+  //  answers with the real `gpt-4.1` entry. What must never happen is the catalog
+  //  gaining `gpt-4-1` as a stored alias, because an alias is a claim that the
+  //  PROVIDER accepts that string, and these three do not.
   const FABRICATED = [
-    ['openai', 'gpt-4-1'],
-    ['openai', 'gpt-5-1'],
-    ['google', 'gemini-2-5-pro'],
-    ['google', 'imagen-4.0-generate'],
-    ['xai', 'grok-4-3'],
-    ['openrouter', 'cohere/command-r7b-12'],
+    ['openai', 'gpt-4-1', 'gpt-4.1'],
+    ['openai', 'gpt-5-1', 'gpt-5.1'],
+    ['google', 'gemini-2-5-pro', 'gemini-2.5-pro'],
+    ['xai', 'grok-4-3', 'grok-4.3'],
   ] as const;
 
-  for (const [provider, id] of FABRICATED) {
-    it(`${provider}/${id} is not invented`, () => {
+  for (const [provider, id, real] of FABRICATED) {
+    it(`${provider}/${id} is never a stored alias`, () => {
+      const stored = catalog.list().some((m) => (m.aliases ?? []).includes(id));
+      expect(stored).toBe(false);
+      // It still resolves — to the genuine entry, never to one of its own.
+      expect(catalog.get(provider, id)?.model).toBe(real);
+    });
+  }
+
+  //  Truncations, by contrast, must not resolve at all: no real model answers to
+  //  them and no normalisation reaches them, so a hit would mean we had minted one.
+  const TRUNCATIONS = [
+    ['google', 'imagen-4.0-generate'],
+    ['openrouter', 'cohere/command-r7b-12'],
+    ['google', 'gemini-2.5-computer-use-preview-10'],
+  ] as const;
+
+  for (const [provider, id] of TRUNCATIONS) {
+    it(`${provider}/${id} does not exist`, () => {
       expect(catalog.get(provider, id)).toBeNull();
     });
   }
