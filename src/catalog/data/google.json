@@ -38,7 +38,7 @@
       "structuredOutput": true,
       "vision": true,
       "audio": true,
-      "video": false,
+      "video": true,
       "imageGeneration": false,
       "audioGeneration": false,
       "videoGeneration": false
@@ -55,7 +55,8 @@
       "text",
       "image",
       "audio",
-      "pdf"
+      "pdf",
+      "video"
     ],
     "outputModalities": [
       "text"
@@ -111,7 +112,7 @@
       "structuredOutput": true,
       "vision": true,
       "audio": true,
-      "video": false,
+      "video": true,
       "imageGeneration": false,
       "audioGeneration": false,
       "videoGeneration": false
@@ -134,7 +135,8 @@
       "text",
       "image",
       "audio",
-      "pdf"
+      "pdf",
+      "video"
     ],
     "outputModalities": [
       "text"
@@ -172,7 +174,7 @@
       "structuredOutput": true,
       "vision": true,
       "audio": true,
-      "video": false,
+      "video": true,
       "imageGeneration": false,
       "audioGeneration": false,
       "videoGeneration": false
@@ -189,7 +191,8 @@
       "text",
       "image",
       "audio",
-      "pdf"
+      "pdf",
+      "video"
     ],
     "outputModalities": [
       "text"
@@ -248,7 +251,7 @@
       "structuredOutput": true,
       "vision": true,
       "audio": true,
-      "video": false,
+      "video": true,
       "imageGeneration": false,
       "audioGeneration": false,
       "videoGeneration": false
@@ -265,7 +268,8 @@
       "text",
       "image",
       "audio",
-      "pdf"
+      "pdf",
+      "video"
     ],
     "outputModalities": [
       "text"
@@ -324,7 +328,7 @@
       "structuredOutput": true,
       "vision": true,
       "audio": true,
-      "video": false,
+      "video": true,
       "imageGeneration": false,
       "audioGeneration": false,
       "videoGeneration": false
@@ -348,7 +352,8 @@
       "text",
       "image",
       "audio",
-      "pdf"
+      "pdf",
+      "video"
     ],
     "outputModalities": [
       "text"
@@ -403,7 +408,7 @@
       "structuredOutput": true,
       "vision": true,
       "audio": true,
-      "video": false,
+      "video": true,
       "imageGeneration": false,
       "audioGeneration": false,
       "videoGeneration": false
@@ -420,7 +425,8 @@
       "text",
       "image",
       "audio",
-      "pdf"
+      "pdf",
+      "video"
     ],
     "outputModalities": [
       "text"
@@ -479,7 +485,7 @@
       "structuredOutput": true,
       "vision": true,
       "audio": true,
-      "video": false,
+      "video": true,
       "imageGeneration": false,
       "audioGeneration": false,
       "videoGeneration": false
@@ -496,7 +502,8 @@
       "text",
       "image",
       "audio",
-      "pdf"
+      "pdf",
+      "video"
     ],
     "outputModalities": [
       "text"
@@ -556,7 +563,7 @@
       "structuredOutput": true,
       "vision": true,
       "audio": true,
-      "video": false,
+      "video": true,
       "imageGeneration": false,
       "audioGeneration": false,
       "videoGeneration": false
@@ -573,7 +580,8 @@
       "text",
       "image",
       "audio",
-      "pdf"
+      "pdf",
+      "video"
     ],
     "outputModalities": [
       "text"
@@ -2780,7 +2788,7 @@
       "structuredOutput": true,
       "vision": true,
       "audio": true,
-      "video": false,
+      "video": true,
       "imageGeneration": false,
       "audioGeneration": false,
       "videoGeneration": false
@@ -2797,7 +2805,8 @@
       "text",
       "image",
       "audio",
-      "pdf"
+      "pdf",
+      "video"
     ],
     "outputModalities": [
       "text"
@@ -2853,7 +2862,7 @@
       "structuredOutput": true,
       "vision": true,
       "audio": true,
-      "video": false,
+      "video": true,
       "imageGeneration": false,
       "audioGeneration": false,
       "videoGeneration": false
@@ -2870,7 +2879,8 @@
       "text",
       "image",
       "audio",
-      "pdf"
+      "pdf",
+      "video"
     ],
     "outputModalities": [
       "text"
@@ -2925,7 +2935,7 @@
       "structuredOutput": true,
       "vision": true,
       "audio": true,
-      "video": false,
+      "video": true,
       "imageGeneration": false,
       "audioGeneration": false,
       "videoGeneration": false
@@ -2942,7 +2952,8 @@
       "text",
       "image",
       "audio",
-      "pdf"
+      "pdf",
+      "video"
     ],
     "outputModalities": [
       "text"
