@@ -2,6 +2,14 @@
   "id": "google/generate@2.5",
   "provider": "google",
   "api": "generate",
+  "_toolConstraints": "Measured 2026-08-25: Google answers 400 \"The mime type: X is not supported for code execution\" when codeExecution is sent with a PDF or a video part. Images are fine, googleSearch is fine, and OpenAI accepts every combination -- so this is one provider's rule, kept with that provider's spec.",
+  "toolConstraints": [
+    {
+      "tool": "code_interpreter",
+      "conflictsWith": { "hasPartType": ["document", "video"] },
+      "why": "google: code execution cannot run alongside a PDF or video attachment, so the request was sent without it"
+    }
+  ],
   "tables": {
     "toolMode": {
       "auto": "AUTO",

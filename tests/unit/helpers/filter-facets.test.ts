@@ -68,7 +68,9 @@ describe('filterFacets', () => {
 
   it('takes open sets from the catalog rather than a hard-coded list', () => {
     const types = facets.find((f) => f.key === 'type')!.values;
-    const catalogTypes = [...new Set(catalog.list().map((m) => m.type))];
+    const catalogTypes = [...new Set(catalog.list().map((m) => m.type))].filter(
+      (t): t is string => typeof t === 'string',
+    );
     expect(types.sort()).toEqual(catalogTypes.sort());
     expect(types).toContain('chat');
 

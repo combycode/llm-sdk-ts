@@ -38,7 +38,7 @@ import type { FileStream, RetrieveContext, RetrievedFile } from './files/retriev
 import { resolveServerState } from './server-state';
 import type { ContentPart, Message } from './types/messages';
 import type { ExecuteOptions } from './types/options';
-import type { ApiType, ProviderAdapter, ProviderName } from './types/provider';
+import type { ApiType, ProviderAdapter, ProviderHttpRequest, ProviderName } from './types/provider';
 import type { NormalizedRequest } from './types/request';
 import { emptyUsage } from './types/response';
 import type {
@@ -246,6 +246,19 @@ export class LLMClient {
   }
 
   /** Submit a request. Returns the parsed CompletionResponse. */
+  /** Anything the spec left out on purpose reaches the caller as a warning.
+   *  Said once per request; the build already de-duplicates within one. */
+  private reportBuildNotes(req: ProviderHttpRequest, ctx: RequestContext): void {
+    for (const note of req.notes ?? []) {
+      this.hooks.emitSync('onWarning', {
+        source: 'llm',
+        code: 'request_adjusted',
+        message: note,
+        details: { provider: this.provider, model: this.model, ctx },
+      });
+    }
+  }
+
   async complete(
     input: string | ContentPart[] | Message[],
     options: ExecuteOptions = {},
@@ -331,6 +344,7 @@ export class LLMClient {
     }
 
     const providerReq = this.adapter.buildRequest(normalized);
+    this.reportBuildNotes(providerReq, ctx);
     const url = this.adapter.baseURL() + (providerReq.path ?? this.adapter.completionPath());
 
     // Compute cacheKey if a custom builder was provided.
@@ -538,6 +552,7 @@ export class LLMClient {
     normalized.system = resolveCtx.system;
 
     const providerReq = this.adapter.buildRequest(normalized);
+    this.reportBuildNotes(providerReq, ctx);
     this.adapter.enableStreaming?.(providerReq, normalized);
     const url = this.adapter.baseURL() + (providerReq.path ?? this.adapter.completionPath());
 

@@ -4,6 +4,21 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **A provider can declare a hosted tool it will not run beside certain content** (`toolConstraints`
+  in a wire spec, plus a `hasPartType` condition). Measured 2026-08-25: Google answers 400 `The mime
+  type: video/mp4 is not supported for code execution` when `code_interpreter` accompanies a PDF or a
+  video. Images are fine, `web_search` is fine, and OpenAI accepts every combination — so it is one
+  provider's rule, and it lives in that provider's spec as data rather than as an `if` in the builder.
+
+  A matched constraint drops the tool — `hasTool` reports it absent, so the spec's existing guard
+  omits it with no further edit — and records why on the built request. `LLMClient` emits each as
+  `onWarning` with code `request_adjusted`, on both `complete()` and `stream()`. Dropping it quietly
+  would trade a confusing error for the silent loss of a capability the caller asked for.
+
 ## [3.0.0] — 2026-08-24
 
 ### Added

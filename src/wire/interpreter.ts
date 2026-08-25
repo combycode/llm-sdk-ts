@@ -38,6 +38,11 @@ export type Cond =
   | { hasFunctionTool: true }
   /** Array at `path` contains `value`. */
   | { includes: [string, Json] }
+  /** The request carries a message content part of one of these types
+   *  (`image` | `audio` | `video` | `document` | `text`). Needed because the
+   *  parts are nested two levels deep — `messages[].content[].type` — which
+   *  `includes` cannot reach. */
+  | { hasPartType: string[] }
   | { not: Cond }
   | { all: Cond[] }
   | { any: Cond[] };
@@ -78,10 +83,38 @@ export interface BlockRule {
   effects?: string[];
 }
 
+/** A hosted tool this provider refuses to run alongside certain content.
+ *
+ *  Providers reject some combinations outright: Google answers 400 "The mime
+ *  type: video/mp4 is not supported for code execution" when `code_interpreter`
+ *  is sent with a PDF or a video. The caller cannot be expected to know that, and
+ *  the error names a mime type rather than the tool, so it reads as a problem
+ *  with the attachment.
+ *
+ *  Declared here as data rather than as a provider `if` in the builder: it is one
+ *  more fact about how this API behaves, and the four other providers stay
+ *  untouched because their specs simply do not carry the field.
+ *
+ *  A matched constraint DROPS the tool — `hasTool` reports it absent, so the
+ *  spec's existing `$when` guard omits it with no further edit — and records
+ *  `why` on the built request so the runtime can say what it did. Dropping
+ *  quietly would trade a confusing error for a silent loss of a capability the
+ *  caller asked for, which is worse. */
+export interface ToolConstraint {
+  /** Builtin tool type, e.g. `code_interpreter`. */
+  tool: string;
+  /** When this holds, the tool cannot be sent. */
+  conflictsWith: Cond;
+  /** Said to the caller, verbatim. */
+  why: string;
+}
+
 export interface WireSpec {
   id: string;
   provider: string;
   api: string;
+  /** Tool/content combinations this provider rejects. See `ToolConstraint`. */
+  toolConstraints?: ToolConstraint[];
   /** Adapter flavor, for specs shared by several providers (openai|xai|openrouter). */
   flavors?: string[];
   envelope?: {
@@ -181,6 +214,8 @@ export interface Ctx {
   item?: { value: any; index: number; isLast: boolean };
   /** Collected multipart fields, when the spec declares a multipart body. */
   multipart?: MultipartField[];
+  /** What the build decided to leave out, and why — surfaced to the caller. */
+  notes?: string[];
 }
 
 export interface MultipartField {
@@ -271,14 +306,36 @@ export function evalCond(cond: Cond | undefined, ctx: Ctx, reg: Registry): boole
     const t = ctx.item?.value;
     return !reg.predicates.isFunctionTool!(ctx) && t?.type === c.builtin;
   }
+  if ('hasPartType' in c) {
+    const messages = ctx.req.messages as any[] | undefined;
+    return Boolean(
+      messages?.some((m) =>
+        Array.isArray(m?.content)
+          ? m.content.some((part: any) => c.hasPartType.includes(part?.type))
+          : false,
+      ),
+    );
+  }
   if ('hasTool' in c) {
     const tools = ctx.req.tools as any[] | undefined;
-    return Boolean(
+    const present = Boolean(
       tools?.some((t) => {
         const itemCtx: Ctx = { ...ctx, item: { value: t, index: 0, isLast: false } };
         return !reg.predicates.isFunctionTool!(itemCtx) && t?.type === c.hasTool;
       }),
     );
+    if (!present) return false;
+    // Present, but this provider may refuse it alongside what else is in the
+    // request. Reported as absent so the spec's own guard omits it, and recorded
+    // so the runtime can tell the caller rather than leaving them to wonder.
+    const blocked = ctx.spec.toolConstraints?.find(
+      (tc) => tc.tool === c.hasTool && evalCond(tc.conflictsWith, ctx, reg),
+    );
+    if (blocked) {
+      if (ctx.notes && !ctx.notes.includes(blocked.why)) ctx.notes.push(blocked.why);
+      return false;
+    }
+    return true;
   }
   if ('hasFunctionTool' in c) {
     const tools = ctx.req.tools as any[] | undefined;
@@ -430,6 +487,10 @@ export function resolveVariants(spec: WireSpec, model: string, reg: Registry): S
 
 export interface BuiltRequest {
   body: Record<string, unknown>;
+  /** Anything the spec deliberately left out, and why — e.g. a hosted tool this
+   *  provider will not run beside the attached content. The runtime turns these
+   *  into `onWarning`; they are never silent. */
+  notes?: string[];
   headers?: Record<string, string>;
   path?: string;
   url?: string;
@@ -464,6 +525,7 @@ export function buildFromSpec(
     config,
     variants: resolveVariants(spec, req.model ?? '', reg),
     body: {},
+    notes: [],
   };
 
   for (const v of ctx.variants) onUse?.('variant', v);
@@ -574,6 +636,7 @@ export function buildFromSpec(
 
   // 4. envelope
   const out: BuiltRequest = { body: ctx.body };
+  if (ctx.notes?.length) out.notes = ctx.notes;
   if (ctx.multipart) out.multipart = ctx.multipart;
   if (spec.envelope?.bodyKind === 'none') out.noBody = true;
   // `raw`: the caller attaches the bytes; say so rather than emitting an empty body.

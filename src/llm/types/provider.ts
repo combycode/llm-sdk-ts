@@ -33,6 +33,11 @@ export interface ProviderHttpRequest {
   /** Override of the default completion path. Used by providers that route
    *  per-API or per-modality. */
   path?: string;
+  /** What the build deliberately left out, and why — a hosted tool this provider
+   *  refuses to run beside the attached content, for instance. The client emits
+   *  each as `onWarning`, because dropping a capability the caller asked for and
+   *  saying nothing is how a missing feature gets mistaken for a working one. */
+  notes?: string[];
 }
 
 export interface ProviderAdapter {
