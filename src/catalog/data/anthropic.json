@@ -66,7 +66,8 @@
   "anthropic/claude-opus-4.1": {
     "providerModelName": "claude-opus-4-1-20250805",
     "aliases": [
-      "claude-opus-4-1-20250805"
+      "claude-opus-4-1-20250805",
+      "claude-opus-4-1"
     ],
     "pricing": {
       "inputPerMTok": 15,
@@ -130,7 +131,8 @@
   "anthropic/claude-opus-4.5": {
     "providerModelName": "claude-opus-4-5-20251101",
     "aliases": [
-      "claude-opus-4-5-20251101"
+      "claude-opus-4-5-20251101",
+      "claude-opus-4-5"
     ],
     "pricing": {
       "inputPerMTok": 5,
@@ -469,7 +471,8 @@
   "anthropic/claude-sonnet-4.5": {
     "providerModelName": "claude-sonnet-4-5-20250929",
     "aliases": [
-      "claude-sonnet-4-5-20250929"
+      "claude-sonnet-4-5-20250929",
+      "claude-sonnet-4-5"
     ],
     "pricing": {
       "inputPerMTok": 3,
@@ -603,7 +606,8 @@
   "anthropic/claude-haiku-4.5": {
     "providerModelName": "claude-haiku-4-5-20251001",
     "aliases": [
-      "claude-haiku-4-5-20251001"
+      "claude-haiku-4-5-20251001",
+      "claude-haiku-4-5"
     ],
     "pricing": {
       "inputPerMTok": 1,

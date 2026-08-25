@@ -19,6 +19,25 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   `onWarning` with code `request_adjusted`, on both `complete()` and `stream()`. Dropping it quietly
   would trade a confusing error for the silent loss of a capability the caller asked for.
 
+### Fixed
+
+- **An Anthropic model is reachable by the name Anthropic documents.** `claude-haiku-4-5` — the
+  spelling in Anthropic's own docs, and one the API accepts — matched no catalog key and no alias,
+  because `/v1/models` lists only the dated snapshot (`claude-haiku-4-5-20251001`) while our slug
+  dots the version (`claude-haiku-4.5`). `get()` and `getPricing()` missed in silence, and an
+  unpriced model is indistinguishable from a free one: reported from production as 72k tokens
+  billed at $0.00.
+
+  The undated form is now carried as an alias for the four affected entries (`claude-haiku-4-5`,
+  `claude-sonnet-4-5`, `claude-opus-4-5`, `claude-opus-4-1`), derived in the catalog pipeline so a
+  regeneration keeps it. Anthropic-only, and deliberately so — the same date-stripping applied to
+  other providers invents ids that do not exist (`imagen-4.0-generate`, `command-r7b-12`), since
+  only there is the undated form a truncation rather than a real alias. Each was probed live.
+
+  `providerModelName` is untouched, so **what goes on the wire is unchanged**: a slug still
+  translates to its pinned snapshot, and an alias is still sent verbatim as the floating id the
+  caller chose. This widens what the catalog recognises, never what it calls.
+
 ## [3.0.0] — 2026-08-24
 
 ### Added

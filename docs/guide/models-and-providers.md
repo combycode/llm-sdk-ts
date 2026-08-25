@@ -334,7 +334,7 @@ subtle bugs.
 |---|---|---|
 | **Normalized id** (slug) | `anthropic/claude-haiku-4.5` | Pass to `complete()`, `select()`, `catalog.get()`, everywhere in the SDK. |
 | **API name** (`providerModelName`) | `claude-haiku-4-5-20251001` | What the adapter sends in the HTTP request body. You never write this -- the SDK translates it. |
-| **Alias** | `claude-haiku-4-5-20251001` | An alternate id (often the dated snapshot) that resolves to the same catalog entry. |
+| **Alias** | `claude-haiku-4-5-20251001`, `claude-haiku-4-5` | An alternate id (the dated snapshot, or the provider's own undated name) that resolves to the same catalog entry. |
 
 Resolution flow:
 
@@ -369,6 +369,28 @@ To inspect the wire name directly:
 const wireName = engine.catalog.resolveModelId('anthropic', 'claude-haiku-4.5');
 // -> "claude-haiku-4-5-20251001"
 ```
+
+### Undated Anthropic names
+
+Anthropic's docs put an undated name in front of you -- `claude-haiku-4-5` rather
+than the dated `claude-haiku-4-5-20251001` -- and the API accepts it. The catalog
+carries it as an alias, so it resolves and **prices** like any other id:
+
+```ts
+engine.catalog.getPricing('anthropic', 'claude-haiku-4-5'); // -> pricing, not null
+```
+
+It is not the same request as the slug, though, and that difference is deliberate:
+
+```ts
+engine.catalog.resolveModelId('anthropic', 'claude-haiku-4.5');  // "claude-haiku-4-5-20251001"  (pinned)
+engine.catalog.resolveModelId('anthropic', 'claude-haiku-4-5');  // "claude-haiku-4-5"           (floating)
+```
+
+The slug pins the snapshot the catalog knows. The undated alias is sent verbatim,
+because it means "the current 4.5 haiku" -- rewriting it to a date would pin a
+caller who deliberately asked not to be. Use the slug when you want reproducibility,
+the undated name when you want to follow the provider's latest.
 
 ---
 
