@@ -6,6 +6,8 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+## [3.1.0] — 2026-08-25
+
 ### Added
 
 - **A provider can declare a hosted tool it will not run beside certain content** (`toolConstraints`
