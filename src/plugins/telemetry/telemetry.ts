@@ -664,6 +664,19 @@ export class TelemetryAdapter {
         break;
       case 'onModelError':
         this.metrics.errors++;
+        // An attempt that failed is no longer in flight. `inFlight` was only
+        // decremented on `onRequestComplete`, and a failed attempt emits
+        // `onModelError` INSTEAD — the two are the success and catch branches of
+        // the same try — so every failure left the gauge permanently one higher.
+        // A long-lived process then reads as saturated while nothing is running:
+        // the sandbox showed IN-FLIGHT 3 with every queue idle, which is what
+        // made this visible at all.
+        //
+        // Balanced per ATTEMPT, not per request: `onRequestStart` also fires per
+        // attempt, so a retry increments again and its own outcome decrements
+        // again. Clamped at zero because a consumer can subscribe mid-flight and
+        // see an outcome whose start it never saw.
+        this.metrics.inFlight = Math.max(0, this.metrics.inFlight - 1);
         break;
       case 'onCostEntry':
         this.metrics.costUsd += event.ctx.entry?.cost?.total ?? 0;
