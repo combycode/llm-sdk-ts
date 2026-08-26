@@ -22,6 +22,10 @@
     "openrouter/nvidia/nemotron-3.5-lightning": "2.3.0",
     "openrouter/thinkingmachines/inkling-small": "2.3.0"
   },
+  "shapesAddedLater": {
+    "content.audioFirst": "3.1.0",
+    "multiTurn.toolRoundTrip": "3.1.0"
+  },
   "shapes": [
     "minimal",
     "sampling",
@@ -45,13 +49,15 @@
     "serverState",
     "moderation",
     "content.audio",
-    "providerOptions"
+    "providerOptions",
+    "content.audioFirst",
+    "multiTurn.toolRoundTrip"
   ],
   "counts": {
     "models": 309,
-    "shapes": 23,
-    "bodies": 437,
-    "distinct": 558
+    "shapes": 25,
+    "bodies": 618,
+    "distinct": 592
   },
   "bodies": {
     "30387636": {
@@ -11529,6 +11535,1504 @@
         ],
         "model": "thinkingmachines/inkling-small:online"
       }
+    },
+    "13d0db04": {
+      "body": {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "[unsupported: audio]",
+                "type": "text"
+              },
+              {
+                "text": "what does this say",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL"
+      },
+      "headers": {}
+    },
+    "9ef8c027": {
+      "body": {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "weather in Paris?",
+                "type": "text"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "content": [
+              {
+                "text": "Let me check.",
+                "type": "text"
+              },
+              {
+                "id": "call_1",
+                "input": {
+                  "city": "Paris"
+                },
+                "name": "get_weather",
+                "type": "tool_use"
+              }
+            ],
+            "role": "assistant"
+          },
+          {
+            "content": [
+              {
+                "content": "sunny",
+                "tool_use_id": "call_1",
+                "type": "tool_result"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL",
+        "tools": [
+          {
+            "description": "w",
+            "input_schema": {
+              "properties": {
+                "a": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "a"
+              ],
+              "type": "object"
+            },
+            "name": "get_weather"
+          }
+        ]
+      },
+      "headers": {}
+    },
+    "634d429a": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "what does this say",
+                "type": "input_text"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "model": "$MODEL"
+      }
+    },
+    "c7db0f24": {
+      "body": {
+        "input": [
+          {
+            "content": "weather in Paris?",
+            "role": "user"
+          },
+          {
+            "content": [
+              {
+                "text": "Let me check.",
+                "type": "output_text"
+              }
+            ],
+            "role": "assistant",
+            "type": "message"
+          },
+          {
+            "arguments": "{\"city\":\"Paris\"}",
+            "call_id": "call_1",
+            "id": "fc_call_1",
+            "name": "get_weather",
+            "type": "function_call"
+          },
+          {
+            "call_id": "call_1",
+            "name": "get_weather",
+            "output": "sunny",
+            "type": "function_call_output"
+          }
+        ],
+        "model": "$MODEL",
+        "tools": [
+          {
+            "description": "w",
+            "name": "get_weather",
+            "parameters": {
+              "additionalProperties": false,
+              "properties": {
+                "a": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "a"
+              ],
+              "type": "object"
+            },
+            "strict": true,
+            "type": "function"
+          }
+        ]
+      }
+    },
+    "5323c029": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-2.5-pro:generateContent"
+    },
+    "d6b252de": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemini-2.5-pro:generateContent"
+    },
+    "89254b7f": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview:generateContent"
+    },
+    "afcc82dc": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview:generateContent"
+    },
+    "9fa35b6c": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview-customtools:generateContent"
+    },
+    "ba23f763": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemini-3.1-pro-preview-customtools:generateContent"
+    },
+    "1d6220a4": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-2.5-flash:generateContent"
+    },
+    "ee1ef0f3": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemini-2.5-flash:generateContent"
+    },
+    "a45bfea3": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3-flash-preview:generateContent"
+    },
+    "89a67350": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemini-3-flash-preview:generateContent"
+    },
+    "de6e4ba3": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.5-flash:generateContent"
+    },
+    "46f13474": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemini-3.5-flash:generateContent"
+    },
+    "b40941bd": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-2.5-flash-lite:generateContent"
+    },
+    "6b3efcdc": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemini-2.5-flash-lite:generateContent"
+    },
+    "af991dd0": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.1-flash-lite:generateContent"
+    },
+    "eb58c3c9": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemini-3.1-flash-lite:generateContent"
+    },
+    "32d049e1": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemma-4-26b-a4b-it:generateContent"
+    },
+    "31c6d09a": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemma-4-26b-a4b-it:generateContent"
+    },
+    "2d8d9d7d": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemma-4-31b-it:generateContent"
+    },
+    "d1ab956a": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemma-4-31b-it:generateContent"
+    },
+    "9f6874f2": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.6-flash:generateContent"
+    },
+    "069c2b61": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemini-3.6-flash:generateContent"
+    },
+    "778b960c": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.5-flash-lite:generateContent"
+    },
+    "47590d4d": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemini-3.5-flash-lite:generateContent"
+    },
+    "f76725f5": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "inlineData": {
+                  "data": "UklGRg==",
+                  "mimeType": "audio/wav"
+                }
+              },
+              {
+                "text": "what does this say"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {}
+      },
+      "path": "/v1beta/models/gemini-3.7-flash:generateContent"
+    },
+    "d6f7a26e": {
+      "body": {
+        "contents": [
+          {
+            "parts": [
+              {
+                "text": "weather in Paris?"
+              }
+            ],
+            "role": "user"
+          },
+          {
+            "parts": [
+              {
+                "text": "Let me check."
+              },
+              {
+                "functionCall": {
+                  "args": {
+                    "city": "Paris"
+                  },
+                  "id": "call_1",
+                  "name": "get_weather"
+                },
+                "thoughtSignature": "sig_abc"
+              }
+            ],
+            "role": "model"
+          },
+          {
+            "parts": [
+              {
+                "functionResponse": {
+                  "id": "call_1",
+                  "name": "get_weather",
+                  "response": {
+                    "result": "sunny"
+                  }
+                }
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "generationConfig": {},
+        "tools": [
+          {
+            "functionDeclarations": [
+              {
+                "description": "w",
+                "name": "get_weather",
+                "parametersJsonSchema": {
+                  "properties": {
+                    "a": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "a"
+                  ],
+                  "type": "object"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "path": "/v1beta/models/gemini-3.7-flash:generateContent"
+    },
+    "605f5a10": {
+      "body": {
+        "audio": {
+          "format": "wav",
+          "voice": "alloy"
+        },
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": [
+              {
+                "text": "what does this say",
+                "type": "text"
+              },
+              {
+                "input_audio": {
+                  "data": "UklGRg==",
+                  "format": "wav"
+                },
+                "type": "input_audio"
+              }
+            ],
+            "role": "user"
+          }
+        ],
+        "modalities": [
+          "text",
+          "audio"
+        ],
+        "model": "$MODEL"
+      }
+    },
+    "24335db6": {
+      "body": {
+        "max_tokens": 4096,
+        "messages": [
+          {
+            "content": "weather in Paris?",
+            "role": "user"
+          },
+          {
+            "content": "Let me check.",
+            "role": "assistant",
+            "tool_calls": [
+              {
+                "function": {
+                  "arguments": "{\"city\":\"Paris\"}",
+                  "name": "get_weather"
+                },
+                "id": "call_1",
+                "type": "function"
+              }
+            ]
+          },
+          {
+            "content": "sunny",
+            "role": "tool",
+            "tool_call_id": "call_1"
+          }
+        ],
+        "model": "$MODEL",
+        "tools": [
+          {
+            "function": {
+              "description": "w",
+              "name": "get_weather",
+              "parameters": {
+                "properties": {
+                  "a": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "a"
+                ],
+                "type": "object"
+              }
+            },
+            "type": "function"
+          }
+        ]
+      }
+    },
+    "bc375758": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "data": "UklGRg==",
+                "mime_type": "audio/wav",
+                "type": "audio"
+              },
+              {
+                "text": "what does this say",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          }
+        ],
+        "model": "models/gemini-3.1-pro"
+      }
+    },
+    "75b816c0": {
+      "body": {
+        "input": [
+          {
+            "content": [
+              {
+                "text": "weather in Paris?",
+                "type": "text"
+              }
+            ],
+            "type": "user_input"
+          },
+          {
+            "content": [
+              {
+                "text": "Let me check.",
+                "type": "text"
+              },
+              {
+                "arguments": {
+                  "city": "Paris"
+                },
+                "id": "call_1",
+                "name": "get_weather",
+                "type": "function_call"
+              }
+            ],
+            "type": "model_output"
+          },
+          {
+            "call_id": "call_1",
+            "name": "get_weather",
+            "result": "sunny",
+            "type": "function_result"
+          }
+        ],
+        "model": "models/gemini-3.1-pro",
+        "tools": [
+          {
+            "description": "w",
+            "name": "get_weather",
+            "parameters": {
+              "properties": {
+                "a": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "a"
+              ],
+              "type": "object"
+            },
+            "type": "function"
+          }
+        ]
+      }
     }
   },
   "index": {
@@ -11555,7 +13059,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-opus-4-1-20250805": {
       "minimal": "9ec64032",
@@ -11580,7 +13086,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-opus-4-5-20251101": {
       "minimal": "9ec64032",
@@ -11605,7 +13113,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-opus-4-6": {
       "minimal": "9ec64032",
@@ -11630,7 +13140,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-opus-4-7": {
       "minimal": "9ec64032",
@@ -11655,7 +13167,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-opus-4-8": {
       "minimal": "9ec64032",
@@ -11680,7 +13194,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-sonnet-4-20250514": {
       "minimal": "9ec64032",
@@ -11705,7 +13221,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-sonnet-4-5-20250929": {
       "minimal": "9ec64032",
@@ -11730,7 +13248,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-sonnet-4-6": {
       "minimal": "9ec64032",
@@ -11755,7 +13275,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-haiku-4-5-20251001": {
       "minimal": "9ec64032",
@@ -11780,7 +13302,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-fable-5": {
       "minimal": "9ec64032",
@@ -11805,7 +13329,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-sonnet-5": {
       "minimal": "9ec64032",
@@ -11830,7 +13356,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-mythos-5": {
       "minimal": "9ec64032",
@@ -11855,7 +13383,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "anthropic/claude-opus-5": {
       "minimal": "9ec64032",
@@ -11880,7 +13410,9 @@
       "serverState": "9ec64032",
       "moderation": "9ec64032",
       "content.audio": "ca484b37",
-      "providerOptions": "9dde0163"
+      "providerOptions": "9dde0163",
+      "content.audioFirst": "13d0db04",
+      "multiTurn.toolRoundTrip": "9ef8c027"
     },
     "openai/gpt-3.5-turbo": {
       "minimal": "d9c84240",
@@ -11905,7 +13437,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-4": {
       "minimal": "d9c84240",
@@ -11930,7 +13464,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-4-turbo": {
       "minimal": "d9c84240",
@@ -11955,7 +13491,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-4.1": {
       "minimal": "d9c84240",
@@ -11980,7 +13518,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5": {
       "minimal": "d9c84240",
@@ -12005,7 +13545,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.1": {
       "minimal": "d9c84240",
@@ -12030,7 +13572,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.2": {
       "minimal": "d9c84240",
@@ -12055,7 +13599,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.4": {
       "minimal": "d9c84240",
@@ -12080,7 +13626,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.5": {
       "minimal": "d9c84240",
@@ -12105,7 +13653,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5-chat-latest": {
       "minimal": "d9c84240",
@@ -12130,7 +13680,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.1-chat-latest": {
       "minimal": "d9c84240",
@@ -12155,7 +13707,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.2-chat-latest": {
       "minimal": "d9c84240",
@@ -12180,7 +13734,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.3-chat-latest": {
       "minimal": "d9c84240",
@@ -12205,7 +13761,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-4.1-mini": {
       "minimal": "d9c84240",
@@ -12230,7 +13788,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5-mini": {
       "minimal": "d9c84240",
@@ -12255,7 +13815,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.4-mini": {
       "minimal": "d9c84240",
@@ -12280,7 +13842,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-4.1-nano": {
       "minimal": "d9c84240",
@@ -12305,7 +13869,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5-nano": {
       "minimal": "d9c84240",
@@ -12330,7 +13896,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.4-nano": {
       "minimal": "d9c84240",
@@ -12355,7 +13923,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5-pro": {
       "minimal": "d9c84240",
@@ -12380,7 +13950,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.2-pro": {
       "minimal": "d9c84240",
@@ -12405,7 +13977,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.4-pro": {
       "minimal": "d9c84240",
@@ -12430,7 +14004,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.5-pro": {
       "minimal": "d9c84240",
@@ -12455,7 +14031,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-4o": {
       "minimal": "d9c84240",
@@ -12480,7 +14058,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-4o-mini": {
       "minimal": "d9c84240",
@@ -12505,7 +14085,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/o1": {
       "minimal": "d9c84240",
@@ -12530,7 +14112,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/o1-pro": {
       "minimal": "d9c84240",
@@ -12555,7 +14139,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/o3": {
       "minimal": "d9c84240",
@@ -12580,7 +14166,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/o3-mini": {
       "minimal": "d9c84240",
@@ -12605,7 +14193,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/o3-pro": {
       "minimal": "d9c84240",
@@ -12630,7 +14220,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/o4-mini": {
       "minimal": "d9c84240",
@@ -12655,7 +14247,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.6-sol": {
       "minimal": "d9c84240",
@@ -12680,7 +14274,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.6-terra": {
       "minimal": "d9c84240",
@@ -12705,7 +14301,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openai/gpt-5.6-luna": {
       "minimal": "d9c84240",
@@ -12730,7 +14328,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "df863fa1"
+      "providerOptions": "df863fa1",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "google/gemini-2.5-pro": {
       "minimal": "5c795dae",
@@ -12755,7 +14355,9 @@
       "serverState": "5c795dae",
       "moderation": "5c795dae",
       "content.audio": "80b3d798",
-      "providerOptions": "031bf5cf"
+      "providerOptions": "031bf5cf",
+      "content.audioFirst": "5323c029",
+      "multiTurn.toolRoundTrip": "d6b252de"
     },
     "google/gemini-3.1-pro-preview": {
       "minimal": "5b981a6c",
@@ -12780,7 +14382,9 @@
       "serverState": "5b981a6c",
       "moderation": "5b981a6c",
       "content.audio": "4374e7d2",
-      "providerOptions": "6c7e1a99"
+      "providerOptions": "6c7e1a99",
+      "content.audioFirst": "89254b7f",
+      "multiTurn.toolRoundTrip": "afcc82dc"
     },
     "google/gemini-3.1-pro-preview-customtools": {
       "minimal": "3c306cd3",
@@ -12805,7 +14409,9 @@
       "serverState": "3c306cd3",
       "moderation": "3c306cd3",
       "content.audio": "998228f1",
-      "providerOptions": "0d960d7e"
+      "providerOptions": "0d960d7e",
+      "content.audioFirst": "9fa35b6c",
+      "multiTurn.toolRoundTrip": "ba23f763"
     },
     "google/gemini-2.5-flash": {
       "minimal": "f102f223",
@@ -12830,7 +14436,9 @@
       "serverState": "f102f223",
       "moderation": "f102f223",
       "content.audio": "83bbd425",
-      "providerOptions": "8cf4a7c2"
+      "providerOptions": "8cf4a7c2",
+      "content.audioFirst": "1d6220a4",
+      "multiTurn.toolRoundTrip": "ee1ef0f3"
     },
     "google/gemini-3-flash-preview": {
       "minimal": "daa673e0",
@@ -12855,7 +14463,9 @@
       "serverState": "daa673e0",
       "moderation": "daa673e0",
       "content.audio": "68fc8a22",
-      "providerOptions": "4dd7bdf1"
+      "providerOptions": "4dd7bdf1",
+      "content.audioFirst": "a45bfea3",
+      "multiTurn.toolRoundTrip": "89a67350"
     },
     "google/gemini-3.5-flash": {
       "minimal": "2ff6c724",
@@ -12880,7 +14490,9 @@
       "serverState": "2ff6c724",
       "moderation": "2ff6c724",
       "content.audio": "dce6418e",
-      "providerOptions": "fc90b4a9"
+      "providerOptions": "fc90b4a9",
+      "content.audioFirst": "de6e4ba3",
+      "multiTurn.toolRoundTrip": "46f13474"
     },
     "google/gemini-2.5-flash-lite": {
       "minimal": "7673e98c",
@@ -12905,7 +14517,9 @@
       "serverState": "7673e98c",
       "moderation": "7673e98c",
       "content.audio": "acd449aa",
-      "providerOptions": "02af1bbf"
+      "providerOptions": "02af1bbf",
+      "content.audioFirst": "b40941bd",
+      "multiTurn.toolRoundTrip": "6b3efcdc"
     },
     "google/gemini-3.1-flash-lite": {
       "minimal": "40bc36b9",
@@ -12930,7 +14544,9 @@
       "serverState": "40bc36b9",
       "moderation": "40bc36b9",
       "content.audio": "8218713f",
-      "providerOptions": "b897f4b2"
+      "providerOptions": "b897f4b2",
+      "content.audioFirst": "af991dd0",
+      "multiTurn.toolRoundTrip": "eb58c3c9"
     },
     "google/gemma-4-26b-a4b-it": {
       "minimal": "f203ef0a",
@@ -12955,7 +14571,9 @@
       "serverState": "f203ef0a",
       "moderation": "f203ef0a",
       "content.audio": "3f96f700",
-      "providerOptions": "e64ddcc3"
+      "providerOptions": "e64ddcc3",
+      "content.audioFirst": "32d049e1",
+      "multiTurn.toolRoundTrip": "31c6d09a"
     },
     "google/gemma-4-31b-it": {
       "minimal": "8067f7ba",
@@ -12980,7 +14598,9 @@
       "serverState": "8067f7ba",
       "moderation": "8067f7ba",
       "content.audio": "a69bae88",
-      "providerOptions": "74399e77"
+      "providerOptions": "74399e77",
+      "content.audioFirst": "2d8d9d7d",
+      "multiTurn.toolRoundTrip": "d1ab956a"
     },
     "google/gemini-3.6-flash": {
       "minimal": "3fe3ac51",
@@ -13005,7 +14625,9 @@
       "serverState": "3fe3ac51",
       "moderation": "3fe3ac51",
       "content.audio": "9692becf",
-      "providerOptions": "4d90071c"
+      "providerOptions": "4d90071c",
+      "content.audioFirst": "9f6874f2",
+      "multiTurn.toolRoundTrip": "069c2b61"
     },
     "google/gemini-3.5-flash-lite": {
       "minimal": "b2f1953d",
@@ -13030,7 +14652,9 @@
       "serverState": "b2f1953d",
       "moderation": "b2f1953d",
       "content.audio": "8331cce3",
-      "providerOptions": "ec1ea636"
+      "providerOptions": "ec1ea636",
+      "content.audioFirst": "778b960c",
+      "multiTurn.toolRoundTrip": "47590d4d"
     },
     "xai/grok-4.20-0309-reasoning": {
       "minimal": "d9c84240",
@@ -13055,7 +14679,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "9694b55f"
+      "providerOptions": "9694b55f",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "xai/grok-4.20-0309-non-reasoning": {
       "minimal": "d9c84240",
@@ -13080,7 +14706,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "9694b55f"
+      "providerOptions": "9694b55f",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "xai/grok-4.20-multi-agent-0309": {
       "minimal": "d9c84240",
@@ -13105,7 +14733,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "9694b55f"
+      "providerOptions": "9694b55f",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "xai/grok-4.3": {
       "minimal": "d9c84240",
@@ -13130,7 +14760,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "9694b55f"
+      "providerOptions": "9694b55f",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "xai/grok-4.5": {
       "minimal": "d9c84240",
@@ -13155,7 +14787,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "9694b55f"
+      "providerOptions": "9694b55f",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openrouter/anthropic/claude-fable-5": {
       "minimal": "4e4ed97a",
@@ -13180,7 +14814,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-opus-4": {
       "minimal": "4e4ed97a",
@@ -13205,7 +14841,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-opus-4.1": {
       "minimal": "4e4ed97a",
@@ -13230,7 +14868,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-opus-4.5": {
       "minimal": "4e4ed97a",
@@ -13255,7 +14895,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-opus-4.6": {
       "minimal": "4e4ed97a",
@@ -13280,7 +14922,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-opus-4.6-fast": {
       "minimal": "4e4ed97a",
@@ -13305,7 +14949,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-opus-4.7": {
       "minimal": "4e4ed97a",
@@ -13330,7 +14976,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-opus-4.7-fast": {
       "minimal": "4e4ed97a",
@@ -13355,7 +15003,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-opus-4.8": {
       "minimal": "4e4ed97a",
@@ -13380,7 +15030,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-opus-4.8-fast": {
       "minimal": "4e4ed97a",
@@ -13405,7 +15057,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-sonnet-4": {
       "minimal": "4e4ed97a",
@@ -13430,7 +15084,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-sonnet-4.5": {
       "minimal": "4e4ed97a",
@@ -13455,7 +15111,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-sonnet-4.6": {
       "minimal": "4e4ed97a",
@@ -13480,7 +15138,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-3-haiku": {
       "minimal": "4e4ed97a",
@@ -13505,7 +15165,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-3.5-haiku": {
       "minimal": "4e4ed97a",
@@ -13530,7 +15192,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-haiku-4.5": {
       "minimal": "4e4ed97a",
@@ -13555,7 +15219,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-3.5-turbo": {
       "minimal": "4e4ed97a",
@@ -13580,7 +15246,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-4": {
       "minimal": "4e4ed97a",
@@ -13605,7 +15273,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-4-turbo": {
       "minimal": "4e4ed97a",
@@ -13630,7 +15300,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-4.1": {
       "minimal": "4e4ed97a",
@@ -13655,7 +15327,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5": {
       "minimal": "4e4ed97a",
@@ -13680,7 +15354,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.1": {
       "minimal": "4e4ed97a",
@@ -13705,7 +15381,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.2": {
       "minimal": "4e4ed97a",
@@ -13730,7 +15408,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.4": {
       "minimal": "4e4ed97a",
@@ -13755,7 +15435,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.5": {
       "minimal": "4e4ed97a",
@@ -13780,7 +15462,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5-chat": {
       "minimal": "4e4ed97a",
@@ -13805,7 +15489,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.1-chat": {
       "minimal": "4e4ed97a",
@@ -13830,7 +15516,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.2-chat": {
       "minimal": "4e4ed97a",
@@ -13855,7 +15543,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.3-chat": {
       "minimal": "4e4ed97a",
@@ -13880,7 +15570,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-4.1-mini": {
       "minimal": "4e4ed97a",
@@ -13905,7 +15597,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5-mini": {
       "minimal": "4e4ed97a",
@@ -13930,7 +15624,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.4-mini": {
       "minimal": "4e4ed97a",
@@ -13955,7 +15651,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-4.1-nano": {
       "minimal": "4e4ed97a",
@@ -13980,7 +15678,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5-nano": {
       "minimal": "4e4ed97a",
@@ -14005,7 +15705,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.4-nano": {
       "minimal": "4e4ed97a",
@@ -14030,7 +15732,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5-pro": {
       "minimal": "4e4ed97a",
@@ -14055,7 +15759,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.2-pro": {
       "minimal": "4e4ed97a",
@@ -14080,7 +15786,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.4-pro": {
       "minimal": "4e4ed97a",
@@ -14105,7 +15813,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.5-pro": {
       "minimal": "4e4ed97a",
@@ -14130,7 +15840,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-4o": {
       "minimal": "4e4ed97a",
@@ -14155,7 +15867,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-4o-mini": {
       "minimal": "4e4ed97a",
@@ -14180,7 +15894,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-oss-20b": {
       "minimal": "4e4ed97a",
@@ -14205,7 +15921,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-oss-120b": {
       "minimal": "4e4ed97a",
@@ -14230,7 +15948,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/o1": {
       "minimal": "4e4ed97a",
@@ -14255,7 +15975,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/o1-pro": {
       "minimal": "4e4ed97a",
@@ -14280,7 +16002,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/o3": {
       "minimal": "4e4ed97a",
@@ -14305,7 +16029,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/o3-mini": {
       "minimal": "4e4ed97a",
@@ -14330,7 +16056,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/o3-pro": {
       "minimal": "4e4ed97a",
@@ -14355,7 +16083,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/o3-deep-research": {
       "minimal": "4e4ed97a",
@@ -14380,7 +16110,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/o4-mini": {
       "minimal": "4e4ed97a",
@@ -14405,7 +16137,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/o4-mini-deep-research": {
       "minimal": "4e4ed97a",
@@ -14430,7 +16164,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemini-2.5-pro": {
       "minimal": "4e4ed97a",
@@ -14455,7 +16191,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemini-3.1-pro-preview": {
       "minimal": "4e4ed97a",
@@ -14480,7 +16218,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemini-3.1-pro-preview-customtools": {
       "minimal": "4e4ed97a",
@@ -14505,7 +16245,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemini-2.5-flash": {
       "minimal": "4e4ed97a",
@@ -14530,7 +16272,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemini-3-flash-preview": {
       "minimal": "4e4ed97a",
@@ -14555,7 +16299,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemini-3.5-flash": {
       "minimal": "4e4ed97a",
@@ -14580,7 +16326,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemini-2.5-flash-lite": {
       "minimal": "4e4ed97a",
@@ -14605,7 +16353,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemini-3.1-flash-lite": {
       "minimal": "4e4ed97a",
@@ -14630,7 +16380,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemma-2-27b-it": {
       "minimal": "4e4ed97a",
@@ -14655,7 +16407,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemma-3-4b-it": {
       "minimal": "4e4ed97a",
@@ -14680,7 +16434,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemma-3-12b-it": {
       "minimal": "4e4ed97a",
@@ -14705,7 +16461,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemma-3-27b-it": {
       "minimal": "4e4ed97a",
@@ -14730,7 +16488,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemma-3n-e4b-it": {
       "minimal": "4e4ed97a",
@@ -14755,7 +16515,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemma-4-26b-a4b-it": {
       "minimal": "4e4ed97a",
@@ -14780,7 +16542,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemma-4-31b-it": {
       "minimal": "4e4ed97a",
@@ -14805,7 +16569,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/x-ai/grok-4.20": {
       "minimal": "4e4ed97a",
@@ -14830,7 +16596,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/x-ai/grok-4.20-multi-agent": {
       "minimal": "4e4ed97a",
@@ -14855,7 +16623,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/x-ai/grok-4.3": {
       "minimal": "4e4ed97a",
@@ -14880,7 +16650,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/deepseek/deepseek-chat": {
       "minimal": "4e4ed97a",
@@ -14905,7 +16677,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/deepseek/deepseek-chat-v3-0324": {
       "minimal": "4e4ed97a",
@@ -14930,7 +16704,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/deepseek/deepseek-chat-v3.1": {
       "minimal": "4e4ed97a",
@@ -14955,7 +16731,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/deepseek/deepseek-v3.2": {
       "minimal": "4e4ed97a",
@@ -14980,7 +16758,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/deepseek/deepseek-v4-flash": {
       "minimal": "4e4ed97a",
@@ -15005,7 +16785,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/deepseek/deepseek-v4-pro": {
       "minimal": "4e4ed97a",
@@ -15030,7 +16812,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/deepseek/deepseek-r1": {
       "minimal": "4e4ed97a",
@@ -15055,7 +16839,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/deepseek/deepseek-r1-distill-llama-70b": {
       "minimal": "4e4ed97a",
@@ -15080,7 +16866,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/deepseek/deepseek-r1-distill-qwen-32b": {
       "minimal": "4e4ed97a",
@@ -15105,7 +16893,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen-2.5-7b-instruct": {
       "minimal": "4e4ed97a",
@@ -15130,7 +16920,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen-2.5-72b-instruct": {
       "minimal": "4e4ed97a",
@@ -15155,7 +16947,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3-8b": {
       "minimal": "4e4ed97a",
@@ -15180,7 +16974,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3-14b": {
       "minimal": "4e4ed97a",
@@ -15205,7 +17001,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3-30b-a3b": {
       "minimal": "4e4ed97a",
@@ -15230,7 +17028,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3-32b": {
       "minimal": "4e4ed97a",
@@ -15255,7 +17055,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3-235b-a22b": {
       "minimal": "4e4ed97a",
@@ -15280,7 +17082,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3-next-80b-a3b-instruct": {
       "minimal": "4e4ed97a",
@@ -15305,7 +17109,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.5-9b": {
       "minimal": "4e4ed97a",
@@ -15330,7 +17136,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.5-27b": {
       "minimal": "4e4ed97a",
@@ -15355,7 +17163,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.5-35b-a3b": {
       "minimal": "4e4ed97a",
@@ -15380,7 +17190,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.5-122b-a10b": {
       "minimal": "4e4ed97a",
@@ -15405,7 +17217,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.5-397b-a17b": {
       "minimal": "4e4ed97a",
@@ -15430,7 +17244,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.6-27b": {
       "minimal": "4e4ed97a",
@@ -15455,7 +17271,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.6-35b-a3b": {
       "minimal": "4e4ed97a",
@@ -15480,7 +17298,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen-plus": {
       "minimal": "4e4ed97a",
@@ -15505,7 +17325,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.5-plus-20260420": {
       "minimal": "4e4ed97a",
@@ -15530,7 +17352,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.6-plus": {
       "minimal": "4e4ed97a",
@@ -15555,7 +17379,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.7-plus": {
       "minimal": "4e4ed97a",
@@ -15580,7 +17406,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3-max": {
       "minimal": "4e4ed97a",
@@ -15605,7 +17433,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.6-max-preview": {
       "minimal": "4e4ed97a",
@@ -15630,7 +17460,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.7-max": {
       "minimal": "4e4ed97a",
@@ -15655,7 +17487,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.5-flash-02-23": {
       "minimal": "4e4ed97a",
@@ -15680,7 +17514,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.6-flash": {
       "minimal": "4e4ed97a",
@@ -15705,7 +17541,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/meta-llama/llama-3-8b-instruct": {
       "minimal": "4e4ed97a",
@@ -15730,7 +17568,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/meta-llama/llama-3-70b-instruct": {
       "minimal": "4e4ed97a",
@@ -15755,7 +17595,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/meta-llama/llama-3.1-8b-instruct": {
       "minimal": "4e4ed97a",
@@ -15780,7 +17622,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/meta-llama/llama-3.1-70b-instruct": {
       "minimal": "4e4ed97a",
@@ -15805,7 +17649,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/meta-llama/llama-3.2-1b-instruct": {
       "minimal": "4e4ed97a",
@@ -15830,7 +17676,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/meta-llama/llama-3.2-3b-instruct": {
       "minimal": "4e4ed97a",
@@ -15855,7 +17703,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/meta-llama/llama-3.3-70b-instruct": {
       "minimal": "4e4ed97a",
@@ -15880,7 +17730,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/meta-llama/llama-4-scout": {
       "minimal": "4e4ed97a",
@@ -15905,7 +17757,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/meta-llama/llama-4-maverick": {
       "minimal": "4e4ed97a",
@@ -15930,7 +17784,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/mistralai/mistral-large": {
       "minimal": "4e4ed97a",
@@ -15955,7 +17811,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/mistralai/mistral-medium-3": {
       "minimal": "4e4ed97a",
@@ -15980,7 +17838,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/mistralai/mistral-small-24b-instruct-2501": {
       "minimal": "4e4ed97a",
@@ -16005,7 +17865,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/mistralai/ministral-3b-2512": {
       "minimal": "4e4ed97a",
@@ -16030,7 +17892,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/mistralai/ministral-8b-2512": {
       "minimal": "4e4ed97a",
@@ -16055,7 +17919,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/mistralai/ministral-14b-2512": {
       "minimal": "4e4ed97a",
@@ -16080,7 +17946,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/mistralai/mistral-nemo": {
       "minimal": "4e4ed97a",
@@ -16105,7 +17973,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/mistralai/mistral-saba": {
       "minimal": "4e4ed97a",
@@ -16130,7 +18000,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/mistralai/mixtral-8x22b-instruct": {
       "minimal": "4e4ed97a",
@@ -16155,7 +18027,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/moonshotai/kimi-k2": {
       "minimal": "4e4ed97a",
@@ -16180,7 +18054,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/moonshotai/kimi-k2.5": {
       "minimal": "4e4ed97a",
@@ -16205,7 +18081,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/moonshotai/kimi-k2.6": {
       "minimal": "4e4ed97a",
@@ -16230,7 +18108,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/z-ai/glm-4.5": {
       "minimal": "4e4ed97a",
@@ -16255,7 +18135,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/z-ai/glm-4.6": {
       "minimal": "4e4ed97a",
@@ -16280,7 +18162,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/z-ai/glm-4.7": {
       "minimal": "4e4ed97a",
@@ -16305,7 +18189,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/z-ai/glm-5": {
       "minimal": "4e4ed97a",
@@ -16330,7 +18216,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/z-ai/glm-5.1": {
       "minimal": "4e4ed97a",
@@ -16355,7 +18243,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/minimax/minimax-01": {
       "minimal": "4e4ed97a",
@@ -16380,7 +18270,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/minimax/minimax-m1": {
       "minimal": "4e4ed97a",
@@ -16405,7 +18297,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/minimax/minimax-m2": {
       "minimal": "4e4ed97a",
@@ -16430,7 +18324,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/minimax/minimax-m2.5": {
       "minimal": "4e4ed97a",
@@ -16455,7 +18351,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/minimax/minimax-m2.7": {
       "minimal": "4e4ed97a",
@@ -16480,7 +18378,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/minimax/minimax-m3": {
       "minimal": "4e4ed97a",
@@ -16505,7 +18405,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nvidia/nemotron-nano-9b-v2:free": {
       "minimal": "4e4ed97a",
@@ -16530,7 +18432,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nvidia/llama-3.3-nemotron-super-49b-v1.5": {
       "minimal": "4e4ed97a",
@@ -16555,7 +18459,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nvidia/nemotron-3-nano-30b-a3b": {
       "minimal": "4e4ed97a",
@@ -16580,7 +18486,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nvidia/nemotron-3-super-120b-a12b": {
       "minimal": "4e4ed97a",
@@ -16605,7 +18513,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nvidia/nemotron-3-ultra-550b-a55b": {
       "minimal": "4e4ed97a",
@@ -16630,7 +18540,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/amazon/nova-micro-v1": {
       "minimal": "4e4ed97a",
@@ -16655,7 +18567,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/amazon/nova-lite-v1": {
       "minimal": "4e4ed97a",
@@ -16680,7 +18594,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/amazon/nova-2-lite-v1": {
       "minimal": "4e4ed97a",
@@ -16705,7 +18621,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/amazon/nova-pro-v1": {
       "minimal": "4e4ed97a",
@@ -16730,7 +18648,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/amazon/nova-premier-v1": {
       "minimal": "4e4ed97a",
@@ -16755,7 +18675,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/cohere/command-r7b-12-2024": {
       "minimal": "4e4ed97a",
@@ -16780,7 +18702,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/cohere/command-r-08-2024": {
       "minimal": "4e4ed97a",
@@ -16805,7 +18729,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/cohere/command-r-plus-08-2024": {
       "minimal": "4e4ed97a",
@@ -16830,7 +18756,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/cohere/command-a": {
       "minimal": "4e4ed97a",
@@ -16855,7 +18783,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/microsoft/phi-4": {
       "minimal": "4e4ed97a",
@@ -16880,7 +18810,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/microsoft/phi-4-mini-instruct": {
       "minimal": "4e4ed97a",
@@ -16905,7 +18837,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/microsoft/wizardlm-2-8x22b": {
       "minimal": "4e4ed97a",
@@ -16930,7 +18864,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nousresearch/hermes-3-llama-3.1-70b": {
       "minimal": "4e4ed97a",
@@ -16955,7 +18891,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nousresearch/hermes-3-llama-3.1-405b": {
       "minimal": "4e4ed97a",
@@ -16980,7 +18918,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nousresearch/hermes-4-70b": {
       "minimal": "4e4ed97a",
@@ -17005,7 +18945,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nousresearch/hermes-4-405b": {
       "minimal": "4e4ed97a",
@@ -17030,7 +18972,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/bytedance-seed/seed-1.6": {
       "minimal": "4e4ed97a",
@@ -17055,7 +18999,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/bytedance-seed/seed-2.0-lite": {
       "minimal": "4e4ed97a",
@@ -17080,7 +19026,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/bytedance-seed/seed-2.0-mini": {
       "minimal": "4e4ed97a",
@@ -17105,7 +19053,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/ai21/jamba-large-1.7": {
       "minimal": "4e4ed97a",
@@ -17130,7 +19080,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/aion-labs/aion-1.0": {
       "minimal": "4e4ed97a",
@@ -17155,7 +19107,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/aion-labs/aion-2.0": {
       "minimal": "4e4ed97a",
@@ -17180,7 +19134,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/allenai/olmo-3-32b-think": {
       "minimal": "4e4ed97a",
@@ -17205,7 +19161,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/arcee-ai/trinity-large-thinking": {
       "minimal": "4e4ed97a",
@@ -17230,7 +19188,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/arcee-ai/trinity-mini": {
       "minimal": "4e4ed97a",
@@ -17255,7 +19215,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/arcee-ai/virtuoso-large": {
       "minimal": "4e4ed97a",
@@ -17280,7 +19242,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/deepcogito/cogito-v2.1-671b": {
       "minimal": "4e4ed97a",
@@ -17305,7 +19269,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/essentialai/rnj-1-instruct": {
       "minimal": "4e4ed97a",
@@ -17330,7 +19296,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/ibm-granite/granite-4.0-h-micro": {
       "minimal": "4e4ed97a",
@@ -17355,7 +19323,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/ibm-granite/granite-4.1-8b": {
       "minimal": "4e4ed97a",
@@ -17380,7 +19350,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/inception/mercury-2": {
       "minimal": "4e4ed97a",
@@ -17405,7 +19377,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/inclusionai/ling-2.6-1t": {
       "minimal": "4e4ed97a",
@@ -17430,7 +19404,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/inclusionai/ling-2.6-flash": {
       "minimal": "4e4ed97a",
@@ -17455,7 +19431,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/inclusionai/ring-2.6-1t": {
       "minimal": "4e4ed97a",
@@ -17480,7 +19458,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/inflection/inflection-3-pi": {
       "minimal": "4e4ed97a",
@@ -17505,7 +19485,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/inflection/inflection-3-productivity": {
       "minimal": "4e4ed97a",
@@ -17530,7 +19512,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/liquid/lfm-2-24b-a2b": {
       "minimal": "4e4ed97a",
@@ -17555,7 +19539,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/liquid/lfm-2.5-1.2b-instruct:free": {
       "minimal": "4e4ed97a",
@@ -17580,7 +19566,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/perceptron/perceptron-mk1": {
       "minimal": "4e4ed97a",
@@ -17605,7 +19593,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/prime-intellect/intellect-3": {
       "minimal": "4e4ed97a",
@@ -17630,7 +19620,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/rekaai/reka-edge": {
       "minimal": "4e4ed97a",
@@ -17655,7 +19647,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/rekaai/reka-flash-3": {
       "minimal": "4e4ed97a",
@@ -17680,7 +19674,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/stepfun/step-3.5-flash": {
       "minimal": "4e4ed97a",
@@ -17705,7 +19701,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/stepfun/step-3.7-flash": {
       "minimal": "4e4ed97a",
@@ -17730,7 +19728,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/tencent/hunyuan-a13b-instruct": {
       "minimal": "4e4ed97a",
@@ -17755,7 +19755,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/tencent/hy3": {
       "minimal": "4e4ed97a",
@@ -17780,7 +19782,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/upstage/solar-pro-3": {
       "minimal": "4e4ed97a",
@@ -17805,7 +19809,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/writer/palmyra-x5": {
       "minimal": "4e4ed97a",
@@ -17830,7 +19836,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/xiaomi/mimo-v2-flash": {
       "minimal": "4e4ed97a",
@@ -17855,7 +19863,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/xiaomi/mimo-v2.5": {
       "minimal": "4e4ed97a",
@@ -17880,7 +19890,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/xiaomi/mimo-v2.5-pro": {
       "minimal": "4e4ed97a",
@@ -17905,7 +19917,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nex-agi/nex-n2-pro:free": {
       "minimal": "4e4ed97a",
@@ -17930,7 +19944,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/aion-labs/aion-rp-llama-3.1-8b": {
       "minimal": "4e4ed97a",
@@ -17955,7 +19971,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthracite-org/magnum-v4-72b": {
       "minimal": "4e4ed97a",
@@ -17980,7 +19998,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/cognitivecomputations/dolphin-mistral-24b-venice-edition:free": {
       "minimal": "4e4ed97a",
@@ -18005,7 +20025,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/gryphe/mythomax-l2-13b": {
       "minimal": "4e4ed97a",
@@ -18030,7 +20052,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/mancer/weaver": {
       "minimal": "4e4ed97a",
@@ -18055,7 +20079,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/sao10k/l3-lunaris-8b": {
       "minimal": "4e4ed97a",
@@ -18080,7 +20106,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/sao10k/l3.1-euryale-70b": {
       "minimal": "4e4ed97a",
@@ -18105,7 +20133,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/thedrummer/cydonia-24b-v4.1": {
       "minimal": "4e4ed97a",
@@ -18130,7 +20160,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/thedrummer/rocinante-12b": {
       "minimal": "4e4ed97a",
@@ -18155,7 +20187,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/thedrummer/skyfall-36b-v2": {
       "minimal": "4e4ed97a",
@@ -18180,7 +20214,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/thedrummer/unslopnemo-12b": {
       "minimal": "4e4ed97a",
@@ -18205,7 +20241,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/undi95/remm-slerp-l2-13b": {
       "minimal": "4e4ed97a",
@@ -18230,7 +20268,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-sonnet-5": {
       "minimal": "4e4ed97a",
@@ -18255,7 +20295,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.6-luna": {
       "minimal": "4e4ed97a",
@@ -18280,7 +20322,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.6-terra": {
       "minimal": "4e4ed97a",
@@ -18305,7 +20349,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.6-sol": {
       "minimal": "4e4ed97a",
@@ -18330,7 +20376,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.6-luna-pro": {
       "minimal": "4e4ed97a",
@@ -18355,7 +20403,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.6-terra-pro": {
       "minimal": "4e4ed97a",
@@ -18380,7 +20430,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/openai/gpt-5.6-sol-pro": {
       "minimal": "4e4ed97a",
@@ -18405,7 +20457,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/x-ai/grok-4.5": {
       "minimal": "4e4ed97a",
@@ -18430,7 +20484,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/z-ai/glm-5.2": {
       "minimal": "4e4ed97a",
@@ -18455,7 +20511,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/aion-labs/aion-3.0-mini": {
       "minimal": "4e4ed97a",
@@ -18480,7 +20538,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/aion-labs/aion-3.0": {
       "minimal": "4e4ed97a",
@@ -18505,7 +20565,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nex-agi/nex-n2-mini": {
       "minimal": "4e4ed97a",
@@ -18530,7 +20592,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/sakana/fugu-ultra": {
       "minimal": "4e4ed97a",
@@ -18555,7 +20619,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-opus-5-fast": {
       "minimal": "4e4ed97a",
@@ -18580,7 +20646,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/anthropic/claude-opus-5": {
       "minimal": "4e4ed97a",
@@ -18605,7 +20673,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemini-3.6-flash": {
       "minimal": "4e4ed97a",
@@ -18630,7 +20700,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/google/gemini-3.5-flash-lite": {
       "minimal": "4e4ed97a",
@@ -18655,7 +20727,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/moonshotai/kimi-k3": {
       "minimal": "4e4ed97a",
@@ -18680,7 +20754,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/inclusionai/ling-3.0-flash:free": {
       "minimal": "4e4ed97a",
@@ -18705,7 +20781,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/meituan/longcat-2.0": {
       "minimal": "4e4ed97a",
@@ -18730,7 +20808,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/thinkingmachines/inkling": {
       "minimal": "4e4ed97a",
@@ -18755,7 +20835,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "google:interactions/gemini-3.1-pro": {
       "minimal": "9033373b",
@@ -18780,7 +20862,9 @@
       "serverState": "f262b7e3",
       "moderation": "9033373b",
       "content.audio": "f900fcd1",
-      "providerOptions": "9033373b"
+      "providerOptions": "9033373b",
+      "content.audioFirst": "bc375758",
+      "multiTurn.toolRoundTrip": "75b816c0"
     },
     "google/gemini-3.7-flash": {
       "minimal": "0de60d9e",
@@ -18805,7 +20889,9 @@
       "serverState": "0de60d9e",
       "moderation": "0de60d9e",
       "content.audio": "99088214",
-      "providerOptions": "f67f3197"
+      "providerOptions": "f67f3197",
+      "content.audioFirst": "f76725f5",
+      "multiTurn.toolRoundTrip": "d6f7a26e"
     },
     "xai/grok-4.6": {
       "minimal": "d9c84240",
@@ -18830,7 +20916,9 @@
       "serverState": "2c33d51f",
       "moderation": "461eeb37",
       "content.audio": "d882d12b",
-      "providerOptions": "9694b55f"
+      "providerOptions": "9694b55f",
+      "content.audioFirst": "634d429a",
+      "multiTurn.toolRoundTrip": "c7db0f24"
     },
     "openrouter/google/gemini-3.7-flash": {
       "minimal": "4e4ed97a",
@@ -18855,7 +20943,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/x-ai/grok-4.6": {
       "minimal": "4e4ed97a",
@@ -18880,7 +20970,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.8-27b": {
       "minimal": "4e4ed97a",
@@ -18905,7 +20997,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.8-2.4t-a95b": {
       "minimal": "4e4ed97a",
@@ -18930,7 +21024,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.8-max": {
       "minimal": "4e4ed97a",
@@ -18955,7 +21051,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/qwen/qwen3.7-flash": {
       "minimal": "4e4ed97a",
@@ -18980,7 +21078,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/z-ai/glm-5.3": {
       "minimal": "4e4ed97a",
@@ -19005,7 +21105,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/bytedance-seed/seed-2-1-turbo": {
       "minimal": "4e4ed97a",
@@ -19030,7 +21132,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/liquid/lfm-2.5-2.6b:free": {
       "minimal": "4e4ed97a",
@@ -19055,7 +21159,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/upstage/solar-pro4": {
       "minimal": "4e4ed97a",
@@ -19080,7 +21186,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/stealth/ox-alpha": {
       "minimal": "4e4ed97a",
@@ -19105,7 +21213,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/tencent/hy-mt2-1.8b": {
       "minimal": "4e4ed97a",
@@ -19130,7 +21240,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/tencent/hy-mt2-30b-a3b": {
       "minimal": "4e4ed97a",
@@ -19155,7 +21267,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/tencent/hy-mt2-7b": {
       "minimal": "4e4ed97a",
@@ -19180,7 +21294,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/dots-studio/dots-3-note-preview:free": {
       "minimal": "4e4ed97a",
@@ -19205,7 +21321,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/nvidia/nemotron-3.5-lightning": {
       "minimal": "4e4ed97a",
@@ -19230,7 +21348,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     },
     "openrouter/thinkingmachines/inkling-small": {
       "minimal": "4e4ed97a",
@@ -19255,7 +21375,9 @@
       "serverState": "4e4ed97a",
       "moderation": "b51d27cd",
       "content.audio": "3a79fdf5",
-      "providerOptions": "1d7cbd18"
+      "providerOptions": "1d7cbd18",
+      "content.audioFirst": "605f5a10",
+      "multiTurn.toolRoundTrip": "24335db6"
     }
   }
 }

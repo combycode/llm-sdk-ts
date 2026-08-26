@@ -56,8 +56,14 @@ import pkg from '../package.json' with { type: 'json' };
 const OUT = resolve(import.meta.dir, '../tests/fixtures/wire-golden.json');
 const force = process.argv.includes('--force');
 const addNew = process.argv.includes('--add-new');
+// --add-shapes is --add-new's counterpart for SHAPES: capture only shapes the
+// index does not already carry, and leave every frozen cell untouched. Needed
+// because a shape added now cannot have a 2.3.0 baseline -- the hand-written
+// adapters that would have produced one are gone -- so re-freezing wholesale
+// would silently relabel the entire corpus as "whatever the specs do today".
+const addShapes = process.argv.includes('--add-shapes');
 
-if (existsSync(OUT) && !force && !addNew) {
+if (existsSync(OUT) && !force && !addNew && !addShapes) {
   console.error(
     `refusing to overwrite ${OUT}\n` +
       `A golden corpus is only worth what it was frozen from. Re-freezing after a\n` +
@@ -93,18 +99,20 @@ catalog.loadProviderDefaults();
 const subjects = subjectsFrom(catalog.list() as ModelInfo[], adapters);
 
 // --add-new starts from what is already frozen and only appends.
-const prior = addNew && existsSync(OUT)
+const prior = (addNew || addShapes) && existsSync(OUT)
   ? (JSON.parse(readFileSync(OUT, 'utf8')) as {
       bodies: Record<string, unknown>;
       index: Record<string, Record<string, string>>;
       frozenAt?: string;
       addedLater?: Record<string, string>;
+      shapesAddedLater?: Record<string, string>;
     })
   : undefined;
 
 const bodies: Record<string, unknown> = { ...(prior?.bodies ?? {}) };
 const index: Record<string, Record<string, string>> = { ...(prior?.index ?? {}) };
 const addedLater: Record<string, string> = { ...(prior?.addedLater ?? {}) };
+const shapesAddedLater: Record<string, string> = { ...(prior?.shapesAddedLater ?? {}) };
 const priorBodyCount = Object.keys(bodies).length;
 let added = 0;
 let count = 0;
@@ -116,8 +124,11 @@ for (const s of subjects) {
     added++;
     addedLater[key] = pkg.version;
   }
-  index[key] = {};
+  // --add-shapes keeps the existing cells for this model and fills only the gaps.
+  index[key] = addShapes ? { ...(index[key] ?? {}) } : {};
   for (const shape of SHAPES) {
+    if (addShapes && index[key][shape.name] !== undefined) continue;
+    if (addShapes) shapesAddedLater[shape.name] ??= pkg.version;
     const wire = onWire(s.adapter.buildRequest(shape.req(s.model) as never));
     // Factor the model id out so "same request, different model" stores once. The
     // placeholder is put back before comparing, so nothing is lost.
@@ -146,6 +157,10 @@ const out = {
   // Their baseline is that version, not the original one — worth knowing when a
   // diff shows up on one of them.
   ...(Object.keys(addedLater).length ? { addedLater } : {}),
+  // Shapes captured after the freeze. Their baseline is the version named here,
+  // NOT `frozenAt` -- they are a regression guard and a cross-language
+  // reference, not evidence about pre-migration behaviour.
+  ...(Object.keys(shapesAddedLater).length ? { shapesAddedLater } : {}),
   shapes: SHAPES.map((s) => s.name),
   counts: { models: Object.keys(index).length, shapes: SHAPES.length, bodies: count, distinct: Object.keys(bodies).length },
   bodies,

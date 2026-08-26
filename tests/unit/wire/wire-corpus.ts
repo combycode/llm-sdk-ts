@@ -176,6 +176,66 @@ export const SHAPES: Shape[] = [
       },
     }),
   },
+
+  // ── shapes the corpus was BLIND to ─────────────────────────────────────────
+  // Found by mutation: each rule below was deliberately broken and all 7,084
+  // frozen cases stayed green — in this library and in the Python port. They are
+  // not exotic. They are the second turn of an ordinary conversation, and every
+  // shape above is a first turn.
+  //
+  // Captured after 2.3.0, so their baseline is the version recorded in
+  // `shapesAddedLater`, not the original freeze. That makes them a regression
+  // guard and a cross-language reference — NOT evidence about pre-migration
+  // behaviour, and they must never be read as such.
+  {
+    // Audio BEFORE text. `content.audio` already orders text first, so the rule
+    // that moves audio last is a no-op there and could be deleted unnoticed —
+    // while gpt-audio given audio first answers "please play the audio" instead
+    // of following the instruction.
+    name: 'content.audioFirst',
+    req: (model) => ({
+      model,
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'audio', source: { type: 'base64', mimeType: 'audio/wav', data: 'UklGRg==' } },
+            { type: 'text', text: 'what does this say' },
+          ],
+        },
+      ],
+      audio: { voice: 'alloy', format: 'wav' },
+    }),
+  },
+  {
+    // A complete tool round-trip across three messages. Exercises what no
+    // single-turn shape can: a result naming the call that produced it (state
+    // threaded ACROSS messages), the assistant→model role mapping, argument
+    // serialisation, and Gemini's thought signature, which must round-trip
+    // verbatim or the next turn is rejected.
+    name: 'multiTurn.toolRoundTrip',
+    req: (model) => ({
+      model,
+      messages: [
+        { role: 'user', content: 'weather in Paris?' },
+        {
+          role: 'assistant',
+          content: [
+            { type: 'text', text: 'Let me check.' },
+            {
+              type: 'tool_call',
+              id: 'call_1',
+              name: 'get_weather',
+              arguments: { city: 'Paris' },
+              _meta: { thoughtSignature: 'sig_abc' },
+            },
+          ],
+        },
+        { role: 'tool', content: [{ type: 'tool_result', id: 'call_1', content: 'sunny' }] },
+      ],
+      tools: [FN],
+    }),
+  },
 ];
 
 export interface Adapterish {
