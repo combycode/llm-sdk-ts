@@ -26,6 +26,7 @@ import {
   type Usage,
 } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
+import { extractCitations } from '../_shared/citations';
 import { AUDIO_PCM16_SAMPLE_RATE_HZ } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
 import { sseJson } from '../_shared/sse';
@@ -288,6 +289,7 @@ export class GoogleAdapter implements ProviderAdapter {
       }
     }
 
+    const citations = extractCitations('generate', raw);
     return {
       // generateContent DOES return an id — `responseId`, at the top level. The
       // fallback stays for older payloads, but minting one unconditionally made
@@ -306,6 +308,7 @@ export class GoogleAdapter implements ProviderAdapter {
       toolCalls,
       thinking,
       media,
+      ...(citations.length ? { citations } : {}),
       ...(files.length ? { files } : {}),
       ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
       latencyMs,

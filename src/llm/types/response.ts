@@ -28,6 +28,17 @@ export interface CompletionResponse {
    *  ran them server-side; nothing for the client to execute). Absent when none. */
   builtinToolCalls?: BuiltinToolCall[];
 
+  /** Sources the answer cited, unified across providers.
+   *
+   *  Distinct from `builtinToolCalls`, which records what the model INVOKED: a turn
+   *  can run three searches and cite one page, or open a page and cite nothing.
+   *  Rendering footnotes needs this list, not that one.
+   *
+   *  Absent when the model cited nothing — R3: a response type grows by OPTIONAL
+   *  fields only, so this cannot be the always-present array the Python port
+   *  exposes. Read it as `response.citations ?? []`. */
+  citations?: Citation[];
+
   /** Inline-moderation outcome, when the `moderation` request option was used.
    *  Report-only: present for observability; it never blocks the call. Absent when
    *  moderation was not requested. */
@@ -71,6 +82,20 @@ export interface FileOutput {
    *  file is fetched by `id` (e.g. OpenAI container files set `{ containerId }`).
    *  Absent for providers that don't need extra context. */
   ref?: Record<string, unknown>;
+}
+
+/** A source the answer cited.
+ *
+ *  Four providers report these four different ways — Anthropic on the text block,
+ *  Google in `groundingMetadata`, OpenAI as annotations, xAI as bare top-level URLs.
+ *  The differences stop at the adapter. */
+export interface Citation {
+  url: string;
+  /** Page title, when the provider supplies one. */
+  title?: string;
+  /** The passage the source supports. Only Anthropic reports this today; absent
+   *  elsewhere rather than faked from the answer text. */
+  text?: string;
 }
 
 /** A hosted builtin tool the model invoked (provider-run), with its inputs/outputs. */

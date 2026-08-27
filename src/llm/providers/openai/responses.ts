@@ -28,6 +28,7 @@ import {
   type FileOutput,
   type Usage,
 } from '../../types/response';
+import { extractCitations } from '../_shared/citations';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
 import { parseNativeModeration } from '../../moderation/native';
@@ -572,6 +573,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
 
     const moderation = parseNativeModeration(r.moderation);
 
+    const citations = extractCitations('responses', raw);
     return {
       id: r.id as string,
       model: (r.model as string) ?? '',
@@ -582,6 +584,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       toolCalls,
       thinking,
       media,
+      ...(citations.length ? { citations } : {}),
       ...(files.length ? { files } : {}),
       ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
       ...(moderation ? { moderation } : {}),

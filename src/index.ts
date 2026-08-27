@@ -96,6 +96,7 @@ export type { FunctionTool, BuiltinTool, McpToolParams, Tool, ToolChoice, JsonSc
 export { emptyUsage } from './llm/types/response';
 export type {
   BuiltinToolCall,
+  Citation,
   CompletionResponse,
   FileOutput,
   FinishReason,

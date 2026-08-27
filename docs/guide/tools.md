@@ -227,6 +227,15 @@ adapter also re-sends the provider items the program is bound to, which the API 
 that single call (an error result to the model, plus an `onWarning` with code
 `tool_caller_not_allowed`) instead of ending the run.
 
+**Sources a hosted search cited** are on `response.citations` (`Citation[]` -- `{ url, title?,
+text? }`), unified across the four ways providers report them: Anthropic on the text block (the only
+one that also gives the cited passage, as `text`), Google in `groundingMetadata`, OpenAI Responses
+and Chat as `url_citation` annotations, xAI as bare top-level URLs. It is distinct from
+`builtinToolCalls`, which records what the model *invoked* -- a turn can run three searches and cite
+one page. Optional, so read it as `response.citations ?? []`; through an agent run the sources
+accumulate across every step and are deduped by URL. Not available on `stream()`, which holds no raw
+provider payload. Google's Interactions surface is not mapped yet and always reports none.
+
 Files a hosted tool produces (e.g. code-execution charts or data files) are surfaced
 uniformly on `response.files` (`FileOutput[]` — `{ id?, name?, mimeType?, data?, url?, ref?, source? }`),
 independent of generated `media`. You don't fetch per-provider — `retrieveFile(file)` /

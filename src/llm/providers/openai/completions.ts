@@ -17,6 +17,7 @@ import {
 import type { StreamEvent } from '../../types/stream';
 import { parseNativeModeration } from '../../moderation/native';
 import { openaiBilledTier, } from './tiers';
+import { extractCitations } from '../_shared/citations';
 import { extractFinishReason } from '../_shared/response-utils';
 import { sseJson } from '../_shared/sse';
 
@@ -274,6 +275,7 @@ export class OpenAIAdapter implements ProviderAdapter {
 
     const moderation = parseNativeModeration(r.moderation);
 
+    const citations = extractCitations('completions', raw);
     return {
       id: r.id as string,
       model: r.model as string,
@@ -283,6 +285,7 @@ export class OpenAIAdapter implements ProviderAdapter {
       text,
       toolCalls,
       media,
+      ...(citations.length ? { citations } : {}),
       thinking: reasoningContent,
       ...(moderation ? { moderation } : {}),
       latencyMs,

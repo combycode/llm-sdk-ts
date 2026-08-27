@@ -21,7 +21,13 @@ import {
 } from '../llm/types/messages';
 import type { ExecuteOptions } from '../llm/types/options';
 import type { CacheConfig, ThinkingConfig } from '../llm/types/request';
-import { emptyUsage, type CompletionResponse, type FileOutput, type Usage } from '../llm/types/response';
+import {
+  emptyUsage,
+  type Citation,
+  type CompletionResponse,
+  type FileOutput,
+  type Usage,
+} from '../llm/types/response';
 import type { FileStream, RetrievedFile } from '../llm/files/retrieve';
 import type { LLMClient } from '../llm/client';
 import { buildAssistantMessage, parseStructured as parseStructuredText } from '../llm/client-internal';
@@ -348,6 +354,7 @@ export class AgentLoop {
     totalUsage: Usage;
     lastResponse: CompletionResponse | null;
     media: CompletionResponse['media'];
+    citations: Citation[];
     raw: CompletionResponse['raw'];
   }): CompletionResponse {
     const last = args.lastResponse;
@@ -377,6 +384,8 @@ export class AgentLoop {
       // final LLM response (e.g. code-execution files produced during the run).
       ...(last?.files ? { files: last.files } : {}),
       ...(last?.builtinToolCalls ? { builtinToolCalls: last.builtinToolCalls } : {}),
+      // Every step's sources, not just the final step's — see the accumulator.
+      ...(args.citations.length ? { citations: args.citations } : {}),
       ...(last?.moderation ? { moderation: last.moderation } : {}),
       latencyMs: performance.now() - args.startPerf,
       raw: args.raw,
@@ -457,6 +466,12 @@ export class AgentLoop {
     let stepCount = 0;
     let toolCallCount = 0;
     let lastResponse: CompletionResponse | null = null;
+    // Citations ACCUMULATE across steps, unlike `files` / `builtinToolCalls`,
+    // which take the last response only. A run can search in step 1 and answer
+    // in step 3; keeping only the last step's sources drops the ones the answer
+    // is actually built on. Deduped by url — the same page cited twice is one
+    // source, and a footnote list that repeats it is wrong.
+    const citationsByUrl = new Map<string, Citation>();
     let reason: 'done' | 'stopped' | 'error' | 'guardrail' | 'max_steps' = 'done';
     let errorMsg: string | undefined;
     // Original thrown error, re-thrown by complete()/stream() so a failed run never
@@ -513,6 +528,7 @@ export class AgentLoop {
         const stepLatency = performance.now() - stepStart;
         totalLlmTimeMs += stepLatency;
         addUsage(totalUsage, lastResponse.usage);
+        for (const cite of lastResponse.citations ?? []) citationsByUrl.set(cite.url, cite);
 
         // Recoverable model failure (malformed tool call and friends): feed the model structured
         // guidance and let it try again, instead of ending the run on a mistake it could fix. The
@@ -653,6 +669,7 @@ export class AgentLoop {
       totalUsage,
       lastResponse,
       media: lastResponse?.media ?? [],
+      citations: [...citationsByUrl.values()],
       raw: lastResponse?.raw ?? null,
     });
 
@@ -877,6 +894,7 @@ export class AgentLoop {
       finalContent,
       totalUsage,
       lastResponse,
+      citations: [],
       // The streaming path already emitted media as events, and never holds a
       // raw provider payload.
       media: [],

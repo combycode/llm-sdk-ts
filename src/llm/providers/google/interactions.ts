@@ -25,6 +25,7 @@ import {
   type Usage,
 } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
+import { extractCitations } from '../_shared/citations';
 import { AUDIO_PCM16_SAMPLE_RATE_HZ } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
 import { sseJson } from '../_shared/sse';
@@ -251,6 +252,7 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
       in_progress: 'pending',
     });
 
+    const citations = extractCitations('interactions', raw);
     return {
       id: (r.id as string) ?? crypto.randomUUID(),
       model: '',
@@ -260,6 +262,7 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
       text,
       toolCalls,
       media,
+      ...(citations.length ? { citations } : {}),
       thinking,
       latencyMs,
       raw,

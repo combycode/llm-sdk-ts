@@ -22,6 +22,7 @@ import type { Registry } from '../../../wire/interpreter';
 import { chatSpec, isChatSpec } from '../../../wire/chat-specs';
 import { pinFor, ANTHROPIC_MESSAGE_PINS } from '../../../wire/pins';
 import { makeRegistry } from '../../wire-transforms';
+import { extractCitations } from '../_shared/citations';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
 import { extractFinishReason } from '../_shared/response-utils';
@@ -303,6 +304,7 @@ export class AnthropicAdapter implements ProviderAdapter {
       refusal: 'content_filter',
     });
 
+    const citations = extractCitations('messages', raw);
     return {
       id: r.id as string,
       model: r.model as string,
@@ -315,6 +317,7 @@ export class AnthropicAdapter implements ProviderAdapter {
         .join(''),
       toolCalls,
       media: [],
+      ...(citations.length ? { citations } : {}),
       ...(files.length ? { files } : {}),
       ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
       thinking,

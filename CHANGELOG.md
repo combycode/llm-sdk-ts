@@ -6,6 +6,24 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+### Added
+
+- **`response.citations` — the sources an answer cited, unified across providers.** Reaching them
+  meant regexing `response.raw`; the SDK's own web-search example did exactly that, which is every
+  consumer reimplementing provider knowledge that belongs here. Four wire shapes are read: Anthropic's
+  text-block `citations[]` (the only provider that also reports the cited passage), Google's
+  `groundingMetadata.groundingChunks[]`, OpenAI Responses/Chat `url_citation` annotations, and xAI's
+  bare top-level `citations[]`.
+
+  Distinct from `builtinToolCalls`, which records what the model *invoked*: a turn can run three
+  searches and cite one page. Through an agent run the sources **accumulate across steps**, deduped
+  by URL — a run that searches in step 1 and answers in step 3 keeps the sources its answer rests on.
+  Optional per R3 (`response.citations ?? []`); absent on `stream()`, which holds no raw payload, and
+  on Google's Interactions surface, whose grounding shape has not been measured.
+
+  Verified live on Anthropic, OpenAI, Google, xAI and OpenRouter: 5/5 providers return real cited
+  URLs for the web-search scenario, which previously reported `no-citation` on all five.
+
 ## [3.1.0] — 2026-08-25
 
 ### Added
