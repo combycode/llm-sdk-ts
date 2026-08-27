@@ -728,6 +728,9 @@ export class AgentLoop {
     let finalText = '';
     let finalContent: ContentPart[] = [];
     let lastResponse: CompletionResponse | null = null;
+    // Same reason as the buffered loop: sources cited in an early step belong to
+    // the answer a later step gives. Deduped by url.
+    const citationsByUrl = new Map<string, Citation>();
     let reason: 'done' | 'stopped' | 'error' | 'guardrail' | 'max_steps' = 'done';
     let errorMsg: string | undefined;
     // Original thrown error, re-thrown by complete()/stream() so a failed run never
@@ -796,6 +799,7 @@ export class AgentLoop {
         finalContent = content;
         finalText = state.stepText;
         lastResponse = stepResponse;
+        for (const cite of stepResponse.citations ?? []) citationsByUrl.set(cite.url, cite);
 
         // Provenance-stamped (see the non-stream path) but keep the streamed content.
         this._history.append(
@@ -894,7 +898,7 @@ export class AgentLoop {
       finalContent,
       totalUsage,
       lastResponse,
-      citations: [],
+      citations: [...citationsByUrl.values()],
       // The streaming path already emitted media as events, and never holds a
       // raw provider payload.
       media: [],

@@ -38,6 +38,7 @@ export function makeStepState(): StepState {
     toolCallAccum: new Map<string, ToolCallAccumEntry>(),
     stepUsage: emptyUsage(),
     stepFinishReason: 'stop',
+    stepCitations: new Map(),
   };
 }
 
@@ -89,6 +90,13 @@ export function accumulateStreamEvent(
       }
       return null;
     }
+
+    case 'citation':
+      // Collected, not forwarded: `AgentStreamEvent` is a deliberately narrow set
+      // (it carries no `file` or `builtin_tool_end` either), and the sources reach
+      // the caller on the final response's `citations`.
+      state.stepCitations.set(event.citation.url, event.citation);
+      return null;
 
     case 'usage':
       state.stepUsage = event.usage;
@@ -167,6 +175,7 @@ export function buildStepResponse(
     toolCalls: state.stepToolCalls,
     thinking: state.stepThinking || null,
     media: [],
+    ...(state.stepCitations.size ? { citations: [...state.stepCitations.values()] } : {}),
     latencyMs: stepLatency,
     raw: null,
   };

@@ -2,7 +2,7 @@
  *  Passed through stream-event helpers so they don't fight closure state. */
 
 import type { ToolCallPart } from '../llm/types/messages';
-import type { Usage } from '../llm/types/response';
+import type { Citation, Usage } from '../llm/types/response';
 
 /** Accumulation bucket for one in-progress tool call (before tool_call_end). */
 export interface ToolCallAccumEntry {
@@ -22,4 +22,8 @@ export interface StepState {
   toolCallAccum: Map<string, ToolCallAccumEntry>;
   stepUsage: Usage;
   stepFinishReason: string;
+  /** Sources cited during this step, keyed by url. A Map rather than an array
+   *  because Google repeats its grounding chunks across late chunks, and one page
+   *  cited twice is one source. */
+  stepCitations: Map<string, Citation>;
 }

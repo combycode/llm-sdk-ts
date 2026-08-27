@@ -119,6 +119,32 @@ describe('agent loop citations', () => {
     ]);
   });
 
+  it('the STREAMING path accumulates them too', async () => {
+    // A second composer with its own accumulator: the streamed run builds each
+    // step's response from StepState, not from a parsed body, so it needed
+    // wiring separately. It reported none until it was.
+    const client = {
+      id: 'mock', provider: 'mock', model: 'm', system: undefined, hooks: new HookBus(),
+      api: 'completions', mode: 'foreground', batchable: false,
+      async complete(): Promise<CompletionResponse> {
+        throw new Error('not used');
+      },
+      async *stream() {
+        yield { type: 'citation', citation: { url: 'https://s.example', title: 'S' } };
+        yield { type: 'text', text: 'answer' };
+        yield { type: 'citation', citation: { url: 'https://s.example', title: 'S' } };
+        yield { type: 'done', finishReason: 'stop' };
+      },
+      destroy() {},
+    } as unknown as LLMClient;
+
+    let final: CompletionResponse | undefined;
+    for await (const ev of new AgentLoop({ client }).stream('go')) {
+      if (ev.type === 'done') final = ev.response;
+    }
+    expect(final?.citations).toEqual([{ url: 'https://s.example', title: 'S' }]);
+  });
+
   it('stays absent when nothing was cited', async () => {
     const res = await new AgentLoop({ client: clientScripted([{}]) }).complete('go');
     expect(res.citations).toBeUndefined();

@@ -21,8 +21,16 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   Optional per R3 (`response.citations ?? []`); absent on `stream()`, which holds no raw payload, and
   on Google's Interactions surface, whose grounding shape has not been measured.
 
-  Verified live on Anthropic, OpenAI, Google, xAI and OpenRouter: 5/5 providers return real cited
-  URLs for the web-search scenario, which previously reported `no-citation` on all five.
+  **Streaming reports them too**, as a `citation` StreamEvent per source, collected onto the streamed
+  final response so `stream()` and `complete()` agree. Four more measured shapes, since a stream never
+  assembles the body the buffered reader parses: Anthropic `citations_delta`, Responses
+  `response.output_text.annotation.added` (OpenAI and xAI), chat-completions `delta.annotations`, and
+  Google's *late* populated `groundingMetadata` chunk — the first one carrying that key is empty, so
+  latching on first sight would report a search and no sources.
+
+  Verified live on Anthropic, OpenAI, Google, xAI and OpenRouter, buffered and streamed: 5/5 providers
+  return real cited URLs for the web-search scenario, which previously reported `no-citation` on all
+  five. Note Google reports each source as a `grounding-api-redirect` URL, not the page itself.
 
 ## [3.1.0] — 2026-08-25
 

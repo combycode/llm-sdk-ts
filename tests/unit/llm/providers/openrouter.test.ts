@@ -105,14 +105,19 @@ describe('OpenRouterAdapter (Chat Completions)', () => {
       choices: [{ delta: { annotations: [{ type: 'url_citation', url_citation: { url: 'https://x' } }] } }],
     });
     expect(withCite).toEqual([
+      // The SOURCE is reported alongside the search marker: `builtin_tool_*` says
+      // a search ran, the citation says what the answer leaned on.
+      { type: 'citation', citation: { url: 'https://x' } },
       { type: 'builtin_tool_start', tool: 'web_search' },
       { type: 'builtin_tool_end', tool: 'web_search' },
     ]);
-    // Only once per stream.
+    // The web_search marker fires ONCE per stream -- but every further annotation
+    // is a different source and must still come through. Suppressing those with
+    // the marker would silently cap a cited answer at one footnote.
     const again = chunk({
       choices: [{ delta: { annotations: [{ type: 'url_citation', url_citation: { url: 'https://y' } }] } }],
     });
-    expect(again).toEqual([]);
+    expect(again).toEqual([{ type: 'citation', citation: { url: 'https://y' } }]);
   });
 });
 

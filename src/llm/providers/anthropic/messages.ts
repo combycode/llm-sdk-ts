@@ -350,6 +350,25 @@ export class AnthropicAdapter implements ProviderAdapter {
       if (delta.type === 'text_delta') return [{ type: 'text', text: delta.text as string }];
       if (delta.type === 'thinking_delta')
         return [{ type: 'thinking', text: delta.thinking as string }];
+      if (delta.type === 'citations_delta') {
+        // The citation the ANSWER makes, which is not the same as the search
+        // results in the `web_search_tool_result` block: the model retrieves
+        // several pages and cites some of them.
+        const cite = (delta.citation as Record<string, unknown>) ?? {};
+        const url = cite.url as string | undefined;
+        return url
+          ? [
+              {
+                type: 'citation',
+                citation: {
+                  url,
+                  ...(cite.title ? { title: cite.title as string } : {}),
+                  ...(cite.cited_text ? { text: cite.cited_text as string } : {}),
+                },
+              },
+            ]
+          : [];
+      }
       if (delta.type === 'input_json_delta') {
         // A server_tool_use input is accumulated (attached to builtin_tool_end); a
         // regular function tool_use streams its arguments as tool_call_delta.

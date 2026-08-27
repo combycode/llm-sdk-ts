@@ -2,7 +2,7 @@
 
 import type { ModerationEntry } from '../moderation/types';
 import type { AssistantPhase } from './messages';
-import type { FileOutput, Usage } from './response';
+import type { Citation, FileOutput, Usage } from './response';
 
 export type MediaStreamType = 'image' | 'audio' | 'video';
 
@@ -31,6 +31,16 @@ export type StreamEvent =
    *  not the bytes — fetch those via `retrieveFile` / `streamFile`. The same file
    *  is also collected onto the streamed final response's `files`. */
   | { type: 'file'; file: FileOutput }
+  /** The answer cited a source. Emitted as the citation arrives, which is NOT
+   *  when the search ran: a provider searches early and cites while it writes, so
+   *  these interleave with `text` deltas. Distinct from `builtin_tool_end`, which
+   *  reports the search itself.
+   *
+   *  Measured shapes: Anthropic `citations_delta`, OpenAI/xAI Responses
+   *  `response.output_text.annotation.added`, chat-completions `delta.annotations`,
+   *  Google's populated `groundingMetadata` chunk. Also collected onto the streamed
+   *  final response's `citations`, deduped by url. */
+  | { type: 'citation'; citation: Citation }
   /** A hosted (provider-run) builtin tool began executing server-side — e.g. the
    *  model started a web search or code-execution run. `tool` is the unified name
    *  (`'web_search'` | `'code_interpreter'` | …). Informational progress: unlike

@@ -599,6 +599,20 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     const type = data.type as string;
     const events: StreamEvent[] = [];
 
+    if (type === 'response.output_text.annotation.added') {
+      const note = (data.annotation as Record<string, unknown>) ?? {};
+      if (note.type === 'url_citation' && note.url) {
+        events.push({
+          type: 'citation',
+          citation: {
+            url: note.url as string,
+            ...(note.title ? { title: note.title as string } : {}),
+          },
+        });
+      }
+      return events;
+    }
+
     if (type === 'response.output_text.delta') {
       // `item_id` says WHICH output item this delta belongs to — a turn can interleave
       // deltas from several items, so pass it through for consumers that reassemble

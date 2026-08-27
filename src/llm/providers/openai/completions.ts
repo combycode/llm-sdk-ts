@@ -328,6 +328,26 @@ export class OpenAIAdapter implements ProviderAdapter {
       events.push({ type: 'text', text: delta.content as string });
     }
 
+    // Measured on OpenRouter `:online`: annotations arrive on their own chunks,
+    // one per chunk, BEFORE the text that cites them. `url_citation.content` is
+    // the whole scraped page and is deliberately not mapped to `text`, which
+    // elsewhere means the short passage the source supports.
+    for (const note of (delta.annotations as Array<Record<string, unknown>>) ?? []) {
+      const detail = ((note.url_citation as Record<string, unknown>) ?? note) as Record<
+        string,
+        unknown
+      >;
+      if (note.type === 'url_citation' && detail.url) {
+        events.push({
+          type: 'citation',
+          citation: {
+            url: detail.url as string,
+            ...(detail.title ? { title: detail.title as string } : {}),
+          },
+        });
+      }
+    }
+
     // Correlate streamed tool-call fragments by `index` (the wire id, when present,
     // only arrives on the first delta; arg fragments omit it). OpenAI-compatible
     // backends (some OpenRouter routes, LiteLLM/Bedrock) may omit the id entirely —

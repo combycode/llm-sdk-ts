@@ -233,8 +233,28 @@ one that also gives the cited passage, as `text`), Google in `groundingMetadata`
 and Chat as `url_citation` annotations, xAI as bare top-level URLs. It is distinct from
 `builtinToolCalls`, which records what the model *invoked* -- a turn can run three searches and cite
 one page. Optional, so read it as `response.citations ?? []`; through an agent run the sources
-accumulate across every step and are deduped by URL. Not available on `stream()`, which holds no raw
-provider payload. Google's Interactions surface is not mapped yet and always reports none.
+accumulate across every step and are deduped by URL. Google's Interactions surface is not mapped yet
+and always reports none.
+
+Note that Google reports each source as a `vertexaisearch.cloud.google.com/grounding-api-redirect/…`
+URL rather than the page itself -- that is what the provider returns, and it redirects to the real
+source. The other four report the page URL directly.
+
+**Streaming reports them as they arrive.** `stream()` yields a `citation` event per source, and the
+same sources land on the streamed final response's `citations`, so the two call styles agree:
+
+```ts
+for await (const ev of llm.stream(messages, { tools: [{ type: 'web_search' }] })) {
+  if (ev.type === 'text') process.stdout.write(ev.text);
+  if (ev.type === 'citation') footnotes.push(ev.citation);
+}
+```
+
+A citation arrives when the model cites it, which is *not* when the search ran -- providers search
+early and cite while writing, so `citation` events interleave with `text`. Raw events are passed
+through exactly as the provider sent them, repeats included (Google resends its grounding chunks);
+deduplication by URL happens where the final response is assembled, so a consumer rendering live
+footnotes still sees everything that arrived.
 
 Files a hosted tool produces (e.g. code-execution charts or data files) are surfaced
 uniformly on `response.files` (`FileOutput[]` — `{ id?, name?, mimeType?, data?, url?, ref?, source? }`),

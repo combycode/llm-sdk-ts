@@ -78,6 +78,59 @@ const usageEvent: StreamEvent = {
   },
 };
 
+describe('LLMClient.stream — citations', () => {
+  it('collects them onto the streamed final response, deduped by url', async () => {
+    // The point of collecting: `stream()` and `complete()` must agree about what
+    // the answer cited. They used to differ — streamed responses reported none —
+    // which makes the choice of call style change the result.
+    const hooks = new HookBus();
+    const completions: Array<{ response: CompletionResponse }> = [];
+    hooks.on('onCompletion', (c) => {
+      completions.push(c as never);
+    });
+
+    const client = makeClient(
+      hooks,
+      streamOf([
+        { type: 'citation', citation: { url: 'https://a.example', title: 'A' } },
+        { type: 'text', text: 'hi' },
+        // Google resends its grounding chunks; one page cited twice is one source.
+        { type: 'citation', citation: { url: 'https://a.example', title: 'A' } },
+        { type: 'citation', citation: { url: 'https://b.example' } },
+        usageEvent,
+        { type: 'done', finishReason: 'stop' },
+      ]),
+    );
+
+    const streamed: string[] = [];
+    for await (const ev of client.stream('hi')) {
+      if (ev.type === 'citation') streamed.push(ev.citation.url);
+    }
+
+    // Raw events pass through unchanged — a consumer rendering footnotes live
+    // sees each as it arrives, including the repeat.
+    expect(streamed).toEqual(['https://a.example', 'https://a.example', 'https://b.example']);
+    expect(completions[0].response.citations).toEqual([
+      { url: 'https://a.example', title: 'A' },
+      { url: 'https://b.example' },
+    ]);
+  });
+
+  it('stays absent when the stream cited nothing', async () => {
+    const hooks = new HookBus();
+    const completions: Array<{ response: CompletionResponse }> = [];
+    hooks.on('onCompletion', (c) => {
+      completions.push(c as never);
+    });
+    const client = makeClient(
+      hooks,
+      streamOf([{ type: 'text', text: 'hi' }, usageEvent, { type: 'done', finishReason: 'stop' }]),
+    );
+    for await (const _ of client.stream('hi')) { /* drained */ }
+    expect(completions[0].response.citations).toBeUndefined();
+  });
+});
+
 describe('LLMClient.stream — onCompletion', () => {
   it('emits onCompletion once at the end with accumulated text + usage', async () => {
     const hooks = new HookBus();

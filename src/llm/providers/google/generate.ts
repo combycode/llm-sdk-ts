@@ -412,6 +412,24 @@ export class GoogleAdapter implements ProviderAdapter {
       }
     }
 
+    // Grounding chunks arrive on ONE late chunk, not spread across the stream —
+    // the first `groundingMetadata` seen is usually `{}`, and the populated one
+    // comes near the end. So this reads whichever chunk actually has them rather
+    // than latching on first sight the way the start/end pair below does.
+    for (const chunk of ((candidate.groundingMetadata as Record<string, unknown>)
+      ?.groundingChunks as Array<Record<string, unknown>>) ?? []) {
+      const web = (chunk.web as Record<string, unknown>) ?? {};
+      if (web.uri) {
+        events.push({
+          type: 'citation',
+          citation: {
+            url: web.uri as string,
+            ...(web.title ? { title: web.title as string } : {}),
+          },
+        });
+      }
+    }
+
     // Web search (googleSearch grounding) has no per-call stream markers — surface
     // one start/end pair the first time grounding metadata appears in the stream.
     if (candidate.groundingMetadata && !state.webSearchEmitted) {

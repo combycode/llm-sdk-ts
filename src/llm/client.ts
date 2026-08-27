@@ -43,6 +43,7 @@ import type { NormalizedRequest } from './types/request';
 import { emptyUsage } from './types/response';
 import type {
   BuiltinToolCall,
+  Citation,
   CompletionResponse,
   FileOutput,
   FinishReason,
@@ -588,6 +589,9 @@ export class LLMClient {
     let moderationReport: ModerationReport | undefined;
     const files: FileOutput[] = [];
     const builtinToolCalls: BuiltinToolCall[] = [];
+    // Deduped by url: Google repeats its grounding chunks on more than one late
+    // chunk, and a model that cites one page twice is still one source.
+    const citationsByUrl = new Map<string, Citation>();
 
     // Raw provider events (the unwrapped stream). Output-moderation wrappers and
     // the accumulation loop below both consume from here.
@@ -657,6 +661,11 @@ export class LLMClient {
           // final response so streamed `response.files` matches complete().
           files.push(event.file);
           break;
+        case 'citation':
+          // Same reason as `file`: streamed `response.citations` must match what
+          // complete() returns, or which call style you used changes the answer.
+          citationsByUrl.set(event.citation.url, event.citation);
+          break;
         case 'builtin_tool_end':
           // Durable trail of provider-run builtin tools (parity with complete()) —
           // collected on END, which carries the full payload (code/output/query).
@@ -696,6 +705,7 @@ export class LLMClient {
       media: [],
       ...(files.length ? { files } : {}),
       ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
+      ...(citationsByUrl.size ? { citations: [...citationsByUrl.values()] } : {}),
       ...(moderationReport ? { moderation: moderationReport } : {}),
       latencyMs: performance.now() - start,
       raw: null,
