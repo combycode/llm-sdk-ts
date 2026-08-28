@@ -1,7 +1,7 @@
 {
   "id": "xai/batch.addRequests",
   "extends": "xai/batch.base",
-  "_note": "Step 2 of submit. Step 1 creates the batch and is NOT modelled: its body embeds Date.now(), so the request is not reproducible. See report 039 A3.",
+  "_note": "Step 2 of submit: the batch opened in step 1 is filled here. batch_request is a TAGGED UNION whose variant name is the KEY -- {responses: <body>}, never {endpoint: 'responses', body: <body>}. Measured live 2026-08-28: the endpoint-field form is rejected 422 with 'unknown variant endpoint, expected one of chat_get_completion, responses, image_generation, image_edit, video_generation, video_extension'. That form had never been sent to xAI, here or in the TypeScript adapter this spec came from.",
   "envelope": {
     "method": "POST",
     "url": { "$join": [{ "$config": "baseURL" }, "/v1/batches/", { "$": "batchId" }, "/requests"] },
@@ -17,7 +17,7 @@
           {
             "value": {
               "batch_request_id": { "$": "@customId" },
-              "batch_request": { "endpoint": "responses", "body": { "$": "@body" } }
+              "batch_request": { "responses": { "$": "@body" } }
             }
           }
         ]

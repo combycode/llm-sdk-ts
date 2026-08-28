@@ -97,11 +97,6 @@ export class XAIBatchAdapter implements BatchProviderAdapter {
     const batch = (createRes.body as Record<string, unknown>) ?? {};
     const batchId = (batch.batch_id as string) ?? (batch.id as string);
 
-    const _batchRequests = requests.map((r) => ({
-      batch_request_id: r.customId,
-      batch_request: { endpoint: 'responses', body: r.body },
-    }));
-
     const addRes = await fetch(this.buildAddRequestsRequest(batchId, requests));
     if (addRes.status >= 400)
       throw new Error(`xAI batch add requests failed: ${JSON.stringify(addRes.body)}`);

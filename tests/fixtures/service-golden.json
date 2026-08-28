@@ -1,6 +1,6 @@
 {
-  "_doc": "What the embeddings and seamless-media adapters sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed. REFROZEN 2026-08-23 for one deliberate change: the Google API key moved out of the URL and into the x-goog-api-key header. 21 artifacts across the two corpora changed and every one differs ONLY in that way, checked pairwise against the previous fixture; the key set is identical. Verified live first \u2014 google files, image, tts and batch all pass with header auth.",
-  "frozenAtCommit": "959608fe5e89d2df73d70e5176a493fc3e874114",
+  "_doc": "What the embeddings and seamless-media adapters sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed. REFROZEN 2026-08-23 for one deliberate change: the Google API key moved out of the URL and into the x-goog-api-key header. 21 artifacts across the two corpora changed and every one differs ONLY in that way, checked pairwise against the previous fixture; the key set is identical. Verified live first - google files, image, tts and batch all pass with header auth. REFROZEN 2026-08-28 for one deliberate change: xai batch_request is a tagged union whose variant name is the KEY, so {endpoint: 'responses', body} became {responses: body}. Exactly two artifacts changed and both differ only in that way. Measured live - the old form is rejected 422 as an unknown variant, so this corpus had frozen a request xAI has never accepted.",
+  "frozenAtCommit": "dece5b4434d0f22a89748f89b686bdba210ca01c",
   "counts": {
     "cases": 84
   },
@@ -854,7 +854,7 @@
         "batch_requests": [
           {
             "batch_request": {
-              "body": {
+              "responses": {
                 "messages": [
                   {
                     "content": "hi",
@@ -862,14 +862,13 @@
                   }
                 ],
                 "model": "m"
-              },
-              "endpoint": "responses"
+              }
             },
             "batch_request_id": "r1"
           },
           {
             "batch_request": {
-              "body": {
+              "responses": {
                 "messages": [
                   {
                     "content": "yo",
@@ -877,8 +876,7 @@
                   }
                 ],
                 "model": "m"
-              },
-              "endpoint": "responses"
+              }
             },
             "batch_request_id": "r2"
           }
