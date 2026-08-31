@@ -91,3 +91,50 @@ describe('listModelsLive', () => {
     expect(a).toEqual(b);
   });
 });
+
+// ─── the browser opt-in header ──────────────────────────────────────────────
+
+import { buildFromSpec } from '../../../src/wire/interpreter';
+import { makeRegistry } from '../../../src/llm/wire-transforms';
+import { utilitySpec } from '../../../src/wire/utility-specs';
+
+/**
+ * Anthropic refuses a browser request without an explicit opt-in header. The
+ * chat path sends it (messages.ts) and so do the anthropic files specs, but
+ * models.list LOST it when this request moved to a spec: the header had lived
+ * in the helper's own LiveSpec.headers table, which nothing called any more.
+ * A browser listing models would have been rejected by CORS.
+ */
+describe('anthropic models.list carries the browser opt-in', () => {
+  function headersFor(input: Record<string, unknown>): Record<string, string> {
+    const built = buildFromSpec(
+      utilitySpec('anthropic/models.list'),
+      input as never,
+      makeRegistry({}),
+      'anthropic',
+      undefined,
+      { apiKey: 'k', apiVersion: '2023-06-01' },
+    ) as unknown as { headers: Record<string, string> };
+    return built.headers;
+  }
+
+  it('sends it in a browser', () => {
+    expect(headersFor({ browser: true })['anthropic-dangerous-direct-browser-access']).toBe('true');
+  });
+
+  it('does NOT send it elsewhere', () => {
+    // The header names an exception; an exception nobody needs should not be
+    // asked for.
+    expect(headersFor({ browser: false })).not.toHaveProperty(
+      'anthropic-dangerous-direct-browser-access',
+    );
+  });
+
+  it('still sends the auth and version headers either way', () => {
+    for (const browser of [true, false]) {
+      const h = headersFor({ browser });
+      expect(h['x-api-key']).toBe('k');
+      expect(h['anthropic-version']).toBe('2023-06-01');
+    }
+  });
+});

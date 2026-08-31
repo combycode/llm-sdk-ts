@@ -188,6 +188,9 @@ describe('every helper resolves the id the same way', () => {
     });
   }
 
+  // 15s, not the 5s default: this one drives three independent request builders
+  // and lands at ~5s on its own, so under a loaded parallel run it times out and
+  // reads as a failure. The work is real, not a hang.
   it('embed, moderate and transcribe translate their own model too', async () => {
     // Non-chat endpoints build their requests independently, which is exactly how
     // one of them ends up being the only path that forgets.
@@ -205,7 +208,7 @@ describe('every helper resolves the id the same way', () => {
       engine,
     }).catch(() => {});
     expect(wire()).toBeTruthy();
-  });
+  }, 15_000);
 
   it('realtime resolves before it connects', () => {
     // The gap this block was written to catch: createRealtime parsed the provider

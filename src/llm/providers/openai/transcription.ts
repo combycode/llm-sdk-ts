@@ -120,40 +120,6 @@ export class OpenAITranscriptionAdapter {
   }
 }
 
-/** Multipart body. Arrays repeat the key with a `[]` suffix — the scalar spelling
- *  (`languages=en`) is accepted and then silently ignored, so it must not be used. */
-function _buildForm(req: TranscriptionRequest): FormData {
-  if (req.wordTimestamps && req.diarization) {
-    throw new Error(
-      'transcribe: wordTimestamps and diarization cannot be combined — they select different ' +
-        'OpenAI response formats (verbose_json vs diarized_json), and no model serves both.',
-    );
-  }
-
-  const form = new FormData();
-  // Cast: TS narrows Uint8Array<ArrayBufferLike> out of BlobPart (SharedArrayBuffer
-  // concern); the bytes are a plain Uint8Array at runtime.
-  const blob = new Blob([req.bytes as unknown as BlobPart], { type: req.mimeType });
-  form.append('file', blob, filenameFor(req.mimeType));
-  form.append('model', req.model);
-  if (req.language) form.append('language', req.language);
-  for (const code of req.languages ?? []) form.append('languages[]', code);
-  for (const keyword of req.keywords ?? []) form.append('keywords[]', keyword);
-
-  // Every option below is model-gated upstream, and we forward it rather than
-  // dropping it for the "wrong" model: a 400 naming the parameter is a far better
-  // outcome than silently transcribing without what the caller asked for
-  // (CONSTITUTION.md R4 — gating is internal, but silence is not a gate).
-  if (req.diarization) {
-    form.append('response_format', 'diarized_json');
-  } else if (req.wordTimestamps) {
-    form.append('response_format', 'verbose_json');
-    form.append('timestamp_granularities[]', 'segment');
-    form.append('timestamp_granularities[]', 'word');
-  }
-  return form;
-}
-
 interface RawTranscription {
   text?: string;
   duration?: number;

@@ -5,18 +5,13 @@ import { buildFromSpec } from '../../../wire/interpreter';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec } from '../../../wire/chat-specs';
 import { makeRegistry } from '../../wire-transforms';
-import type { AudioFormat } from '../../types/audio';
 import type { ContentPart, MediaOutputPart, TextPart, ToolCallPart } from '../../types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import type { NormalizedRequest } from '../../types/request';
-import {
-  emptyUsage,
-  type CompletionResponse,
-  type Usage,
-} from '../../types/response';
+import { emptyUsage, type CompletionResponse, type Usage } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
 import { parseNativeModeration } from '../../moderation/native';
-import { openaiBilledTier, } from './tiers';
+import { openaiBilledTier } from './tiers';
 import { extractCitations } from '../_shared/citations';
 import { extractFinishReason } from '../_shared/response-utils';
 import { sseJson } from '../_shared/sse';
@@ -36,13 +31,6 @@ function docFilenameForMime(mimeType: string): string {
   if (mimeType === 'application/pdf') return 'file.pdf';
   if (mimeType === 'text/plain') return 'file.txt';
   return 'file.bin';
-}
-
-/** OpenAI chat audio OUTPUT format. Supports wav/mp3/flac/opus/pcm16; aac is not
- *  supported there, so it falls back to wav. */
-function _toOpenAIAudioFormat(format: AudioFormat | undefined): string {
-  if (!format || format === 'aac') return 'wav';
-  return format;
 }
 
 /** Per-stream state threaded through `createStreamParser` — maps a streamed
@@ -103,10 +91,7 @@ export class OpenAIAdapter implements ProviderAdapter {
    *  "No tool output found for function call <id>" — so parallel tools were broken on
    *  every chat-completions backend. */
   /** Reached through the wire registry while building the request. */
-  buildMessages(msg: {
-    role: string;
-    content: string | ContentPart[];
-  }): Record<string, unknown>[] {
+  buildMessages(msg: { role: string; content: string | ContentPart[] }): Record<string, unknown>[] {
     if (msg.role === 'tool') {
       const parts =
         typeof msg.content === 'string'
@@ -129,7 +114,6 @@ export class OpenAIAdapter implements ProviderAdapter {
     role: string;
     content: string | ContentPart[];
   }): Record<string, unknown> {
-
     if (msg.role === 'assistant') {
       const parts =
         typeof msg.content === 'string'
@@ -263,11 +247,11 @@ export class OpenAIAdapter implements ProviderAdapter {
       toolCalls.push(parsed);
     }
 
-    const finishReason = extractFinishReason(
-      toolCalls.length > 0,
-      choice.finish_reason as string,
-      { tool_calls: 'tool_use', length: 'length', content_filter: 'content_filter' },
-    );
+    const finishReason = extractFinishReason(toolCalls.length > 0, choice.finish_reason as string, {
+      tool_calls: 'tool_use',
+      length: 'length',
+      content_filter: 'content_filter',
+    });
 
     // OpenAI Chat Completions hides reasoning text (only token count available).
     // But some OpenAI-compatible providers (DeepSeek, xAI) return it as reasoning_content.

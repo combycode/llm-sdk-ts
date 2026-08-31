@@ -38,7 +38,6 @@ export interface ListModelsLiveOptions {
 
 interface LiveSpec {
   url: string;
-  headers: (key: string) => Record<string, string>;
   /** Provider response body → array of raw model objects. */
   items: (body: Record<string, unknown>) => Array<Record<string, unknown>>;
   /** raw object → callable id. */
@@ -48,37 +47,26 @@ interface LiveSpec {
 const LIVE: Partial<Record<ProviderName, LiveSpec>> = {
   openai: {
     url: 'https://api.openai.com/v1/models',
-    headers: (k) => ({ authorization: `Bearer ${k}` }),
     items: (b) => (b.data as Array<Record<string, unknown>>) ?? [],
     id: (m) => m.id as string,
   },
   openrouter: {
     url: 'https://openrouter.ai/api/v1/models',
-    headers: (k) => ({ authorization: `Bearer ${k}` }),
     items: (b) => (b.data as Array<Record<string, unknown>>) ?? [],
     id: (m) => m.id as string,
   },
   xai: {
     url: 'https://api.x.ai/v1/models',
-    headers: (k) => ({ authorization: `Bearer ${k}` }),
     items: (b) => (b.data as Array<Record<string, unknown>>) ?? [],
     id: (m) => m.id as string,
   },
   anthropic: {
     url: 'https://api.anthropic.com/v1/models',
-    // Mirror the chat adapter: Anthropic rejects browser requests without the
-    // explicit opt-in header, so the /models call must send it too.
-    headers: (k) => ({
-      'x-api-key': k,
-      'anthropic-version': ANTHROPIC_API_VERSION,
-      ...(isBrowser() ? { 'anthropic-dangerous-direct-browser-access': 'true' } : {}),
-    }),
     items: (b) => (b.data as Array<Record<string, unknown>>) ?? [],
     id: (m) => m.id as string,
   },
   google: {
     url: 'https://generativelanguage.googleapis.com/v1beta/models',
-    headers: (k) => ({ 'x-goog-api-key': k }),
     items: (b) => (b.models as Array<Record<string, unknown>>) ?? [],
     id: (m) => (m.name as string).replace(/^models\//, ''),
   },
@@ -191,7 +179,9 @@ async function fetchLiveBody(opts: ListModelsLiveOptions): Promise<Record<string
   const p = (async () => {
     const built = buildFromSpec(
       utilitySpec(`${opts.provider}/models.list`),
-      {} as never,
+      // Anthropic refuses a browser request without an explicit opt-in header,
+      // and the spec asks for `browser` to decide whether to send it.
+      { browser: isBrowser() } as never,
       makeRegistry({}),
       opts.provider,
       undefined,

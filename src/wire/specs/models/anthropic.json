@@ -19,6 +19,14 @@
         "value": {
           "$config": "apiVersion"
         }
+      },
+      {
+        "name": "anthropic-dangerous-direct-browser-access",
+        "value": "true",
+        "_note": "Only in a browser, where the request is otherwise blocked by CORS. The chat path sends it (messages.ts) and so do the files specs; models.list lost it when this request moved to a spec, because the header lived in the helper's own table.",
+        "when": {
+          "truthy": "browser"
+        }
       }
     ]
   }

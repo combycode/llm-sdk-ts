@@ -26,11 +26,10 @@ import type {
 
 const RT_REGISTRY = makeRegistry({});
 import { BaseRealtimeSession } from '../../realtime/session';
-import { base64ToBytes, } from '../../../util/base64';
+import { base64ToBytes } from '../../../util/base64';
 import type { Usage } from '../../types/response';
 import type {
   RealtimeInput,
-  RealtimeModality,
   RealtimeProviderAdapter,
   RealtimeSession,
   RealtimeSessionConfig,
@@ -72,11 +71,6 @@ export class GoogleRealtimeAdapter implements RealtimeProviderAdapter {
   connect(config: RealtimeSessionConfig, connect: EngineConnect): RealtimeSession {
     return new GoogleRealtimeSession(connect(this.buildConnectRequest(config)), config);
   }
-}
-
-/** Map our modalities to Gemini's response-modality enum strings. */
-function _toResponseModalities(mods: RealtimeModality[] | undefined): string[] {
-  return (mods ?? ['text']).map((m) => (m === 'audio' ? 'AUDIO' : 'TEXT'));
 }
 
 /** The handshake frame. Pure: a function of the session config, so it can be
