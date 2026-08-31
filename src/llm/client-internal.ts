@@ -124,8 +124,19 @@ export function buildContext(client: LLMClient, options: ExecuteOptions): Reques
   return ctx;
 }
 
-export function resolveApi(provider: ProviderName, api?: ApiType | 'auto'): ApiType {
+export function resolveApi(
+  provider: ProviderName,
+  api?: ApiType | 'auto',
+  /** The catalog's per-model preference, when the model is a known one. */
+  preferred?: ApiType | null,
+): ApiType {
   if (api && api !== 'auto') return api;
+  // A model's own preference beats the provider default. The catalog has carried
+  // `preferredApi` per model from the start and nothing consulted it here, so
+  // every OpenAI model routed to Responses — including the six that cannot use
+  // it. `gpt-audio` came back "not supported with the Responses API"; the three
+  // *-search models are Chat Completions-only for the same reason.
+  if (preferred) return preferred;
   const defaults: Record<ProviderName, ApiType> = {
     anthropic: 'messages',
     openai: 'responses',

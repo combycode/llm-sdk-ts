@@ -2506,7 +2506,7 @@
       "inputPerMTok": 2.5,
       "outputPerMTok": 10
     },
-    "preferredApi": "responses",
+    "preferredApi": "completions",
     "supportedApis": [
       "responses",
       "completions"
@@ -2521,7 +2521,7 @@
       "audio": true,
       "video": false,
       "imageGeneration": false,
-      "audioGeneration": false,
+      "audioGeneration": true,
       "videoGeneration": false
     },
     "reasoning": {
@@ -2537,7 +2537,8 @@
       "audio"
     ],
     "outputModalities": [
-      "text"
+      "text",
+      "audio"
     ],
     "family": "gpt-audio",
     "version": "1",
@@ -2565,7 +2566,7 @@
       "audioInputPerMTok": 32,
       "audioOutputPerMTok": 64
     },
-    "preferredApi": "responses",
+    "preferredApi": "completions",
     "supportedApis": [
       "responses",
       "completions"
@@ -2580,7 +2581,7 @@
       "audio": true,
       "video": false,
       "imageGeneration": false,
-      "audioGeneration": false,
+      "audioGeneration": true,
       "videoGeneration": false
     },
     "reasoning": {
@@ -2596,7 +2597,8 @@
       "audio"
     ],
     "outputModalities": [
-      "text"
+      "text",
+      "audio"
     ],
     "family": "gpt-audio",
     "version": "1.5",
@@ -2620,7 +2622,7 @@
       "inputPerMTok": 0.6,
       "outputPerMTok": 2.4
     },
-    "preferredApi": "responses",
+    "preferredApi": "completions",
     "supportedApis": [
       "responses",
       "completions"
@@ -2635,7 +2637,7 @@
       "audio": true,
       "video": false,
       "imageGeneration": false,
-      "audioGeneration": false,
+      "audioGeneration": true,
       "videoGeneration": false
     },
     "reasoning": {
@@ -2651,7 +2653,8 @@
       "audio"
     ],
     "outputModalities": [
-      "text"
+      "text",
+      "audio"
     ],
     "family": "gpt-audio",
     "version": "1",

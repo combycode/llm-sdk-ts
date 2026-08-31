@@ -113,6 +113,27 @@ export interface ResponseScenario {
   /** Model override. `media.audio` needs `gpt-audio`; the target's own model
    *  cannot produce the shape. */
   model?: string;
+  /** A shape that CANNOT be obtained from a live provider on demand.
+   *
+   *  A provider does not fail to order, and provoking a real 200-with-failure
+   *  means either abusing a safety filter or waiting for an outage. The parse
+   *  branches for it are real and were completely uncovered, so the body is
+   *  CONSTRUCTED — from the target's own recorded envelope, with only the
+   *  failure fields changed, and every changed field traceable to the official
+   *  SDK type named in `provenance`.
+   *
+   *  These cells are marked `synthetic: true` in the corpus so nothing mistakes
+   *  them for evidence of what a provider actually sent. */
+  synthetic?: {
+    /** Scenario whose RECORDED raw envelope this starts from. Using a real
+     *  envelope means every field except the failure itself is genuine, and it
+     *  tracks the provider when that recording is refreshed. */
+    from: string;
+    /** Where the constructed fields come from. Cite a type, not a belief. */
+    provenance: string;
+    /** Per-target transform of the recorded envelope. */
+    build: Record<string, (raw: Record<string, unknown>) => unknown>;
+  };
   /** `LLMClient.complete(input, options)` — the same two arguments a caller
    *  passes, so a recording exercises the production path and nothing else. */
   input: string;
@@ -242,6 +263,61 @@ export const RESPONSE_SCENARIOS: ResponseScenario[] = [
     input: 'Reply with exactly: OK',
     options: { maxTokens: 16, moderation: { input: true, output: true } },
   },
+
+  {
+    name: 'error',
+    streaming: false,
+    // Both adapters carry a branch for a failure reported INSIDE a 200, where
+    // there is no exception to catch: OpenAI Responses maps `status:'failed'` to
+    // finishReason 'error' and lifts `response.error` into `CompletionResponse.error`;
+    // Google Interactions maps its own `status:'failed'` the same way. Without
+    // this the caller sees an empty success.
+    targets: ['openai/responses', 'google/interactions'],
+    input: '(synthetic)',
+    options: {},
+    synthetic: {
+      from: 'text',
+      provenance:
+        'openai-ts 7.4.0 `ResponseError` (code is a closed enum; `server_error` is a member) ' +
+        'with `Response.status: ResponseStatus` = failed. google/interactions status per our ' +
+        'own adapter mapping, matching the recorded envelope key `status`.',
+      build: {
+        'openai/responses': (raw) => ({
+          ...raw,
+          status: 'failed',
+          error: { code: 'server_error', message: 'The model failed to generate a response.' },
+          incomplete_details: null,
+          output: [],
+        }),
+        'google/interactions': (raw) => ({ ...raw, status: 'failed', steps: [] }),
+      },
+    },
+  },
+  {
+    name: 'error.content_filter',
+    streaming: false,
+    // A DIFFERENT branch: `status:'incomplete'` with `incomplete_details.reason`
+    // of 'content_filter' must not be reported as a length truncation, which is
+    // what the shared finish-reason table would otherwise do.
+    targets: ['openai/responses'],
+    input: '(synthetic)',
+    options: {},
+    synthetic: {
+      from: 'text',
+      provenance:
+        'openai-ts 7.4.0 `Response.incomplete_details` + `Response.status` = incomplete. ' +
+        'Distinguished from max_output_tokens, which maps to length.',
+      build: {
+        'openai/responses': (raw) => ({
+          ...raw,
+          status: 'incomplete',
+          incomplete_details: { reason: 'content_filter' },
+          error: null,
+          output: [],
+        }),
+      },
+    },
+  },
 ];
 
 /** Does this scenario apply to this target? */
@@ -277,6 +353,11 @@ export interface ResponseCell {
   api?: ApiKind;
   streaming: boolean;
   recordedAt: string;
+  /** Present and true only for CONSTRUCTED bodies. Absent means a provider sent
+   *  these exact bytes. */
+  synthetic?: true;
+  /** For synthetic cells: what was changed and on whose authority. */
+  provenance?: string;
   raw: unknown;
   parsed: unknown;
 }

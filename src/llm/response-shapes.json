@@ -548,6 +548,7 @@
         ],
         "status": [
           "completed",
+          "failed",
           "requires_action"
         ],
         "steps[].content[].type": [
@@ -1031,9 +1032,12 @@
         "completed_at",
         "created_at",
         "error",
+        "error.code",
+        "error.message",
         "frequency_penalty",
         "id",
         "incomplete_details",
+        "incomplete_details.reason",
         "instructions",
         "max_output_tokens",
         "max_tool_calls",
@@ -1384,7 +1388,9 @@
           "web_search_call"
         ],
         "status": [
-          "completed"
+          "completed",
+          "failed",
+          "incomplete"
         ],
         "text.format.schema.properties.city.type": [
           "string"

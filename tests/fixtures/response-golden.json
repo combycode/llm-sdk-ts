@@ -10421,5 +10421,475 @@
         "system_fingerprint": "fp_44018e235b"
       }
     }
+  },
+  "openai/responses::error": {
+    "target": "openai/responses",
+    "scenario": "error",
+    "provider": "openai",
+    "model": "gpt-5.4-nano",
+    "api": "responses",
+    "streaming": false,
+    "recordedAt": "2026-08-31",
+    "synthetic": true,
+    "provenance": "openai-ts 7.4.0 `ResponseError` (code is a closed enum; `server_error` is a member) with `Response.status: ResponseStatus` = failed. google/interactions status per our own adapter mapping, matching the recorded envelope key `status`.",
+    "raw": {
+      "id": "resp_096b442ec1d76e0d006a8c27cc098087d2bebaa8d01f837298",
+      "object": "response",
+      "created_at": 1787570124,
+      "status": "failed",
+      "background": false,
+      "billing": {
+        "payer": "developer"
+      },
+      "completed_at": 1787570124,
+      "error": {
+        "code": "server_error",
+        "message": "The model failed to generate a response."
+      },
+      "frequency_penalty": 0,
+      "incomplete_details": null,
+      "instructions": null,
+      "max_output_tokens": 16,
+      "max_tool_calls": null,
+      "model": "gpt-5.4-nano-2026-03-17",
+      "moderation": null,
+      "output": [],
+      "parallel_tool_calls": true,
+      "presence_penalty": 0,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": "24h",
+      "reasoning": {
+        "context": "current_turn",
+        "effort": "none",
+        "mode": "standard",
+        "summary": null
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "store": true,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text"
+        },
+        "verbosity": "medium"
+      },
+      "tool_choice": "auto",
+      "tool_usage": {
+        "image_gen": {
+          "input_tokens": 0,
+          "input_tokens_details": {
+            "image_tokens": 0,
+            "text_tokens": 0
+          },
+          "output_tokens": 0,
+          "output_tokens_details": {
+            "image_tokens": 0,
+            "text_tokens": 0
+          },
+          "total_tokens": 0
+        },
+        "web_search": {
+          "num_requests": 0
+        }
+      },
+      "tools": [],
+      "top_logprobs": 0,
+      "top_p": 0.98,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 11,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 5,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 16
+      },
+      "user": null,
+      "metadata": {}
+    },
+    "parsed": {
+      "id": "resp_096b442ec1d76e0d006a8c27cc098087d2bebaa8d01f837298",
+      "model": "gpt-5.4-nano-2026-03-17",
+      "content": [],
+      "finishReason": "error",
+      "usage": {
+        "inputTokens": 11,
+        "outputTokens": 5,
+        "totalTokens": 16,
+        "cachedTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "serviceTier": "default",
+        "pricingTier": "standard"
+      },
+      "text": "",
+      "toolCalls": [],
+      "thinking": null,
+      "media": [],
+      "error": {
+        "code": "server_error",
+        "message": "The model failed to generate a response."
+      },
+      "latencyMs": 0,
+      "raw": {
+        "id": "resp_096b442ec1d76e0d006a8c27cc098087d2bebaa8d01f837298",
+        "object": "response",
+        "created_at": 1787570124,
+        "status": "failed",
+        "background": false,
+        "billing": {
+          "payer": "developer"
+        },
+        "completed_at": 1787570124,
+        "error": {
+          "code": "server_error",
+          "message": "The model failed to generate a response."
+        },
+        "frequency_penalty": 0,
+        "incomplete_details": null,
+        "instructions": null,
+        "max_output_tokens": 16,
+        "max_tool_calls": null,
+        "model": "gpt-5.4-nano-2026-03-17",
+        "moderation": null,
+        "output": [],
+        "parallel_tool_calls": true,
+        "presence_penalty": 0,
+        "previous_response_id": null,
+        "prompt_cache_key": null,
+        "prompt_cache_retention": "24h",
+        "reasoning": {
+          "context": "current_turn",
+          "effort": "none",
+          "mode": "standard",
+          "summary": null
+        },
+        "safety_identifier": null,
+        "service_tier": "default",
+        "store": true,
+        "temperature": 1,
+        "text": {
+          "format": {
+            "type": "text"
+          },
+          "verbosity": "medium"
+        },
+        "tool_choice": "auto",
+        "tool_usage": {
+          "image_gen": {
+            "input_tokens": 0,
+            "input_tokens_details": {
+              "image_tokens": 0,
+              "text_tokens": 0
+            },
+            "output_tokens": 0,
+            "output_tokens_details": {
+              "image_tokens": 0,
+              "text_tokens": 0
+            },
+            "total_tokens": 0
+          },
+          "web_search": {
+            "num_requests": 0
+          }
+        },
+        "tools": [],
+        "top_logprobs": 0,
+        "top_p": 0.98,
+        "truncation": "disabled",
+        "usage": {
+          "input_tokens": 11,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "output_tokens": 5,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 16
+        },
+        "user": null,
+        "metadata": {}
+      }
+    }
+  },
+  "openai/responses::error.content_filter": {
+    "target": "openai/responses",
+    "scenario": "error.content_filter",
+    "provider": "openai",
+    "model": "gpt-5.4-nano",
+    "api": "responses",
+    "streaming": false,
+    "recordedAt": "2026-08-31",
+    "synthetic": true,
+    "provenance": "openai-ts 7.4.0 `Response.incomplete_details` + `Response.status` = incomplete. Distinguished from max_output_tokens, which maps to length.",
+    "raw": {
+      "id": "resp_096b442ec1d76e0d006a8c27cc098087d2bebaa8d01f837298",
+      "object": "response",
+      "created_at": 1787570124,
+      "status": "incomplete",
+      "background": false,
+      "billing": {
+        "payer": "developer"
+      },
+      "completed_at": 1787570124,
+      "error": null,
+      "frequency_penalty": 0,
+      "incomplete_details": {
+        "reason": "content_filter"
+      },
+      "instructions": null,
+      "max_output_tokens": 16,
+      "max_tool_calls": null,
+      "model": "gpt-5.4-nano-2026-03-17",
+      "moderation": null,
+      "output": [],
+      "parallel_tool_calls": true,
+      "presence_penalty": 0,
+      "previous_response_id": null,
+      "prompt_cache_key": null,
+      "prompt_cache_retention": "24h",
+      "reasoning": {
+        "context": "current_turn",
+        "effort": "none",
+        "mode": "standard",
+        "summary": null
+      },
+      "safety_identifier": null,
+      "service_tier": "default",
+      "store": true,
+      "temperature": 1,
+      "text": {
+        "format": {
+          "type": "text"
+        },
+        "verbosity": "medium"
+      },
+      "tool_choice": "auto",
+      "tool_usage": {
+        "image_gen": {
+          "input_tokens": 0,
+          "input_tokens_details": {
+            "image_tokens": 0,
+            "text_tokens": 0
+          },
+          "output_tokens": 0,
+          "output_tokens_details": {
+            "image_tokens": 0,
+            "text_tokens": 0
+          },
+          "total_tokens": 0
+        },
+        "web_search": {
+          "num_requests": 0
+        }
+      },
+      "tools": [],
+      "top_logprobs": 0,
+      "top_p": 0.98,
+      "truncation": "disabled",
+      "usage": {
+        "input_tokens": 11,
+        "input_tokens_details": {
+          "cache_write_tokens": 0,
+          "cached_tokens": 0
+        },
+        "output_tokens": 5,
+        "output_tokens_details": {
+          "reasoning_tokens": 0
+        },
+        "total_tokens": 16
+      },
+      "user": null,
+      "metadata": {}
+    },
+    "parsed": {
+      "id": "resp_096b442ec1d76e0d006a8c27cc098087d2bebaa8d01f837298",
+      "model": "gpt-5.4-nano-2026-03-17",
+      "content": [],
+      "finishReason": "content_filter",
+      "usage": {
+        "inputTokens": 11,
+        "outputTokens": 5,
+        "totalTokens": 16,
+        "cachedTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0,
+        "serviceTier": "default",
+        "pricingTier": "standard"
+      },
+      "text": "",
+      "toolCalls": [],
+      "thinking": null,
+      "media": [],
+      "latencyMs": 0,
+      "raw": {
+        "id": "resp_096b442ec1d76e0d006a8c27cc098087d2bebaa8d01f837298",
+        "object": "response",
+        "created_at": 1787570124,
+        "status": "incomplete",
+        "background": false,
+        "billing": {
+          "payer": "developer"
+        },
+        "completed_at": 1787570124,
+        "error": null,
+        "frequency_penalty": 0,
+        "incomplete_details": {
+          "reason": "content_filter"
+        },
+        "instructions": null,
+        "max_output_tokens": 16,
+        "max_tool_calls": null,
+        "model": "gpt-5.4-nano-2026-03-17",
+        "moderation": null,
+        "output": [],
+        "parallel_tool_calls": true,
+        "presence_penalty": 0,
+        "previous_response_id": null,
+        "prompt_cache_key": null,
+        "prompt_cache_retention": "24h",
+        "reasoning": {
+          "context": "current_turn",
+          "effort": "none",
+          "mode": "standard",
+          "summary": null
+        },
+        "safety_identifier": null,
+        "service_tier": "default",
+        "store": true,
+        "temperature": 1,
+        "text": {
+          "format": {
+            "type": "text"
+          },
+          "verbosity": "medium"
+        },
+        "tool_choice": "auto",
+        "tool_usage": {
+          "image_gen": {
+            "input_tokens": 0,
+            "input_tokens_details": {
+              "image_tokens": 0,
+              "text_tokens": 0
+            },
+            "output_tokens": 0,
+            "output_tokens_details": {
+              "image_tokens": 0,
+              "text_tokens": 0
+            },
+            "total_tokens": 0
+          },
+          "web_search": {
+            "num_requests": 0
+          }
+        },
+        "tools": [],
+        "top_logprobs": 0,
+        "top_p": 0.98,
+        "truncation": "disabled",
+        "usage": {
+          "input_tokens": 11,
+          "input_tokens_details": {
+            "cache_write_tokens": 0,
+            "cached_tokens": 0
+          },
+          "output_tokens": 5,
+          "output_tokens_details": {
+            "reasoning_tokens": 0
+          },
+          "total_tokens": 16
+        },
+        "user": null,
+        "metadata": {}
+      }
+    }
+  },
+  "google/interactions::error": {
+    "target": "google/interactions",
+    "scenario": "error",
+    "provider": "google",
+    "model": "gemini-3.1-flash-lite",
+    "api": "interactions",
+    "streaming": false,
+    "recordedAt": "2026-08-31",
+    "synthetic": true,
+    "provenance": "openai-ts 7.4.0 `ResponseError` (code is a closed enum; `server_error` is a member) with `Response.status: ResponseStatus` = failed. google/interactions status per our own adapter mapping, matching the recorded envelope key `status`.",
+    "raw": {
+      "id": "v1_ChcyeWVNYXJHaUN2bVd2ZElQcWZfQ3FBaxIXMnllTWFyR2lDdm1XdmRJUHFmX0NxQWs",
+      "status": "failed",
+      "usage": {
+        "total_tokens": 7,
+        "total_input_tokens": 6,
+        "input_tokens_by_modality": [
+          {
+            "modality": "text",
+            "tokens": 6
+          }
+        ],
+        "total_cached_tokens": 0,
+        "total_output_tokens": 1,
+        "total_tool_use_tokens": 0,
+        "total_thought_tokens": 0,
+        "raw_prompt_token": 35
+      },
+      "created": "2026-08-24T11:15:39Z",
+      "updated": "2026-08-24T11:15:39Z",
+      "service_tier": "standard",
+      "steps": [],
+      "object": "interaction",
+      "model": "models/gemini-3.1-flash-lite"
+    },
+    "parsed": {
+      "id": "v1_ChcyeWVNYXJHaUN2bVd2ZElQcWZfQ3FBaxIXMnllTWFyR2lDdm1XdmRJUHFmX0NxQWs",
+      "model": "",
+      "content": [],
+      "finishReason": "error",
+      "usage": {
+        "inputTokens": 6,
+        "outputTokens": 1,
+        "totalTokens": 7,
+        "cachedTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 0
+      },
+      "text": "",
+      "toolCalls": [],
+      "media": [],
+      "thinking": null,
+      "latencyMs": 0,
+      "raw": {
+        "id": "v1_ChcyeWVNYXJHaUN2bVd2ZElQcWZfQ3FBaxIXMnllTWFyR2lDdm1XdmRJUHFmX0NxQWs",
+        "status": "failed",
+        "usage": {
+          "total_tokens": 7,
+          "total_input_tokens": 6,
+          "input_tokens_by_modality": [
+            {
+              "modality": "text",
+              "tokens": 6
+            }
+          ],
+          "total_cached_tokens": 0,
+          "total_output_tokens": 1,
+          "total_tool_use_tokens": 0,
+          "total_thought_tokens": 0,
+          "raw_prompt_token": 35
+        },
+        "created": "2026-08-24T11:15:39Z",
+        "updated": "2026-08-24T11:15:39Z",
+        "service_tier": "standard",
+        "steps": [],
+        "object": "interaction",
+        "model": "models/gemini-3.1-flash-lite"
+      }
+    }
   }
 }

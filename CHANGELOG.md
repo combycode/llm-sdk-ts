@@ -8,6 +8,19 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **Every OpenAI model was routed to the Responses API, whatever the model.** `resolveApi` chose by
+  PROVIDER alone, while the catalog had carried `preferredApi` per model from the start and nothing
+  read it. Six catalogued models cannot be called on Responses at all: `gpt-audio`, `gpt-audio-1.5`,
+  `gpt-audio-mini` and the three `*-search` models, which are Chat Completions-only. Asking for any
+  of them failed with *"The requested model 'gpt-audio' is not supported with the Responses API"*.
+  Routing now consults the model's own preference and falls back to the provider default. Verified
+  live: `gpt-audio` returns audio and `gpt-5-search` answers, both of which previously could not run.
+
+- **`gpt-audio*` was described wrongly by the catalog.** `preferredApi: 'responses'` (see above),
+  `outputModalities: ['text']` for a model that returns audio bytes AND a transcript, and
+  `capabilities.audioGeneration: false` for the audio-generation model. OpenAI's guide is explicit:
+  *"For this audio-chat pattern, use Chat Completions with an audio-capable model."*
+
 - **Audio output was silently dropped on the OpenAI chat path.** `openai-completions` gated its
   `modalities` block on `hasAudioInput`, so `outputModalities: ['text', 'audio']` travelled from
   `ExecuteOptions` all the way to the wire builder and died there. `gpt-audio` then refused the call
@@ -37,6 +50,17 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   product: Chat Completions has no hosted web search, and only `gpt-audio` returns audio. The
   recorder and the differential read the same `expectedCells()`, so they cannot disagree about what
   is missing.
+
+- **The three parse branches for a failure reported inside a 200 are covered.** A provider cannot be
+  asked to fail on demand, so those cells are CONSTRUCTED — marked `synthetic: true`, built from the
+  target's own recorded envelope with only the failure fields changed, each traceable to the official
+  SDK type cited in the cell's `provenance`. They cover OpenAI Responses `status:'failed'` with
+  `response.error`, its `incomplete_details.reason: 'content_filter'` (which must not be reported as a
+  length truncation), and Google Interactions `status:'failed'`.
+
+  A synthetic body widens the derived shape book's `known` and `values` but is excluded from
+  `expected`: a failed response carries no `output`, and letting it into that intersection would
+  weaken the check on every genuine recording.
 
 - **The frozen request corpus grew a waiver list.** A deliberate wire change previously had no way to
   be recorded except re-freezing, which would absorb every *un*noticed change in the same pass. Each

@@ -117,7 +117,19 @@ export class LLMClient {
     this.hooks = config.hooks ?? new HookBusClass();
     this.fetchFn = config.fetch;
     this.fetchStreamFn = config.fetchStream ?? null;
-    this.api = resolveApi(config.provider, config.api);
+    // The bundled catalog, not an empty one: this is where the model's wire-spec
+    // pin comes from, and without it every request falls back to deriving the
+    // spec from the model id — which is the fallback for models this build has
+    // never heard of, not the normal path.
+    //
+    // Assigned BEFORE `api` is resolved, because the API a model is callable on
+    // is one of the things the catalog knows.
+    this.catalog = config.catalog ?? ModelCatalog.withProviderDefaults();
+    this.api = resolveApi(
+      config.provider,
+      config.api,
+      this.catalog.getPreferredApi(config.provider, config.model),
+    );
     this.mode = config.mode ?? 'foreground';
     this.batchable = config.batchable ?? false;
     this.priority =
@@ -140,11 +152,6 @@ export class LLMClient {
       cacheName: this.cacheName,
     });
     this.cacheKeyFn = config.cacheKeyFn;
-    // The bundled catalog, not an empty one: this is where the model's wire-spec
-    // pin comes from, and without it every request falls back to deriving the
-    // spec from the model id — which is the fallback for models this build has
-    // never heard of, not the normal path.
-    this.catalog = config.catalog ?? ModelCatalog.withProviderDefaults();
 
     this.hooks.emitSync('onClientCreate', {
       clientId: this.id,

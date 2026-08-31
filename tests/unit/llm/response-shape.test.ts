@@ -48,6 +48,10 @@ describe('response shapes are derived from the corpus', () => {
     // appears in a re-recording but not in the derivation is unknown.
     const complaints: string[] = [];
     for (const [id, cell] of Object.entries(corpus)) {
+      // Synthetic cells are checked separately below: they legitimately LACK
+      // fields every recording has (a failed response carries no output), so
+      // holding them to `expected` would only assert that a stub is a stub.
+      if (cell.synthetic) continue;
       const found = warningsFor(cell.target, (checker) => {
         if (cell.streaming) {
           for (const event of cell.raw as Array<{ event?: string; data: string }>) {
@@ -57,6 +61,22 @@ describe('response shapes are derived from the corpus', () => {
           checker.checkResponse(cell.raw);
         }
       });
+      if (found.length) complaints.push(`${id}: ${found.join(' | ')}`);
+    }
+    expect(complaints).toEqual([]);
+  });
+
+  it('every synthetic body is at least RECOGNISED, field for field', () => {
+    // The weaker half of the same contract. A constructed body may be missing
+    // fields, but nothing in it may be UNKNOWN: an unknown field or an unhandled
+    // discriminator would mean the shape book cannot describe an error response,
+    // and the runtime checker would cry wolf the first time a provider sent one.
+    const complaints: string[] = [];
+    for (const [id, cell] of Object.entries(corpus)) {
+      if (!cell.synthetic) continue;
+      const found = warningsFor(cell.target, (checker) => checker.checkResponse(cell.raw)).filter(
+        (w) => !w.includes('response_shape_missing_field'),
+      );
       if (found.length) complaints.push(`${id}: ${found.join(' | ')}`);
     }
     expect(complaints).toEqual([]);

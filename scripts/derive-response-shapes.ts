@@ -46,10 +46,14 @@ const corpus = JSON.parse(readFileSync(CORPUS, 'utf8')) as Record<string, Respon
 interface Sample {
   paths: Set<string>;
   values: Array<[string, string]>;
+  /** A CONSTRUCTED body (see `ResponseScenario.synthetic`). It is evidence about
+   *  what the parser must tolerate, and no evidence at all about what a provider
+   *  always sends. */
+  weak?: boolean;
 }
 
-function sample(body: unknown): Sample {
-  return { paths: pathsOf(body), values: discriminatorsOf(body) };
+function sample(body: unknown, weak = false): Sample {
+  return { paths: pathsOf(body), values: discriminatorsOf(body), ...(weak ? { weak } : {}) };
 }
 
 /** Fold samples into a declaration: union of paths, intersection for expected. */
@@ -60,8 +64,13 @@ function declare(samples: Sample[]): ShapeDecl {
     for (const p of s.paths) known.add(p);
     for (const [path, value] of s.values) (values[path] ??= new Set()).add(value);
   }
+  // `expected` is the intersection over RECORDED bodies only. A synthetic error
+  // cell carries `output: []`, so letting it in would delete `output[].id` from
+  // `expected` for every genuine recording — weakening the check on the strength
+  // of a body no provider ever sent. `known` and `values` above still learn from
+  // it, which is the half that should widen.
   let expected: Set<string> | undefined;
-  for (const s of samples) {
+  for (const s of samples.filter((x) => !x.weak)) {
     if (!expected) {
       expected = new Set(s.paths);
       continue;
@@ -100,7 +109,7 @@ for (const cell of Object.values(corpus)) {
       ((streamSamples[key] ??= {})[evKey] ??= []).push(sample(data));
     }
   } else {
-    (responseSamples[key] ??= []).push(sample(cell.raw));
+    (responseSamples[key] ??= []).push(sample(cell.raw, cell.synthetic === true));
   }
 }
 

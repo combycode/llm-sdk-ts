@@ -41,6 +41,7 @@ import {
   appliesTo,
   cellId,
   modelFor,
+  REPLAY_KEY,
   RESPONSE_SCENARIOS,
   RESPONSE_TARGETS,
   type ResponseCell,
@@ -94,6 +95,49 @@ for (const target of RESPONSE_TARGETS) {
 
     if (fixture[id] && !refresh) {
       kept++;
+      continue;
+    }
+
+    // A CONSTRUCTED cell: no provider can be asked to fail on demand. The body
+    // starts from this target's own recorded envelope so everything except the
+    // failure itself is genuine, and it needs no network and no key.
+    if (scenario.synthetic) {
+      const baseId = cellId(target.key, scenario.synthetic.from);
+      const base = fixture[baseId];
+      const build = scenario.synthetic.build[target.key];
+      if (!base) {
+        failed.push(`${id}: needs ${baseId} recorded first`);
+        console.log(`  --  ${id}: needs ${baseId} recorded first`);
+        continue;
+      }
+      if (!build) {
+        failed.push(`${id}: no build for ${target.key}`);
+        console.log(`  --  ${id}: no build for ${target.key}`);
+        continue;
+      }
+      try {
+        const raw = build(base.raw as Record<string, unknown>);
+        const parsed = adapterFor(target, REPLAY_KEY).parseResponse(raw, 0);
+        const cell: ResponseCell = {
+          target: target.key,
+          scenario: scenario.name,
+          provider: target.provider,
+          model,
+          ...(target.api ? { api: target.api } : {}),
+          streaming: false,
+          recordedAt: new Date().toISOString().slice(0, 10),
+          synthetic: true,
+          provenance: scenario.synthetic.provenance,
+          raw,
+          parsed,
+        };
+        (fixture[id] ? refreshed : added).push(id);
+        fixture[id] = cell;
+        console.log(`  ok  ${id} (synthetic)`);
+      } catch (e) {
+        failed.push(`${id}: ${(e as Error).message}`);
+        console.log(`  --  ${id}: ${(e as Error).message}`);
+      }
       continue;
     }
 
