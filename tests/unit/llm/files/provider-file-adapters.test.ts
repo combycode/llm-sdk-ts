@@ -368,18 +368,38 @@ describe('XAIFileAdapter', () => {
     expect(s.seen()[0].url).toBe('https://x.internal/v1/files');
   });
 
-  // KNOWN GAP, pinned deliberately: only `xai/files.upload` has a wire spec. The
-  // registry has no `xai/files.delete` / `.getInfo` / `.list`, so all three reject
-  // before any HTTP happens and the response-mapping code below them is dead. If a
-  // spec is ever added these three tests fail — which is exactly the signal wanted.
-  it('delete/getInfo/list have no wire spec and reject before issuing a request', async () => {
-    const s = stubFetch({ body: {} });
-    await expect(a.buildDeleteRequest('f')).rejects.toThrow('unknown spec: xai/files.delete');
-    await expect(a.buildGetInfoRequest('f')).rejects.toThrow('unknown spec: xai/files.getInfo');
-    await expect(a.buildListRequest()).rejects.toThrow('unknown spec: xai/files.list');
-    await expect(a.delete('f', s.fetch)).rejects.toThrow('unknown spec: xai/files.delete');
-    await expect(a.getInfo('f', s.fetch)).rejects.toThrow('unknown spec: xai/files.getInfo');
-    await expect(a.list(s.fetch)).rejects.toThrow('unknown spec: xai/files.list');
-    expect(s.seen()).toHaveLength(0);
+  // Was a pinned KNOWN GAP: only `xai/files.upload` had a wire spec, so these
+  // three rejected with `unknown spec` before any HTTP and the response mapping
+  // below them was dead — while XAIFileAdapter is exported public API. The specs
+  // now exist, so these assert the requests they build.
+  it('delete issues a DELETE to the file path', async () => {
+    const s = stubFetch({ body: { id: 'f1', deleted: true } });
+    await a.delete('f1', s.fetch);
+    expect(s.seen()[0].method).toBe('DELETE');
+    expect(s.seen()[0].url).toBe('https://api.x.ai/v1/files/f1');
+  });
+
+  it('getInfo GETs the file path and maps the row', async () => {
+    const s = stubFetch({ body: { id: 'f1', filename: 'a.pdf', bytes: 12, created_at: 1_700_000_000 } });
+    const info = await a.getInfo('f1', s.fetch);
+    expect(s.seen()[0].method).toBe('GET');
+    expect(s.seen()[0].url).toBe('https://api.x.ai/v1/files/f1');
+    // created_at is UNIX SECONDS here, unlike anthropic's ISO-8601 string.
+    expect(info).toMatchObject({ remoteId: 'f1', filename: 'a.pdf', sizeBytes: 12 });
+  });
+
+  it('list GETs the collection and maps every row', async () => {
+    const s = stubFetch({ body: { data: [{ id: 'f1', filename: 'a.pdf', bytes: 1, created_at: 1 }] } });
+    const rows = await a.list(s.fetch);
+    expect(s.seen()[0].method).toBe('GET');
+    expect(s.seen()[0].url).toBe('https://api.x.ai/v1/files');
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ remoteId: 'f1', filename: 'a.pdf' });
+  });
+
+  it('the three build their requests without issuing one', async () => {
+    expect((await a.buildDeleteRequest('f')).method).toBe('DELETE');
+    expect((await a.buildGetInfoRequest('f')).method).toBe('GET');
+    expect((await a.buildListRequest()).url).toBe('https://api.x.ai/v1/files');
   });
 });

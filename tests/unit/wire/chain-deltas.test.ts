@@ -107,7 +107,7 @@ describe('a chain delta cannot remove something that is not there', () => {
       }
     }
     expect(broken).toEqual([]);
-    expect(WIRE_SPECS.size).toBe(147);
+    expect(WIRE_SPECS.size).toBe(150);
   });
 });
 

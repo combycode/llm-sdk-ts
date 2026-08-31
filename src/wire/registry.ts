@@ -137,6 +137,9 @@ import spec_xai_batch_create from './specs/batch/xai.create.json';
 import spec_xai_batch_getResults from './specs/batch/xai.getResults.json';
 import spec_xai_batch_getStatus from './specs/batch/xai.getStatus.json';
 import spec_xai_count_tokenize from './specs/count/xai.json';
+import spec_xai_files_delete from './specs/files/xai.delete.json';
+import spec_xai_files_getInfo from './specs/files/xai.getInfo.json';
+import spec_xai_files_list from './specs/files/xai.list.json';
 import spec_xai_files_upload from './specs/files/xai.upload.json';
 import spec_xai_images_base from './specs/xai-media/images.base.json';
 import spec_xai_images_edits from './specs/xai-media/images.edits.json';
@@ -287,6 +290,9 @@ export const WIRE_SPECS: ReadonlyMap<string, SpecDelta> = new Map<string, SpecDe
   ['xai/batch.getResults', spec_xai_batch_getResults as unknown as SpecDelta],
   ['xai/batch.getStatus', spec_xai_batch_getStatus as unknown as SpecDelta],
   ['xai/count.tokenize', spec_xai_count_tokenize as unknown as SpecDelta],
+  ['xai/files.delete', spec_xai_files_delete as unknown as SpecDelta],
+  ['xai/files.getInfo', spec_xai_files_getInfo as unknown as SpecDelta],
+  ['xai/files.list', spec_xai_files_list as unknown as SpecDelta],
   ['xai/files.upload', spec_xai_files_upload as unknown as SpecDelta],
   ['xai/images.base', spec_xai_images_base as unknown as SpecDelta],
   ['xai/images.edits', spec_xai_images_edits as unknown as SpecDelta],

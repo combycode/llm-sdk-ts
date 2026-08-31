@@ -76,6 +76,9 @@ import filesGoogleDelete from './specs/files/google.delete.json' with { type: 'j
 import filesGoogleGetInfo from './specs/files/google.getInfo.json' with { type: 'json' };
 import filesGoogleList from './specs/files/google.list.json' with { type: 'json' };
 import filesXaiUpload from './specs/files/xai.upload.json' with { type: 'json' };
+import filesXaiDelete from './specs/files/xai.delete.json' with { type: 'json' };
+import filesXaiGetInfo from './specs/files/xai.getInfo.json' with { type: 'json' };
+import filesXaiList from './specs/files/xai.list.json' with { type: 'json' };
 
 // ── added so nothing the library does is left undescribed ────────────────────
 import filesGoogleFinishUpload from './specs/files/google.finishUpload.json' with { type: 'json' };
@@ -141,6 +144,9 @@ const DELTAS = new Map<string, SpecDelta>(
       filesGoogleGetInfo,
       filesGoogleList,
       filesXaiUpload,
+      filesXaiDelete,
+      filesXaiGetInfo,
+      filesXaiList,
       filesGoogleFinishUpload,
       mediaXaiVideosStatus,
       mediaXaiVideosCancel,
