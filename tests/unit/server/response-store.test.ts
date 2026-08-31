@@ -136,3 +136,60 @@ describe('ResponseStore — memory cap', () => {
     expect(await store.get('c')).not.toBeNull();
   });
 });
+
+describe('ResponseStore — persistence-backed listing', () => {
+  it('list(userId) reads through the persistence prefix and strips it off', async () => {
+    const persistence = new MemoryPersistence();
+    const store = new ResponseStore({ persistence });
+    await store.put(makeEntry({ id: 'r1', userId: 'alice' }));
+    await store.put(makeEntry({ id: 'r2', userId: 'alice' }));
+    await store.put(makeEntry({ id: 'r3', userId: 'bob' }));
+    // A fresh store shares the backend but has an empty cache, so this is the
+    // persistence path and not the in-memory one.
+    const cold = new ResponseStore({ persistence });
+    expect((await cold.list('alice')).sort()).toEqual(['r1', 'r2']);
+    expect(await cold.list('bob')).toEqual(['r3']);
+  });
+
+  // KNOWN DEFECT, pinned deliberately. `persistKeyPrefix(null)` is the BARE key
+  // prefix, and every user-scoped key starts with it too — so an unauthenticated
+  // `list()` enumerates every user's response ids (as `alice:u1`), while the
+  // in-memory path filters on `entry.userId === userId` and does not. Two backends,
+  // two answers, and the persistent one is the leaky one. This test fails the
+  // moment the prefix is made exclusive, which is the intended signal.
+  it('list(null) from persistence ALSO returns other users entries (see note)', async () => {
+    const persistence = new MemoryPersistence();
+    const store = new ResponseStore({ persistence });
+    await store.put(makeEntry({ id: 'anon1', userId: null }));
+    await store.put(makeEntry({ id: 'u1', userId: 'alice' }));
+
+    const cold = new ResponseStore({ persistence });
+    expect((await cold.list(null)).sort()).toEqual(['alice:u1', 'anon1']);
+
+    // The in-memory path leaks the same way, by a different route:
+    // `cacheKeyPrefix(null)` is '' and every key startsWith('').
+    const memOnly = new ResponseStore();
+    await memOnly.put(makeEntry({ id: 'anon1', userId: null }));
+    await memOnly.put(makeEntry({ id: 'u1', userId: 'alice' }));
+    expect((await memOnly.list(null)).sort()).toEqual(['anon1', 'u1']);
+  });
+
+  it('a userId with a colon or slash is percent-encoded so it cannot forge a prefix', async () => {
+    const persistence = new MemoryPersistence();
+    const store = new ResponseStore({ persistence });
+    await store.put(makeEntry({ id: 'r1', userId: 'a:b' }));
+    await store.put(makeEntry({ id: 'r2', userId: 'a' }));
+    const cold = new ResponseStore({ persistence });
+    // Without encoding, "a" would match the "a:b" keys too.
+    expect(await cold.list('a')).toEqual(['r2']);
+    expect(await cold.list('a:b')).toEqual(['r1']);
+  });
+
+  it('honours a custom keyPrefix on both write and list', async () => {
+    const persistence = new MemoryPersistence();
+    const store = new ResponseStore({ persistence, keyPrefix: 'oai:' });
+    await store.put(makeEntry({ id: 'r1', userId: 'alice' }));
+    expect((await persistence.list('oai:')).length).toBe(1);
+    expect(await new ResponseStore({ persistence, keyPrefix: 'oai:' }).list('alice')).toEqual(['r1']);
+  });
+});

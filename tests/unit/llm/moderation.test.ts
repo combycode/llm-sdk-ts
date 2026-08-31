@@ -5,6 +5,7 @@ import { describe, expect, it } from 'bun:test';
 import { HookBus } from '../../../src/bus/hook-bus';
 import { LLMClient } from '../../../src/llm/client';
 import { buildNativeModeration, parseNativeModeration } from '../../../src/llm/moderation/native';
+import { runModeration } from '../../../src/llm/moderation/runner';
 import { OpenAIResponsesAdapter } from '../../../src/llm/providers/openai/responses';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../../src/llm/types/provider';
 import type { NormalizedRequest } from '../../../src/llm/types/request';
@@ -351,5 +352,85 @@ describe('native moderation — streaming capture', () => {
     await collect(client.stream('hi', { moderation: { model: 'omni-moderation-latest' } }));
     expect(captured?.moderation?.source).toBe('native');
     expect((captured?.moderation?.output as { flagged: boolean }).flagged).toBe(true);
+  });
+});
+
+describe('parseNativeModeration — unrecognised entries', () => {
+  it('an entry the SDK cannot read yields undefined rather than a hollow report', () => {
+    // A report claiming source:'native' with no input/output would be indistinguishable
+    // from "checked and clean". Nothing usable must mean nothing returned.
+    expect(parseNativeModeration({ input: { type: 'something_new' } })).toBeUndefined();
+    expect(parseNativeModeration({ input: { type: 'moderation_results' } })).toBeUndefined();
+    expect(parseNativeModeration({ input: { type: 'moderation_results', results: [] } })).toBeUndefined();
+    expect(parseNativeModeration({ input: 'a string' })).toBeUndefined();
+    expect(parseNativeModeration({ input: null, output: undefined })).toBeUndefined();
+  });
+
+  it('a non-object raw moderation field yields undefined', () => {
+    expect(parseNativeModeration(null)).toBeUndefined();
+    expect(parseNativeModeration('nope')).toBeUndefined();
+    expect(parseNativeModeration(undefined)).toBeUndefined();
+  });
+
+  it('one readable side is enough — the other is simply absent', () => {
+    const report = parseNativeModeration({
+      input: RAW_RESULT(true),
+      output: { type: 'something_new' },
+    });
+    expect(report?.source).toBe('native');
+    expect(report?.input).toBeDefined();
+    expect(report?.output).toBeUndefined();
+  });
+});
+
+describe('runModeration — the moderations endpoint failing', () => {
+  it('a transport failure becomes an {error} entry, never a throw', async () => {
+    // Moderation is report-only: a flaky moderations endpoint must not take
+    // down the primary completion. An entry that reported `flagged: false`
+    // instead would be worse — it would read as "checked and clean".
+    const entry = await runModeration('some text', {
+      apiKey: 'sk-x',
+      model: 'omni-moderation-latest',
+      fetch: (async () => {
+        throw new Error('ECONNRESET');
+      }) as unknown as EngineFetch,
+    });
+    expect(entry).toEqual({ error: 'ECONNRESET' });
+    expect((entry as { flagged?: boolean }).flagged).toBeUndefined();
+  });
+
+  it('a non-Error rejection is stringified rather than lost', async () => {
+    const entry = await runModeration('some text', {
+      apiKey: 'sk-x',
+      model: 'omni-moderation-latest',
+      fetch: (async () => {
+        throw 'plain string failure';
+      }) as unknown as EngineFetch,
+    });
+    expect(entry).toEqual({ error: 'plain string failure' });
+  });
+
+  it('empty text short-circuits to an un-flagged result with no HTTP call', async () => {
+    let called = false;
+    const entry = await runModeration('', {
+      apiKey: 'sk-x',
+      model: 'omni-moderation-latest',
+      fetch: (async () => {
+        called = true;
+        return { status: 200, headers: {}, body: {} } as HttpResponse;
+      }) as unknown as EngineFetch,
+    });
+    expect(called).toBe(false);
+    expect(entry).toMatchObject({ flagged: false });
+  });
+
+  it('a response with no results falls back to an empty un-flagged result', async () => {
+    const entry = await runModeration('text', {
+      apiKey: 'sk-x',
+      model: 'omni-moderation-latest',
+      fetch: (async () =>
+        ({ status: 200, headers: {}, body: { results: [] } }) as HttpResponse) as unknown as EngineFetch,
+    });
+    expect(entry).toMatchObject({ flagged: false });
   });
 });

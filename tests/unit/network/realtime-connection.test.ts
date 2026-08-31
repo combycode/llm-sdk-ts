@@ -169,3 +169,112 @@ describe('engine.connect — observability hooks', () => {
     expect((cbErr as unknown as Error).message).toBe('socket boom');
   });
 });
+
+describe('engine.connect — binary send + socket passthrough', () => {
+  it('readyState is read straight off the socket, not cached', () => {
+    const { engine, sockets } = makeEngine();
+    const conn = engine.connect(REQ);
+    expect(conn.readyState).toBe(0);
+    sockets[0].readyState = 1;
+    expect(conn.readyState).toBe(1);
+  });
+
+  it('close() forwards code + reason to the socket', () => {
+    const { engine, sockets } = makeEngine();
+    engine.connect(REQ).close(1001, 'going away');
+    expect(sockets[0].closed).toEqual({ code: 1001, reason: 'going away' });
+  });
+
+  it('sending a raw ArrayBuffer reports its byteLength as a binary frame', () => {
+    const { engine, hooks } = makeEngine();
+    const frames: Array<{ kind: string; bytes: number }> = [];
+    hooks.on('onRealtimeFrame', (c) => {
+      frames.push({ kind: c.kind, bytes: c.bytes });
+    });
+    engine.connect(REQ).send(new ArrayBuffer(7));
+    expect(frames).toEqual([{ kind: 'binary', bytes: 7 }]);
+  });
+
+  it('sending a typed-array VIEW reports the view length, not the whole buffer', () => {
+    // A 3-byte view onto a 16-byte buffer is 3 bytes on the wire. Reading
+    // `.buffer.byteLength` would report 16 and every audio-frame metric drifts.
+    const { engine, hooks } = makeEngine();
+    const frames: Array<{ kind: string; bytes: number }> = [];
+    hooks.on('onRealtimeFrame', (c) => {
+      frames.push({ kind: c.kind, bytes: c.bytes });
+    });
+    engine.connect(REQ).send(new Uint8Array(new ArrayBuffer(16), 4, 3));
+    expect(frames).toEqual([{ kind: 'binary', bytes: 3 }]);
+  });
+
+  it('a text frame is measured in UTF-8 BYTES, not characters', () => {
+    const { engine, hooks } = makeEngine();
+    const frames: Array<{ kind: string; bytes: number }> = [];
+    hooks.on('onRealtimeFrame', (c) => {
+      frames.push({ kind: c.kind, bytes: c.bytes });
+    });
+    engine.connect(REQ).send('héllo'); // 5 chars, 6 UTF-8 bytes
+    expect(frames).toEqual([{ kind: 'text', bytes: 6 }]);
+  });
+
+  it('an unreadable inbound payload is dropped, not forwarded as a broken frame', () => {
+    const { engine, hooks, sockets } = makeEngine();
+    const frames: unknown[] = [];
+    hooks.on('onRealtimeFrame', (c) => {
+      frames.push(c);
+    });
+    const conn = engine.connect(REQ);
+    const seen: RealtimeFrame[] = [];
+    conn.on('message', (f) => seen.push(f));
+    sockets[0].emit('message', { data: null });
+    sockets[0].emit('message', {});
+    sockets[0].emit('message', { data: { some: 'object' } });
+    expect(seen).toEqual([]);
+    expect(frames).toEqual([]);
+  });
+
+  it('a string error event becomes an Error carrying that string', () => {
+    const { engine, sockets } = makeEngine();
+    const conn = engine.connect(REQ);
+    let err: Error | null = null;
+    conn.on('error', (e) => {
+      err = e;
+    });
+    sockets[0].emit('error', 'raw string failure');
+    expect((err as unknown as Error).message).toBe('raw string failure');
+  });
+
+  it('an Error instance is passed through unchanged', () => {
+    const { engine, sockets } = makeEngine();
+    const conn = engine.connect(REQ);
+    const original = new Error('original');
+    const seen: Error[] = [];
+    conn.on('error', (e) => {
+      seen.push(e);
+    });
+    sockets[0].emit('error', original);
+    expect(seen[0]).toBe(original);
+  });
+
+  it('an error event with nothing usable falls back to a generic message', () => {
+    const { engine, sockets } = makeEngine();
+    const conn = engine.connect(REQ);
+    let err: Error | null = null;
+    conn.on('error', (e) => {
+      err = e;
+    });
+    sockets[0].emit('error', {});
+    expect((err as unknown as Error).message).toBe('realtime socket error');
+  });
+
+  it('a close event with no detail reports null code and reason', () => {
+    const { engine, hooks, sockets } = makeEngine();
+    let ctx: { code?: number | null; reason?: string | null } = {};
+    hooks.on('onRealtimeClose', (c) => {
+      ctx = { code: c.code, reason: c.reason };
+    });
+    engine.connect(REQ);
+    sockets[0].emit('close');
+    expect(ctx).toEqual({ code: null, reason: null });
+  });
+});

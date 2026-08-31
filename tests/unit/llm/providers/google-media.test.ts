@@ -181,3 +181,58 @@ describe('GoogleMediaAdapter — TTS', () => {
     expect(a.capabilities().audioGeneration).toBe(true);
   });
 });
+
+describe('GoogleMediaAdapter.buildGenerateContentRequest', () => {
+  const a = new GoogleMediaAdapter({ apiKey: 'g-key' });
+
+  it('wraps text as the first part and appends any extra parts after it', () => {
+    const req = a.buildGenerateContentRequest(
+      'gemini-3-pro-image',
+      'a red bicycle',
+      { responseModalities: ['IMAGE'] },
+      [{ inline_data: { mime_type: 'image/png', data: B64 } }],
+    );
+    expect(req.method).toBe('POST');
+    expect(req.provider).toBe('google');
+    expect(req.model).toBe('gemini-3-pro-image');
+    expect(req.responseType).toBe('json');
+    expect(req.headers).toEqual({ 'content-type': 'application/json' });
+    expect(req.body).toEqual({
+      contents: [
+        {
+          parts: [
+            { text: 'a red bicycle' },
+            { inline_data: { mime_type: 'image/png', data: B64 } },
+          ],
+        },
+      ],
+      generationConfig: { responseModalities: ['IMAGE'] },
+    });
+  });
+
+  it('extraParts defaults to none, leaving a single text part', () => {
+    const req = a.buildGenerateContentRequest('gemini-3-pro-image', 'hi', {});
+    expect((req.body as { contents: Array<{ parts: unknown[] }> }).contents[0].parts).toEqual([
+      { text: 'hi' },
+    ]);
+  });
+
+  // NOTE: this is the one request builder that still puts the API key in the URL
+  // query rather than the `x-goog-api-key` header every other Google path uses.
+  // A key in a query string is copied into every access log the request passes
+  // through. Pinned as-is so a fix is a deliberate, visible change.
+  it('addresses :generateContent with the key in the QUERY STRING (see note)', () => {
+    const req = a.buildGenerateContentRequest('gemini-3-pro-image', 'hi', {});
+    expect(req.url).toBe(
+      'https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image:generateContent?key=g-key',
+    );
+    expect(req.headers['x-goog-api-key']).toBeUndefined();
+  });
+
+  it('honours a custom baseURL', () => {
+    const custom = new GoogleMediaAdapter({ apiKey: 'k', baseURL: 'https://g.internal' });
+    expect(custom.buildGenerateContentRequest('m', 'hi', {}).url).toBe(
+      'https://g.internal/v1beta/models/m:generateContent?key=k',
+    );
+  });
+});

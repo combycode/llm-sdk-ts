@@ -264,3 +264,84 @@ describe('rankTools', () => {
     expect(rankTools('return a record in crm', tools, 1).length).toBe(1);
   });
 });
+
+// ─── Malformed arguments from the model ──────────────────────────────────
+//
+// The model writes these arguments itself, so every one of these shapes has been
+// seen on a real run. Each must come back as a SENTENCE the model can act on —
+// a thrown exception ends the run, and a silent empty result is worse: the model
+// concludes the capability does not exist and answers without it.
+
+describe('lazy built-ins — malformed model arguments', () => {
+  const build = (tools: AgentTool[], eager: string[] = []) =>
+    createLazyTools({
+      lazyTools: () => tools,
+      eagerNames: () => eager,
+      state: { searches: 0 },
+      config: {},
+    });
+
+  const searchTool = (tools: AgentTool[]) => build(tools)[0];
+  const callTool = (tools: AgentTool[], eager: string[] = []) => build(tools, eager)[1];
+  const ctx = {} as never;
+
+  it('tool_search with an empty query list says so instead of returning nothing', async () => {
+    const out = JSON.parse(String(await searchTool([tool('a', 'A tool.', true)]).execute({ queries: [] }, ctx)));
+    expect(out.tools).toEqual([]);
+    expect(out.error).toContain('at least one query string');
+  });
+
+  it('tool_search drops blank / non-string queries and reports the empty result', async () => {
+    const out = JSON.parse(
+      String(await searchTool([tool('a', 'A tool.', true)]).execute({ queries: ['  ', '', 7, null] }, ctx)),
+    );
+    expect(out.tools).toEqual([]);
+    expect(out.error).toContain('at least one query string');
+  });
+
+  it('tool_search accepts a BARE STRING as well as an array', async () => {
+    const out = JSON.parse(
+      String(await searchTool([tool('weather_now', 'Get the weather.', true)]).execute({ queries: 'weather' }, ctx)),
+    );
+    expect(out.tools.map((t: { name: string }) => t.name)).toEqual(['weather_now']);
+  });
+
+  it('call_tool with an unknown name names the recovery step', async () => {
+    const out = String(await callTool([tool('known', 'Known.', true)]).execute({ name: 'ghost' }, ctx));
+    expect(out).toContain('No tool named "ghost"');
+    expect(out).toContain(LAZY_SEARCH_TOOL);
+  });
+
+  it('call_tool with a missing name is treated as the empty name, not a crash', async () => {
+    const out = String(await callTool([tool('known', 'Known.', true)]).execute({}, ctx));
+    expect(out).toContain('No tool named ""');
+  });
+
+  it('call_tool rejects an ARRAY input by name, saying what it got', async () => {
+    const out = String(
+      await callTool([tool('known', 'Known.', true)]).execute({ name: 'known', input: [1, 2] }, ctx),
+    );
+    expect(out).toContain('`input` must be an object');
+    expect(out).toContain('an array');
+  });
+
+  it('call_tool rejects a STRING input, naming the type it got', async () => {
+    const out = String(
+      await callTool([tool('known', 'Known.', true)]).execute({ name: 'known', input: 'id=1' }, ctx),
+    );
+    expect(out).toContain('`input` must be an object');
+    expect(out).toContain('string');
+  });
+
+  it('call_tool rejects a NULL input rather than passing it through as {}', async () => {
+    const out = String(
+      await callTool([tool('known', 'Known.', true)]).execute({ name: 'known', input: null }, ctx),
+    );
+    expect(out).toContain('`input` must be an object');
+  });
+
+  it('call_tool with input OMITTED runs the tool with {}', async () => {
+    const out = String(await callTool([tool('known', 'Known.', true)]).execute({ name: 'known' }, ctx));
+    expect(out).toBe('known ran with {}');
+  });
+});

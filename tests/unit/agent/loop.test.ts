@@ -716,3 +716,130 @@ describe('AgentLoop — maxSteps cap (stream)', () => {
     expect(doneResponse?.text).toContain('maxSteps (1)');
   });
 });
+
+// ─── Public state surface ──────────────────────────────────────────────────
+
+describe('AgentLoop — state accessors', () => {
+  it('running is false at rest and true for the duration of a run', async () => {
+    const client = makeMockClient({ responses: [{ content: [{ type: 'text', text: 'x' }] }] });
+    const loop = new AgentLoop({ client });
+    expect(loop.running).toBe(false);
+    const observed: boolean[] = [];
+    loop.hooks.on('onStepStart', () => {
+      observed.push(loop.running);
+    });
+    await loop.complete('hi');
+    expect(observed).toEqual([true]);
+    expect(loop.running).toBe(false);
+  });
+
+  it('running returns to false after a run that THREW', async () => {
+    const client = {
+      ...makeMockClient(),
+      complete: async () => {
+        throw new Error('llm-down');
+      },
+    } as unknown as LLMClient;
+    const loop = new AgentLoop({ client });
+    await expect(loop.complete('go')).rejects.toThrow('llm-down');
+    // A stuck `running` flag makes every later call throw "already running".
+    expect(loop.running).toBe(false);
+  });
+
+  it('reports accumulates one entry per run, and lastReport is its tail', async () => {
+    const client = makeMockClient({});
+    const loop = new AgentLoop({ client });
+    expect(loop.reports).toEqual([]);
+    expect(loop.lastReport).toBeNull();
+    await loop.complete('one');
+    await loop.complete('two');
+    expect(loop.reports.length).toBe(2);
+    expect(loop.lastReport).toBe(loop.reports[1]);
+    expect(loop.reports[0].id).not.toBe(loop.reports[1].id);
+  });
+
+  it('metadata defaults to {} and survives a dump/restore round trip', () => {
+    const loop = new AgentLoop({ client: makeMockClient() });
+    expect(loop.metadata).toEqual({});
+    const snapshot = { ...loop.dump(), metadata: { tenant: 'acme', tier: 2 } };
+    const restored = AgentLoop.restore(snapshot, { client: makeMockClient(), tools: [] });
+    expect(restored.metadata).toEqual({ tenant: 'acme', tier: 2 });
+  });
+
+  it('context getter reflects the constructor value and the setter', () => {
+    const loop = new AgentLoop({ client: makeMockClient(), context: 'first' });
+    expect(loop.context).toBe('first');
+    loop.context = 'second';
+    expect(loop.context).toBe('second');
+    expect(loop.history.registry.get('agentloop.context')?.content).toBe('second');
+  });
+
+  it('system getter reflects the constructor value and the setter', () => {
+    const loop = new AgentLoop({ client: makeMockClient(), system: 'first' });
+    expect(loop.system).toBe('first');
+    loop.system = 'second';
+    expect(loop.system).toBe('second');
+    expect(loop.history.registry.get('agentloop.system')?.content).toBe('second');
+  });
+});
+
+describe('AgentLoop — removeTool', () => {
+  it('removes the tool from toolNames and from what the model is shown', async () => {
+    const client = makeMockClient({});
+    const loop = new AgentLoop({ client, tools: [makeTool('a', async () => 'x')] });
+    loop.addTool(makeTool('b', async () => 'y'));
+    expect(loop.toolNames().sort()).toEqual(['a', 'b']);
+
+    loop.removeTool('a');
+    expect(loop.toolNames()).toEqual(['b']);
+    await loop.complete('go');
+    const declared = (client.calls[0].options.tools ?? []).map((t) => (t as { name?: string }).name);
+    expect(declared).toEqual(['b']);
+  });
+
+  it('removing an unknown name is a no-op, not a throw', () => {
+    const loop = new AgentLoop({ client: makeMockClient(), tools: [makeTool('a', async () => 'x')] });
+    expect(() => loop.removeTool('never-registered')).not.toThrow();
+    expect(loop.toolNames()).toEqual(['a']);
+  });
+});
+
+describe('AgentLoop — structuredComplete', () => {
+  it('forces the schema onto the final turn and parses the answer', async () => {
+    const client = makeMockClient({
+      responses: [{ content: [{ type: 'text', text: '{"city":"Berlin","temp":21}' }] }],
+    });
+    const loop = new AgentLoop({ client });
+    const schema = { type: 'object', properties: { city: { type: 'string' } } };
+    const out = await loop.structuredComplete<{ city: string; temp: number }>('where?', schema);
+    expect(out).toEqual({ city: 'Berlin', temp: 21 });
+    expect(client.calls[0].options.structured?.schema).toBe(schema);
+  });
+
+  it('merges the schema into caller-supplied structured options rather than replacing them', async () => {
+    const client = makeMockClient({ responses: [{ content: [{ type: 'text', text: '{}' }] }] });
+    const loop = new AgentLoop({ client });
+    const schema = { type: 'object' };
+    await loop.structuredComplete('q', schema, {
+      structured: { name: 'answer', strict: true } as never,
+    });
+    expect(client.calls[0].options.structured).toMatchObject({
+      name: 'answer',
+      strict: true,
+      schema,
+    });
+  });
+
+  it('strips a markdown code fence before parsing', async () => {
+    const client = makeMockClient({
+      responses: [{ content: [{ type: 'text', text: '```json\n{"ok":true}\n```' }] }],
+    });
+    const out = await new AgentLoop({ client }).structuredComplete<{ ok: boolean }>('q', {});
+    expect(out).toEqual({ ok: true });
+  });
+
+  it('unparseable output throws rather than returning undefined', async () => {
+    const client = makeMockClient({ responses: [{ content: [{ type: 'text', text: 'not json' }] }] });
+    await expect(new AgentLoop({ client }).structuredComplete('q', {})).rejects.toThrow();
+  });
+});

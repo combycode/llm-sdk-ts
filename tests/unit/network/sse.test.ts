@@ -62,3 +62,60 @@ describe('parseSSEStream', () => {
     expect(out).toEqual(['done']);
   });
 });
+
+describe('parseSSEMessage — field handling', () => {
+  it('reads the `id:` field alongside event and data', async () => {
+    const out = [];
+    for await (const ev of parseSSEStream(
+      streamOf(['id: msg_1\nevent: delta\ndata: hello\n\n']),
+    )) {
+      out.push(ev);
+    }
+    expect(out).toEqual([{ event: 'delta', data: 'hello', id: 'msg_1' }]);
+  });
+
+  it('flushes a trailing event that arrives WITHOUT the final blank line', async () => {
+    // Providers close the connection right after the last frame more often than
+    // the spec suggests. Dropping the tail buffer loses the final chunk — which
+    // for a `[DONE]`-less stream is the last content token.
+    const out = [];
+    for await (const ev of parseSSEStream(streamOf(['data: one\n\n', 'data: last\n']))) {
+      out.push(ev.data);
+    }
+    expect(out).toEqual(['one', 'last']);
+  });
+
+  it('a trailing buffer of only whitespace yields nothing', async () => {
+    const out = [];
+    for await (const ev of parseSSEStream(streamOf(['data: one\n\n', '\n  \n']))) out.push(ev.data);
+    expect(out).toEqual(['one']);
+  });
+
+  it('[DONE] is swallowed, including as the unterminated tail', async () => {
+    const out = [];
+    for await (const ev of parseSSEStream(streamOf(['data: one\n\n', 'data: [DONE]']))) {
+      out.push(ev.data);
+    }
+    expect(out).toEqual(['one']);
+  });
+
+  it('comment lines and field-less frames produce no event', async () => {
+    const out = [];
+    for await (const ev of parseSSEStream(streamOf([': keep-alive\n\n', 'event: ping\n\n', 'data: real\n\n']))) {
+      out.push(ev.data);
+    }
+    expect(out).toEqual(['real']);
+  });
+
+  it('multi-line data is joined with newlines, one per `data:` line', async () => {
+    const out = [];
+    for await (const ev of parseSSEStream(streamOf(['data: a\ndata: b\ndata: c\n\n']))) out.push(ev.data);
+    expect(out).toEqual(['a\nb\nc']);
+  });
+
+  it('CRLF frame separators parse the same as LF', async () => {
+    const out = [];
+    for await (const ev of parseSSEStream(streamOf(['data: a\r\n\r\ndata: b\r\n\r\n']))) out.push(ev.data);
+    expect(out).toEqual(['a', 'b']);
+  });
+});

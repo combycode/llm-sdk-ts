@@ -62,3 +62,25 @@ describe('GoogleEmbeddingAdapter', () => {
     expect(r.dimensions).toBe(2);
   });
 });
+
+describe('embeddingsPath stays in step with the spec-built URL', () => {
+  // `embeddingsPath()` is a protected hook the adapters still declare while the
+  // URL itself now comes from the wire spec. Two sources for one fact drift
+  // silently — an override updated in one place and not the other produces a
+  // 404 that reads as "the provider changed their API". This asserts they agree.
+  type WithPath = { embeddingsPath(): string };
+
+  it('OpenAI: the built URL ends with embeddingsPath()', () => {
+    const a = new OpenAIEmbeddingAdapter({ apiKey: 'k' });
+    const path = (a as unknown as WithPath).embeddingsPath();
+    expect(path).toBe('/v1/embeddings');
+    expect(a.buildEmbedRequest({ model: 'm', input: 'x' }).url).toBe(`https://api.openai.com${path}`);
+  });
+
+  it('OpenRouter: its override matches its own spec URL, not the OpenAI one', () => {
+    const a = new OpenRouterEmbeddingAdapter({ apiKey: 'k' });
+    const path = (a as unknown as WithPath).embeddingsPath();
+    expect(path).toBe('/api/v1/embeddings');
+    expect(a.buildEmbedRequest({ model: 'm', input: 'x' }).url).toBe(`https://openrouter.ai${path}`);
+  });
+});

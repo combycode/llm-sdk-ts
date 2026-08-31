@@ -139,3 +139,26 @@ describe('validateChatRequest', () => {
     expect(() => validateChatRequest({ model: 'm', messages: [] })).toThrow(/messages/);
   });
 });
+
+describe('oaiContentToText — parts the adapter does not model', () => {
+  it('an unknown part type contributes nothing rather than "[object Object]"', () => {
+    expect(
+      oaiContentToText([
+        { type: 'text', text: 'a' },
+        { type: 'input_audio', input_audio: { data: 'AAAA', format: 'wav' } } as never,
+        { type: 'text', text: 'b' },
+      ]),
+    ).toBe('ab');
+  });
+
+  it('an image_url part with no url still renders a marker, not a crash', () => {
+    expect(oaiContentToText([{ type: 'image_url' } as never])).toBe('[image: ]');
+  });
+
+  it('a very long image url is truncated in the marker', () => {
+    const long = `https://x/${'y'.repeat(200)}.png`;
+    const out = oaiContentToText([{ type: 'image_url', image_url: { url: long } }]);
+    expect(out).toContain('...');
+    expect(out.length).toBeLessThan(100);
+  });
+});

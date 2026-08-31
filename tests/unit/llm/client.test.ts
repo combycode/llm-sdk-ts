@@ -571,3 +571,173 @@ describe('LLMClient — structuredComplete (typed error + repair)', () => {
     expect(qf.count()).toBe(2); // original + 1 repair, then gives up
   });
 });
+
+// ─── assistantMessage / file retrieval / system extraction ────────────────
+
+const mkClient = (over: Record<string, unknown> = {}) =>
+  new LLMClient({
+    provider: 'anthropic',
+    model: 'claude-3',
+    apiKey: 'sk-test',
+    adapter: makeMockAdapter(),
+    fetch: makeStubFetch({ text: 'hi' }).fetch,
+    ...over,
+  } as never);
+
+describe('LLMClient — assistantMessage provenance', () => {
+  const response = (over: Partial<CompletionResponse> = {}): CompletionResponse =>
+    ({
+      id: 'resp_abc',
+      model: 'claude-3',
+      content: [{ type: 'text', text: 'answer' }],
+      finishReason: 'stop',
+      usage: { inputTokens: 1, outputTokens: 1, totalTokens: 2, cachedTokens: 0, cacheWriteTokens: 0, reasoningTokens: 0 },
+      text: 'answer',
+      toolCalls: [],
+      thinking: null,
+      media: [],
+      latencyMs: 1,
+      raw: null,
+      ...over,
+    }) as CompletionResponse;
+
+  it('stamps role, content, id and the origin provider/model', () => {
+    const m = mkClient().assistantMessage(response());
+    expect(m.role).toBe('assistant');
+    expect(m.content).toEqual([{ type: 'text', text: 'answer' }]);
+    expect(m.id).toBe('resp_abc');
+    expect(m.origin).toMatchObject({ provider: 'anthropic', model: 'claude-3' });
+    expect(m.createdAt).toBeGreaterThan(0);
+  });
+
+  it('a STATELESS api carries no serverStateId — resending it would be a 400', () => {
+    // api defaults to `messages` for anthropic.
+    expect((mkClient().assistantMessage(response()).origin as { serverStateId?: string }).serverStateId)
+      .toBeUndefined();
+  });
+
+  it('a STATEFUL api (responses) carries the response id as serverStateId', () => {
+    const m = mkClient({ provider: 'openai', api: 'responses' }).assistantMessage(response());
+    expect((m.origin as { serverStateId?: string }).serverStateId).toBe('resp_abc');
+  });
+
+  it('a stateful response with NO id gets a generated message id and no serverStateId', () => {
+    const m = mkClient({ provider: 'openai', api: 'responses' }).assistantMessage(response({ id: '' }));
+    expect(m.id).toMatch(/^[0-9a-f-]{36}$/);
+    expect((m.origin as { serverStateId?: string }).serverStateId).toBeUndefined();
+  });
+});
+
+describe('LLMClient — file retrieval delegation', () => {
+  it('retrieveFile fetches through THIS client provider, key and baseURL', async () => {
+    const seen: HttpRequest[] = [];
+    const fetch: EngineFetch = async (req) => {
+      seen.push(req);
+      return { status: 200, headers: { 'content-type': 'image/png' }, body: new Uint8Array([1, 2]).buffer } as HttpResponse;
+    };
+    const client = mkClient({ fetch });
+    const file = await client.retrieveFile({ id: 'file_1' } as never);
+    expect(seen[0].headers['x-api-key']).toBe('sk-test');
+    expect(seen[0].url).toContain('/v1/files/file_1/content');
+    expect(file.mimeType).toBe('image/png');
+    expect(file.size).toBe(2);
+  });
+
+  it('streamFile uses the same context and returns a stream', async () => {
+    const seen: HttpRequest[] = [];
+    const fetch: EngineFetch = async (req) => {
+      seen.push(req);
+      return {
+        status: 200,
+        headers: { 'content-type': 'text/csv', 'content-length': '3' },
+        body: new ReadableStream<Uint8Array>({
+          start(c) {
+            c.enqueue(new Uint8Array([1, 2, 3]));
+            c.close();
+          },
+        }),
+      } as unknown as HttpResponse;
+    };
+    const s = await mkClient({ fetch }).streamFile({ id: 'file_2' } as never);
+    expect(seen[0].headers['x-api-key']).toBe('sk-test');
+    expect(seen[0].responseType).toBe('stream');
+    expect(s.mimeType).toBe('text/csv');
+    expect(s.size).toBe(3);
+    expect(s.stream).toBeInstanceOf(ReadableStream);
+  });
+});
+
+describe('LLMClient — system extraction from message content parts', () => {
+  it('a system message given as CONTENT PARTS is flattened into the system text', async () => {
+    const adapter = makeMockAdapter();
+    const client = new LLMClient({
+      provider: 'anthropic',
+      model: 'claude-3',
+      apiKey: 'k',
+      adapter,
+      fetch: makeStubFetch({ text: 'ok' }).fetch,
+    } as never);
+    await client.complete([
+      { role: 'system', content: [{ type: 'text', text: 'line one' }, { type: 'text', text: 'line two' }] },
+      { role: 'user', content: 'hi' },
+    ] as Message[]);
+    expect(adapter.lastRequest?.system).toBe('line one\nline two');
+    // The system message must not also reach the adapter as a message.
+    expect(adapter.lastRequest?.messages.some((m) => m.role === 'system')).toBe(false);
+  });
+
+  it('a system message whose parts hold no text contributes nothing', async () => {
+    const adapter = makeMockAdapter();
+    const client = new LLMClient({
+      provider: 'anthropic',
+      model: 'claude-3',
+      apiKey: 'k',
+      adapter,
+      fetch: makeStubFetch({ text: 'ok' }).fetch,
+    } as never);
+    await client.complete([
+      { role: 'system', content: [{ type: 'image', source: { type: 'url', url: 'https://x/y.png' } }] },
+      { role: 'user', content: 'hi' },
+    ] as Message[]);
+    expect(adapter.lastRequest?.system).toBeUndefined();
+  });
+});
+
+describe('LLMClient — adapter is mandatory', () => {
+  it('neither adapter nor fetch is caught at construction', () => {
+    expect(
+      () => new LLMClient({ provider: 'anthropic', model: 'claude-3', apiKey: 'k' } as never),
+    ).toThrow('LLMClient: adapter (or factory) is required');
+  });
+
+  it('a fetch WITHOUT an adapter is caught by the resolver, naming both accepted forms', () => {
+    // The constructor guard only fires when BOTH are absent, so this pair reaches
+    // resolveAdapter — which has to say that a factory is acceptable too, or the
+    // caller reads the message as "adapters are required" and gives up.
+    expect(
+      () =>
+        new LLMClient({
+          provider: 'anthropic',
+          model: 'claude-3',
+          apiKey: 'k',
+          fetch: makeStubFetch({}).fetch,
+        } as never),
+    ).toThrow('LLMClient: adapter or AdapterFactory must be supplied');
+  });
+
+  it('an AdapterFactory is called with provider, key, api and baseURL', () => {
+    const seen: unknown[][] = [];
+    new LLMClient({
+      provider: 'anthropic',
+      model: 'claude-3',
+      apiKey: 'k',
+      baseURL: 'https://custom',
+      adapter: (...args: unknown[]) => {
+        seen.push(args);
+        return makeMockAdapter();
+      },
+      fetch: makeStubFetch({}).fetch,
+    } as never);
+    expect(seen[0]).toEqual(['anthropic', 'k', 'messages', 'https://custom']);
+  });
+});

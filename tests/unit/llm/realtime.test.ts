@@ -264,3 +264,41 @@ describe('GoogleRealtimeAdapter — protocol mapping', () => {
     });
   });
 });
+
+describe('RealtimeSession — listener registration', () => {
+  it('the closure returned by on() removes only that listener', () => {
+    const { connect, conns } = fakeConnectFactory();
+    const session = new OpenAIRealtimeAdapter({ apiKey: 'k' }).connect({ model: 'm' }, connect);
+    const a: string[] = [];
+    const b: string[] = [];
+    const off = session.on('text', (e) => a.push(e.delta));
+    session.on('text', (e) => b.push(e.delta));
+    conns[0].fireOpen();
+
+    conns[0].fireText(JSON.stringify({ type: 'response.output_text.delta', delta: '1' }));
+    off();
+    conns[0].fireText(JSON.stringify({ type: 'response.output_text.delta', delta: '2' }));
+
+    expect(a).toEqual(['1']);
+    expect(b).toEqual(['1', '2']);
+  });
+
+  it('unsubscribing twice is harmless', () => {
+    const { connect, conns } = fakeConnectFactory();
+    const session = new OpenAIRealtimeAdapter({ apiKey: 'k' }).connect({ model: 'm' }, connect);
+    const off = session.on('text', () => {});
+    off();
+    expect(() => off()).not.toThrow();
+    conns[0].fireOpen();
+    expect(() =>
+      conns[0].fireText(JSON.stringify({ type: 'response.output_text.delta', delta: 'x' })),
+    ).not.toThrow();
+  });
+
+  it('close() closes the underlying connection', () => {
+    const { connect, conns } = fakeConnectFactory();
+    const session = new OpenAIRealtimeAdapter({ apiKey: 'k' }).connect({ model: 'm' }, connect);
+    session.close();
+    expect(conns[0].closed).toBe(true);
+  });
+});

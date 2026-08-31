@@ -42,6 +42,33 @@ describe('async-context.browser handlerContext', () => {
     expect(handlerContext.getStore()).toBeUndefined();
   });
 
+  it('restores on a SYNCHRONOUSLY thrown run, and rethrows', () => {
+    // The async path restores via .finally(); a sync throw never reaches it, so
+    // it needs its own catch. Without it the flag stays stuck on and every later
+    // top-level emit is misread as reentrant.
+    expect(() =>
+      handlerContext.run(true, () => {
+        throw new Error('sync boom');
+      }),
+    ).toThrow('sync boom');
+    expect(handlerContext.getStore()).toBeUndefined();
+  });
+
+  it('a sync throw NESTED inside a run restores the outer value, not undefined', () => {
+    let afterInner: boolean | undefined;
+    handlerContext.run(true, () => {
+      try {
+        handlerContext.run(false, () => {
+          throw new Error('inner');
+        });
+      } catch {
+        // swallowed
+      }
+      afterInner = handlerContext.getStore();
+    });
+    expect(afterInner).toBe(true);
+  });
+
   it('restores on a thrown async run', async () => {
     await expect(
       handlerContext.run(true, async () => {

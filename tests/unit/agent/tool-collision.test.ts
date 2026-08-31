@@ -119,3 +119,57 @@ describe("toolNameCollisionPolicy: 'error'", () => {
     expect(() => loop.addTool(tool('dup', 'second'))).toThrow(/two tools registered/);
   });
 });
+
+describe('toolKey / describeTool — builtin tools', () => {
+  const builtin = (type: string, marker: string): AgentTool => ({
+    definition: { type } as never,
+    execute: async () => marker,
+  });
+
+  it('a builtin is keyed by its TYPE, so two of the same type collide', async () => {
+    const hooks = new HookBus();
+    const warnings: WarningContext[] = [];
+    hooks.on('onWarning', (w) => {
+      warnings.push(w);
+    });
+    const loop = new AgentLoop({
+      client: client(),
+      hooks,
+      tools: [builtin('web_search', 'first'), builtin('web_search', 'second')],
+    });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(loop.toolNames()).toEqual(['web_search']);
+    const collision = warnings.find((w) => w.code === 'tool_name_collision');
+    // The diagnostic names the KIND, because "a builtin shadowed a builtin" and
+    // "a function shadowed a builtin" need different fixes.
+    expect(collision?.details?.shadowed).toBe('builtin:web_search');
+    expect(collision?.details?.winner).toBe('builtin:web_search');
+  });
+
+  it('a function tool shadowing a builtin is described as exactly that', async () => {
+    const hooks = new HookBus();
+    const warnings: WarningContext[] = [];
+    hooks.on('onWarning', (w) => {
+      warnings.push(w);
+    });
+    new AgentLoop({
+      client: client(),
+      hooks,
+      tools: [builtin('web_search', 'builtin'), tool('web_search', 'fn')],
+    });
+    await new Promise((r) => setTimeout(r, 0));
+
+    const collision = warnings.find((w) => w.code === 'tool_name_collision');
+    expect(collision?.details?.shadowed).toBe('builtin:web_search');
+    expect(collision?.details?.winner).toBe('function:web_search');
+  });
+
+  it('builtins of different types do not collide', () => {
+    const loop = new AgentLoop({
+      client: client(),
+      tools: [builtin('web_search', 'a'), builtin('code_interpreter', 'b')],
+    });
+    expect(loop.toolNames().sort()).toEqual(['code_interpreter', 'web_search']);
+  });
+});

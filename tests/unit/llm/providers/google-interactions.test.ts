@@ -354,3 +354,37 @@ describe('GoogleInteractionsAdapter — stream (2.10 step-machine wire)', () => 
     ]);
   });
 });
+
+describe('GoogleInteractionsAdapter — baseURL + streaming toggle', () => {
+  it('defaults to generativelanguage.googleapis.com', () => {
+    expect(new GoogleInteractionsAdapter({ apiKey: 'k' }).baseURL()).toBe(
+      'https://generativelanguage.googleapis.com',
+    );
+  });
+
+  it('a configured baseURL wins (proxy / regional endpoint)', () => {
+    expect(new GoogleInteractionsAdapter({ apiKey: 'k', baseURL: 'https://g.internal' }).baseURL()).toBe(
+      'https://g.internal',
+    );
+  });
+
+  it('enableStreaming sets stream:true on the BODY, not on the envelope', () => {
+    // The Interactions API selects SSE with a body field. Setting it anywhere
+    // else yields a buffered response and a stream that never yields.
+    const a = new GoogleInteractionsAdapter({ apiKey: 'k' });
+    const req = a.buildRequest(baseReq);
+    expect((req.body as Record<string, unknown>).stream).toBeUndefined();
+    a.enableStreaming(req);
+    expect((req.body as Record<string, unknown>).stream).toBe(true);
+  });
+
+  it('enableStreaming leaves everything else in the body untouched', () => {
+    const a = new GoogleInteractionsAdapter({ apiKey: 'k' });
+    const req = a.buildRequest({ ...baseReq, maxTokens: 64 });
+    const before = JSON.parse(JSON.stringify(req.body));
+    a.enableStreaming(req);
+    const after = { ...(req.body as Record<string, unknown>) };
+    delete after.stream;
+    expect(after).toEqual(before);
+  });
+});

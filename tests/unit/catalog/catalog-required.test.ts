@@ -55,3 +55,42 @@ describe('an engine has model data unless it is told not to', () => {
     expect(b.catalog.get('openai', 'only-in-a')).toBeNull();
   });
 });
+
+describe('capability lookups for a model the catalog has never heard of', () => {
+  const cat = engine().catalog;
+
+  it('supportsApi is true only for an api the model actually lists', () => {
+    const info = cat.get('openai', 'gpt-5.4-nano');
+    expect(info?.supportedApis.length).toBeGreaterThan(0);
+    for (const api of info?.supportedApis ?? []) {
+      expect(cat.supportsApi('openai', 'gpt-5.4-nano', api)).toBe(true);
+    }
+    expect(cat.supportsApi('openai', 'gpt-5.4-nano', 'interactions')).toBe(false);
+  });
+
+  it('supportsApi is FALSE for an unknown model, never a permissive true', () => {
+    // A shrug that reads as "yes" routes the request to an API the model does
+    // not serve, and the 404 arrives from the provider instead of from us.
+    expect(cat.supportsApi('openai', 'gpt-99-imaginary', 'responses')).toBe(false);
+    expect(cat.supportsApi('nosuchprovider', 'm', 'completions')).toBe(false);
+  });
+
+  it('supportsTools reflects the catalog capability and defaults to false', () => {
+    expect(cat.supportsTools('openai', 'gpt-5.4-nano')).toBe(
+      cat.get('openai', 'gpt-5.4-nano')?.capabilities.toolUse ?? false,
+    );
+    expect(cat.supportsTools('openai', 'gpt-99-imaginary')).toBe(false);
+  });
+
+  it('an explicitly non-tool-capable entry reports false', () => {
+    const mine = new ModelCatalog();
+    mine.set('openai', 'text-only', {
+      pricing: {},
+      supportedApis: ['completions'],
+      capabilities: { toolUse: false },
+    } as never);
+    expect(mine.supportsTools('openai', 'text-only')).toBe(false);
+    expect(mine.supportsApi('openai', 'text-only', 'completions')).toBe(true);
+    expect(mine.supportsApi('openai', 'text-only', 'responses')).toBe(false);
+  });
+});

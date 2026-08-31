@@ -136,3 +136,45 @@ describe('streamFile', () => {
     expect(r.size).toBe(5000000);
   });
 });
+
+describe('retrieveFile / streamFile — inputs that cannot be resolved', () => {
+  it('a FileOutput with no data, url or id names all three', async () => {
+    await expect(retrieveFile({} as never, ctx({}))).rejects.toThrow(
+      'retrieveFile: FileOutput has neither `data`, `url`, nor `id`',
+    );
+    await expect(streamFile({} as never, ctx({}))).rejects.toThrow(
+      'retrieveFile: FileOutput has neither `data`, `url`, nor `id`',
+    );
+  });
+
+  it('a provider with no file-content endpoint is named in the error', async () => {
+    await expect(
+      retrieveFile({ id: 'f' }, ctx({ provider: 'mistral' as never })),
+    ).rejects.toThrow('retrieveFile: no file-content endpoint for provider "mistral"');
+  });
+
+  it('a malformed RFC 5987 filename* falls back to the plain filename', async () => {
+    // `%zz` is not valid percent-encoding; decodeURIComponent throws. Rather than
+    // failing the download, the plain `filename="…"` is used.
+    const rec = recordingFetch(new Uint8Array([1]).buffer, {
+      'content-type': 'text/csv',
+      'content-disposition': `attachment; filename*=utf-8''bad%zzname; filename="fallback.csv"`,
+    });
+    const r = await retrieveFile({ id: 'f' }, ctx({ provider: 'openai', fetch: rec.fetch }));
+    expect(r.name).toBe('fallback.csv');
+  });
+
+  it('with no content-type the mime is guessed from the filename extension', async () => {
+    const rec = recordingFetch(new Uint8Array([1]).buffer, {
+      'content-disposition': 'attachment; filename="report.pdf"',
+    });
+    const r = await retrieveFile({ id: 'f' }, ctx({ provider: 'openai', fetch: rec.fetch }));
+    expect(r.mimeType).toBe('application/pdf');
+  });
+
+  it('with neither header nor a known extension it falls back to octet-stream', async () => {
+    const rec = recordingFetch(new Uint8Array([1]).buffer, {});
+    const r = await retrieveFile({ id: 'f', name: 'mystery.zzz' }, ctx({ provider: 'openai', fetch: rec.fetch }));
+    expect(r.mimeType).toBe('application/octet-stream');
+  });
+});

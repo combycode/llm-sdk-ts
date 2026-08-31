@@ -176,3 +176,49 @@ describe('ConversationHistory', () => {
     expect(h.id).toHaveLength(36);
   });
 });
+
+describe('ConversationHistory — windowing helpers', () => {
+  const built = () => {
+    const h = new ConversationHistory();
+    h.append({ role: 'user', content: 'q1' });
+    h.append({ role: 'assistant', content: 'a1' });
+    h.append({ role: 'user', content: 'q2' });
+    h.append({ role: 'assistant', content: 'a2' });
+    return h;
+  };
+
+  it('lastMessages(n) returns the tail as MESSAGES, in order', () => {
+    // `last(n)` yields entries (with metadata); `lastMessages(n)` is what goes
+    // straight into a provider request, so it must be the bare messages.
+    expect(built().lastMessages(2)).toEqual([
+      { role: 'user', content: 'q2' },
+      { role: 'assistant', content: 'a2' },
+    ]);
+  });
+
+  it('lastMessages(n) larger than the history returns everything', () => {
+    expect(built().lastMessages(99)).toHaveLength(4);
+  });
+
+  // KNOWN QUIRK, pinned: `slice(-0)` is `slice(0)`, so n=0 returns EVERYTHING
+  // rather than nothing. A caller computing a window size that lands on zero
+  // gets the full transcript back — the opposite of what it asked for. `last(n)`
+  // has the same shape and the same behaviour.
+  it('lastMessages(0) returns the WHOLE history (slice(-0) === slice(0))', () => {
+    expect(built().lastMessages(0)).toHaveLength(4);
+    expect(built().last(0)).toHaveLength(4);
+  });
+
+  it('filter selects entries by an arbitrary predicate, keeping entry metadata', () => {
+    const h = built();
+    const users = h.filter((e) => e.message.role === 'user');
+    expect(users).toHaveLength(2);
+    expect(users[0].message.content).toBe('q1');
+    expect(users[0].index).toBe(0);
+    expect(users[0].timestamp).toBeGreaterThan(0);
+  });
+
+  it('filter that matches nothing returns an empty array', () => {
+    expect(built().filter(() => false)).toEqual([]);
+  });
+});
