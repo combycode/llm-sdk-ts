@@ -357,9 +357,9 @@ export function evalCond(cond: Cond | undefined, ctx: Ctx, reg: Registry): boole
 
 // ── template evaluation ─────────────────────────────────────────────────────
 
-const OMIT = Symbol('omit');
+export const OMIT = Symbol('omit');
 
-function evalTemplate(tpl: Json, ctx: Ctx, reg: Registry): Json | typeof OMIT {
+export function evalTemplate(tpl: Json, ctx: Ctx, reg: Registry): Json | typeof OMIT {
   if (Array.isArray(tpl)) {
     const out: Json[] = [];
     for (const el of tpl) {
