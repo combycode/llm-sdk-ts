@@ -7,28 +7,27 @@
 import { isBrowser } from '../../../runtime/runtime';
 import { base64ToUtf8 } from '../../../util/base64';
 import type { SSEEvent } from '../../../network/types';
-import type { ContentPart, TextPart, ToolCallPart } from '../../types/messages';
+import type { ContentPart } from '../../types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import type { NormalizedRequest } from '../../types/request';
 import {
   emptyUsage,
-  type BuiltinToolCall,
   type CompletionResponse,
   type FileOutput,
   type Usage,
 } from '../../types/response';
 import { buildFromSpec } from '../../../wire/interpreter';
+import { buildResponse } from '../../../wire/response-interpreter';
+import { getResponseSpec } from '../../../wire/response-specs';
+import { ANTHROPIC_RESPONSE_REGISTRY } from './response-registry';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec, isChatSpec } from '../../../wire/chat-specs';
 import { pinFor, ANTHROPIC_MESSAGE_PINS } from '../../../wire/pins';
 import { makeRegistry } from '../../wire-transforms';
-import { extractCitations } from '../_shared/citations';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
 import { extractFinishReason } from '../_shared/response-utils';
-import {
-  ANTHROPIC_API_VERSION,
-} from './constants';
+import { ANTHROPIC_API_VERSION } from './constants';
 import { sseJson } from '../_shared/sse';
 
 export interface AnthropicAdapterConfig {
@@ -258,86 +257,17 @@ export class AnthropicAdapter implements ProviderAdapter {
   }
 
   parseResponse(raw: unknown, latencyMs: number): CompletionResponse {
-    const r = raw as Record<string, unknown>;
-    const contentBlocks = (r.content as Array<Record<string, unknown>>) ?? [];
-    const usage = this.parseUsage(r.usage as Record<string, unknown>);
-    Object.assign(usage, anthropicBilledTier((r.usage as Record<string, unknown>)?.service_tier));
-
-    const content: ContentPart[] = [];
-    let thinking: string | null = null;
-    const toolCalls: ToolCallPart[] = [];
-    const files: FileOutput[] = [];
-    const builtinToolCalls: BuiltinToolCall[] = [];
-
-    for (const block of contentBlocks) {
-      if (block.type === 'text') {
-        content.push({ type: 'text', text: block.text as string });
-      } else if (block.type === 'thinking') {
-        thinking = block.thinking as string;
-      } else if (block.type === 'tool_use') {
-        const tc: ToolCallPart = {
-          type: 'tool_call',
-          id: block.id as string,
-          name: block.name as string,
-          arguments: block.input as Record<string, unknown>,
-        };
-        content.push(tc);
-        toolCalls.push(tc);
-      } else if (block.type === 'server_tool_use') {
-        // Provider-run builtin tool (web search / code execution) — durable trail
-        // with its input (code / query).
-        const tool = unifiedBuiltinTool(block.name as string);
-        builtinToolCalls.push({
-          tool,
-          ...(typeof block.id === 'string' ? { id: block.id } : {}),
-          ...builtinInputPayload(tool, block.input as Record<string, unknown>),
-        });
-      } else {
-        // `*_tool_result`: attach its stdout to the matching call (by tool_use_id).
-        if (typeof block.type === 'string' && block.type.endsWith('_tool_result')) {
-          const output = resultStdout(block.content);
-          if (output) {
-            const call = builtinToolCalls.find((c) => c.id === (block.tool_use_id as string));
-            if (call) call.output = output;
-          }
-        }
-        // Hosted code-execution output files (fetch bytes by file_id via the Files API).
-        files.push(...filesFromCodeExecBlock(block));
-      }
-    }
-
-    // `model_context_window_exceeded` (anthropic-ts 0.115, GA + beta StopReason):
-    // the prompt itself overflowed the context window — a truncation, not a clean
-    // finish, so it maps to 'length' like max_tokens.
-    // `refusal`: the model declined on safety grounds. It is a content block, not a
-    // clean finish — report it as `content_filter` so it lines up with every other
-    // provider's block signal (OpenAI `incomplete_details.reason`, Google SAFETY).
-    const finishReason = extractFinishReason(toolCalls.length > 0, r.stop_reason as string, {
-      max_tokens: 'length',
-      model_context_window_exceeded: 'length',
-      refusal: 'content_filter',
-    });
-
-    const citations = extractCitations('messages', raw);
-    return {
-      id: r.id as string,
-      model: r.model as string,
-      content,
-      finishReason,
-      usage,
-      text: content
-        .filter((p): p is TextPart => p.type === 'text')
-        .map((p) => p.text)
-        .join(''),
-      toolCalls,
-      media: [],
-      ...(citations.length ? { citations } : {}),
-      ...(files.length ? { files } : {}),
-      ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
-      thinking,
-      latencyMs,
+    // Spec-driven since 3.3.0. The block-by-block walk this replaced is in
+    // `wire/specs/responses/anthropic.messages.json`, and the differential over
+    // every recorded Anthropic body asserts the two produce the same object.
+    return buildResponse(
+      getResponseSpec('anthropic/messages.response'),
       raw,
-    };
+      ANTHROPIC_RESPONSE_REGISTRY,
+      {
+        extra: { latencyMs, raw },
+      },
+    ) as unknown as CompletionResponse;
   }
 
   parseStreamEvent(event: SSEEvent): StreamEvent[] {

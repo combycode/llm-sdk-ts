@@ -4,29 +4,18 @@
  *  previous_interaction_id for stateful, 72h retention. */
 
 import type { SSEEvent } from '../../../network/types';
-import type {
-  AudioOutputPart,
-  ContentPart,
-  ImageOutputPart,
-  MediaOutputPart,
-  Message,
-  ToolCallPart,
-  VideoOutputPart,
-} from '../../types/messages';
+import type { Message } from '../../types/messages';
 import { buildFromSpec } from '../../../wire/interpreter';
+import { buildResponse } from '../../../wire/response-interpreter';
+import { getResponseSpec } from '../../../wire/response-specs';
+import { GOOGLE_INTERACTIONS_REGISTRY } from './interactions-registry';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec } from '../../../wire/chat-specs';
 import { makeRegistry } from '../../wire-transforms';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import type { NormalizedRequest } from '../../types/request';
-import {
-  emptyUsage,
-  type CompletionResponse,
-  type Usage,
-} from '../../types/response';
+import { emptyUsage, type CompletionResponse, type Usage } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
-import { extractCitations } from '../_shared/citations';
-import { AUDIO_PCM16_SAMPLE_RATE_HZ } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
 import { sseJson } from '../_shared/sse';
 
@@ -177,112 +166,21 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
   }
 
   parseResponse(raw: unknown, latencyMs: number): CompletionResponse {
-    const r = raw as Record<string, unknown>;
-
-    // Flatten the step_list into typed items. `model_output` steps carry a
-    // `content[]` of typed parts (text / function_call / image…); `thought`
-    // steps have no content[] and are ignored by the loop below. Falls back to
-    // the legacy `outputs` array for older responses.
-    const steps =
-      (r.steps as Array<Record<string, unknown>>) ??
-      (r.outputs as Array<Record<string, unknown>>) ??
-      [];
-    const outputs: Array<Record<string, unknown>> = [];
-    for (const step of steps) {
-      if (Array.isArray(step.content))
-        outputs.push(...(step.content as Array<Record<string, unknown>>));
-      else outputs.push(step);
-    }
-    const usage = this.parseUsage(r.usage as Record<string, unknown>);
-
-    const content: ContentPart[] = [];
-    const toolCalls: ToolCallPart[] = [];
-    const media: MediaOutputPart[] = [];
-    const thinking: string | null = null;
-    let text = '';
-
-    for (const item of outputs) {
-      const type = item.type as string;
-
-      if (type === 'text') {
-        const t = item.text as string;
-        text += t;
-        content.push({ type: 'text', text: t });
-      }
-
-      if (type === 'function_call') {
-        const tc: ToolCallPart = {
-          type: 'tool_call',
-          id: (item.id as string) ?? crypto.randomUUID(),
-          name: item.name as string,
-          arguments: (item.arguments as Record<string, unknown>) ?? {},
-        };
-        this.toolCallNames.set(tc.id, tc.name);
-        content.push(tc);
-        toolCalls.push(tc);
-      }
-
-      // Inline media output (image/audio/video)
-      if (type === 'image' || type === 'audio' || type === 'video') {
-        const mime = (item.mime_type as string) ?? (item.mimeType as string) ?? '';
-        const data = (item.data as string) ?? '';
-        if (type === 'image') {
-          const p: ImageOutputPart = {
-            type: 'image_output',
-            mediaId: '',
-            mimeType: mime || 'image/png',
-            _data: data,
-          };
-          content.push(p);
-          media.push(p);
-        } else if (type === 'audio') {
-          const p: AudioOutputPart = {
-            type: 'audio_output',
-            mediaId: '',
-            mimeType: mime || 'audio/pcm',
-            sampleRate: AUDIO_PCM16_SAMPLE_RATE_HZ,
-            _data: data,
-          };
-          content.push(p);
-          media.push(p);
-        } else {
-          const p: VideoOutputPart = {
-            type: 'video_output',
-            mediaId: '',
-            mimeType: mime || 'video/mp4',
-            _data: data,
-          };
-          content.push(p);
-          media.push(p);
-        }
-      }
-    }
-
-    const status = r.status as string;
-    // `queued` joined InteractionStatus in google 2.13 (interaction-api): the
-    // interaction was accepted but has not run, so it carries no completion —
-    // reporting 'stop' would claim a clean finish that never happened.
-    const finishReason = extractFinishReason(toolCalls.length > 0, status, {
-      failed: 'error',
-      queued: 'pending',
-      in_progress: 'pending',
-    });
-
-    const citations = extractCitations('interactions', raw);
-    return {
-      id: (r.id as string) ?? crypto.randomUUID(),
-      model: '',
-      content,
-      finishReason,
-      usage,
-      text,
-      toolCalls,
-      media,
-      ...(citations.length ? { citations } : {}),
-      thinking,
-      latencyMs,
+    // Spec-driven since 3.3.0; see wire/specs/responses/google.interactions.json.
+    const result = buildResponse(
+      getResponseSpec('google/interactions.response'),
       raw,
-    };
+      GOOGLE_INTERACTIONS_REGISTRY,
+      { extra: { latencyMs, raw } },
+    ) as unknown as CompletionResponse;
+
+    // The one thing the spec cannot own. `buildRequest` names a tool RESULT by
+    // looking its call id up here, so a parse that does not record the names
+    // sends the next request with an empty `name` -- silently, and only on the
+    // turn AFTER the tool call. Re-fed from the built result, which carries the
+    // same ids the hand-written loop used to set one at a time.
+    for (const tc of result.toolCalls) this.toolCallNames.set(tc.id, tc.name);
+    return result;
   }
 
   /** Translate one Interactions SSE event to unified events. The 2.10 wire is a
@@ -323,7 +221,11 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
         events.push({ type: 'thinking', text: (delta.text as string) ?? '' });
       } else if (dtype === 'arguments_delta') {
         // arguments already a JSON string fragment; belongs to the open call.
-        events.push({ type: 'tool_call_delta', id: state.callId ?? '', arguments: (delta.arguments as string) ?? '' });
+        events.push({
+          type: 'tool_call_delta',
+          id: state.callId ?? '',
+          arguments: (delta.arguments as string) ?? '',
+        });
       }
       // thought_signature and other delta kinds are internal → no unified event.
       return events;

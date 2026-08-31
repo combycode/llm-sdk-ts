@@ -16,6 +16,7 @@ import { GOOGLE_RESPONSE_REGISTRY } from './google/response-registry';
 import { OPENAI_RESPONSE_REGISTRY } from './openai/response-registry';
 import { OPENAI_RESPONSES_REGISTRY } from './openai/responses-registry';
 import { OPENROUTER_RESPONSE_REGISTRY } from './openrouter/response-registry';
+import { XAI_RESPONSES_REGISTRY } from './xai/responses-registry';
 import type { Registry } from '../../wire/interpreter';
 
 export const RESPONSE_REGISTRIES: Record<string, Registry> = {
@@ -25,8 +26,8 @@ export const RESPONSE_REGISTRIES: Record<string, Registry> = {
   'openai/completions.response': OPENAI_RESPONSE_REGISTRY,
   'openai/responses.response': OPENAI_RESPONSES_REGISTRY,
   'openrouter/completions.response': OPENROUTER_RESPONSE_REGISTRY,
-  // xAI's Responses adapter subclasses OpenAI's and overrides no parsing.
-  'xai/responses.response': OPENAI_RESPONSES_REGISTRY,
+  // xAI subclasses OpenAI's Responses adapter but DOES extend file extraction.
+  'xai/responses.response': XAI_RESPONSES_REGISTRY,
 };
 
 /** Every name any response registry supplies. For checks that only ask "does

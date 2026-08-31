@@ -21,9 +21,7 @@ type Item = Record<string, unknown>;
 
 const rawOf = (ctx: Ctx): Record<string, unknown> =>
   (ctx.req as { raw: Record<string, unknown> }).raw ?? {};
-const outOf = (
-  ctx: Ctx,
-): { content: unknown[]; toolCalls: unknown[]; reasoningItems: Item[] } =>
+const outOf = (ctx: Ctx): { content: unknown[]; toolCalls: unknown[]; reasoningItems: Item[] } =>
   (ctx.req as { out: { content: unknown[]; toolCalls: unknown[]; reasoningItems: Item[] } }).out;
 const itemOf = (ctx: Ctx): Item => (ctx.item?.value ?? {}) as Item;
 
@@ -179,11 +177,7 @@ export const OPENAI_RESPONSES_REGISTRY: Registry = {
       const raw = rawOf(ctx);
       const reason = (raw.incomplete_details as { reason?: string } | undefined)?.reason;
       if (reason === 'content_filter') return 'content_filter';
-      return extractFinishReason(
-        outOf(ctx).toolCalls.length > 0,
-        raw.status as string,
-        FINISH,
-      );
+      return extractFinishReason(outOf(ctx).toolCalls.length > 0, raw.status as string, FINISH);
     },
 
     /** A Responses call can fail INSIDE a 200, so there is no exception to

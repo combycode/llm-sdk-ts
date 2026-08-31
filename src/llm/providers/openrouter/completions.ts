@@ -1,10 +1,11 @@
 /** OpenRouter provider adapter — OpenAI-compatible with extensions. */
 
 import type { SSEEvent } from '../../../network/types';
-import type { ProviderAdapter, } from '../../types/provider';
-import type { CompletionResponse } from '../../types/response';
+import type { ProviderAdapter } from '../../types/provider';
 import type { StreamEvent } from '../../types/stream';
 import { OpenAIAdapter, type OpenAIStreamState } from '../openai/completions';
+import type { Registry } from '../../../wire/interpreter';
+import { OPENROUTER_RESPONSE_REGISTRY } from './response-registry';
 
 export interface OpenRouterAdapterConfig {
   apiKey: string;
@@ -41,14 +42,15 @@ export class OpenRouterAdapter extends OpenAIAdapter {
    *  `openrouter` overlay in the shared spec. Naming the flavor IS the override now. */
   protected override readonly wireFlavor: string = 'openrouter';
 
-  override parseResponse(raw: unknown, latencyMs: number): CompletionResponse {
-    const result = super.parseResponse(raw, latencyMs);
-    const choices = (raw as Record<string, unknown>).choices as Array<Record<string, unknown>>;
-    const annotations = (choices?.[0]?.message as Record<string, unknown>)?.annotations;
-    if (hasUrlCitation(annotations)) {
-      result.builtinToolCalls = [...(result.builtinToolCalls ?? []), { tool: 'web_search' }];
-    }
-    return result;
+  /** The `:online` web-search rule that used to live in an override is the
+   *  `openrouter` delta of the shared response spec. Naming the spec IS the
+   *  override now, exactly as `wireFlavor` is for the request side. */
+  protected override responseSpecId(): string {
+    return 'openrouter/completions.response';
+  }
+
+  protected override responseRegistry(): Registry {
+    return OPENROUTER_RESPONSE_REGISTRY;
   }
 
   /** Stateful — emit a single `web_search` builtin-tool pair the first time

@@ -6,10 +6,12 @@
  *  - Encrypted reasoning via include: ["reasoning.encrypted_content"]
  */
 
-import type { ProviderAdapter, } from '../../types/provider';
+import type { ProviderAdapter } from '../../types/provider';
 import type { FileOutput } from '../../types/response';
 import { bytesToBase64 } from '../../../util/base64';
 import { OpenAIResponsesAdapter } from '../openai/responses';
+import type { Registry } from '../../../wire/interpreter';
+import { XAI_RESPONSES_REGISTRY } from './responses-registry';
 
 export interface XAIResponsesAdapterConfig {
   apiKey: string;
@@ -20,7 +22,7 @@ export interface XAIResponsesAdapterConfig {
  *  `logs` payload (a JSON string: `{stdout, output_files:[{file_name, mime_type, data:[…bytes]}]}`),
  *  not as OpenAI-style `container_file_citation` annotations. Requires the request to
  *  ask for them via `include: ['code_interpreter_call.outputs']`. */
-function xaiCodeExecFiles(item: Record<string, unknown>): FileOutput[] {
+export function xaiCodeExecFiles(item: Record<string, unknown>): FileOutput[] {
   if (item.type !== 'code_interpreter_call') return [];
   const files: FileOutput[] = [];
   for (const out of (item.outputs as Array<Record<string, unknown>>) ?? []) {
@@ -45,6 +47,16 @@ function xaiCodeExecFiles(item: Record<string, unknown>): FileOutput[] {
 }
 
 export class XAIResponsesAdapter extends OpenAIResponsesAdapter {
+  /** Identical to OpenAI's by inheritance, but addressed by its own id so the
+   *  target has a spec of its own rather than a special case in the lookup. */
+  protected override responseSpecId(): string {
+    return 'xai/responses.response';
+  }
+
+  protected override responseRegistry(): Registry {
+    return XAI_RESPONSES_REGISTRY;
+  }
+
   override readonly name: ProviderAdapter['name'] = 'xai';
 
   constructor(config: XAIResponsesAdapterConfig) {

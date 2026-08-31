@@ -1,33 +1,20 @@
 /** Google Gemini provider adapter (generateContent API). */
 
 import type { SSEEvent } from '../../../network/types';
-import type {
-  AudioOutputPart,
-  ContentPart,
-  ImageOutputPart,
-  MediaOutputPart,
-  TextPart,
-  ToolCallPart,
-  VideoOutputPart,
-} from '../../types/messages';
+import type { ContentPart } from '../../types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import { buildFromSpec } from '../../../wire/interpreter';
+import { buildResponse } from '../../../wire/response-interpreter';
+import { getResponseSpec } from '../../../wire/response-specs';
+import { GOOGLE_RESPONSE_REGISTRY } from './response-registry';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec, isChatSpec } from '../../../wire/chat-specs';
 import { pinFor, GOOGLE_GENERATE_PINS } from '../../../wire/pins';
 import { makeRegistry } from '../../wire-transforms';
 import { googleBilledTier } from './tiers';
 import type { NormalizedRequest } from '../../types/request';
-import {
-  emptyUsage,
-  type BuiltinToolCall,
-  type CompletionResponse,
-  type FileOutput,
-  type Usage,
-} from '../../types/response';
+import { emptyUsage, type CompletionResponse, type Usage } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
-import { extractCitations } from '../_shared/citations';
-import { AUDIO_PCM16_SAMPLE_RATE_HZ } from '../_shared/constants';
 import { extractFinishReason } from '../_shared/response-utils';
 import { sseJson } from '../_shared/sse';
 
@@ -122,10 +109,7 @@ export class GoogleAdapter implements ProviderAdapter {
   private toolCallNames: Map<string, string> = new Map();
 
   /** Reached through the wire registry while building this adapter's own request. */
-  buildContent(msg: {
-    role: string;
-    content: string | ContentPart[];
-  }): Record<string, unknown> {
+  buildContent(msg: { role: string; content: string | ContentPart[] }): Record<string, unknown> {
     const role = msg.role === 'assistant' ? 'model' : 'user';
     const parts: unknown[] = [];
 
@@ -179,159 +163,15 @@ export class GoogleAdapter implements ProviderAdapter {
   }
 
   parseResponse(raw: unknown, latencyMs: number): CompletionResponse {
-    const r = raw as Record<string, unknown>;
-    const candidates = (r.candidates as Array<Record<string, unknown>>) ?? [];
-    const candidate = candidates[0] ?? {};
-    const rawContent = (candidate.content as Record<string, unknown>) ?? {};
-    const parts = (rawContent.parts as Array<Record<string, unknown>>) ?? [];
-    const usage = this.parseUsage(r.usageMetadata as Record<string, unknown>);
-
-    const content: ContentPart[] = [];
-    const toolCalls: ToolCallPart[] = [];
-    const media: MediaOutputPart[] = [];
-    const files: FileOutput[] = [];
-    let thinking: string | null = null;
-
-    // When the model ran hosted code execution, its inlineData blobs are file
-    // artifacts (e.g. a generated chart) → route them to the unified files channel
-    // rather than treating them as conversational media.
-    const hasCodeExec = parts.some((p) => p.executableCode || p.codeExecutionResult);
-
-    for (const part of parts) {
-      if (part.text !== undefined && !part.thought) {
-        content.push({ type: 'text', text: part.text as string });
-      }
-      if (part.thought && part.text) {
-        thinking = part.text as string;
-      }
-      // Inline media output (image/audio/video from generateContent), OR a
-      // code-execution file artifact when the turn used code execution.
-      if (part.inlineData) {
-        const inline = part.inlineData as { mimeType: string; data: string };
-        const mime = inline.mimeType;
-        if (hasCodeExec) {
-          files.push({ data: inline.data, mimeType: mime, source: 'code_execution' });
-        } else if (mime.startsWith('image/')) {
-          const p: ImageOutputPart = {
-            type: 'image_output',
-            mediaId: '',
-            mimeType: mime,
-            _data: inline.data,
-          };
-          content.push(p);
-          media.push(p);
-        } else if (mime.startsWith('audio/')) {
-          const p: AudioOutputPart = {
-            type: 'audio_output',
-            mediaId: '',
-            mimeType: mime,
-            sampleRate: AUDIO_PCM16_SAMPLE_RATE_HZ,
-            _data: inline.data,
-          };
-          content.push(p);
-          media.push(p);
-        } else if (mime.startsWith('video/')) {
-          const p: VideoOutputPart = {
-            type: 'video_output',
-            mediaId: '',
-            mimeType: mime,
-            _data: inline.data,
-          };
-          content.push(p);
-          media.push(p);
-        }
-      }
-      if (part.functionCall) {
-        const fc = part.functionCall as Record<string, unknown>;
-        const meta: Record<string, unknown> = {};
-        if (part.thoughtSignature) meta.thoughtSignature = part.thoughtSignature;
-        const tc: ToolCallPart = {
-          type: 'tool_call',
-          id: (fc.id as string) ?? crypto.randomUUID(),
-          name: fc.name as string,
-          arguments: (fc.args as Record<string, unknown>) ?? {},
-          ...(Object.keys(meta).length > 0 ? { _meta: meta } : {}),
-        };
-        content.push(tc);
-        toolCalls.push(tc);
-      }
-    }
-
-    const finishReason = extractFinishReason(
-      toolCalls.length > 0,
-      candidate.finishReason as string,
-      {
-        MAX_TOKENS: 'length',
-        SAFETY: 'content_filter',
-        // Verified in google-ts `src/types.ts:510`. Previously unmapped, so it fell through to
-        // `stop`: a turn where the model failed to produce a usable tool call looked like a clean
-        // finish with no content — precisely the state `reflectAndRetry` exists to recover from.
-        MALFORMED_FUNCTION_CALL: 'malformed_tool_call',
-      },
-    );
-
-    // Provider-run builtin tools — durable trail. Google has no call ids for these:
-    // code execution is `executableCode` (code) + `codeExecutionResult` (output)
-    // parts (paired in order); web search (googleSearch grounding) carries its query
-    // in candidate.groundingMetadata.webSearchQueries.
-    const builtinToolCalls: BuiltinToolCall[] = [];
-    const codes = parts
-      .filter((p) => (p.executableCode as Record<string, unknown>)?.code)
-      .map((p) => (p.executableCode as Record<string, unknown>).code as string);
-    const outputs = parts
-      .filter((p) => p.codeExecutionResult)
-      .map((p) => String((p.codeExecutionResult as Record<string, unknown>).output ?? ''));
-    if (codes.length) {
-      codes.forEach((code, i) => {
-        builtinToolCalls.push({
-          tool: 'code_interpreter',
-          code,
-          ...(outputs[i] ? { output: outputs[i] } : {}),
-        });
-      });
-    } else if (hasCodeExec) {
-      builtinToolCalls.push({ tool: 'code_interpreter', ...(outputs[0] ? { output: outputs[0] } : {}) });
-    }
-    const grounding = candidate.groundingMetadata as Record<string, unknown> | undefined;
-    if (grounding) {
-      const q = (grounding.webSearchQueries as string[] | undefined)?.[0];
-      builtinToolCalls.push({ tool: 'web_search', ...(typeof q === 'string' ? { query: q } : {}) });
-    }
-    // web_fetch (urlContext): one entry per fetched URL from urlContextMetadata.
-    const urlCtx = candidate.urlContextMetadata as Record<string, unknown> | undefined;
-    const urlMeta = urlCtx?.urlMetadata as Array<Record<string, unknown>> | undefined;
-    if (Array.isArray(urlMeta)) {
-      for (const m of urlMeta) {
-        const url = m.retrievedUrl as string | undefined;
-        builtinToolCalls.push({ tool: 'web_fetch', ...(typeof url === 'string' ? { url } : {}) });
-      }
-    }
-
-    const citations = extractCitations('generate', raw);
-    return {
-      // generateContent DOES return an id — `responseId`, at the top level. The
-      // fallback stays for older payloads, but minting one unconditionally made
-      // the parse non-deterministic: the same bytes produced a different id every
-      // time, so nothing keyed on it could correlate, and a cache hit replaying
-      // the stored body reported a different response than the call it cached.
-      id: (r.responseId as string) ?? crypto.randomUUID(),
-      model: '',
-      content,
-      finishReason,
-      usage,
-      text: content
-        .filter((p): p is TextPart => p.type === 'text')
-        .map((p) => p.text)
-        .join(''),
-      toolCalls,
-      thinking,
-      media,
-      ...(citations.length ? { citations } : {}),
-      ...(files.length ? { files } : {}),
-      ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
-      latencyMs,
+    // Spec-driven since 3.3.0; see wire/specs/responses/google.generate.json.
+    return buildResponse(
+      getResponseSpec('google/generate.response'),
       raw,
-    };
+      GOOGLE_RESPONSE_REGISTRY,
+      {
+        extra: { latencyMs, raw },
+      },
+    ) as unknown as CompletionResponse;
   }
 
   parseStreamEvent(event: SSEEvent): StreamEvent[] {
@@ -452,9 +292,11 @@ export class GoogleAdapter implements ProviderAdapter {
     // one start/end pair the first time grounding metadata appears in the stream.
     if (candidate.groundingMetadata && !state.webSearchEmitted) {
       state.webSearchEmitted = true;
-      const q = ((candidate.groundingMetadata as Record<string, unknown>).webSearchQueries as
-        | string[]
-        | undefined)?.[0];
+      const q = (
+        (candidate.groundingMetadata as Record<string, unknown>).webSearchQueries as
+          | string[]
+          | undefined
+      )?.[0];
       events.push({ type: 'builtin_tool_start', tool: 'web_search' });
       events.push({
         type: 'builtin_tool_end',

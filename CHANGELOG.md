@@ -37,6 +37,28 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   magic bytes (mp3/wav/ogg/flac/aac), mirroring the existing `sniffImageMime`; the old template
   remains as the last resort.
 
+### Changed
+
+- **Response parsing is spec-driven.** Requests have been built from specs since 3.0.0; the parse
+  side was seven hand-written `parseResponse` implementations doing the same four things in four
+  spellings. All seven now run one interpreter over a declarative spec, and **599 lines of
+  hand-written parsing are gone**.
+
+  The evaluator is the request one, unchanged: `$`, `$map`, `$call`, `$table`, `$join`, `$when` and
+  `$default` never cared what the root object was. Only classification is new — `collect` walks a
+  discriminated array and emits into named accumulators, and naming several places ONE object in
+  each rather than copies, which is what the adapters did and what consumers depend on.
+
+  Behaviour is unchanged, and that is checked rather than asserted: the differential replays every
+  recorded provider body through the adapters and compares against `parsed` values frozen in the
+  corpus — data neither path recomputes, so it still means something now the code that produced
+  it is deleted. 46 of 46 buffered cells match, and one live call per provider was made against the
+  real API after the switch.
+
+  `OpenRouterAdapter.parseResponse` is gone entirely: its `:online` web-search rule is a delta of
+  the shared spec, so naming the spec is the override now, exactly as `wireFlavor` already was for
+  requests.
+
 ### Internal
 
 - **The response corpus covers the parse paths it never reached.** Measured against the fixtures,
@@ -50,6 +72,13 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   product: Chat Completions has no hosted web search, and only `gpt-audio` returns audio. The
   recorder and the differential read the same `expectedCells()`, so they cannot disagree about what
   is missing.
+
+- **The corpus did not catch everything, and that is worth recording.** Switching the adapters
+  dropped xAI's inline code-execution file extraction: `XAIResponsesAdapter` overrides
+  `filesFromOutputItem`, the shared spec transform called the OpenAI module function directly, and
+  the override was simply never consulted. No recorded xAI cell runs code execution, so the response
+  differential stayed green — an existing unit test failed instead. xAI now has its own response
+  registry, the parse-side twin of that adapter override.
 
 - **The three parse branches for a failure reported inside a 200 are covered.** A provider cannot be
   asked to fail on demand, so those cells are CONSTRUCTED — marked `synthetic: true`, built from the

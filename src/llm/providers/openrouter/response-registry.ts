@@ -22,7 +22,8 @@ export const OPENROUTER_RESPONSE_REGISTRY: Registry = {
     openrouterWebSearchCall: (_arg: unknown, ctx: Ctx) => {
       const raw = (ctx.req as { raw: Record<string, unknown> }).raw ?? {};
       const choices = raw.choices as Array<Record<string, unknown>> | undefined;
-      const annotations = (choices?.[0]?.message as Record<string, unknown> | undefined)?.annotations;
+      const annotations = (choices?.[0]?.message as Record<string, unknown> | undefined)
+        ?.annotations;
       return hasUrlCitation(annotations) ? { tool: 'web_search' } : undefined;
     },
   },

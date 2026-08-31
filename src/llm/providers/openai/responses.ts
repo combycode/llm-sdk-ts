@@ -4,18 +4,11 @@
  *  output items (not choices), function_call/function_call_output for tools. */
 
 import type { SSEEvent } from '../../../network/types';
-import type {
-  AssistantPhase,
-  ContentPart,
-  ImageOutputPart,
-  MediaOutputPart,
-  Message,
-  ProgramResultPart,
-  TextPart,
-  ToolCallPart,
-  ToolCaller,
-} from '../../types/messages';
+import type { AssistantPhase, Message, TextPart, ToolCaller } from '../../types/messages';
 import { buildFromSpec } from '../../../wire/interpreter';
+import { buildResponse } from '../../../wire/response-interpreter';
+import { getResponseSpec } from '../../../wire/response-specs';
+import { OPENAI_RESPONSES_REGISTRY } from './responses-registry';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec } from '../../../wire/chat-specs';
 import { makeRegistry } from '../../wire-transforms';
@@ -28,11 +21,9 @@ import {
   type FileOutput,
   type Usage,
 } from '../../types/response';
-import { extractCitations } from '../_shared/citations';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
 import { parseNativeModeration } from '../../moderation/native';
-import { openaiBilledTier, } from './tiers';
 import { extractFinishReason } from '../_shared/response-utils';
 import { sseJson } from '../_shared/sse';
 
@@ -110,7 +101,9 @@ function searchActionPayload(item: Record<string, unknown>): { query?: string; u
  *  (with its code/output/query payload), or null for non-builtin items. Shared by
  *  the buffered and streamed paths. */
 const RESPONSES_BUILTIN_ITEMS = new Set(['web_search_call', 'code_interpreter_call']);
-export function builtinCallFromResponsesItem(item: Record<string, unknown>): BuiltinToolCall | null {
+export function builtinCallFromResponsesItem(
+  item: Record<string, unknown>,
+): BuiltinToolCall | null {
   const type = item.type as string;
   if (!RESPONSES_BUILTIN_ITEMS.has(type)) return null;
   const call: BuiltinToolCall = { tool: unifiedBuiltinTool(type) };
@@ -432,184 +425,23 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     (providerReq.body as Record<string, unknown>).stream = true;
   }
 
+  /** Overridden by xAI, whose Responses API is this one. */
+  protected responseSpecId(): string {
+    return 'openai/responses.response';
+  }
+
+  /** Overridden alongside the spec id: xAI extends file extraction, so its
+   *  registry supplies a different `oaiRespFiles` -- the parse-side twin of its
+   *  `filesFromOutputItem` override. */
+  protected responseRegistry(): Registry {
+    return OPENAI_RESPONSES_REGISTRY;
+  }
+
   parseResponse(raw: unknown, latencyMs: number): CompletionResponse {
-    const r = raw as Record<string, unknown>;
-    const output = (r.output as Array<Record<string, unknown>>) ?? [];
-    const usage = this.parseUsage(r.usage as Record<string, unknown>);
-    Object.assign(usage, openaiBilledTier(r.service_tier));
-
-    const content: ContentPart[] = [];
-    const toolCalls: ToolCallPart[] = [];
-    const reasoningItems: Record<string, unknown>[] = [];
-    const media: MediaOutputPart[] = [];
-    const files: FileOutput[] = [];
-    const builtinToolCalls: BuiltinToolCall[] = [];
-    let thinking: string | null = null;
-    let text = '';
-
-    for (const item of output) {
-      const type = item.type as string;
-
-      // Hosted code-execution output files (container-file annotations on a
-      // message, or code-interpreter image URLs) — shared with the stream path.
-      files.push(...this.filesFromOutputItem(item));
-
-      // Hosted builtin-tool calls (web search / code interpreter) — durable trail.
-      const builtinCall = builtinCallFromResponsesItem(item);
-      if (builtinCall) builtinToolCalls.push(builtinCall);
-
-      if (type === 'message') {
-        const itemContent = (item.content as Array<Record<string, unknown>>) ?? [];
-        // `phase` distinguishes narration from the answer on codex-family models. Carried onto the
-        // text part so a caller (and our agent loop) can tell them apart; absent on every other
-        // model, where the text is simply the answer.
-        const phase = typeof item.phase === 'string' ? (item.phase as AssistantPhase) : undefined;
-        for (const c of itemContent) {
-          if (c.type === 'output_text') {
-            const t = c.text as string;
-            // `text` stays the full concatenation: narrowing it to final_answer here would silently
-            // change what every existing caller reads. Consumers that want only the answer can
-            // filter the parts by phase.
-            text += t;
-            content.push({ type: 'text', text: t, ...(phase !== undefined ? { phase } : {}) });
-          }
-        }
-      }
-
-      if (type === 'reasoning') {
-        const summary = (item.summary as Array<Record<string, unknown>>) ?? [];
-        const summaryText = summary
-          .filter((s) => s.type === 'summary_text')
-          .map((s) => s.text as string)
-          .join('\n');
-        if (summaryText) thinking = summaryText;
-      }
-
-      if (type === 'function_call') {
-        const caller = fromWireCaller(item.caller);
-        const tc: ToolCallPart = {
-          type: 'tool_call',
-          id: (item.call_id as string) ?? (item.id as string),
-          name: item.name as string,
-          arguments:
-            typeof item.arguments === 'string'
-              ? JSON.parse(item.arguments as string)
-              : ((item.arguments as Record<string, unknown>) ?? {}),
-          ...(caller ? { caller } : {}),
-        };
-        content.push(tc);
-        toolCalls.push(tc);
-      }
-
-      // Programmatic tool calling. `reasoningItems` collects the reasoning items seen
-      // earlier in this same output, because the program cannot be sent back without
-      // them — see buildInputItems.
-      if (type === 'reasoning') reasoningItems.push(item);
-
-      if (type === 'program') {
-        content.push({
-          type: 'program_call',
-          id: (item.call_id as string) ?? (item.id as string),
-          code: (item.code as string) ?? '',
-          fingerprint: (item.fingerprint as string) ?? '',
-          _meta: {
-            ...(typeof item.id === 'string' ? { itemId: item.id } : {}),
-            ...(reasoningItems.length > 0 ? { boundItems: [...reasoningItems] } : {}),
-          },
-        });
-      }
-
-      if (type === 'program_output') {
-        content.push({
-          type: 'program_result',
-          id: (item.call_id as string) ?? (item.id as string),
-          result: (item.result as string) ?? '',
-          ...(typeof item.status === 'string'
-            ? { status: item.status as ProgramResultPart['status'] }
-            : {}),
-          // Required on the way back in, unlike every other item we echo.
-          ...(typeof item.id === 'string' ? { _meta: { itemId: item.id } } : {}),
-        });
-      }
-
-      // Built-in image generation tool output
-      if (type === 'image_generation_call') {
-        const resultData = item.result as string; // base64
-        if (resultData) {
-          const p: ImageOutputPart = {
-            type: 'image_output',
-            mediaId: '',
-            mimeType:
-              (item.output_format as string) === 'jpeg'
-                ? 'image/jpeg'
-                : (item.output_format as string) === 'webp'
-                  ? 'image/webp'
-                  : 'image/png',
-            revisedPrompt: item.revised_prompt as string | undefined,
-            _data: resultData,
-          };
-          content.push(p);
-          media.push(p);
-        }
-      }
-    }
-
-    const status = r.status as string;
-    // `status: 'incomplete'` carries a sub-reason: `content_filter` (a moderation/
-    // safety block) or `max_output_tokens` (a token cap). Surface content_filter
-    // distinctly instead of mislabelling a block as a length truncation.
-    const incompleteReason = (r.incomplete_details as { reason?: string } | undefined)?.reason;
-    // A Responses call can FAIL inside a 200 (`status:'failed'` + `response.error`) — there
-    // is no transport error to catch, so mapping it to 'stop' silently returned an empty
-    // success. `queued`/`in_progress` are non-terminal (background mode) and `cancelled`
-    // ended without a result; none of them is a clean finish.
-    const finishReason =
-      incompleteReason === 'content_filter'
-        ? 'content_filter'
-        : extractFinishReason(toolCalls.length > 0, status, {
-            incomplete: 'length',
-            failed: 'error',
-            cancelled: 'error',
-            queued: 'pending',
-            in_progress: 'pending',
-          });
-    // `error.code` gained `data_residency_mismatch` in openai 6.49 (GA + beta).
-    const rawError = r.error as { code?: unknown; message?: unknown } | null | undefined;
-    const error =
-      rawError && (rawError.code !== undefined || rawError.message !== undefined)
-        ? {
-            ...(typeof rawError.code === 'string' ? { code: rawError.code } : {}),
-            ...(typeof rawError.message === 'string' ? { message: rawError.message } : {}),
-          }
-        : undefined;
-
-    // Use output_text convenience if available
-    if (!text && typeof r.output_text === 'string') {
-      text = r.output_text as string;
-      if (text && content.length === 0) content.push({ type: 'text', text });
-    }
-
-    const moderation = parseNativeModeration(r.moderation);
-
-    const citations = extractCitations('responses', raw);
-    return {
-      id: r.id as string,
-      model: (r.model as string) ?? '',
-      content,
-      finishReason,
-      usage,
-      text,
-      toolCalls,
-      thinking,
-      media,
-      ...(citations.length ? { citations } : {}),
-      ...(files.length ? { files } : {}),
-      ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
-      ...(moderation ? { moderation } : {}),
-      ...(error ? { error } : {}),
-      latencyMs,
-      raw,
-    };
+    // Spec-driven since 3.3.0; see wire/specs/responses/openai.responses.json.
+    return buildResponse(getResponseSpec(this.responseSpecId()), raw, this.responseRegistry(), {
+      extra: { latencyMs, raw },
+    }) as unknown as CompletionResponse;
   }
 
   parseStreamEvent(event: SSEEvent, phaseByItem?: Map<string, AssistantPhase>): StreamEvent[] {
@@ -673,7 +505,11 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       }
       const builtin = builtinCallFromResponsesItem(item ?? {});
       if (builtin) {
-        events.push({ type: 'builtin_tool_start', tool: builtin.tool, ...(builtin.id ? { id: builtin.id } : {}) });
+        events.push({
+          type: 'builtin_tool_start',
+          tool: builtin.tool,
+          ...(builtin.id ? { id: builtin.id } : {}),
+        });
       }
     }
 
@@ -693,7 +529,11 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       for (const file of this.filesFromOutputItem(item)) events.push({ type: 'file', file });
       const builtin = builtinCallFromResponsesItem(item ?? {});
       if (builtin) {
-        events.push({ type: 'builtin_tool_end', tool: builtin.tool, ...builtinEndPayload(builtin) });
+        events.push({
+          type: 'builtin_tool_end',
+          tool: builtin.tool,
+          ...builtinEndPayload(builtin),
+        });
       }
       if (item?.type === 'function_call') {
         events.push({ type: 'tool_call_end', id: (item.call_id as string) ?? '' });
@@ -723,9 +563,19 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
       // first, then output) before the terminal usage/done events.
       const moderation = parseNativeModeration(response.moderation);
       if (moderation?.input)
-        events.push({ type: 'moderation', phase: 'input', result: moderation.input, source: 'native' });
+        events.push({
+          type: 'moderation',
+          phase: 'input',
+          result: moderation.input,
+          source: 'native',
+        });
       if (moderation?.output)
-        events.push({ type: 'moderation', phase: 'output', result: moderation.output, source: 'native' });
+        events.push({
+          type: 'moderation',
+          phase: 'output',
+          result: moderation.output,
+          source: 'native',
+        });
       const usage = response.usage as Record<string, unknown>;
       if (usage) events.push({ type: 'usage', usage: this.parseUsage(usage) });
       events.push({

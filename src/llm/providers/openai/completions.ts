@@ -1,20 +1,19 @@
 /** OpenAI provider adapter (Chat Completions API). */
 
-import { base64ToBytes } from '../../../util/base64';
-import { sniffAudioMime } from '../../../util/audio-mime';
 import type { SSEEvent } from '../../../network/types';
 import { buildFromSpec } from '../../../wire/interpreter';
+import { buildResponse } from '../../../wire/response-interpreter';
+import { getResponseSpec } from '../../../wire/response-specs';
+import { OPENAI_RESPONSE_REGISTRY } from './response-registry';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec } from '../../../wire/chat-specs';
 import { makeRegistry } from '../../wire-transforms';
-import type { ContentPart, MediaOutputPart, TextPart, ToolCallPart } from '../../types/messages';
+import type { ContentPart, TextPart } from '../../types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import type { NormalizedRequest } from '../../types/request';
 import { emptyUsage, type CompletionResponse, type Usage } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
 import { parseNativeModeration } from '../../moderation/native';
-import { openaiBilledTier } from './tiers';
-import { extractCitations } from '../_shared/citations';
 import { extractFinishReason } from '../_shared/response-utils';
 import { sseJson } from '../_shared/sse';
 
@@ -228,82 +227,21 @@ export class OpenAIAdapter implements ProviderAdapter {
     body.stream_options = { include_usage: true };
   }
 
+  /** The response spec this adapter parses with. Overridden by OpenRouter,
+   *  which is Chat Completions plus one rule. */
+  protected responseSpecId(): string {
+    return 'openai/completions.response';
+  }
+
+  protected responseRegistry(): Registry {
+    return OPENAI_RESPONSE_REGISTRY;
+  }
+
   parseResponse(raw: unknown, latencyMs: number): CompletionResponse {
-    const r = raw as Record<string, unknown>;
-    const choices = (r.choices as Array<Record<string, unknown>>) ?? [];
-    const choice = choices[0] ?? {};
-    const message = (choice.message as Record<string, unknown>) ?? {};
-    const usage = this.parseUsage(r.usage as Record<string, unknown>);
-    Object.assign(usage, openaiBilledTier(r.service_tier));
-
-    const content: ContentPart[] = [];
-    const toolCalls: ToolCallPart[] = [];
-
-    // gpt-audio replies with audio; the spoken words land in message.audio.transcript
-    // (message.content is null in that case). Surface the transcript as the text AND
-    // the spoken audio bytes as a media part (no longer discarded).
-    const audio = message.audio as
-      | { transcript?: string; data?: string; id?: string; format?: string }
-      | undefined;
-    const text = (message.content as string) || audio?.transcript || '';
-    if (text) content.push({ type: 'text', text });
-
-    const media: MediaOutputPart[] = [];
-    if (audio?.data) {
-      const part: MediaOutputPart = {
-        type: 'audio_output',
-        mediaId: audio.id ?? '',
-        // The response carries no `format`, so the template below always yielded
-        // 'wav'. Sniff the bytes first; the template stays as the last resort.
-        mimeType:
-          sniffAudioMime(base64ToBytes(audio.data.slice(0, 16))) ?? `audio/${audio.format ?? 'wav'}`,
-        _data: audio.data,
-      };
-      content.push(part);
-      media.push(part);
-    }
-
-    const rawToolCalls = (message.tool_calls as Array<Record<string, unknown>>) ?? [];
-    for (const tc of rawToolCalls) {
-      const fn = tc.function as Record<string, unknown>;
-      const parsed: ToolCallPart = {
-        type: 'tool_call',
-        id: tc.id as string,
-        name: fn.name as string,
-        arguments: JSON.parse(fn.arguments as string),
-      };
-      content.push(parsed);
-      toolCalls.push(parsed);
-    }
-
-    const finishReason = extractFinishReason(toolCalls.length > 0, choice.finish_reason as string, {
-      tool_calls: 'tool_use',
-      length: 'length',
-      content_filter: 'content_filter',
-    });
-
-    // OpenAI Chat Completions hides reasoning text (only token count available).
-    // But some OpenAI-compatible providers (DeepSeek, xAI) return it as reasoning_content.
-    const reasoningContent = (message.reasoning_content as string) ?? null;
-
-    const moderation = parseNativeModeration(r.moderation);
-
-    const citations = extractCitations('completions', raw);
-    return {
-      id: r.id as string,
-      model: r.model as string,
-      content,
-      finishReason,
-      usage,
-      text,
-      toolCalls,
-      media,
-      ...(citations.length ? { citations } : {}),
-      thinking: reasoningContent,
-      ...(moderation ? { moderation } : {}),
-      latencyMs,
-      raw,
-    };
+    // Spec-driven since 3.3.0; see wire/specs/responses/openai.completions.json.
+    return buildResponse(getResponseSpec(this.responseSpecId()), raw, this.responseRegistry(), {
+      extra: { latencyMs, raw },
+    }) as unknown as CompletionResponse;
   }
 
   parseStreamEvent(event: SSEEvent, state?: OpenAIStreamState): StreamEvent[] {

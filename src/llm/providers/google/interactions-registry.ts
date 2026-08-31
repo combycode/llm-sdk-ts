@@ -16,8 +16,11 @@ type Item = Record<string, unknown>;
 
 const rawOf = (ctx: Ctx): Record<string, unknown> =>
   (ctx.req as { raw: Record<string, unknown> }).raw ?? {};
-const outOf = (ctx: Ctx): { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } =>
-  (ctx.req as { out: { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } }).out;
+const outOf = (
+  ctx: Ctx,
+): { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } =>
+  (ctx.req as { out: { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } })
+    .out;
 const itemOf = (ctx: Ctx): Item => (ctx.item?.value ?? {}) as Item;
 
 /** Default mime per media kind, used when the item declares none. */

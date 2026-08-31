@@ -16,14 +16,17 @@ type Part = Record<string, unknown>;
 
 const rawOf = (ctx: Ctx): Record<string, unknown> =>
   (ctx.req as { raw: Record<string, unknown> }).raw ?? {};
-const outOf = (ctx: Ctx): { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } =>
-  (ctx.req as { out: { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } }).out;
+const outOf = (
+  ctx: Ctx,
+): { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } =>
+  (ctx.req as { out: { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } })
+    .out;
 const partOf = (ctx: Ctx): Part => (ctx.item?.value ?? {}) as Part;
 
 const candidate = (raw: Record<string, unknown>): Record<string, unknown> =>
-  ((raw.candidates as Array<Record<string, unknown>> | undefined)?.[0] ?? {});
+  (raw.candidates as Array<Record<string, unknown>> | undefined)?.[0] ?? {};
 const partsOf = (raw: Record<string, unknown>): Part[] =>
-  (((candidate(raw).content as Record<string, unknown> | undefined)?.parts as Part[]) ?? []);
+  ((candidate(raw).content as Record<string, unknown> | undefined)?.parts as Part[]) ?? [];
 
 /** When the turn ran hosted code execution its inlineData blobs are ARTIFACTS
  *  (a generated chart), not conversational media. That is a property of the
@@ -137,8 +140,7 @@ export const GOOGLE_RESPONSE_REGISTRY: Registry = {
     /** generateContent DOES return an id -- `responseId`. The fallback stays for
      *  older payloads, but minting one unconditionally made the parse
      *  non-deterministic: the same bytes produced a different id every time. */
-    googleId: (_arg: unknown, ctx: Ctx) =>
-      (rawOf(ctx).responseId as string) ?? crypto.randomUUID(),
+    googleId: (_arg: unknown, ctx: Ctx) => (rawOf(ctx).responseId as string) ?? crypto.randomUUID(),
 
     googleText: (_arg: unknown, ctx: Ctx) =>
       outOf(ctx)

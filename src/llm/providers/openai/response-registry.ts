@@ -16,13 +16,16 @@ type Audio = { transcript?: string; data?: string; id?: string; format?: string 
 
 const rawOf = (ctx: Ctx): Record<string, unknown> =>
   (ctx.req as { raw: Record<string, unknown> }).raw ?? {};
-const outOf = (ctx: Ctx): { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } =>
-  (ctx.req as { out: { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } }).out;
+const outOf = (
+  ctx: Ctx,
+): { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } =>
+  (ctx.req as { out: { content: Array<{ type: string; text?: string }>; toolCalls: unknown[] } })
+    .out;
 
 const choice = (ctx: Ctx): Record<string, unknown> =>
-  ((rawOf(ctx).choices as Array<Record<string, unknown>> | undefined)?.[0] ?? {});
+  (rawOf(ctx).choices as Array<Record<string, unknown>> | undefined)?.[0] ?? {};
 const message = (ctx: Ctx): Record<string, unknown> =>
-  ((choice(ctx).message as Record<string, unknown>) ?? {});
+  (choice(ctx).message as Record<string, unknown>) ?? {};
 const audioOf = (ctx: Ctx): Audio | undefined => message(ctx).audio as Audio | undefined;
 
 /** The assistant's words: `message.content`, or the transcript when the reply
@@ -58,7 +61,8 @@ export const OPENAI_RESPONSE_REGISTRY: Registry = {
         type: 'audio_output',
         mediaId: audio.id ?? '',
         mimeType:
-          sniffAudioMime(base64ToBytes(audio.data.slice(0, 16))) ?? `audio/${audio.format ?? 'wav'}`,
+          sniffAudioMime(base64ToBytes(audio.data.slice(0, 16))) ??
+          `audio/${audio.format ?? 'wav'}`,
         _data: audio.data,
       };
     },
@@ -85,7 +89,11 @@ export const OPENAI_RESPONSE_REGISTRY: Registry = {
     },
 
     openaiFinish: (_arg: unknown, ctx: Ctx) =>
-      extractFinishReason(outOf(ctx).toolCalls.length > 0, choice(ctx).finish_reason as string, FINISH),
+      extractFinishReason(
+        outOf(ctx).toolCalls.length > 0,
+        choice(ctx).finish_reason as string,
+        FINISH,
+      ),
 
     openaiCitations: (_arg: unknown, ctx: Ctx) => {
       const c = extractCitations('completions', rawOf(ctx));
@@ -94,8 +102,7 @@ export const OPENAI_RESPONSE_REGISTRY: Registry = {
 
     /** Chat Completions hides reasoning text; some OpenAI-compatible providers
      *  (DeepSeek, xAI) return it as `reasoning_content`. Null, never absent. */
-    openaiThinking: (_arg: unknown, ctx: Ctx) =>
-      (message(ctx).reasoning_content as string) ?? null,
+    openaiThinking: (_arg: unknown, ctx: Ctx) => (message(ctx).reasoning_content as string) ?? null,
 
     /** Absent unless moderation was requested. */
     openaiModeration: (_arg: unknown, ctx: Ctx) =>
