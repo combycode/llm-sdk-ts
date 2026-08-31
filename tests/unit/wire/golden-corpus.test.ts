@@ -112,6 +112,33 @@ const ROUTES = [
   { name: 'pinned', pin: true },
 ] as const;
 
+/** Deliberate departures from what 2.3.0 sent.
+ *
+ *  A frozen corpus answers "did this change?" — never "should it have?". When the
+ *  answer is yes-and-on-purpose the deviation is recorded HERE rather than by
+ *  re-freezing the corpus: a re-freeze would absorb every UNnoticed change in the
+ *  same pass, which is the single thing this corpus exists to prevent.
+ *
+ *  Entries are checked in both directions. A waiver whose cells no longer differ
+ *  is itself a failure — otherwise a stale waiver silently covers the next real
+ *  drift through the same cell. */
+const INTENTIONAL: Array<{ match: RegExp; reason: string }> = [
+  {
+    match: /^openrouter\/.+ audio\.out \[/,
+    reason:
+      'Audio OUTPUT was silently dropped. openai-completions gated `modalities` on ' +
+      '`hasAudioInput`, so `outputModalities: [text, audio]` travelled all the way to ' +
+      'the wire builder and died there; gpt-audio then refused the call with "this model ' +
+      'requires that either input content or output modality contain audio". Fixed ' +
+      '2026-08-31 by widening the guard to fire on audio in OR audio out. OpenRouter ' +
+      'inherits the openai-completions spec, so every model routed through it now ' +
+      'forwards the audio request the caller actually made instead of discarding it.',
+  },
+];
+
+/** Which waivers actually fired, so an obsolete one cannot go unnoticed. */
+const waiverHits = new Set<number>();
+
 describe('every catalogued chat model still sends what 2.3.0 sent', () => {
   for (const provider of Object.keys(FLOOR)) {
     it(provider, () => {
@@ -140,9 +167,13 @@ describe('every catalogued chat model still sends what 2.3.0 sent', () => {
               continue;
             }
             if (now !== was) {
-              drift.push(
-                `${key} ${shape.name} [${route.name}]:\n    2.3.0: ${was}\n    now:   ${now}`,
-              );
+              const id = `${key} ${shape.name} [${route.name}]`;
+              const waived = INTENTIONAL.findIndex((w) => w.match.test(id));
+              if (waived >= 0) {
+                waiverHits.add(waived);
+                continue;
+              }
+              drift.push(`${id}:\n    2.3.0: ${was}\n    now:   ${now}`);
             }
           }
         }
@@ -155,4 +186,11 @@ describe('every catalogued chat model still sends what 2.3.0 sent', () => {
       });
     });
   }
+
+  // Registered last, so every provider case above has already run and recorded
+  // which waivers fired.
+  it('every waiver still describes a real difference', () => {
+    const stale = INTENTIONAL.filter((_, i) => !waiverHits.has(i)).map((w) => String(w.match));
+    expect(stale).toEqual([]);
+  });
 });

@@ -21,8 +21,8 @@ import { describe, expect, it } from 'bun:test';
 import {
   adapterFor,
   cellId,
+  expectedCells,
   REPLAY_KEY,
-  RESPONSE_SCENARIOS,
   RESPONSE_TARGETS,
   type ResponseCell,
 } from './response-corpus';
@@ -50,18 +50,22 @@ function replay(cell: ResponseCell): unknown {
 describe('recorded provider responses', () => {
   const ids = Object.keys(corpus);
 
-  it('covers every target and every scenario', () => {
+  it('covers every cell the matrix declares', () => {
     // A corpus that quietly shrinks proves less each time it runs. Anything the
     // recorder could not capture has to be visible here, not absent.
+    //
+    // The matrix is no longer the full cross product: a scenario declares which
+    // targets it applies to, because hosted web search does not exist in Chat
+    // Completions and only gpt-audio returns audio. Both this test and the
+    // recorder read `expectedCells()`, so they cannot disagree about the set.
+    const cells = expectedCells();
     const missing: string[] = [];
-    for (const target of RESPONSE_TARGETS) {
-      for (const scenario of RESPONSE_SCENARIOS) {
-        const id = cellId(target.key, scenario.name);
-        if (!corpus[id]) missing.push(id);
-      }
+    for (const { target, scenario } of cells) {
+      const id = cellId(target.key, scenario.name);
+      if (!corpus[id]) missing.push(id);
     }
     expect(missing).toEqual([]);
-    expect(ids.length).toBe(RESPONSE_TARGETS.length * RESPONSE_SCENARIOS.length);
+    expect(ids.length).toBe(cells.length);
   });
 
   it('carries no credential', () => {

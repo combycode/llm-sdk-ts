@@ -4,6 +4,45 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- **Audio output was silently dropped on the OpenAI chat path.** `openai-completions` gated its
+  `modalities` block on `hasAudioInput`, so `outputModalities: ['text', 'audio']` travelled from
+  `ExecuteOptions` all the way to the wire builder and died there. `gpt-audio` then refused the call
+  outright — *"this model requires that either input content or output modality contain audio"*.
+  The parser had always known how to build an `audio_output` part from `message.audio`, so both ends
+  of the feature existed and only this guard kept them apart. The guard now fires on audio in OR
+  audio out. OpenRouter inherits the same spec, so models routed through it now forward the audio
+  request the caller actually made.
+
+- **Every audio clip was labelled `audio/wav`, whatever it was.** OpenAI returns `message.audio` as
+  `{ id, data, expires_at, transcript }` — there is no `format` key — so the adapter's
+  `audio/${format ?? 'wav'}` fell through to the default on every response. Request mp3, receive
+  `ID3`-prefixed mp3 bytes, be told it is wav. A new `sniffAudioMime` reads the container from the
+  magic bytes (mp3/wav/ogg/flac/aac), mirroring the existing `sniffImageMime`; the old template
+  remains as the last resort.
+
+### Internal
+
+- **The response corpus covers the parse paths it never reached.** Measured against the fixtures,
+  `citations`, `files`, `builtinToolCalls`, `media` and `moderation` appeared in **zero** buffered
+  cells, and `thinking` in one target — so a parser that stopped producing any of them kept the
+  differential green. Five scenarios were added (`builtin.search`, `builtin.codeexec`, `media.audio`,
+  `thinking`, `moderation`), taking the corpus from 42 to 57 recorded cells. Both bugs above were
+  found by recording them.
+
+  Scenarios now declare which targets they apply to, because the matrix is no longer a full cross
+  product: Chat Completions has no hosted web search, and only `gpt-audio` returns audio. The
+  recorder and the differential read the same `expectedCells()`, so they cannot disagree about what
+  is missing.
+
+- **The frozen request corpus grew a waiver list.** A deliberate wire change previously had no way to
+  be recorded except re-freezing, which would absorb every *un*noticed change in the same pass. Each
+  waiver is checked in both directions: one whose cells no longer differ fails the suite, so it
+  cannot outlive the change it describes.
+
 ## [3.2.1] — 2026-08-31
 
 ### Fixed

@@ -103,6 +103,16 @@ const WEATHER_TOOL: FunctionTool = {
 export interface ResponseScenario {
   name: string;
   streaming: boolean;
+  /** Target keys this scenario applies to. Omitted means every target.
+   *
+   *  Not every shape exists everywhere: Chat Completions has no hosted web
+   *  search, and only `gpt-audio` returns audio. Recording a cell that cannot
+   *  exist would fail forever and teach nothing, so the matrix is declared
+   *  rather than assumed to be the full cross product. */
+  targets?: string[];
+  /** Model override. `media.audio` needs `gpt-audio`; the target's own model
+   *  cannot produce the shape. */
+  model?: string;
   /** `LLMClient.complete(input, options)` — the same two arguments a caller
    *  passes, so a recording exercises the production path and nothing else. */
   input: string;
@@ -158,7 +168,104 @@ export const RESPONSE_SCENARIOS: ResponseScenario[] = [
     input: 'What is the weather in Paris? Use the tool.',
     options: { tools: [WEATHER_TOOL], maxTokens: 128 },
   },
+
+  // —— the six scenarios above leave most of CompletionResponse unrecorded ——————
+  // Measured against the corpus on 2026-08-31: `citations`, `files`,
+  // `builtinToolCalls`, `media`, `moderation` and `error` appeared in ZERO
+  // buffered cells, and `thinking` in xai/responses alone. Every one of those is
+  // an optional field, so a parser that stopped producing it would keep the
+  // differential green. These add the missing shapes.
+
+  {
+    name: 'builtin.search',
+    streaming: false,
+    // Hosted web search is the only source of `citations`, and with
+    // `builtin.codeexec` one of two sources of `builtinToolCalls` — the durable
+    // record of what the provider ran server-side.
+    targets: [
+      'anthropic/messages',
+      'openai/responses',
+      'google/generate',
+      'google/interactions',
+      'xai/responses',
+    ],
+    input: 'Search the web for the current population of Reykjavik, and cite your source.',
+    options: { tools: [{ type: 'web_search' }], maxTokens: 512 },
+  },
+  {
+    name: 'builtin.codeexec',
+    streaming: false,
+    // The only path that fills `files`: the hosted tool writes an artifact and
+    // reports an id to fetch. `filesFromCodeExecBlock` in the Anthropic adapter
+    // walks two block-type generations to find it and had no recorded example.
+    targets: ['anthropic/messages', 'openai/responses', 'google/generate'],
+    input:
+      'Use the code tool to compute the first 12 Fibonacci numbers and write them to a CSV file.',
+    options: { tools: [{ type: 'code_interpreter' }], maxTokens: 1024 },
+  },
+  {
+    name: 'media.audio',
+    streaming: false,
+    // The only path that fills `media` on a chat response. gpt-audio returns
+    // `message.audio`, whose transcript becomes the text and whose bytes become
+    // an audio_output part — `message.content` is null throughout.
+    targets: ['openai/completions'],
+    model: 'gpt-audio',
+    input: 'Say exactly: OK',
+    options: {
+      maxTokens: 64,
+      outputModalities: ['text', 'audio'],
+      // mp3, not wav: the parse path is identical (a base64 blob and a mimeType)
+      // but an uncompressed wav recording was 577 KB — two thirds of the whole
+      // corpus for one cell, in a file every test run reads.
+      audio: { voice: 'alloy', format: 'mp3' },
+    },
+  },
+  {
+    name: 'thinking',
+    streaming: false,
+    // `thinking` was recorded for xai/responses only. Each provider puts
+    // reasoning somewhere different — an Anthropic `thinking` block, an OpenAI
+    // `reasoning` output item — so one recording proved nothing about the others.
+    targets: ['anthropic/messages', 'openai/responses', 'google/generate', 'xai/responses'],
+    input: 'A farmer has 17 sheep. All but 9 run away. How many are left? Reason it through.',
+    options: { thinking: { mode: 'on', effort: 'low' }, maxTokens: 2048 },
+  },
+  {
+    name: 'moderation',
+    streaming: false,
+    // Report-only: it attaches a ModerationReport and never blocks. Restricted
+    // to OpenAI targets because every other provider takes the EMULATED path,
+    // which needs a second (OpenAI) key — a recording that depended on two
+    // credentials would fail for reasons unrelated to parsing.
+    targets: ['openai/completions', 'openai/responses'],
+    input: 'Reply with exactly: OK',
+    options: { maxTokens: 16, moderation: { input: true, output: true } },
+  },
 ];
+
+/** Does this scenario apply to this target? */
+export function appliesTo(scenario: ResponseScenario, target: ResponseTarget): boolean {
+  return !scenario.targets || scenario.targets.includes(target.key);
+}
+
+/** Every cell the corpus is supposed to hold.
+ *
+ *  The recorder and the differential both read THIS, so "what is missing" cannot
+ *  drift between the thing that writes the corpus and the thing that checks it. */
+export function expectedCells(): Array<{ target: ResponseTarget; scenario: ResponseScenario }> {
+  const out: Array<{ target: ResponseTarget; scenario: ResponseScenario }> = [];
+  for (const target of RESPONSE_TARGETS) {
+    for (const scenario of RESPONSE_SCENARIOS) {
+      if (appliesTo(scenario, target)) out.push({ target, scenario });
+    }
+  }
+  return out;
+}
+
+/** The model a cell records against: the scenario's override, else the target's. */
+export const modelFor = (target: ResponseTarget, scenario: ResponseScenario): string =>
+  scenario.model ?? target.model;
 
 /** One recorded cell. `raw` is the provider's truth; `parsed` is our behaviour at
  *  the moment of recording, which the differential recomputes. */

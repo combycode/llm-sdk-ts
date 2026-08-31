@@ -38,7 +38,9 @@ import type { HookEvent } from '../src/bus/hook-map';
 import type { SSEEvent } from '../src/network/types';
 import {
   adapterFor,
+  appliesTo,
   cellId,
+  modelFor,
   RESPONSE_SCENARIOS,
   RESPONSE_TARGETS,
   type ResponseCell,
@@ -83,7 +85,12 @@ for (const target of RESPONSE_TARGETS) {
 
   for (const scenario of RESPONSE_SCENARIOS) {
     if (onlyScenario && scenario.name !== onlyScenario) continue;
+    // A shape the target cannot produce is not a failure to report; it is a cell
+    // that should never exist. Skipping here keeps `failed` meaning "this should
+    // have worked and did not".
+    if (!appliesTo(scenario, target)) continue;
     const id = cellId(target.key, scenario.name);
+    const model = modelFor(target, scenario);
 
     if (fixture[id] && !refresh) {
       kept++;
@@ -104,7 +111,7 @@ for (const target of RESPONSE_TARGETS) {
       const llm = createLLM({
         engine,
         provider: target.provider,
-        model: target.model,
+        model,
         apiKey,
         ...(target.api ? { api: target.api } : {}),
       } as Parameters<typeof createLLM>[0]);
@@ -132,7 +139,7 @@ for (const target of RESPONSE_TARGETS) {
         target: target.key,
         scenario: scenario.name,
         provider: target.provider,
-        model: target.model,
+        model,
         ...(target.api ? { api: target.api } : {}),
         streaming: scenario.streaming,
         recordedAt: new Date().toISOString().slice(0, 10),

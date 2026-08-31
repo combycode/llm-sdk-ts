@@ -1,5 +1,7 @@
 /** OpenAI provider adapter (Chat Completions API). */
 
+import { base64ToBytes } from '../../../util/base64';
+import { sniffAudioMime } from '../../../util/audio-mime';
 import type { SSEEvent } from '../../../network/types';
 import { buildFromSpec } from '../../../wire/interpreter';
 import type { Registry } from '../../../wire/interpreter';
@@ -227,7 +229,10 @@ export class OpenAIAdapter implements ProviderAdapter {
       const part: MediaOutputPart = {
         type: 'audio_output',
         mediaId: audio.id ?? '',
-        mimeType: `audio/${audio.format ?? 'wav'}`,
+        // The response carries no `format`, so the template below always yielded
+        // 'wav'. Sniff the bytes first; the template stays as the last resort.
+        mimeType:
+          sniffAudioMime(base64ToBytes(audio.data.slice(0, 16))) ?? `audio/${audio.format ?? 'wav'}`,
         _data: audio.data,
       };
       content.push(part);
