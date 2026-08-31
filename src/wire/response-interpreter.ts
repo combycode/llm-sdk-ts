@@ -58,6 +58,13 @@ export interface AccumulatorDecl {
   omitEmpty?: boolean;
   /** Scalars: the value when nothing was emitted. `thinking` is null, not absent. */
   default?: Json;
+  /** Working state, never assembled into the result.
+   *
+   *  OpenAI's `program` items must carry the reasoning items that preceded them
+   *  in the same output -- the program cannot be sent back without them -- so
+   *  those items are collected as they go and read by a later block. They are
+   *  scaffolding for the build, not a field of the response. */
+  internal?: boolean;
 }
 
 export interface EmitRule {
@@ -86,9 +93,15 @@ export interface CollectRule {
   /** Path to the array to walk, e.g. `raw.content`. A missing or non-array value
    *  is not an error: a response with no content is a normal response. */
   from: string;
-  /** Field on each element that selects the case, e.g. `type`. */
-  match: string;
-  cases: Record<string, EmitRule | EmitRule[]>;
+  /** Field on each element that selects the case, e.g. `type`.
+   *
+   *  OPTIONAL, because not every provider discriminates by a field. OpenAI's
+   *  `tool_calls` is homogeneous -- every element is a tool call -- and Google's
+   *  `parts[]` discriminates by WHICH KEY EXISTS (`text` vs `functionCall` vs
+   *  `inlineData`) rather than by a type tag. With no `match`, every element
+   *  takes `default`, whose rules carry their own `when`. */
+  match?: string;
+  cases?: Record<string, EmitRule | EmitRule[]>;
   /** Elements matching no case. Omitted means ignore them, which is the right
    *  default: providers add block types continuously, and an unknown one must
    *  not break the whole parse. */
@@ -110,7 +123,19 @@ export interface ResponseSpec {
   extends?: string;
   accumulators?: Record<string, AccumulatorDecl>;
   fields?: ResponseFieldRule[];
+  /** Emits that are not driven by walking an array, run BEFORE `collect`.
+   *
+   *  OpenAI puts the assistant's text at `message.content` and its spoken audio
+   *  at `message.audio` -- two single values, not elements of anything -- and
+   *  both must sit in `content` ahead of the tool calls, because order inside
+   *  `content` is what a consumer renders. */
+  seed?: EmitRule[];
   collect?: CollectRule[];
+  /** Emits run AFTER `collect`, for what can only be decided once everything is
+   *  in. OpenAI falls back to the `output_text` convenience field, but only when
+   *  no message item produced text AND nothing else landed in `content` -- a
+   *  condition that does not exist until the walk is over. */
+  finalize?: EmitRule[];
   /** Computed last, so they can read everything `collect` produced. A derived
    *  value overrides an accumulator of the same name. */
   derive?: Record<string, Json>;
@@ -120,6 +145,51 @@ export interface ResponseSpec {
 
 const isObj = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** Flatten a spec's `extends` chain.
+ *
+ *  OpenRouter is Chat Completions plus one rule: a `url_citation` annotation is
+ *  the only signal that its `:online` search ran. Copying the OpenAI spec to add
+ *  that rule would leave two files to keep in step, and they would diverge the
+ *  first time only one was edited -- which is the whole argument for specs.
+ *
+ *  Merge rules, one line each:
+ *    accumulators / derive / tables  merge by key, child wins
+ *    fields                          merge by `to`, child replaces, new append
+ *    seed / collect                  APPEND, parent first
+ *
+ *  Append rather than merge for the ordered ones, because their order is their
+ *  meaning: a child adding to `content` adds AFTER what the parent put there.
+ */
+export function resolveResponseSpec(
+  id: string,
+  byId: Map<string, ResponseSpec>,
+  seen: Set<string> = new Set(),
+): ResponseSpec {
+  if (seen.has(id)) throw new Error(`cycle in response spec inheritance at ${id}`);
+  seen.add(id);
+  const spec = byId.get(id);
+  if (!spec) throw new Error(`unknown response spec: ${id}`);
+  if (!spec.extends) return spec;
+
+  const base = resolveResponseSpec(spec.extends, byId, seen);
+  const fields = [...(base.fields ?? [])];
+  for (const f of spec.fields ?? []) {
+    const at = fields.findIndex((x) => x.to === f.to);
+    if (at >= 0) fields[at] = f;
+    else fields.push(f);
+  }
+  return {
+    ...base,
+    ...spec,
+    accumulators: { ...(base.accumulators ?? {}), ...(spec.accumulators ?? {}) },
+    fields,
+    seed: [...(base.seed ?? []), ...(spec.seed ?? [])],
+    collect: [...(base.collect ?? []), ...(spec.collect ?? [])],
+    derive: { ...(base.derive ?? {}), ...(spec.derive ?? {}) },
+    tables: { ...(base.tables ?? {}), ...(spec.tables ?? {}) },
+  };
+}
 
 /** The accumulators, initialised from their declarations. */
 function initOut(spec: ResponseSpec): Record<string, unknown> {
@@ -207,44 +277,55 @@ export function buildResponse(
     if (v !== undefined) result[f.to] = v;
   }
 
-  // -- 2. classify -----------------------------------------------------------
+  /** One emit rule, in whatever scope it was given. */
+  const apply = (r: EmitRule, c: Ctx): void => {
+    if (!evalCond(r.when, c, reg)) return;
+    if (r.effect) {
+      const fn = reg.effects[r.effect];
+      if (!fn) throw new Error(`${spec.id}: unknown effect "${r.effect}"`);
+      fn(c);
+      return;
+    }
+    const value = evaluate(r.as as Json, c);
+    if (value === OMIT) return;
+    emitInto(out, r, value, spec.id);
+  };
+
+  // -- 2. seed the accumulators with what is not in any array -----------------
+  for (const r of spec.seed ?? []) apply(r, ctx);
+
+  // -- 3. classify -----------------------------------------------------------
   for (const rule of spec.collect ?? []) {
     const arr = getPath(root, rule.from);
     if (!Array.isArray(arr)) continue;
     for (let i = 0; i < arr.length; i++) {
       const block = arr[i];
-      const key = isObj(block) ? String(getPath(block, rule.match)) : undefined;
-      const picked = (key !== undefined ? rule.cases[key] : undefined) ?? rule.default;
+      const key =
+        rule.match !== undefined && isObj(block) ? String(getPath(block, rule.match)) : undefined;
+      const picked = (key !== undefined ? rule.cases?.[key] : undefined) ?? rule.default;
       if (!picked) continue;
       const rules = Array.isArray(picked) ? picked : [picked];
       const itemCtx: Ctx = {
         ...ctx,
         item: { value: block, index: i, isLast: i === arr.length - 1 },
       };
-      for (const r of rules) {
-        if (!evalCond(r.when, itemCtx, reg)) continue;
-        if (r.effect) {
-          const fn = reg.effects[r.effect];
-          if (!fn) throw new Error(`${spec.id}: unknown effect "${r.effect}"`);
-          fn(itemCtx);
-          continue;
-        }
-        const value = evaluate(r.as as Json, itemCtx);
-        if (value === OMIT) continue;
-        emitInto(out, r, value, spec.id);
-      }
+      for (const r of rules) apply(r, itemCtx);
     }
   }
 
-  // -- 3. derive, now that everything is collected ---------------------------
+  // -- 4. what only makes sense once the walk is over -------------------------
+  for (const r of spec.finalize ?? []) apply(r, ctx);
+
+  // -- 5. derive, now that everything is collected ---------------------------
   const derived: Record<string, unknown> = {};
   for (const [name, tpl] of Object.entries(spec.derive ?? {})) {
     const v = evaluate(tpl);
     if (v !== OMIT) derived[name] = v;
   }
 
-  // -- 4. assemble -----------------------------------------------------------
+  // -- 6. assemble -----------------------------------------------------------
   for (const [name, decl] of Object.entries(spec.accumulators ?? {})) {
+    if (decl.internal) continue;
     const v = out[name];
     if (decl.kind === 'array' && decl.omitEmpty && Array.isArray(v) && v.length === 0) continue;
     result[name] = v;

@@ -11,10 +11,22 @@
  *  missing from here is a failing test, not a runtime surprise.
  */
 import { ANTHROPIC_RESPONSE_REGISTRY } from './anthropic/response-registry';
+import { GOOGLE_INTERACTIONS_REGISTRY } from './google/interactions-registry';
+import { GOOGLE_RESPONSE_REGISTRY } from './google/response-registry';
+import { OPENAI_RESPONSE_REGISTRY } from './openai/response-registry';
+import { OPENAI_RESPONSES_REGISTRY } from './openai/responses-registry';
+import { OPENROUTER_RESPONSE_REGISTRY } from './openrouter/response-registry';
 import type { Registry } from '../../wire/interpreter';
 
 export const RESPONSE_REGISTRIES: Record<string, Registry> = {
   'anthropic/messages.response': ANTHROPIC_RESPONSE_REGISTRY,
+  'google/generate.response': GOOGLE_RESPONSE_REGISTRY,
+  'google/interactions.response': GOOGLE_INTERACTIONS_REGISTRY,
+  'openai/completions.response': OPENAI_RESPONSE_REGISTRY,
+  'openai/responses.response': OPENAI_RESPONSES_REGISTRY,
+  'openrouter/completions.response': OPENROUTER_RESPONSE_REGISTRY,
+  // xAI's Responses adapter subclasses OpenAI's and overrides no parsing.
+  'xai/responses.response': OPENAI_RESPONSES_REGISTRY,
 };
 
 /** Every name any response registry supplies. For checks that only ask "does

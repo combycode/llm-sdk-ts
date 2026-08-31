@@ -42,6 +42,30 @@ export interface OpenAIStreamState {
   toolIdByIndex: Map<number, string>;
 }
 
+/** Token usage, from either Chat Completions or Responses naming. Exported so
+ *  the spec-driven parser calls the same code rather than a second copy. */
+export function openaiUsage(u: Record<string, unknown> | undefined): Usage {
+  if (!u) return emptyUsage();
+  const input = (u.prompt_tokens as number) ?? (u.input_tokens as number) ?? 0;
+  const output = (u.completion_tokens as number) ?? (u.output_tokens as number) ?? 0;
+  const details =
+    (u.prompt_tokens_details as Record<string, unknown>) ??
+    (u.input_tokens_details as Record<string, unknown>) ??
+    {};
+  const outDetails =
+    (u.completion_tokens_details as Record<string, unknown>) ??
+    (u.output_tokens_details as Record<string, unknown>) ??
+    {};
+  return {
+    inputTokens: input,
+    outputTokens: output,
+    totalTokens: input + output,
+    cachedTokens: (details.cached_tokens as number) ?? 0,
+    cacheWriteTokens: (details.cache_write_tokens as number) ?? 0,
+    reasoningTokens: (outDetails.reasoning_tokens as number) ?? 0,
+  };
+}
+
 export class OpenAIAdapter implements ProviderAdapter {
   readonly name: ProviderAdapter['name'] = 'openai';
   protected readonly apiKey: string;
@@ -387,24 +411,6 @@ export class OpenAIAdapter implements ProviderAdapter {
   }
 
   private parseUsage(u: Record<string, unknown> | undefined): Usage {
-    if (!u) return emptyUsage();
-    const input = (u.prompt_tokens as number) ?? (u.input_tokens as number) ?? 0;
-    const output = (u.completion_tokens as number) ?? (u.output_tokens as number) ?? 0;
-    const details =
-      (u.prompt_tokens_details as Record<string, unknown>) ??
-      (u.input_tokens_details as Record<string, unknown>) ??
-      {};
-    const outDetails =
-      (u.completion_tokens_details as Record<string, unknown>) ??
-      (u.output_tokens_details as Record<string, unknown>) ??
-      {};
-    return {
-      inputTokens: input,
-      outputTokens: output,
-      totalTokens: input + output,
-      cachedTokens: (details.cached_tokens as number) ?? 0,
-      cacheWriteTokens: (details.cache_write_tokens as number) ?? 0,
-      reasoningTokens: (outDetails.reasoning_tokens as number) ?? 0,
-    };
+    return openaiUsage(u);
   }
 }

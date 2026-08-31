@@ -52,7 +52,7 @@ function toWireCaller(caller: ToolCaller): Record<string, unknown> {
   };
 }
 
-function fromWireCaller(raw: unknown): ToolCaller | undefined {
+export function fromWireCaller(raw: unknown): ToolCaller | undefined {
   if (!raw || typeof raw !== 'object') return undefined;
   const r = raw as { type?: unknown; caller_id?: unknown };
   if (typeof r.type !== 'string') return undefined;
@@ -110,7 +110,7 @@ function searchActionPayload(item: Record<string, unknown>): { query?: string; u
  *  (with its code/output/query payload), or null for non-builtin items. Shared by
  *  the buffered and streamed paths. */
 const RESPONSES_BUILTIN_ITEMS = new Set(['web_search_call', 'code_interpreter_call']);
-function builtinCallFromResponsesItem(item: Record<string, unknown>): BuiltinToolCall | null {
+export function builtinCallFromResponsesItem(item: Record<string, unknown>): BuiltinToolCall | null {
   const type = item.type as string;
   if (!RESPONSES_BUILTIN_ITEMS.has(type)) return null;
   const call: BuiltinToolCall = { tool: unifiedBuiltinTool(type) };
@@ -174,7 +174,7 @@ function isDisplayArtifact(c: Citation): boolean {
  *  Dedup: `plt.show()` makes OpenAI emit an auto-display container file ALONGSIDE the
  *  explicitly-saved one. When the same image was also saved, we drop the display
  *  duplicate (matches ChatGPT's own UI); a display-only run keeps its sole figure. */
-function filesFromResponsesOutputItem(item: Record<string, unknown>): FileOutput[] {
+export function filesFromResponsesOutputItem(item: Record<string, unknown>): FileOutput[] {
   const files: FileOutput[] = [];
   const type = item.type as string;
   if (type === 'message') {
@@ -214,6 +214,24 @@ function filesFromResponsesOutputItem(item: Record<string, unknown>): FileOutput
     }
   }
   return files;
+}
+
+/** Responses-API token usage. Exported so the spec-driven parser runs this and
+ *  not a second copy of it. */
+export function openaiResponsesUsage(u: Record<string, unknown> | undefined): Usage {
+  if (!u) return emptyUsage();
+  const input = (u.input_tokens as number) ?? 0;
+  const output = (u.output_tokens as number) ?? 0;
+  const inputDetails = (u.input_tokens_details as Record<string, unknown>) ?? {};
+  const outputDetails = (u.output_tokens_details as Record<string, unknown>) ?? {};
+  return {
+    inputTokens: input,
+    outputTokens: output,
+    totalTokens: (u.total_tokens as number) ?? input + output,
+    cachedTokens: (inputDetails.cached_tokens as number) ?? 0,
+    cacheWriteTokens: (inputDetails.cache_write_tokens as number) ?? 0,
+    reasoningTokens: (outputDetails.reasoning_tokens as number) ?? 0,
+  };
 }
 
 export class OpenAIResponsesAdapter implements ProviderAdapter {
@@ -739,18 +757,6 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
   }
 
   protected parseUsage(u: Record<string, unknown> | undefined): Usage {
-    if (!u) return emptyUsage();
-    const input = (u.input_tokens as number) ?? 0;
-    const output = (u.output_tokens as number) ?? 0;
-    const inputDetails = (u.input_tokens_details as Record<string, unknown>) ?? {};
-    const outputDetails = (u.output_tokens_details as Record<string, unknown>) ?? {};
-    return {
-      inputTokens: input,
-      outputTokens: output,
-      totalTokens: (u.total_tokens as number) ?? input + output,
-      cachedTokens: (inputDetails.cached_tokens as number) ?? 0,
-      cacheWriteTokens: (inputDetails.cache_write_tokens as number) ?? 0,
-      reasoningTokens: (outputDetails.reasoning_tokens as number) ?? 0,
-    };
+    return openaiResponsesUsage(u);
   }
 }

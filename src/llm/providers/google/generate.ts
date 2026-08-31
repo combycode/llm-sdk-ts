@@ -48,6 +48,24 @@ interface GoogleStreamState {
   pendingCode?: string;
 }
 
+/** generateContent token usage. Exported so the spec-driven parser runs this
+ *  and not a second copy of it. */
+export function googleUsage(u: Record<string, unknown> | undefined): Usage {
+  if (!u) return emptyUsage();
+  const input = (u.promptTokenCount as number) ?? 0;
+  const output = (u.candidatesTokenCount as number) ?? 0;
+  return {
+    inputTokens: input,
+    outputTokens: output,
+    totalTokens: (u.totalTokenCount as number) ?? input + output,
+    cachedTokens: (u.cachedContentTokenCount as number) ?? 0,
+    cacheWriteTokens: 0,
+    reasoningTokens: (u.thoughtsTokenCount as number) ?? 0,
+    // Billed service tier (output-only `usageMetadata.serviceTier`).
+    ...googleBilledTier(u.serviceTier),
+  };
+}
+
 export class GoogleAdapter implements ProviderAdapter {
   readonly name = 'google' as const;
   private readonly apiKey: string;
@@ -478,18 +496,6 @@ export class GoogleAdapter implements ProviderAdapter {
   }
 
   private parseUsage(u: Record<string, unknown> | undefined): Usage {
-    if (!u) return emptyUsage();
-    const input = (u.promptTokenCount as number) ?? 0;
-    const output = (u.candidatesTokenCount as number) ?? 0;
-    return {
-      inputTokens: input,
-      outputTokens: output,
-      totalTokens: (u.totalTokenCount as number) ?? input + output,
-      cachedTokens: (u.cachedContentTokenCount as number) ?? 0,
-      cacheWriteTokens: 0,
-      reasoningTokens: (u.thoughtsTokenCount as number) ?? 0,
-      // Billed service tier (output-only `usageMetadata.serviceTier`).
-      ...googleBilledTier(u.serviceTier),
-    };
+    return googleUsage(u);
   }
 }

@@ -43,6 +43,22 @@ interface InteractionsStreamState {
   sawToolCall: boolean;
 }
 
+/** Interactions token usage. Exported so the spec-driven parser runs this and
+ *  not a second copy of it. */
+export function googleInteractionsUsage(u: Record<string, unknown> | undefined): Usage {
+  if (!u) return emptyUsage();
+  const input = (u.total_input_tokens as number) ?? (u.prompt_tokens as number) ?? 0;
+  const output = (u.total_output_tokens as number) ?? (u.candidates_tokens as number) ?? 0;
+  return {
+    inputTokens: input,
+    outputTokens: output,
+    totalTokens: (u.total_tokens as number) ?? input + output,
+    cachedTokens: (u.total_cached_tokens as number) ?? 0,
+    cacheWriteTokens: 0,
+    reasoningTokens: (u.total_thought_tokens as number) ?? 0,
+  };
+}
+
 export class GoogleInteractionsAdapter implements ProviderAdapter {
   readonly name = 'google' as const;
   private readonly apiKey: string;
@@ -362,16 +378,6 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
   }
 
   private parseUsage(u: Record<string, unknown> | undefined): Usage {
-    if (!u) return emptyUsage();
-    const input = (u.total_input_tokens as number) ?? (u.prompt_tokens as number) ?? 0;
-    const output = (u.total_output_tokens as number) ?? (u.candidates_tokens as number) ?? 0;
-    return {
-      inputTokens: input,
-      outputTokens: output,
-      totalTokens: (u.total_tokens as number) ?? input + output,
-      cachedTokens: (u.total_cached_tokens as number) ?? 0,
-      cacheWriteTokens: 0,
-      reasoningTokens: (u.total_thought_tokens as number) ?? 0,
-    };
+    return googleInteractionsUsage(u);
   }
 }
