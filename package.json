@@ -34,6 +34,8 @@
     "prepublishOnly": "bun run build",
     "test": "bun test",
     "test:unit": "bun test tests/unit",
+    "test:coverage": "bun test tests/unit --coverage",
+    "coverage:gate": "bun run scripts/coverage-gate.ts",
     "test:integration": "bun test tests/integration",
     "test:helpers": "bun test tests/helpers",
     "test:live": "bun test tests/live",
