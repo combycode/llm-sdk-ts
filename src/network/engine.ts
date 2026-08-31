@@ -23,7 +23,7 @@ import type { RateLimiterConfig } from './rate-limiter';
 import type { QueueConfig } from './request-queue';
 import { QueueState } from './queue-state';
 import { Priority } from './queue-state-config';
-import type { QueueStateConfig, RetryConfig, RetryPolicyOverride } from './queue-state-config';
+import type { QueueStateConfig, RetryPolicyOverride } from './queue-state-config';
 import { RealtimeConnectionImpl } from './realtime-connection';
 import type {
   ConnectFn,

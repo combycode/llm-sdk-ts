@@ -15,18 +15,16 @@ import type { SSEEvent } from '../../../../src/network/types';
 /** A streaming fetch under test control: frames are pushed in, the stream ends on demand. */
 function makeStreamFetch() {
   const seen: Array<{ method?: string; headers: Record<string, string>; body: unknown }> = [];
-  let push!: (ev: SSEEvent) => void;
-  let end!: (err?: unknown) => void;
   const queue: SSEEvent[] = [];
   let resolveNext: (() => void) | null = null;
   let finished: { error?: unknown } | null = null;
 
-  push = (ev) => {
+  const push = (ev: SSEEvent) => {
     queue.push(ev);
     resolveNext?.();
     resolveNext = null;
   };
-  end = (err) => {
+  const end = (err?: unknown) => {
     finished = { error: err };
     resolveNext?.();
     resolveNext = null;

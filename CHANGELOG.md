@@ -4,6 +4,27 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [3.2.1] — 2026-08-31
+
+### Fixed
+
+- **Three TypeScript errors in an MCP test file** that made v3.2.0 unpublishable: `searchParams.get()`
+  returns `string | null` while `.at(-1)` returns `string | undefined`, and `toBe` has no overload
+  spanning both. The assertions are unchanged; only their types are aligned.
+
+- **Two lint warnings** left standing in `network/engine.ts` (an unused type import) and an MCP test
+  helper (`let x!` forward declarations that nothing forward-references).
+
+### Internal
+
+- **The release gate now runs lint, typecheck and the tests** (`G1 build-green` in CombyCode's shared
+  quality-gate). v3.2.0 was tagged with a green gate and a red typecheck, because the gate checked
+  documentation and consumers while lint and typecheck lived in a playbook sentence — the half a
+  human has to remember. The gate's own README names that failure mode: "a checklist you have to
+  remember to read is guarded by the same attention that failed in the first place." The check ships
+  with the good/bad/blind fixtures the selftest requires, and was verified against the exact error
+  that escaped.
+
 ## [3.2.0] — 2026-08-31
 
 ### Added

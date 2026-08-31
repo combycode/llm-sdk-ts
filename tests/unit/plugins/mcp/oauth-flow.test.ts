@@ -178,8 +178,8 @@ describe('McpOAuth.authorize: the interactive redirect', () => {
     expect(url.searchParams.get('code_challenge')).not.toBe(verifier);
 
     // The state in the URL is exactly the one persisted for the CSRF check.
-    expect(url.searchParams.get('state')).toBe(provider.saved.states.at(-1));
-    expect(await provider.state()).toBe(url.searchParams.get('state'));
+    expect(url.searchParams.get('state')).toBe(provider.saved.states.at(-1)!);
+    expect(await provider.state()).toBe(url.searchParams.get('state')!);
   });
 
   it('registers a client on the fly when the provider has none, and saves it', async () => {
@@ -325,7 +325,7 @@ describe('McpOAuth.finish: security gates', () => {
     const form = new URLSearchParams(body);
     expect(form.get('grant_type')).toBe('authorization_code');
     expect(form.get('code')).toBe('the-code');
-    expect(form.get('code_verifier')).toBe(provider.saved.verifiers.at(-1));
+    expect(form.get('code_verifier')).toBe(provider.saved.verifiers.at(-1)!);
     expect(form.get('redirect_uri')).toBe('http://127.0.0.1:8765/cb');
     expect(form.get('resource')).toBe(SERVER);
     expect(provider.saved.tokens.at(-1)?.access_token).toBe('final');
