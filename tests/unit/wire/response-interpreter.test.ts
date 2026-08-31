@@ -12,6 +12,8 @@ const REG: Registry = {
   transforms: {
     upper: (arg: unknown) => String(arg).toUpperCase(),
     parseJson: (arg: unknown) => JSON.parse(String(arg)),
+    /** A block yielding SEVERAL values, for `concat`. */
+    twoFiles: () => [{ id: 'a' }, { id: 'b' }],
     /** The shape a real spec uses for `text`: a fold over collected content. */
     joinText: (_arg: unknown, ctx) =>
       ((ctx.req as { out: { content: Array<{ type: string; text?: string }> } }).out.content ?? [])
@@ -23,7 +25,16 @@ const REG: Registry = {
   predicates: {
     hasTools: (ctx) => ((ctx.req as { out: { toolCalls: unknown[] } }).out.toolCalls.length > 0),
   },
-  effects: {},
+  effects: {
+    /** Attach a result block's stdout to the call it names. */
+    attachOutput: (ctx) => {
+      const b = (ctx.item?.value ?? {}) as Record<string, unknown>;
+      const calls = (ctx.req as { out: { toolCalls: Array<{ id?: string; output?: string }> } }).out
+        .toolCalls;
+      const call = calls.find((c) => c.id === b.tool_use_id);
+      if (call && typeof b.stdout === 'string') call.output = b.stdout;
+    },
+  },
 };
 
 /** An Anthropic-shaped spec, small enough to read in one screen. */
@@ -148,6 +159,81 @@ describe('collect', () => {
   it('survives a missing or non-array source', () => {
     expect(buildResponse(SPEC, { id: 'x' }, REG).content).toEqual([]);
     expect(buildResponse(SPEC, body('not an array' as never), REG).content).toEqual([]);
+  });
+
+  it('concat splices an array in, where push would nest it', () => {
+    // One code-execution result block can carry several output files. `push`
+    // there yields files: [[a, b]], which is a different response.
+    const spec: ResponseSpec = {
+      ...SPEC,
+      collect: [
+        {
+          from: 'raw.content',
+          match: 'type',
+          cases: {
+            file: { emit: 'files', mode: 'concat', as: { $call: 'twoFiles' } },
+          },
+        },
+      ],
+    };
+    const r = buildResponse(spec, body([{ type: 'file' }]), REG);
+    expect(r.files).toEqual([{ id: 'a' }, { id: 'b' }]);
+  });
+
+  it('concat refuses a non-array rather than corrupting the accumulator', () => {
+    const spec: ResponseSpec = {
+      ...SPEC,
+      collect: [
+        {
+          from: 'raw.content',
+          match: 'type',
+          cases: { file: { emit: 'files', mode: 'concat', as: { notAn: 'array' } } },
+        },
+      ],
+    };
+    expect(() => buildResponse(spec, body([{ type: 'file' }]), REG)).toThrow(/concat into "files"/);
+  });
+
+  it('an effect can modify something already collected', () => {
+    // The case emitting cannot express: a result block attaches its output to a
+    // call collected earlier, matched by id.
+    const spec: ResponseSpec = {
+      ...SPEC,
+      collect: [
+        {
+          from: 'raw.content',
+          match: 'type',
+          cases: {
+            tool_use: {
+              emit: ['content', 'toolCalls'],
+              as: { type: 'tool_call', id: { $: '@id' }, name: { $: '@name' } },
+            },
+            result: { effect: 'attachOutput' },
+          },
+        },
+      ],
+    };
+    const r = buildResponse(
+      spec,
+      body([
+        { type: 'tool_use', id: 't1', name: 'f' },
+        { type: 'result', tool_use_id: 't1', stdout: 'done' },
+      ]),
+      REG,
+    );
+    expect((r.toolCalls as Array<{ output?: string }>)[0].output).toBe('done');
+  });
+
+  it('rejects an effect name nothing registers', () => {
+    const spec: ResponseSpec = {
+      ...SPEC,
+      collect: [
+        { from: 'raw.content', match: 'type', cases: { text: { effect: 'nope' } } },
+      ],
+    };
+    expect(() => buildResponse(spec, body([{ type: 'text', text: 'x' }]), REG)).toThrow(
+      /unknown effect "nope"/,
+    );
   });
 
   it('refuses to emit into an accumulator nobody declared', () => {

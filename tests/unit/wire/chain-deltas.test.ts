@@ -20,6 +20,7 @@
  *  the part that has to BLOCK.
  */
 
+import { allResponseNames, RESPONSE_REGISTRIES } from '../../../src/llm/providers/response-registries';
 import { describe, expect, it } from 'bun:test';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path';
@@ -142,20 +143,40 @@ describe('every name a spec uses resolves to real code', () => {
       ...Object.keys(full.predicates),
       ...Object.keys(full.effects),
     ]);
+    // Response specs resolve against the PER-PROVIDER response registries, not
+    // this one: `anthropicFinish` is meaningless to an OpenAI spec, and a single
+    // shared bag would let one provider's spec call another's helper. Both sets
+    // are still checked — a typo in a response spec has to fail here, not at
+    // the first request that happens to take that branch.
+    const knownResponse = allResponseNames();
     const missing: string[] = [];
     let referenced = 0;
     for (const f of specFiles) {
+      const rel = relative(SPEC_DIR, f).split(SEP).join('/');
       const names = new Set<string>();
       namesIn(JSON.parse(readFileSync(f, 'utf8')), names);
       referenced += names.size;
+      const resolvesAgainst = rel.startsWith('responses/') ? knownResponse : known;
       for (const n of names) {
-        if (!known.has(n)) {
-          missing.push(`${relative(SPEC_DIR, f).split(SEP).join('/')}: "${n}"`);
-        }
+        if (!resolvesAgainst.has(n)) missing.push(`${rel}: "${n}"`);
       }
     }
     // Guards against passing because nothing was collected.
     expect(referenced).toBeGreaterThan(50);
     expect(missing).toEqual([]);
+  });
+
+  it('every response spec has a registry to resolve its names', () => {
+    // A response spec with no entry in RESPONSE_REGISTRIES cannot be run at all.
+    // Without this, adding the spec file and forgetting the wiring looks fine
+    // until the first response arrives.
+    const orphans: string[] = [];
+    for (const f of specFiles) {
+      const rel = relative(SPEC_DIR, f).split(SEP).join('/');
+      if (!rel.startsWith('responses/')) continue;
+      const id = (JSON.parse(readFileSync(f, 'utf8')) as { id?: string }).id ?? '(no id)';
+      if (!RESPONSE_REGISTRIES[id]) orphans.push(`${rel}: id "${id}"`);
+    }
+    expect(orphans).toEqual([]);
   });
 });

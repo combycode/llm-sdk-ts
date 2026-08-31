@@ -62,13 +62,24 @@ export interface AccumulatorDecl {
 
 export interface EmitRule {
   /** Accumulator name, or several. Several means ONE evaluated value placed in
-   *  each -- the same reference, not copies. */
-  emit: string | string[];
-  /** `push` appends (default); `scalar` assigns, last write wins. */
-  mode?: 'push' | 'scalar';
+   *  each -- the same reference, not copies. Omitted only with `effect`. */
+  emit?: string | string[];
+  /** `push` appends one value (default); `concat` splices an evaluated ARRAY in,
+   *  for a block that yields several (one Anthropic code-execution result can
+   *  carry more than one output file); `scalar` assigns, last write wins. */
+  mode?: 'push' | 'concat' | 'scalar';
   /** Extra guard beyond the discriminator match. */
   when?: Cond;
-  as: Json;
+  as?: Json;
+  /** A named effect run for this block INSTEAD of emitting.
+   *
+   *  Some blocks modify what is already collected rather than adding to it:
+   *  Anthropic's `*_tool_result` attaches its stdout to the `server_tool_use`
+   *  it belongs to, matched on `tool_use_id`. That is a lookup into `out` and a
+   *  write to an object already in it, which no amount of emitting expresses.
+   *  The effect receives the block as `ctx.item` and the accumulators at
+   *  `ctx.req.out`. */
+  effect?: string;
 }
 
 export interface CollectRule {
@@ -125,7 +136,7 @@ function emitInto(
   value: unknown,
   specId: string,
 ): void {
-  const names = Array.isArray(rule.emit) ? rule.emit : [rule.emit];
+  const names = Array.isArray(rule.emit) ? rule.emit : [rule.emit as string];
   for (const name of names) {
     if (!(name in out)) {
       // A typo here would silently discard everything it emitted, which is the
@@ -139,6 +150,13 @@ function emitInto(
     const target = out[name];
     if (!Array.isArray(target)) {
       throw new Error(`${specId}: cannot push into scalar accumulator "${name}"`);
+    }
+    if (rule.mode === 'concat') {
+      if (!Array.isArray(value)) {
+        throw new Error(`${specId}: concat into "${name}" needs an array, got ${typeof value}`);
+      }
+      target.push(...value);
+      continue;
     }
     target.push(value);
   }
@@ -205,7 +223,13 @@ export function buildResponse(
       };
       for (const r of rules) {
         if (!evalCond(r.when, itemCtx, reg)) continue;
-        const value = evaluate(r.as, itemCtx);
+        if (r.effect) {
+          const fn = reg.effects[r.effect];
+          if (!fn) throw new Error(`${spec.id}: unknown effect "${r.effect}"`);
+          fn(itemCtx);
+          continue;
+        }
+        const value = evaluate(r.as as Json, itemCtx);
         if (value === OMIT) continue;
         emitInto(out, r, value, spec.id);
       }

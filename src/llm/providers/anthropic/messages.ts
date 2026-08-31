@@ -43,7 +43,7 @@ export interface AnthropicAdapterConfig {
 //  (usage.service_tier ∈ standard|priority|batch), which no spec describes.
 /** Billed tier (response usage.service_tier) → {raw, catalog key}. Identity:
  *  the catalog is keyed by Anthropic's own billed names (standard|priority|batch). */
-function anthropicBilledTier(raw: unknown): { serviceTier?: string; pricingTier?: string } {
+export function anthropicBilledTier(raw: unknown): { serviceTier?: string; pricingTier?: string } {
   return typeof raw === 'string' && raw ? { serviceTier: raw, pricingTier: raw } : {};
 }
 
@@ -55,7 +55,7 @@ function anthropicBilledTier(raw: unknown): { serviceTier?: string; pricingTier?
  *  older tool versions emit the `code_execution_*` equivalents. Both carry
  *  `file_id`. (`text_editor_code_execution_tool_result` blocks are file
  *  create/view/edit markers with no downloadable id, so they are not surfaced.) */
-function filesFromCodeExecBlock(block: Record<string, unknown>): FileOutput[] {
+export function filesFromCodeExecBlock(block: Record<string, unknown>): FileOutput[] {
   if (
     block.type !== 'bash_code_execution_tool_result' &&
     block.type !== 'code_execution_tool_result'
@@ -84,7 +84,7 @@ function filesFromCodeExecBlock(block: Record<string, unknown>): FileOutput[] {
 
 /** Builtin-tool payload from a `server_tool_use` input: the code (code execution)
  *  or the query (web search). Shared by the buffered + streamed paths. */
-function builtinInputPayload(
+export function builtinInputPayload(
   tool: string,
   input: Record<string, unknown> | undefined,
 ): { code?: string; query?: string; url?: string } {
@@ -103,7 +103,7 @@ function builtinInputPayload(
 }
 
 /** stdout from a code-execution `*_tool_result` block's content, if present. */
-function resultStdout(content: unknown): string | undefined {
+export function resultStdout(content: unknown): string | undefined {
   const c = content as Record<string, unknown> | undefined;
   return c && typeof c.stdout === 'string' ? c.stdout : undefined;
 }
@@ -114,6 +114,20 @@ interface AnthropicStreamState {
   current?: { id: string; tool: string; json: string };
   /** Finalized server_tool_use inputs (code / query), by id, awaiting their result. */
   pending: Map<string, { code?: string; query?: string; url?: string }>;
+}
+
+export function anthropicUsage(u: Record<string, unknown> | undefined): Usage {
+  if (!u) return emptyUsage();
+  const inputTokens = (u.input_tokens as number) ?? 0;
+  const outputTokens = (u.output_tokens as number) ?? 0;
+  return {
+    inputTokens,
+    outputTokens,
+    totalTokens: inputTokens + outputTokens,
+    cachedTokens: (u.cache_read_input_tokens as number) ?? 0,
+    cacheWriteTokens: (u.cache_creation_input_tokens as number) ?? 0,
+    reasoningTokens: 0,
+  };
 }
 
 export class AnthropicAdapter implements ProviderAdapter {
@@ -464,16 +478,6 @@ export class AnthropicAdapter implements ProviderAdapter {
   }
 
   private parseUsage(u: Record<string, unknown> | undefined): Usage {
-    if (!u) return emptyUsage();
-    const inputTokens = (u.input_tokens as number) ?? 0;
-    const outputTokens = (u.output_tokens as number) ?? 0;
-    return {
-      inputTokens,
-      outputTokens,
-      totalTokens: inputTokens + outputTokens,
-      cachedTokens: (u.cache_read_input_tokens as number) ?? 0,
-      cacheWriteTokens: (u.cache_creation_input_tokens as number) ?? 0,
-      reasoningTokens: 0,
-    };
+    return anthropicUsage(u);
   }
 }
