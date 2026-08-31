@@ -39,6 +39,9 @@ function docFilenameForMime(mimeType: string): string {
  *  for backends that omit ids), stable across the stream's chunks. */
 export interface OpenAIStreamState {
   toolIdByIndex: Map<number, string>;
+  /** Open audio output: gpt-audio streams its reply as `delta.audio`, and the
+   *  media_start/chunk/end trio has to be paired across events. */
+  audio?: { open: boolean; id?: string };
 }
 
 /** Token usage, from either Chat Completions or Responses naming. Exported so
@@ -277,6 +280,38 @@ export class OpenAIAdapter implements ProviderAdapter {
 
     if (delta.content) {
       events.push({ type: 'text', text: delta.content as string });
+    }
+
+    // gpt-audio streams its reply as `delta.audio`, which was ignored entirely.
+    // A streamed audio turn therefore produced NO text, NO media and — because
+    // these chunks never carry a finish_reason — no terminal event either, so a
+    // caller awaiting `done` waited forever. Measured on a real stream: the
+    // transcript arrives once up front, the bytes in fragments, and a final
+    // `expires_at`-only delta closes it.
+    const audio = delta.audio as
+      | { id?: string; transcript?: string; data?: string; expires_at?: number }
+      | undefined;
+    if (audio) {
+      // Degrades the same way the tool-id map does when no state is threaded.
+      const av = state ? (state.audio ??= { open: false }) : { open: false };
+      if (audio.id && !av.id) av.id = audio.id;
+      if (audio.transcript) events.push({ type: 'text', text: audio.transcript });
+      if (audio.data) {
+        if (!av.open) {
+          av.open = true;
+          // Streamed audio from Chat Completions is ALWAYS pcm16: the API
+          // refuses any other `audio.format` when stream=true. Raw PCM carries
+          // no magic bytes, so it cannot be sniffed as the buffered path does.
+          events.push({ type: 'media_start', mediaType: 'audio', mimeType: 'audio/pcm' });
+        }
+        events.push({ type: 'media_chunk', data: audio.data });
+      }
+      if (audio.expires_at !== undefined && av.open) {
+        av.open = false;
+        events.push({ type: 'media_end', ...(av.id ? { mediaId: av.id } : {}) });
+        // The only terminal signal an audio stream gives.
+        events.push({ type: 'done', finishReason: 'stop' });
+      }
     }
 
     // Measured on OpenRouter `:online`: annotations arrive on their own chunks,

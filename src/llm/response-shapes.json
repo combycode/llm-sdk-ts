@@ -132,8 +132,16 @@
       "content_block_delta": {
         "known": [
           "delta",
+          "delta.citation",
+          "delta.citation.cited_text",
+          "delta.citation.encrypted_index",
+          "delta.citation.title",
+          "delta.citation.type",
+          "delta.citation.url",
           "delta.partial_json",
+          "delta.signature",
           "delta.text",
+          "delta.thinking",
           "delta.type",
           "index",
           "type"
@@ -145,9 +153,15 @@
           "type"
         ],
         "values": {
+          "delta.citation.type": [
+            "web_search_result_location"
+          ],
           "delta.type": [
+            "citations_delta",
             "input_json_delta",
-            "text_delta"
+            "signature_delta",
+            "text_delta",
+            "thinking_delta"
           ],
           "type": [
             "content_block_delta"
@@ -159,10 +173,31 @@
           "content_block",
           "content_block.caller",
           "content_block.caller.type",
+          "content_block.citations",
+          "content_block.citations[]",
+          "content_block.content",
+          "content_block.content.content",
+          "content_block.content.content[]",
+          "content_block.content.content[].file_id",
+          "content_block.content.content[].type",
+          "content_block.content.is_file_update",
+          "content_block.content.return_code",
+          "content_block.content.stderr",
+          "content_block.content.stdout",
+          "content_block.content.type",
+          "content_block.content[]",
+          "content_block.content[].encrypted_content",
+          "content_block.content[].page_age",
+          "content_block.content[].title",
+          "content_block.content[].type",
+          "content_block.content[].url",
           "content_block.id",
           "content_block.input",
           "content_block.name",
+          "content_block.signature",
           "content_block.text",
+          "content_block.thinking",
+          "content_block.tool_use_id",
           "content_block.type",
           "index",
           "type"
@@ -177,9 +212,24 @@
           "content_block.caller.type": [
             "direct"
           ],
+          "content_block.content.content[].type": [
+            "bash_code_execution_output"
+          ],
+          "content_block.content.type": [
+            "bash_code_execution_result",
+            "text_editor_code_execution_create_result"
+          ],
+          "content_block.content[].type": [
+            "web_search_result"
+          ],
           "content_block.type": [
+            "bash_code_execution_tool_result",
+            "server_tool_use",
             "text",
-            "tool_use"
+            "text_editor_code_execution_tool_result",
+            "thinking",
+            "tool_use",
+            "web_search_tool_result"
           ],
           "type": [
             "content_block_start"
@@ -204,6 +254,9 @@
       "message_delta": {
         "known": [
           "delta",
+          "delta.container",
+          "delta.container.expires_at",
+          "delta.container.id",
           "delta.stop_details",
           "delta.stop_reason",
           "delta.stop_sequence",
@@ -212,7 +265,12 @@
           "usage.cache_creation_input_tokens",
           "usage.cache_read_input_tokens",
           "usage.input_tokens",
-          "usage.output_tokens"
+          "usage.output_tokens",
+          "usage.output_tokens_details",
+          "usage.output_tokens_details.thinking_tokens",
+          "usage.server_tool_use",
+          "usage.server_tool_use.web_fetch_requests",
+          "usage.server_tool_use.web_search_requests"
         ],
         "expected": [
           "delta",
@@ -429,15 +487,44 @@
           "candidates[].content",
           "candidates[].content.parts",
           "candidates[].content.parts[]",
+          "candidates[].content.parts[].codeExecutionResult",
+          "candidates[].content.parts[].codeExecutionResult.id",
+          "candidates[].content.parts[].codeExecutionResult.outcome",
+          "candidates[].content.parts[].codeExecutionResult.output",
+          "candidates[].content.parts[].executableCode",
+          "candidates[].content.parts[].executableCode.code",
+          "candidates[].content.parts[].executableCode.id",
+          "candidates[].content.parts[].executableCode.language",
           "candidates[].content.parts[].functionCall",
           "candidates[].content.parts[].functionCall.args",
           "candidates[].content.parts[].functionCall.args.city",
           "candidates[].content.parts[].functionCall.id",
           "candidates[].content.parts[].functionCall.name",
+          "candidates[].content.parts[].inlineData",
+          "candidates[].content.parts[].inlineData.data",
+          "candidates[].content.parts[].inlineData.mimeType",
           "candidates[].content.parts[].text",
           "candidates[].content.parts[].thoughtSignature",
           "candidates[].content.role",
           "candidates[].finishReason",
+          "candidates[].groundingMetadata",
+          "candidates[].groundingMetadata.groundingChunks",
+          "candidates[].groundingMetadata.groundingChunks[]",
+          "candidates[].groundingMetadata.groundingChunks[].web",
+          "candidates[].groundingMetadata.groundingChunks[].web.title",
+          "candidates[].groundingMetadata.groundingChunks[].web.uri",
+          "candidates[].groundingMetadata.groundingSupports",
+          "candidates[].groundingMetadata.groundingSupports[]",
+          "candidates[].groundingMetadata.groundingSupports[].groundingChunkIndices",
+          "candidates[].groundingMetadata.groundingSupports[].groundingChunkIndices[]",
+          "candidates[].groundingMetadata.groundingSupports[].segment",
+          "candidates[].groundingMetadata.groundingSupports[].segment.endIndex",
+          "candidates[].groundingMetadata.groundingSupports[].segment.startIndex",
+          "candidates[].groundingMetadata.groundingSupports[].segment.text",
+          "candidates[].groundingMetadata.searchEntryPoint",
+          "candidates[].groundingMetadata.searchEntryPoint.renderedContent",
+          "candidates[].groundingMetadata.webSearchQueries",
+          "candidates[].groundingMetadata.webSearchQueries[]",
           "candidates[].index",
           "modelVersion",
           "responseId",
@@ -449,6 +536,12 @@
           "usageMetadata.promptTokensDetails[].modality",
           "usageMetadata.promptTokensDetails[].tokenCount",
           "usageMetadata.serviceTier",
+          "usageMetadata.thoughtsTokenCount",
+          "usageMetadata.toolUsePromptTokenCount",
+          "usageMetadata.toolUsePromptTokensDetails",
+          "usageMetadata.toolUsePromptTokensDetails[]",
+          "usageMetadata.toolUsePromptTokensDetails[].modality",
+          "usageMetadata.toolUsePromptTokensDetails[].tokenCount",
           "usageMetadata.totalTokenCount"
         ],
         "expected": [
@@ -458,11 +551,9 @@
           "candidates[].content.parts",
           "candidates[].content.parts[]",
           "candidates[].content.role",
-          "candidates[].index",
           "modelVersion",
           "responseId",
           "usageMetadata",
-          "usageMetadata.candidatesTokenCount",
           "usageMetadata.promptTokenCount",
           "usageMetadata.promptTokensDetails",
           "usageMetadata.promptTokensDetails[]",
@@ -960,6 +1051,11 @@
           "choices",
           "choices[]",
           "choices[].delta",
+          "choices[].delta.audio",
+          "choices[].delta.audio.data",
+          "choices[].delta.audio.expires_at",
+          "choices[].delta.audio.id",
+          "choices[].delta.audio.transcript",
           "choices[].delta.content",
           "choices[].delta.refusal",
           "choices[].delta.role",
@@ -976,6 +1072,133 @@
           "created",
           "id",
           "model",
+          "moderation",
+          "moderation.input",
+          "moderation.input.model",
+          "moderation.input.results",
+          "moderation.input.results[]",
+          "moderation.input.results[].categories",
+          "moderation.input.results[].categories.harassment",
+          "moderation.input.results[].categories.harassment/threatening",
+          "moderation.input.results[].categories.hate",
+          "moderation.input.results[].categories.hate/threatening",
+          "moderation.input.results[].categories.illicit",
+          "moderation.input.results[].categories.illicit/violent",
+          "moderation.input.results[].categories.self-harm",
+          "moderation.input.results[].categories.self-harm/instructions",
+          "moderation.input.results[].categories.self-harm/intent",
+          "moderation.input.results[].categories.sexual",
+          "moderation.input.results[].categories.sexual/minors",
+          "moderation.input.results[].categories.violence",
+          "moderation.input.results[].categories.violence/graphic",
+          "moderation.input.results[].category_applied_input_types",
+          "moderation.input.results[].category_applied_input_types.harassment",
+          "moderation.input.results[].category_applied_input_types.harassment/threatening",
+          "moderation.input.results[].category_applied_input_types.harassment/threatening[]",
+          "moderation.input.results[].category_applied_input_types.harassment[]",
+          "moderation.input.results[].category_applied_input_types.hate",
+          "moderation.input.results[].category_applied_input_types.hate/threatening",
+          "moderation.input.results[].category_applied_input_types.hate/threatening[]",
+          "moderation.input.results[].category_applied_input_types.hate[]",
+          "moderation.input.results[].category_applied_input_types.illicit",
+          "moderation.input.results[].category_applied_input_types.illicit/violent",
+          "moderation.input.results[].category_applied_input_types.illicit/violent[]",
+          "moderation.input.results[].category_applied_input_types.illicit[]",
+          "moderation.input.results[].category_applied_input_types.self-harm",
+          "moderation.input.results[].category_applied_input_types.self-harm/instructions",
+          "moderation.input.results[].category_applied_input_types.self-harm/instructions[]",
+          "moderation.input.results[].category_applied_input_types.self-harm/intent",
+          "moderation.input.results[].category_applied_input_types.self-harm/intent[]",
+          "moderation.input.results[].category_applied_input_types.self-harm[]",
+          "moderation.input.results[].category_applied_input_types.sexual",
+          "moderation.input.results[].category_applied_input_types.sexual/minors",
+          "moderation.input.results[].category_applied_input_types.sexual/minors[]",
+          "moderation.input.results[].category_applied_input_types.sexual[]",
+          "moderation.input.results[].category_applied_input_types.violence",
+          "moderation.input.results[].category_applied_input_types.violence/graphic",
+          "moderation.input.results[].category_applied_input_types.violence/graphic[]",
+          "moderation.input.results[].category_applied_input_types.violence[]",
+          "moderation.input.results[].category_scores",
+          "moderation.input.results[].category_scores.harassment",
+          "moderation.input.results[].category_scores.harassment/threatening",
+          "moderation.input.results[].category_scores.hate",
+          "moderation.input.results[].category_scores.hate/threatening",
+          "moderation.input.results[].category_scores.illicit",
+          "moderation.input.results[].category_scores.illicit/violent",
+          "moderation.input.results[].category_scores.self-harm",
+          "moderation.input.results[].category_scores.self-harm/instructions",
+          "moderation.input.results[].category_scores.self-harm/intent",
+          "moderation.input.results[].category_scores.sexual",
+          "moderation.input.results[].category_scores.sexual/minors",
+          "moderation.input.results[].category_scores.violence",
+          "moderation.input.results[].category_scores.violence/graphic",
+          "moderation.input.results[].flagged",
+          "moderation.input.results[].model",
+          "moderation.input.results[].type",
+          "moderation.input.type",
+          "moderation.output",
+          "moderation.output.model",
+          "moderation.output.results",
+          "moderation.output.results[]",
+          "moderation.output.results[].categories",
+          "moderation.output.results[].categories.harassment",
+          "moderation.output.results[].categories.harassment/threatening",
+          "moderation.output.results[].categories.hate",
+          "moderation.output.results[].categories.hate/threatening",
+          "moderation.output.results[].categories.illicit",
+          "moderation.output.results[].categories.illicit/violent",
+          "moderation.output.results[].categories.self-harm",
+          "moderation.output.results[].categories.self-harm/instructions",
+          "moderation.output.results[].categories.self-harm/intent",
+          "moderation.output.results[].categories.sexual",
+          "moderation.output.results[].categories.sexual/minors",
+          "moderation.output.results[].categories.violence",
+          "moderation.output.results[].categories.violence/graphic",
+          "moderation.output.results[].category_applied_input_types",
+          "moderation.output.results[].category_applied_input_types.harassment",
+          "moderation.output.results[].category_applied_input_types.harassment/threatening",
+          "moderation.output.results[].category_applied_input_types.harassment/threatening[]",
+          "moderation.output.results[].category_applied_input_types.harassment[]",
+          "moderation.output.results[].category_applied_input_types.hate",
+          "moderation.output.results[].category_applied_input_types.hate/threatening",
+          "moderation.output.results[].category_applied_input_types.hate/threatening[]",
+          "moderation.output.results[].category_applied_input_types.hate[]",
+          "moderation.output.results[].category_applied_input_types.illicit",
+          "moderation.output.results[].category_applied_input_types.illicit/violent",
+          "moderation.output.results[].category_applied_input_types.illicit/violent[]",
+          "moderation.output.results[].category_applied_input_types.illicit[]",
+          "moderation.output.results[].category_applied_input_types.self-harm",
+          "moderation.output.results[].category_applied_input_types.self-harm/instructions",
+          "moderation.output.results[].category_applied_input_types.self-harm/instructions[]",
+          "moderation.output.results[].category_applied_input_types.self-harm/intent",
+          "moderation.output.results[].category_applied_input_types.self-harm/intent[]",
+          "moderation.output.results[].category_applied_input_types.self-harm[]",
+          "moderation.output.results[].category_applied_input_types.sexual",
+          "moderation.output.results[].category_applied_input_types.sexual/minors",
+          "moderation.output.results[].category_applied_input_types.sexual/minors[]",
+          "moderation.output.results[].category_applied_input_types.sexual[]",
+          "moderation.output.results[].category_applied_input_types.violence",
+          "moderation.output.results[].category_applied_input_types.violence/graphic",
+          "moderation.output.results[].category_applied_input_types.violence/graphic[]",
+          "moderation.output.results[].category_applied_input_types.violence[]",
+          "moderation.output.results[].category_scores",
+          "moderation.output.results[].category_scores.harassment",
+          "moderation.output.results[].category_scores.harassment/threatening",
+          "moderation.output.results[].category_scores.hate",
+          "moderation.output.results[].category_scores.hate/threatening",
+          "moderation.output.results[].category_scores.illicit",
+          "moderation.output.results[].category_scores.illicit/violent",
+          "moderation.output.results[].category_scores.self-harm",
+          "moderation.output.results[].category_scores.self-harm/instructions",
+          "moderation.output.results[].category_scores.self-harm/intent",
+          "moderation.output.results[].category_scores.sexual",
+          "moderation.output.results[].category_scores.sexual/minors",
+          "moderation.output.results[].category_scores.violence",
+          "moderation.output.results[].category_scores.violence/graphic",
+          "moderation.output.results[].flagged",
+          "moderation.output.results[].model",
+          "moderation.output.results[].type",
+          "moderation.output.type",
           "obfuscation",
           "object",
           "service_tier",
@@ -987,15 +1210,16 @@
           "usage.completion_tokens_details.audio_tokens",
           "usage.completion_tokens_details.reasoning_tokens",
           "usage.completion_tokens_details.rejected_prediction_tokens",
+          "usage.completion_tokens_details.text_tokens",
           "usage.prompt_tokens",
           "usage.prompt_tokens_details",
           "usage.prompt_tokens_details.audio_tokens",
           "usage.prompt_tokens_details.cached_tokens",
+          "usage.prompt_tokens_details.image_tokens",
+          "usage.prompt_tokens_details.text_tokens",
           "usage.total_tokens"
         ],
         "expected": [
-          "choices",
-          "choices[]",
           "created",
           "id",
           "model",
@@ -1015,6 +1239,18 @@
           "choices[].finish_reason": [
             "stop",
             "tool_calls"
+          ],
+          "moderation.input.results[].type": [
+            "moderation_result"
+          ],
+          "moderation.input.type": [
+            "moderation_results"
+          ],
+          "moderation.output.results[].type": [
+            "moderation_result"
+          ],
+          "moderation.output.type": [
+            "moderation_results"
           ],
           "object": [
             "chat.completion.chunk"
@@ -1425,6 +1661,107 @@
       }
     },
     "stream": {
+      "response.code_interpreter_call_code.delta": {
+        "known": [
+          "delta",
+          "item_id",
+          "obfuscation",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "delta",
+          "item_id",
+          "obfuscation",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.code_interpreter_call_code.delta"
+          ]
+        }
+      },
+      "response.code_interpreter_call_code.done": {
+        "known": [
+          "code",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "code",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.code_interpreter_call_code.done"
+          ]
+        }
+      },
+      "response.code_interpreter_call.completed": {
+        "known": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.code_interpreter_call.completed"
+          ]
+        }
+      },
+      "response.code_interpreter_call.in_progress": {
+        "known": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.code_interpreter_call.in_progress"
+          ]
+        }
+      },
+      "response.code_interpreter_call.interpreting": {
+        "known": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.code_interpreter_call.interpreting"
+          ]
+        }
+      },
       "response.completed": {
         "known": [
           "response",
@@ -1441,21 +1778,155 @@
           "response.metadata",
           "response.model",
           "response.moderation",
+          "response.moderation.input",
+          "response.moderation.input.categories",
+          "response.moderation.input.categories.harassment",
+          "response.moderation.input.categories.harassment/threatening",
+          "response.moderation.input.categories.hate",
+          "response.moderation.input.categories.hate/threatening",
+          "response.moderation.input.categories.illicit",
+          "response.moderation.input.categories.illicit/violent",
+          "response.moderation.input.categories.self-harm",
+          "response.moderation.input.categories.self-harm/instructions",
+          "response.moderation.input.categories.self-harm/intent",
+          "response.moderation.input.categories.sexual",
+          "response.moderation.input.categories.sexual/minors",
+          "response.moderation.input.categories.violence",
+          "response.moderation.input.categories.violence/graphic",
+          "response.moderation.input.category_applied_input_types",
+          "response.moderation.input.category_applied_input_types.harassment",
+          "response.moderation.input.category_applied_input_types.harassment/threatening",
+          "response.moderation.input.category_applied_input_types.harassment/threatening[]",
+          "response.moderation.input.category_applied_input_types.harassment[]",
+          "response.moderation.input.category_applied_input_types.hate",
+          "response.moderation.input.category_applied_input_types.hate/threatening",
+          "response.moderation.input.category_applied_input_types.hate/threatening[]",
+          "response.moderation.input.category_applied_input_types.hate[]",
+          "response.moderation.input.category_applied_input_types.illicit",
+          "response.moderation.input.category_applied_input_types.illicit/violent",
+          "response.moderation.input.category_applied_input_types.illicit/violent[]",
+          "response.moderation.input.category_applied_input_types.illicit[]",
+          "response.moderation.input.category_applied_input_types.self-harm",
+          "response.moderation.input.category_applied_input_types.self-harm/instructions",
+          "response.moderation.input.category_applied_input_types.self-harm/instructions[]",
+          "response.moderation.input.category_applied_input_types.self-harm/intent",
+          "response.moderation.input.category_applied_input_types.self-harm/intent[]",
+          "response.moderation.input.category_applied_input_types.self-harm[]",
+          "response.moderation.input.category_applied_input_types.sexual",
+          "response.moderation.input.category_applied_input_types.sexual/minors",
+          "response.moderation.input.category_applied_input_types.sexual/minors[]",
+          "response.moderation.input.category_applied_input_types.sexual[]",
+          "response.moderation.input.category_applied_input_types.violence",
+          "response.moderation.input.category_applied_input_types.violence/graphic",
+          "response.moderation.input.category_applied_input_types.violence/graphic[]",
+          "response.moderation.input.category_applied_input_types.violence[]",
+          "response.moderation.input.category_scores",
+          "response.moderation.input.category_scores.harassment",
+          "response.moderation.input.category_scores.harassment/threatening",
+          "response.moderation.input.category_scores.hate",
+          "response.moderation.input.category_scores.hate/threatening",
+          "response.moderation.input.category_scores.illicit",
+          "response.moderation.input.category_scores.illicit/violent",
+          "response.moderation.input.category_scores.self-harm",
+          "response.moderation.input.category_scores.self-harm/instructions",
+          "response.moderation.input.category_scores.self-harm/intent",
+          "response.moderation.input.category_scores.sexual",
+          "response.moderation.input.category_scores.sexual/minors",
+          "response.moderation.input.category_scores.violence",
+          "response.moderation.input.category_scores.violence/graphic",
+          "response.moderation.input.flagged",
+          "response.moderation.input.model",
+          "response.moderation.input.type",
+          "response.moderation.output",
+          "response.moderation.output.categories",
+          "response.moderation.output.categories.harassment",
+          "response.moderation.output.categories.harassment/threatening",
+          "response.moderation.output.categories.hate",
+          "response.moderation.output.categories.hate/threatening",
+          "response.moderation.output.categories.illicit",
+          "response.moderation.output.categories.illicit/violent",
+          "response.moderation.output.categories.self-harm",
+          "response.moderation.output.categories.self-harm/instructions",
+          "response.moderation.output.categories.self-harm/intent",
+          "response.moderation.output.categories.sexual",
+          "response.moderation.output.categories.sexual/minors",
+          "response.moderation.output.categories.violence",
+          "response.moderation.output.categories.violence/graphic",
+          "response.moderation.output.category_applied_input_types",
+          "response.moderation.output.category_applied_input_types.harassment",
+          "response.moderation.output.category_applied_input_types.harassment/threatening",
+          "response.moderation.output.category_applied_input_types.harassment/threatening[]",
+          "response.moderation.output.category_applied_input_types.harassment[]",
+          "response.moderation.output.category_applied_input_types.hate",
+          "response.moderation.output.category_applied_input_types.hate/threatening",
+          "response.moderation.output.category_applied_input_types.hate/threatening[]",
+          "response.moderation.output.category_applied_input_types.hate[]",
+          "response.moderation.output.category_applied_input_types.illicit",
+          "response.moderation.output.category_applied_input_types.illicit/violent",
+          "response.moderation.output.category_applied_input_types.illicit/violent[]",
+          "response.moderation.output.category_applied_input_types.illicit[]",
+          "response.moderation.output.category_applied_input_types.self-harm",
+          "response.moderation.output.category_applied_input_types.self-harm/instructions",
+          "response.moderation.output.category_applied_input_types.self-harm/instructions[]",
+          "response.moderation.output.category_applied_input_types.self-harm/intent",
+          "response.moderation.output.category_applied_input_types.self-harm/intent[]",
+          "response.moderation.output.category_applied_input_types.self-harm[]",
+          "response.moderation.output.category_applied_input_types.sexual",
+          "response.moderation.output.category_applied_input_types.sexual/minors",
+          "response.moderation.output.category_applied_input_types.sexual/minors[]",
+          "response.moderation.output.category_applied_input_types.sexual[]",
+          "response.moderation.output.category_applied_input_types.violence",
+          "response.moderation.output.category_applied_input_types.violence/graphic",
+          "response.moderation.output.category_applied_input_types.violence/graphic[]",
+          "response.moderation.output.category_applied_input_types.violence[]",
+          "response.moderation.output.category_scores",
+          "response.moderation.output.category_scores.harassment",
+          "response.moderation.output.category_scores.harassment/threatening",
+          "response.moderation.output.category_scores.hate",
+          "response.moderation.output.category_scores.hate/threatening",
+          "response.moderation.output.category_scores.illicit",
+          "response.moderation.output.category_scores.illicit/violent",
+          "response.moderation.output.category_scores.self-harm",
+          "response.moderation.output.category_scores.self-harm/instructions",
+          "response.moderation.output.category_scores.self-harm/intent",
+          "response.moderation.output.category_scores.sexual",
+          "response.moderation.output.category_scores.sexual/minors",
+          "response.moderation.output.category_scores.violence",
+          "response.moderation.output.category_scores.violence/graphic",
+          "response.moderation.output.flagged",
+          "response.moderation.output.model",
+          "response.moderation.output.type",
           "response.object",
           "response.output",
           "response.output[]",
+          "response.output[].action",
+          "response.output[].action.queries",
+          "response.output[].action.queries[]",
+          "response.output[].action.query",
+          "response.output[].action.type",
           "response.output[].arguments",
           "response.output[].call_id",
+          "response.output[].code",
+          "response.output[].container_id",
           "response.output[].content",
           "response.output[].content[]",
           "response.output[].content[].annotations",
           "response.output[].content[].annotations[]",
+          "response.output[].content[].annotations[].container_id",
+          "response.output[].content[].annotations[].end_index",
+          "response.output[].content[].annotations[].file_id",
+          "response.output[].content[].annotations[].filename",
+          "response.output[].content[].annotations[].start_index",
+          "response.output[].content[].annotations[].title",
+          "response.output[].content[].annotations[].type",
+          "response.output[].content[].annotations[].url",
           "response.output[].content[].logprobs",
           "response.output[].content[].logprobs[]",
           "response.output[].content[].text",
           "response.output[].content[].type",
           "response.output[].id",
           "response.output[].name",
+          "response.output[].outputs",
           "response.output[].phase",
           "response.output[].role",
           "response.output[].status",
@@ -1495,6 +1966,8 @@
           "response.tool_usage.web_search.num_requests",
           "response.tools",
           "response.tools[]",
+          "response.tools[].container",
+          "response.tools[].container.type",
           "response.tools[].description",
           "response.tools[].name",
           "response.tools[].output_schema",
@@ -1506,8 +1979,18 @@
           "response.tools[].parameters.required",
           "response.tools[].parameters.required[]",
           "response.tools[].parameters.type",
+          "response.tools[].return_token_budget",
+          "response.tools[].search_content_types",
+          "response.tools[].search_content_types[]",
+          "response.tools[].search_context_size",
           "response.tools[].strict",
           "response.tools[].type",
+          "response.tools[].user_location",
+          "response.tools[].user_location.city",
+          "response.tools[].user_location.country",
+          "response.tools[].user_location.region",
+          "response.tools[].user_location.timezone",
+          "response.tools[].user_location.type",
           "response.top_logprobs",
           "response.top_p",
           "response.truncation",
@@ -1597,8 +2080,21 @@
           "type"
         ],
         "values": {
+          "response.moderation.input.type": [
+            "moderation_result"
+          ],
+          "response.moderation.output.type": [
+            "moderation_result"
+          ],
           "response.object": [
             "response"
+          ],
+          "response.output[].action.type": [
+            "search"
+          ],
+          "response.output[].content[].annotations[].type": [
+            "container_file_citation",
+            "url_citation"
           ],
           "response.output[].content[].type": [
             "output_text"
@@ -1610,14 +2106,19 @@
             "completed"
           ],
           "response.output[].type": [
+            "code_interpreter_call",
             "function_call",
-            "message"
+            "message",
+            "web_search_call"
           ],
           "response.status": [
             "completed"
           ],
           "response.text.format.type": [
             "text"
+          ],
+          "response.tools[].container.type": [
+            "auto"
           ],
           "response.tools[].parameters.properties.city.type": [
             "string"
@@ -1626,7 +2127,12 @@
             "object"
           ],
           "response.tools[].type": [
-            "function"
+            "code_interpreter",
+            "function",
+            "web_search"
+          ],
+          "response.tools[].user_location.type": [
+            "approximate"
           ],
           "type": [
             "response.completed"
@@ -1679,6 +2185,14 @@
           "part",
           "part.annotations",
           "part.annotations[]",
+          "part.annotations[].container_id",
+          "part.annotations[].end_index",
+          "part.annotations[].file_id",
+          "part.annotations[].filename",
+          "part.annotations[].start_index",
+          "part.annotations[].title",
+          "part.annotations[].type",
+          "part.annotations[].url",
           "part.logprobs",
           "part.logprobs[]",
           "part.text",
@@ -1701,6 +2215,10 @@
           "type"
         ],
         "values": {
+          "part.annotations[].type": [
+            "container_file_citation",
+            "url_citation"
+          ],
           "part.type": [
             "output_text"
           ],
@@ -1763,6 +2281,8 @@
           "response.tool_usage.web_search.num_requests",
           "response.tools",
           "response.tools[]",
+          "response.tools[].container",
+          "response.tools[].container.type",
           "response.tools[].description",
           "response.tools[].name",
           "response.tools[].output_schema",
@@ -1774,8 +2294,18 @@
           "response.tools[].parameters.required",
           "response.tools[].parameters.required[]",
           "response.tools[].parameters.type",
+          "response.tools[].return_token_budget",
+          "response.tools[].search_content_types",
+          "response.tools[].search_content_types[]",
+          "response.tools[].search_context_size",
           "response.tools[].strict",
           "response.tools[].type",
+          "response.tools[].user_location",
+          "response.tools[].user_location.city",
+          "response.tools[].user_location.country",
+          "response.tools[].user_location.region",
+          "response.tools[].user_location.timezone",
+          "response.tools[].user_location.type",
           "response.top_logprobs",
           "response.top_p",
           "response.truncation",
@@ -1855,6 +2385,9 @@
           "response.text.format.type": [
             "text"
           ],
+          "response.tools[].container.type": [
+            "auto"
+          ],
           "response.tools[].parameters.properties.city.type": [
             "string"
           ],
@@ -1862,7 +2395,12 @@
             "object"
           ],
           "response.tools[].type": [
-            "function"
+            "code_interpreter",
+            "function",
+            "web_search"
+          ],
+          "response.tools[].user_location.type": [
+            "approximate"
           ],
           "type": [
             "response.created"
@@ -1967,6 +2505,8 @@
           "response.tool_usage.web_search.num_requests",
           "response.tools",
           "response.tools[]",
+          "response.tools[].container",
+          "response.tools[].container.type",
           "response.tools[].description",
           "response.tools[].name",
           "response.tools[].output_schema",
@@ -1978,8 +2518,18 @@
           "response.tools[].parameters.required",
           "response.tools[].parameters.required[]",
           "response.tools[].parameters.type",
+          "response.tools[].return_token_budget",
+          "response.tools[].search_content_types",
+          "response.tools[].search_content_types[]",
+          "response.tools[].search_context_size",
           "response.tools[].strict",
           "response.tools[].type",
+          "response.tools[].user_location",
+          "response.tools[].user_location.city",
+          "response.tools[].user_location.country",
+          "response.tools[].user_location.region",
+          "response.tools[].user_location.timezone",
+          "response.tools[].user_location.type",
           "response.top_logprobs",
           "response.top_p",
           "response.truncation",
@@ -2059,6 +2609,9 @@
           "response.text.format.type": [
             "text"
           ],
+          "response.tools[].container.type": [
+            "auto"
+          ],
           "response.tools[].parameters.properties.city.type": [
             "string"
           ],
@@ -2066,7 +2619,12 @@
             "object"
           ],
           "response.tools[].type": [
-            "function"
+            "code_interpreter",
+            "function",
+            "web_search"
+          ],
+          "response.tools[].user_location.type": [
+            "approximate"
           ],
           "type": [
             "response.in_progress"
@@ -2078,10 +2636,13 @@
           "item",
           "item.arguments",
           "item.call_id",
+          "item.code",
+          "item.container_id",
           "item.content",
           "item.content[]",
           "item.id",
           "item.name",
+          "item.outputs",
           "item.phase",
           "item.role",
           "item.status",
@@ -2107,8 +2668,10 @@
             "in_progress"
           ],
           "item.type": [
+            "code_interpreter_call",
             "function_call",
-            "message"
+            "message",
+            "web_search_call"
           ],
           "type": [
             "response.output_item.added"
@@ -2118,18 +2681,34 @@
       "response.output_item.done": {
         "known": [
           "item",
+          "item.action",
+          "item.action.queries",
+          "item.action.queries[]",
+          "item.action.query",
+          "item.action.type",
           "item.arguments",
           "item.call_id",
+          "item.code",
+          "item.container_id",
           "item.content",
           "item.content[]",
           "item.content[].annotations",
           "item.content[].annotations[]",
+          "item.content[].annotations[].container_id",
+          "item.content[].annotations[].end_index",
+          "item.content[].annotations[].file_id",
+          "item.content[].annotations[].filename",
+          "item.content[].annotations[].start_index",
+          "item.content[].annotations[].title",
+          "item.content[].annotations[].type",
+          "item.content[].annotations[].url",
           "item.content[].logprobs",
           "item.content[].logprobs[]",
           "item.content[].text",
           "item.content[].type",
           "item.id",
           "item.name",
+          "item.outputs",
           "item.phase",
           "item.role",
           "item.status",
@@ -2148,6 +2727,13 @@
           "type"
         ],
         "values": {
+          "item.action.type": [
+            "search"
+          ],
+          "item.content[].annotations[].type": [
+            "container_file_citation",
+            "url_citation"
+          ],
           "item.content[].type": [
             "output_text"
           ],
@@ -2158,11 +2744,53 @@
             "completed"
           ],
           "item.type": [
+            "code_interpreter_call",
             "function_call",
-            "message"
+            "message",
+            "web_search_call"
           ],
           "type": [
             "response.output_item.done"
+          ]
+        }
+      },
+      "response.output_text.annotation.added": {
+        "known": [
+          "annotation",
+          "annotation.container_id",
+          "annotation.end_index",
+          "annotation.file_id",
+          "annotation.filename",
+          "annotation.start_index",
+          "annotation.title",
+          "annotation.type",
+          "annotation.url",
+          "annotation_index",
+          "content_index",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "annotation",
+          "annotation.end_index",
+          "annotation.start_index",
+          "annotation.type",
+          "annotation_index",
+          "content_index",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "annotation.type": [
+            "container_file_citation",
+            "url_citation"
+          ],
+          "type": [
+            "response.output_text.annotation.added"
           ]
         }
       },
@@ -2219,6 +2847,63 @@
         "values": {
           "type": [
             "response.output_text.done"
+          ]
+        }
+      },
+      "response.web_search_call.completed": {
+        "known": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.web_search_call.completed"
+          ]
+        }
+      },
+      "response.web_search_call.in_progress": {
+        "known": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.web_search_call.in_progress"
+          ]
+        }
+      },
+      "response.web_search_call.searching": {
+        "known": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.web_search_call.searching"
           ]
         }
       }
@@ -2664,12 +3349,24 @@
           "response.object",
           "response.output",
           "response.output[]",
+          "response.output[].action",
+          "response.output[].action.query",
+          "response.output[].action.sources",
+          "response.output[].action.sources[]",
+          "response.output[].action.sources[].type",
+          "response.output[].action.sources[].url",
+          "response.output[].action.type",
           "response.output[].arguments",
           "response.output[].call_id",
           "response.output[].content",
           "response.output[].content[]",
           "response.output[].content[].annotations",
           "response.output[].content[].annotations[]",
+          "response.output[].content[].annotations[].end_index",
+          "response.output[].content[].annotations[].start_index",
+          "response.output[].content[].annotations[].title",
+          "response.output[].content[].annotations[].type",
+          "response.output[].content[].annotations[].url",
           "response.output[].content[].logprobs",
           "response.output[].content[].logprobs[]",
           "response.output[].content[].text",
@@ -2729,6 +3426,14 @@
           "response.usage.output_tokens",
           "response.usage.output_tokens_details",
           "response.usage.output_tokens_details.reasoning_tokens",
+          "response.usage.server_side_tool_usage_details",
+          "response.usage.server_side_tool_usage_details.code_interpreter_calls",
+          "response.usage.server_side_tool_usage_details.document_search_calls",
+          "response.usage.server_side_tool_usage_details.file_search_calls",
+          "response.usage.server_side_tool_usage_details.image_generation_calls",
+          "response.usage.server_side_tool_usage_details.mcp_calls",
+          "response.usage.server_side_tool_usage_details.web_search_calls",
+          "response.usage.server_side_tool_usage_details.x_search_calls",
           "response.usage.total_tokens",
           "response.user",
           "sequence_number",
@@ -2802,6 +3507,15 @@
           "response.object": [
             "response"
           ],
+          "response.output[].action.sources[].type": [
+            "url"
+          ],
+          "response.output[].action.type": [
+            "search"
+          ],
+          "response.output[].content[].annotations[].type": [
+            "url_citation"
+          ],
           "response.output[].content[].type": [
             "output_text"
           ],
@@ -2817,7 +3531,8 @@
           "response.output[].type": [
             "function_call",
             "message",
-            "reasoning"
+            "reasoning",
+            "web_search_call"
           ],
           "response.status": [
             "completed"
@@ -2832,7 +3547,8 @@
             "object"
           ],
           "response.tools[].type": [
-            "function"
+            "function",
+            "web_search"
           ],
           "type": [
             "response.completed"
@@ -2885,6 +3601,11 @@
           "part",
           "part.annotations",
           "part.annotations[]",
+          "part.annotations[].end_index",
+          "part.annotations[].start_index",
+          "part.annotations[].title",
+          "part.annotations[].type",
+          "part.annotations[].url",
           "part.logprobs",
           "part.logprobs[]",
           "part.text",
@@ -2907,6 +3628,9 @@
           "type"
         ],
         "values": {
+          "part.annotations[].type": [
+            "url_citation"
+          ],
           "part.type": [
             "output_text"
           ],
@@ -3033,7 +3757,8 @@
             "object"
           ],
           "response.tools[].type": [
-            "function"
+            "function",
+            "web_search"
           ],
           "type": [
             "response.created"
@@ -3202,7 +3927,8 @@
             "object"
           ],
           "response.tools[].type": [
-            "function"
+            "function",
+            "web_search"
           ],
           "type": [
             "response.in_progress"
@@ -3212,6 +3938,11 @@
       "response.output_item.added": {
         "known": [
           "item",
+          "item.action",
+          "item.action.query",
+          "item.action.sources",
+          "item.action.sources[]",
+          "item.action.type",
           "item.arguments",
           "item.call_id",
           "item.content",
@@ -3237,6 +3968,9 @@
           "type"
         ],
         "values": {
+          "item.action.type": [
+            "search"
+          ],
           "item.role": [
             "assistant"
           ],
@@ -3246,7 +3980,8 @@
           "item.type": [
             "function_call",
             "message",
-            "reasoning"
+            "reasoning",
+            "web_search_call"
           ],
           "type": [
             "response.output_item.added"
@@ -3256,12 +3991,24 @@
       "response.output_item.done": {
         "known": [
           "item",
+          "item.action",
+          "item.action.query",
+          "item.action.sources",
+          "item.action.sources[]",
+          "item.action.sources[].type",
+          "item.action.sources[].url",
+          "item.action.type",
           "item.arguments",
           "item.call_id",
           "item.content",
           "item.content[]",
           "item.content[].annotations",
           "item.content[].annotations[]",
+          "item.content[].annotations[].end_index",
+          "item.content[].annotations[].start_index",
+          "item.content[].annotations[].title",
+          "item.content[].annotations[].type",
+          "item.content[].annotations[].url",
           "item.content[].logprobs",
           "item.content[].logprobs[]",
           "item.content[].text",
@@ -3289,6 +4036,15 @@
           "type"
         ],
         "values": {
+          "item.action.sources[].type": [
+            "url"
+          ],
+          "item.action.type": [
+            "search"
+          ],
+          "item.content[].annotations[].type": [
+            "url_citation"
+          ],
           "item.content[].type": [
             "output_text"
           ],
@@ -3304,10 +4060,49 @@
           "item.type": [
             "function_call",
             "message",
-            "reasoning"
+            "reasoning",
+            "web_search_call"
           ],
           "type": [
             "response.output_item.done"
+          ]
+        }
+      },
+      "response.output_text.annotation.added": {
+        "known": [
+          "annotation",
+          "annotation.end_index",
+          "annotation.start_index",
+          "annotation.title",
+          "annotation.type",
+          "annotation.url",
+          "annotation_index",
+          "content_index",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "annotation",
+          "annotation.end_index",
+          "annotation.start_index",
+          "annotation.title",
+          "annotation.type",
+          "annotation.url",
+          "annotation_index",
+          "content_index",
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "annotation.type": [
+            "url_citation"
+          ],
+          "type": [
+            "response.output_text.annotation.added"
           ]
         }
       },
@@ -3468,6 +4263,63 @@
         "values": {
           "type": [
             "response.reasoning_summary_text.done"
+          ]
+        }
+      },
+      "response.web_search_call.completed": {
+        "known": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.web_search_call.completed"
+          ]
+        }
+      },
+      "response.web_search_call.in_progress": {
+        "known": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.web_search_call.in_progress"
+          ]
+        }
+      },
+      "response.web_search_call.searching": {
+        "known": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "expected": [
+          "item_id",
+          "output_index",
+          "sequence_number",
+          "type"
+        ],
+        "values": {
+          "type": [
+            "response.web_search_call.searching"
           ]
         }
       }

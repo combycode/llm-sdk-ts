@@ -264,6 +264,73 @@ export const RESPONSE_SCENARIOS: ResponseScenario[] = [
     options: { maxTokens: 16, moderation: { input: true, output: true } },
   },
 
+  // —— streaming variants of the shapes above ——————————
+  // Measured on 2026-09-01: the 14 streaming cells produced only `usage`, `done`,
+  // `text`, `tool_call_*` and `thinking`. NINE of the sixteen StreamEvent types
+  // had no coverage at all — media_start/chunk/end, file, citation,
+  // builtin_tool_start/end, error and moderation — and those are exactly the
+  // STATEFUL branches: the accumulate-then-pair machines, the emit-once-per-stream
+  // flags, the three-event media reassembly. A stream parser is where sequencing
+  // bugs live, and none of that sequencing was being watched.
+
+  {
+    name: 'stream.builtin.search',
+    streaming: true,
+    // builtin_tool_start/end, and the citation events the answer emits as it goes.
+    targets: [
+      'anthropic/messages',
+      'openai/responses',
+      'google/generate',
+      'google/interactions',
+      'xai/responses',
+    ],
+    input: 'Search the web for the current population of Reykjavik, and cite your source.',
+    options: { tools: [{ type: 'web_search' }], maxTokens: 512 },
+  },
+  {
+    name: 'stream.builtin.codeexec',
+    streaming: true,
+    // The hardest path in any of the parsers: a server_tool_use whose input JSON
+    // arrives in fragments, is parsed at content_block_stop, keyed by id, and then
+    // paired with a *_tool_result block that may also carry `file` events.
+    targets: ['anthropic/messages', 'openai/responses', 'google/generate'],
+    input:
+      'Use the code tool to compute the first 12 Fibonacci numbers and write them to a CSV file.',
+    options: { tools: [{ type: 'code_interpreter' }], maxTokens: 1024 },
+  },
+  {
+    name: 'stream.media.audio',
+    streaming: true,
+    // media_start / media_chunk / media_end. The sandbox reassembles a data: URL
+    // from these three and renders it; nothing has ever tested the sequence.
+    targets: ['openai/completions'],
+    model: 'gpt-audio',
+    input: 'Say exactly: OK',
+    options: {
+      maxTokens: 64,
+      outputModalities: ['text', 'audio'],
+      // pcm16, not mp3: OpenAI refuses anything else when stream=true
+      // ("'audio.format' does not support 'mp3' when stream=true"). The buffered
+      // cell above asks for mp3 on purpose — the two formats take different
+      // branches, and neither was recorded before.
+      audio: { voice: 'alloy', format: 'pcm16' },
+    },
+  },
+  {
+    name: 'stream.thinking',
+    streaming: true,
+    targets: ['anthropic/messages', 'openai/responses', 'google/generate', 'xai/responses'],
+    input: 'A farmer has 17 sheep. All but 9 run away. How many are left? Reason it through.',
+    options: { thinking: { mode: 'on', effort: 'low' }, maxTokens: 2048 },
+  },
+  {
+    name: 'stream.moderation',
+    streaming: true,
+    targets: ['openai/completions', 'openai/responses'],
+    input: 'Reply with exactly: OK',
+    options: { maxTokens: 16, moderation: { input: true, output: true } },
+  },
+
   {
     name: 'error',
     streaming: false,

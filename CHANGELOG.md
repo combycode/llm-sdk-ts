@@ -21,6 +21,15 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   `capabilities.audioGeneration: false` for the audio-generation model. OpenAI's guide is explicit:
   *"For this audio-chat pattern, use Chat Completions with an audio-capable model."*
 
+- **Streamed audio produced nothing at all.** `delta.audio` was ignored by the Chat Completions
+  stream parser, so a `gpt-audio` turn streamed 68 SSE events and yielded exactly ONE unified event:
+  `usage`. No text (the words are in `audio.transcript`, not `delta.content`), no media, and —
+  because these chunks never carry a `finish_reason` — no terminal event either, so a caller
+  awaiting `done` waited forever. Now the transcript surfaces as `text`, the fragments as
+  `media_start` / `media_chunk` / `media_end`, and the final `expires_at`-only delta closes the
+  stream. Streamed audio is always `pcm16` (the API refuses any other format when `stream=true`) and
+  raw PCM has no magic bytes, so the mime is stated rather than sniffed.
+
 - **Audio output was silently dropped on the OpenAI chat path.** `openai-completions` gated its
   `modalities` block on `hasAudioInput`, so `outputModalities: ['text', 'audio']` travelled from
   `ExecuteOptions` all the way to the wire builder and died there. `gpt-audio` then refused the call
@@ -72,6 +81,17 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   product: Chat Completions has no hosted web search, and only `gpt-audio` returns audio. The
   recorder and the differential read the same `expectedCells()`, so they cannot disagree about what
   is missing.
+
+- **The streaming corpus covers the branches that carry state.** Measured before this change, the
+  14 streaming cells produced only `usage`, `done`, `text`, `tool_call_*` and `thinking`: NINE of the
+  sixteen `StreamEvent` types had no coverage, and they were exactly the stateful ones — the
+  accumulate-JSON-then-pair-with-its-result machine, the emit-once-per-stream flags, the three-event
+  media reassembly. Five streaming scenarios were added (search, code execution, audio, thinking,
+  moderation), taking the corpus from 60 to 75 cells and streaming coverage from 7/16 to **15/16**.
+  The sixteenth, `error`, is emitted only by the Realtime adapter, which this corpus does not cover.
+
+  The audio bug above was found by the first run of the new cell: it tripped the existing invariant
+  that every streaming cell must produce a terminal event.
 
 - **The corpus did not catch everything, and that is worth recording.** Switching the adapters
   dropped xAI's inline code-execution file extraction: `XAIResponsesAdapter` overrides
