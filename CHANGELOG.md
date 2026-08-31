@@ -4,7 +4,7 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [3.2.0] — 2026-08-31
 
 ### Added
 
@@ -31,6 +31,53 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   Verified live on Anthropic, OpenAI, Google, xAI and OpenRouter, buffered and streamed: 5/5 providers
   return real cited URLs for the web-search scenario, which previously reported `no-citation` on all
   five. Note Google reports each source as a `grounding-api-redirect` URL, not the page itself.
+
+### Fixed
+
+- **xAI file `delete`, `getInfo` and `list` never worked.** `XAIFileAdapter` is exported, and three
+  of its four methods rejected with `unknown spec: xai/files.<op>` before any HTTP — only
+  `xai/files.upload` had ever been written, so roughly twenty lines of response mapping below them
+  had never run. The three specs follow `xai.upload`'s own note that the surface differs from
+  OpenAI's only in the upload `purpose`, so they carry the same paths and the same Bearer base.
+
+- **`listModelsLive` was blocked by CORS in the browser, for Anthropic only.** Anthropic refuses a
+  browser request without an explicit opt-in header. The chat path sends it and the Anthropic files
+  specs carry it, but `models.list` lost it when that request moved to a spec: the header had lived
+  in the helper's own table, which nothing called any more. Measured from a browser with a raw
+  fetch — `/v1/models` returns 200 with the header and fails without it. The sandbox listed models
+  through `Promise.allSettled` and kept only the fulfilled results, so the rejection was swallowed
+  and Anthropic simply showed no models rather than an error.
+
+### Removed
+
+- **Five private functions left behind by the spec migration.** Each was live until its area moved to
+  the spec-driven builder, which renamed it with a leading underscore instead of deleting it:
+  `_buildForm`, `_batchName`, `_toOpenAIAudioFormat`, `_toResponseModalities` and
+  `LiveSpec.headers`. Each was checked field by field against the spec that replaced it before
+  removal — and the last of them was **not** equivalent, which is how the CORS bug above was found.
+
+### Internal
+
+- **Line coverage 91.62% → 99.53%**, function coverage 87.53% → 97.41%, across 2290 → 4051 tests.
+  Eleven modules had no function coverage at all — `batcher.ts` ran 3.5% of its lines,
+  `plugins/internal-tools/runner/runner.ts` 3.7%, `transport-ws.ts` 9.6%. Every new test is mutation-verified: the
+  source line it claims to cover was broken and the test watched to fail.
+
+  The exercise found ten defects no existing test caught, each pinned as a `DEFECT:` test rather
+  than fixed in the same pass: `ResponseStore.list(null)` returning every user's response ids,
+  `chunker.ts` silently dropping space-free text (3000 characters of CJK or base64 yield one
+  400-character chunk), `attachment.ts fromBlob` leaving the MIME type empty because a type-less
+  `Blob` reports `''` rather than `null`, and `oauth.ts tryRefresh` discarding the refresh token it
+  means to preserve.
+
+  Two pre-existing tests turned out to execute no code at all — one asserts against `readFileSync`
+  of `realtime.ts` with regexes over the source text, which is why that file sat at 0% functions
+  while appearing tested.
+
+- **A coverage floor that can actually fail.** `bunfig.toml`'s `coverageThreshold` is accepted and
+  ignored by bun 1.3.14 — set to an impossible 1.0 the run still exits 0 — so the floor is its own
+  step (`bun run coverage:gate`), carrying a `--self-test` that proves it discriminates.
+
 
 ## [3.1.0] — 2026-08-25
 
