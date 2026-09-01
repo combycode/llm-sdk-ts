@@ -69,12 +69,18 @@ describe('missing-peer error', () => {
 // ─── And it still works for consumers who DO install it ───────────────────────
 
 describe('exact counting when the peer is present', () => {
+  // Each case builds its OWN TiktokenCounter, and the encoder is a ~5.6 MB WASM
+  // module loaded lazily per instance -- so every case here pays that load, and
+  // on a loaded machine it lands either side of bun's 5s default. That made this
+  // block fail intermittently on timing alone, with no assertion involved and a
+  // different case each time. The work is genuinely slow, not wrong, so the
+  // limit is raised rather than the load hidden.
   it('counts tokens through the real tiktoken encoder', async () => {
     const counter = new TiktokenCounter();
     const n = await counter.measure('hello world', { provider: 'openai', model: 'gpt-4o' });
     // Exact tokenizer: "hello world" is 2 tokens under o200k_base.
     expect(n).toBe(2);
-  });
+  }, 30_000);
 
   it('caches the encoder across calls', async () => {
     const counter = new TiktokenCounter();
@@ -82,5 +88,5 @@ describe('exact counting when the peer is present', () => {
     const b = await counter.measure('the quick brown fox', { provider: 'openai', model: 'gpt-4o' });
     expect(a).toBe(b);
     expect(a).toBeGreaterThan(0);
-  });
+  }, 30_000);
 });

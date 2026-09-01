@@ -5,12 +5,9 @@
  *  - Returns reasoning_content in message (plain text, unlike OpenAI which hides it)
  */
 
-import type { SSEEvent } from '../../../network/types';
-import type { ProviderAdapter, } from '../../types/provider';
+import type { ProviderAdapter } from '../../types/provider';
 import type { CompletionResponse } from '../../types/response';
-import type { StreamEvent } from '../../types/stream';
-import { OpenAIAdapter, type OpenAIStreamState } from '../openai/completions';
-import { sseJson } from '../_shared/sse';
+import { OpenAIAdapter } from '../openai/completions';
 
 export interface XAIAdapterConfig {
   apiKey: string;
@@ -47,23 +44,5 @@ export class XAIAdapter extends OpenAIAdapter {
     }
 
     return result;
-  }
-
-  override parseStreamEvent(event: SSEEvent, state?: OpenAIStreamState): StreamEvent[] {
-    const events = super.parseStreamEvent(event, state);
-
-    // Check for reasoning_content in streaming delta
-    try {
-      const data = sseJson(event);
-      const choices = (data.choices as Array<Record<string, unknown>>) ?? [];
-      const delta = (choices[0]?.delta as Record<string, unknown>) ?? {};
-
-      if (delta.reasoning_content) {
-        // Insert thinking event before text events
-        events.unshift({ type: 'thinking', text: delta.reasoning_content as string });
-      }
-    } catch {}
-
-    return events;
   }
 }

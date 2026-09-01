@@ -7,6 +7,9 @@ import { buildFromSpec } from '../../../wire/interpreter';
 import { buildResponse } from '../../../wire/response-interpreter';
 import { getResponseSpec } from '../../../wire/response-specs';
 import { GOOGLE_RESPONSE_REGISTRY } from './response-registry';
+import { createStreamBuilder } from '../../../wire/stream-interpreter';
+import { getStreamSpec } from '../../../wire/stream-specs';
+import { GOOGLE_STREAM_REGISTRY } from './stream-registry';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec, isChatSpec } from '../../../wire/chat-specs';
 import { pinFor, GOOGLE_GENERATE_PINS } from '../../../wire/pins';
@@ -15,24 +18,10 @@ import { googleBilledTier } from './tiers';
 import type { NormalizedRequest } from '../../types/request';
 import { emptyUsage, type CompletionResponse, type Usage } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
-import { extractFinishReason } from '../_shared/response-utils';
-import { sseJson } from '../_shared/sse';
 
 export interface GoogleAdapterConfig {
   apiKey: string;
   baseURL?: string;
-}
-
-/** Per-stream state threaded through `createStreamParser`. `codeExec` latches once
- *  a code-execution marker is seen so later inline blobs route to `files`. */
-interface GoogleStreamState {
-  codeExec: boolean;
-  /** web_search (grounding) builtin_tool events emitted once per stream. */
-  webSearchEmitted?: boolean;
-  /** web_fetch (urlContext) builtin_tool events emitted once per stream. */
-  urlFetchEmitted?: boolean;
-  /** Code from the last `executableCode` part, to attach to its `builtin_tool_end`. */
-  pendingCode?: string;
 }
 
 /** generateContent token usage. Exported so the spec-driven parser runs this
@@ -174,170 +163,18 @@ export class GoogleAdapter implements ProviderAdapter {
     ) as unknown as CompletionResponse;
   }
 
+  /** Stateless entry, as the ProviderAdapter interface requires: a fresh spec
+   *  run per event, so nothing correlates across events. */
   parseStreamEvent(event: SSEEvent): StreamEvent[] {
-    // Stateless entry — with no persisted state, inline data can't be known to be
-    // a code-execution artifact, so it routes to media (unchanged behavior).
-    return this.streamEvents(event, { codeExec: false });
+    return this.createStreamParser()(event);
   }
 
-  /** Stateful — Google splits the code-execution marker (`executableCode` /
-   *  `codeExecutionResult`) and the produced file (`inlineData`) across parts and
-   *  often across SSE events. The closure remembers "code execution began in this
-   *  stream" so a later `inlineData` blob is routed to `files` (a code-exec
-   *  artifact) rather than `media` (conversational output). */
+  /** Stateful, and the one callers should use. The code-execution flag latches across chunks and decides whether inlineData is an artifact or media. */
   createStreamParser(): (event: SSEEvent) => StreamEvent[] {
-    const state: GoogleStreamState = { codeExec: false };
-    return (event) => this.streamEvents(event, state);
-  }
-
-  private streamEvents(event: SSEEvent, state: GoogleStreamState): StreamEvent[] {
-    const data = sseJson(event);
-    const candidates = (data.candidates as Array<Record<string, unknown>>) ?? [];
-    const candidate = candidates[0];
-
-    if (!candidate) {
-      if (data.usageMetadata)
-        return [
-          { type: 'usage', usage: this.parseUsage(data.usageMetadata as Record<string, unknown>) },
-        ];
-      return [];
-    }
-
-    const rawContent = (candidate.content as Record<string, unknown>) ?? {};
-    const parts = (rawContent.parts as Array<Record<string, unknown>>) ?? [];
-    const events: StreamEvent[] = [];
-
-    // A code-execution marker may share an event with its output file or precede
-    // it; latch the flag from all parts first so inlineData routing is correct.
-    for (const part of parts) {
-      if (part.executableCode || part.codeExecutionResult) state.codeExec = true;
-    }
-
-    for (const part of parts) {
-      if (part.text !== undefined && !part.thought)
-        events.push({ type: 'text', text: part.text as string });
-      if (part.thought && part.text) events.push({ type: 'thinking', text: part.text as string });
-      // Code-execution builtin: the code to run, then its result. Carry the code +
-      // output on the end event (start marks progress).
-      if (part.executableCode) {
-        const code = (part.executableCode as Record<string, unknown>).code;
-        state.pendingCode = typeof code === 'string' ? code : undefined;
-        events.push({ type: 'builtin_tool_start', tool: 'code_interpreter' });
-      }
-      if (part.codeExecutionResult) {
-        const output = (part.codeExecutionResult as Record<string, unknown>).output;
-        events.push({
-          type: 'builtin_tool_end',
-          tool: 'code_interpreter',
-          ...(state.pendingCode ? { code: state.pendingCode } : {}),
-          ...(typeof output === 'string' && output ? { output } : {}),
-        });
-        state.pendingCode = undefined;
-      }
-      if (part.inlineData) {
-        const inline = part.inlineData as { mimeType: string; data: string };
-        const mime = inline.mimeType;
-        if (state.codeExec) {
-          // Code-execution artifact (e.g. a generated chart) → unified files channel.
-          events.push({
-            type: 'file',
-            file: { data: inline.data, mimeType: mime, source: 'code_execution' },
-          });
-        } else {
-          const mediaType = mime.startsWith('image/')
-            ? ('image' as const)
-            : mime.startsWith('audio/')
-              ? ('audio' as const)
-              : ('video' as const);
-          events.push({ type: 'media_start', mediaType, mimeType: mime });
-          events.push({ type: 'media_chunk', data: inline.data });
-          events.push({ type: 'media_end' });
-        }
-      }
-      if (part.functionCall) {
-        const fc = part.functionCall as Record<string, unknown>;
-        const meta: Record<string, unknown> = {};
-        if (part.thoughtSignature) meta.thoughtSignature = part.thoughtSignature;
-        events.push({
-          type: 'tool_call_start',
-          id: (fc.id as string) ?? '',
-          name: fc.name as string,
-          ...(Object.keys(meta).length > 0 ? { _meta: meta } : {}),
-        });
-        if (fc.args)
-          events.push({ type: 'tool_call_delta', id: '', arguments: JSON.stringify(fc.args) });
-        events.push({ type: 'tool_call_end', id: '' });
-      }
-    }
-
-    // Grounding chunks arrive on ONE late chunk, not spread across the stream —
-    // the first `groundingMetadata` seen is usually `{}`, and the populated one
-    // comes near the end. So this reads whichever chunk actually has them rather
-    // than latching on first sight the way the start/end pair below does.
-    for (const chunk of ((candidate.groundingMetadata as Record<string, unknown>)
-      ?.groundingChunks as Array<Record<string, unknown>>) ?? []) {
-      const web = (chunk.web as Record<string, unknown>) ?? {};
-      if (web.uri) {
-        events.push({
-          type: 'citation',
-          citation: {
-            url: web.uri as string,
-            ...(web.title ? { title: web.title as string } : {}),
-          },
-        });
-      }
-    }
-
-    // Web search (googleSearch grounding) has no per-call stream markers — surface
-    // one start/end pair the first time grounding metadata appears in the stream.
-    if (candidate.groundingMetadata && !state.webSearchEmitted) {
-      state.webSearchEmitted = true;
-      const q = (
-        (candidate.groundingMetadata as Record<string, unknown>).webSearchQueries as
-          | string[]
-          | undefined
-      )?.[0];
-      events.push({ type: 'builtin_tool_start', tool: 'web_search' });
-      events.push({
-        type: 'builtin_tool_end',
-        tool: 'web_search',
-        ...(typeof q === 'string' ? { query: q } : {}),
-      });
-    }
-
-    // web_fetch (urlContext) — like grounding, no per-call markers: emit one
-    // start/end pair per retrieved URL the first time the metadata appears.
-    const streamUrlMeta = (candidate.urlContextMetadata as Record<string, unknown> | undefined)
-      ?.urlMetadata as Array<Record<string, unknown>> | undefined;
-    if (Array.isArray(streamUrlMeta) && !state.urlFetchEmitted) {
-      state.urlFetchEmitted = true;
-      for (const m of streamUrlMeta) {
-        const url = m.retrievedUrl as string | undefined;
-        events.push({ type: 'builtin_tool_start', tool: 'web_fetch' });
-        events.push({
-          type: 'builtin_tool_end',
-          tool: 'web_fetch',
-          ...(typeof url === 'string' ? { url } : {}),
-        });
-      }
-    }
-
-    const fr = candidate.finishReason as string | undefined;
-    if (fr)
-      events.push({
-        type: 'done',
-        finishReason: extractFinishReason(false, fr, { MAX_TOKENS: 'length' }),
-      });
-    if (data.usageMetadata)
-      events.push({
-        type: 'usage',
-        usage: this.parseUsage(data.usageMetadata as Record<string, unknown>),
-      });
-
-    return events;
-  }
-
-  private parseUsage(u: Record<string, unknown> | undefined): Usage {
-    return googleUsage(u);
+    const parse = createStreamBuilder(
+      getStreamSpec('google/generate.stream'),
+      GOOGLE_STREAM_REGISTRY,
+    );
+    return (event) => parse(event) as StreamEvent[];
   }
 }

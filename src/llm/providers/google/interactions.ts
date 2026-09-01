@@ -9,6 +9,9 @@ import { buildFromSpec } from '../../../wire/interpreter';
 import { buildResponse } from '../../../wire/response-interpreter';
 import { getResponseSpec } from '../../../wire/response-specs';
 import { GOOGLE_INTERACTIONS_REGISTRY } from './interactions-registry';
+import { createStreamBuilder } from '../../../wire/stream-interpreter';
+import { getStreamSpec } from '../../../wire/stream-specs';
+import { GOOGLE_INTERACTIONS_STREAM_REGISTRY } from './interactions-stream-registry';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec } from '../../../wire/chat-specs';
 import { makeRegistry } from '../../wire-transforms';
@@ -16,20 +19,10 @@ import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider'
 import type { NormalizedRequest } from '../../types/request';
 import { emptyUsage, type CompletionResponse, type Usage } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
-import { extractFinishReason } from '../_shared/response-utils';
-import { sseJson } from '../_shared/sse';
 
 export interface GoogleInteractionsAdapterConfig {
   apiKey: string;
   baseURL?: string;
-}
-
-/** Per-stream state for the Interactions step machine: the id of the currently
- *  open `function_call` step (to attach its id-less `arguments_delta`) and whether
- *  any tool call occurred (to pick the `done` finish reason). */
-interface InteractionsStreamState {
-  callId?: string;
-  sawToolCall: boolean;
 }
 
 /** Interactions token usage. Exported so the spec-driven parser runs this and
@@ -191,95 +184,19 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
    *  `interaction.failed` finish the turn (usage under `interaction.usage`). A
    *  function call's `arguments_delta` carries no id, so we correlate it to the
    *  currently-open call id held in `state`. */
-  private streamEvents(event: SSEEvent, state: InteractionsStreamState): StreamEvent[] {
-    const data = sseJson(event);
-    const type = (data.event_type as string) ?? (data.type as string);
-    const events: StreamEvent[] = [];
 
-    if (type === 'step.start') {
-      const step = (data.step as Record<string, unknown>) ?? {};
-      if (step.type === 'function_call') {
-        const id = (step.id as string) ?? '';
-        state.callId = id;
-        state.sawToolCall = true;
-        events.push({ type: 'tool_call_start', id, name: (step.name as string) ?? '' });
-        // Args normally stream via arguments_delta; forward any inline object too.
-        const args = step.arguments as Record<string, unknown> | undefined;
-        if (args && Object.keys(args).length > 0) {
-          events.push({ type: 'tool_call_delta', id, arguments: JSON.stringify(args) });
-        }
-      }
-      return events;
-    }
-
-    if (type === 'step.delta') {
-      const delta = (data.delta as Record<string, unknown>) ?? {};
-      const dtype = delta.type as string;
-      if (dtype === 'text') {
-        events.push({ type: 'text', text: (delta.text as string) ?? '' });
-      } else if (dtype === 'thought_summary') {
-        events.push({ type: 'thinking', text: (delta.text as string) ?? '' });
-      } else if (dtype === 'arguments_delta') {
-        // arguments already a JSON string fragment; belongs to the open call.
-        events.push({
-          type: 'tool_call_delta',
-          id: state.callId ?? '',
-          arguments: (delta.arguments as string) ?? '',
-        });
-      }
-      // thought_signature and other delta kinds are internal → no unified event.
-      return events;
-    }
-
-    if (type === 'step.stop') {
-      // step.stop carries only an index; close the currently-open function call.
-      if (state.callId) {
-        events.push({ type: 'tool_call_end', id: state.callId });
-        state.callId = undefined;
-      }
-      return events;
-    }
-
-    if (type === 'interaction.completed' || type === 'interaction.failed') {
-      // Defensive: flush a still-open call if step.stop was omitted.
-      if (state.callId) {
-        events.push({ type: 'tool_call_end', id: state.callId });
-        state.callId = undefined;
-      }
-      const interaction = (data.interaction as Record<string, unknown>) ?? {};
-      const usage =
-        (interaction.usage as Record<string, unknown>) ??
-        ((data.metadata as Record<string, unknown>)?.total_usage as Record<string, unknown>);
-      if (usage) events.push({ type: 'usage', usage: this.parseUsage(usage) });
-      // `queued` is NOT terminal (google 2.13) — the interaction is still to run,
-      // so it must never close the stream with a `done`.
-      const status = interaction.status as string;
-      if (status !== 'queued') {
-        events.push({
-          type: 'done',
-          finishReason: extractFinishReason(state.sawToolCall, status, { failed: 'error' }),
-        });
-      }
-      return events;
-    }
-
-    // interaction.created / interaction.status_update / interaction.requires_action → no unified event.
-    return events;
-  }
-
+  /** Stateless entry, as the ProviderAdapter interface requires: a fresh spec
+   *  run per event, so nothing correlates across events. */
   parseStreamEvent(event: SSEEvent): StreamEvent[] {
-    // Stateless single-event entry (no cross-event correlation of tool-call args).
-    return this.streamEvents(event, { sawToolCall: false });
+    return this.createStreamParser()(event);
   }
 
-  /** Per-stream stateful parser — correlates a function call's streamed arguments
-   *  and end to the call opened by its `step.start`. */
+  /** Stateful, and the one callers should use. The open call's id is carried between its fragments and its close. */
   createStreamParser(): (event: SSEEvent) => StreamEvent[] {
-    const state: InteractionsStreamState = { sawToolCall: false };
-    return (event) => this.streamEvents(event, state);
-  }
-
-  private parseUsage(u: Record<string, unknown> | undefined): Usage {
-    return googleInteractionsUsage(u);
+    const parse = createStreamBuilder(
+      getStreamSpec('google/interactions.stream'),
+      GOOGLE_INTERACTIONS_STREAM_REGISTRY,
+    );
+    return (event) => parse(event) as StreamEvent[];
   }
 }

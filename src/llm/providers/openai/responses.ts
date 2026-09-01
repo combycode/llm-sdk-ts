@@ -4,11 +4,14 @@
  *  output items (not choices), function_call/function_call_output for tools. */
 
 import type { SSEEvent } from '../../../network/types';
-import type { AssistantPhase, Message, TextPart, ToolCaller } from '../../types/messages';
+import type { Message, TextPart, ToolCaller } from '../../types/messages';
 import { buildFromSpec } from '../../../wire/interpreter';
 import { buildResponse } from '../../../wire/response-interpreter';
 import { getResponseSpec } from '../../../wire/response-specs';
 import { OPENAI_RESPONSES_REGISTRY } from './responses-registry';
+import { createStreamBuilder } from '../../../wire/stream-interpreter';
+import { getStreamSpec } from '../../../wire/stream-specs';
+import { OPENAI_RESPONSES_STREAM_REGISTRY } from './responses-stream-registry';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec } from '../../../wire/chat-specs';
 import { makeRegistry } from '../../wire-transforms';
@@ -23,9 +26,6 @@ import {
 } from '../../types/response';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
-import { parseNativeModeration } from '../../moderation/native';
-import { extractFinishReason } from '../_shared/response-utils';
-import { sseJson } from '../_shared/sse';
 
 export interface OpenAIResponsesAdapterConfig {
   apiKey: string;
@@ -121,7 +121,7 @@ export function builtinCallFromResponsesItem(
 }
 
 /** Spread a `BuiltinToolCall`'s optional payload into a `builtin_tool_end` event. */
-function builtinEndPayload(call: BuiltinToolCall): Record<string, string> {
+function _builtinEndPayload(call: BuiltinToolCall): Record<string, string> {
   return {
     ...(call.id ? { id: call.id } : {}),
     ...(call.code ? { code: call.code } : {}),
@@ -444,159 +444,27 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     }) as unknown as CompletionResponse;
   }
 
-  parseStreamEvent(event: SSEEvent, phaseByItem?: Map<string, AssistantPhase>): StreamEvent[] {
-    const data = sseJson(event);
-    const type = data.type as string;
-    const events: StreamEvent[] = [];
-
-    if (type === 'response.output_text.annotation.added') {
-      const note = (data.annotation as Record<string, unknown>) ?? {};
-      if (note.type === 'url_citation' && note.url) {
-        events.push({
-          type: 'citation',
-          citation: {
-            url: note.url as string,
-            ...(note.title ? { title: note.title as string } : {}),
-          },
-        });
-      }
-      return events;
-    }
-
-    if (type === 'response.output_text.delta') {
-      // `item_id` says WHICH output item this delta belongs to — a turn can interleave
-      // deltas from several items, so pass it through for consumers that reassemble
-      // per item instead of concatenating (openai-agents 0.13.5 surfaces the same).
-      const itemId = data.item_id as string | undefined;
-      const phase = itemId ? phaseByItem?.get(itemId) : undefined;
-      events.push({
-        type: 'text',
-        text: data.delta as string,
-        ...(itemId ? { itemId } : {}),
-        ...(phase !== undefined ? { phase } : {}),
-      });
-    }
-
-    if (type === 'response.function_call_arguments.delta') {
-      events.push({
-        type: 'tool_call_delta',
-        id: (data.call_id as string) ?? '',
-        arguments: data.delta as string,
-      });
-    }
-
-    if (type === 'response.output_item.added') {
-      const item = data.item as Record<string, unknown>;
-      // Remember this item's phase so its text deltas can carry it (the deltas themselves
-      // carry only `item_id`).
-      if (item?.type === 'message' && typeof item.phase === 'string') {
-        const itemId = (data.item_id as string) ?? (item.id as string);
-        if (itemId) phaseByItem?.set(itemId, item.phase as AssistantPhase);
-      }
-      if (item?.type === 'function_call') {
-        events.push({
-          type: 'tool_call_start',
-          id: (item.call_id as string) ?? '',
-          name: (item.name as string) ?? '',
-        });
-      }
-      if (item?.type === 'image_generation_call') {
-        events.push({ type: 'media_start', mediaType: 'image', mimeType: 'image/png' });
-      }
-      const builtin = builtinCallFromResponsesItem(item ?? {});
-      if (builtin) {
-        events.push({
-          type: 'builtin_tool_start',
-          tool: builtin.tool,
-          ...(builtin.id ? { id: builtin.id } : {}),
-        });
-      }
-    }
-
-    // Partial image streaming (OpenAI image_generation tool with partial_images > 0)
-    if (type === 'response.image_generation_call.partial_image') {
-      events.push({
-        type: 'media_chunk',
-        data: (data.partial_image as string) ?? '',
-        progress: data.partial_image_index as number | undefined,
-      });
-    }
-
-    if (type === 'response.output_item.done') {
-      const item = data.item as Record<string, unknown>;
-      // Code-execution output files finalize with their output item — same
-      // extraction as the buffered path, emitted as they complete.
-      for (const file of this.filesFromOutputItem(item)) events.push({ type: 'file', file });
-      const builtin = builtinCallFromResponsesItem(item ?? {});
-      if (builtin) {
-        events.push({
-          type: 'builtin_tool_end',
-          tool: builtin.tool,
-          ...builtinEndPayload(builtin),
-        });
-      }
-      if (item?.type === 'function_call') {
-        events.push({ type: 'tool_call_end', id: (item.call_id as string) ?? '' });
-      }
-      if (item?.type === 'image_generation_call') {
-        events.push({ type: 'media_end' });
-      }
-      if (item?.type === 'reasoning') {
-        const summary = (item.summary as Array<Record<string, unknown>>) ?? [];
-        const text = summary
-          .filter((s) => s.type === 'summary_text')
-          .map((s) => s.text as string)
-          .join('\n');
-        const reasoningItemId = (item.id as string) ?? (data.item_id as string | undefined);
-        if (text)
-          events.push({
-            type: 'thinking',
-            text,
-            ...(reasoningItemId ? { itemId: reasoningItemId } : {}),
-          });
-      }
-    }
-
-    if (type === 'response.completed') {
-      const response = (data.response as Record<string, unknown>) ?? data;
-      // Native moderation rides on the final response object — surface it (input
-      // first, then output) before the terminal usage/done events.
-      const moderation = parseNativeModeration(response.moderation);
-      if (moderation?.input)
-        events.push({
-          type: 'moderation',
-          phase: 'input',
-          result: moderation.input,
-          source: 'native',
-        });
-      if (moderation?.output)
-        events.push({
-          type: 'moderation',
-          phase: 'output',
-          result: moderation.output,
-          source: 'native',
-        });
-      const usage = response.usage as Record<string, unknown>;
-      if (usage) events.push({ type: 'usage', usage: this.parseUsage(usage) });
-      events.push({
-        type: 'done',
-        finishReason: extractFinishReason(false, response.status as string, {
-          incomplete: 'length',
-        }),
-      });
-    }
-
-    return events;
-  }
-
   /** Stateless — each output item finalizes with all its file annotations in a
    *  single response.output_item.done event. */
+  /** Stateless entry, as the ProviderAdapter interface requires: a fresh spec
+   *  run per event, so nothing correlates across events. */
+  parseStreamEvent(event: SSEEvent): StreamEvent[] {
+    return this.createStreamParser()(event);
+  }
+
+  /** Stateful, and the one callers should use. `phase` is announced once when an item is added but belongs on every text delta of that item, and the spec's state is where that is remembered. */
   createStreamParser(): (event: SSEEvent) => StreamEvent[] {
-    // `phase` is announced once, on `response.output_item.added`, but belongs on every text delta
-    // of that item — so it has to be remembered per stream. Scoped to this parser instance so
-    // concurrent streams cannot leak phases into each other.
-    const phaseByItem = new Map<string, AssistantPhase>();
-    return (event) => this.parseStreamEvent(event, phaseByItem);
+    const parse = createStreamBuilder(getStreamSpec(this.streamSpecId()), this.streamRegistry());
+    return (event) => parse(event) as StreamEvent[];
+  }
+
+  /** Overridden by xAI, which extends file extraction. */
+  protected streamSpecId(): string {
+    return 'openai/responses.stream';
+  }
+
+  protected streamRegistry(): Registry {
+    return OPENAI_RESPONSES_STREAM_REGISTRY;
   }
 
   /** Hosted code-execution output files from one output item. Overridable so

@@ -1,11 +1,10 @@
 /** OpenRouter provider adapter — OpenAI-compatible with extensions. */
 
-import type { SSEEvent } from '../../../network/types';
 import type { ProviderAdapter } from '../../types/provider';
-import type { StreamEvent } from '../../types/stream';
-import { OpenAIAdapter, type OpenAIStreamState } from '../openai/completions';
+import { OpenAIAdapter } from '../openai/completions';
 import type { Registry } from '../../../wire/interpreter';
 import { OPENROUTER_RESPONSE_REGISTRY } from './response-registry';
+import { OPENROUTER_STREAM_REGISTRY } from './stream-registry';
 
 export interface OpenRouterAdapterConfig {
   apiKey: string;
@@ -15,7 +14,7 @@ export interface OpenRouterAdapterConfig {
 /** OpenRouter's `:online` web search surfaces as `url_citation` annotations on the
  *  message/delta (there is no discrete tool-call item). Their presence is the signal
  *  that web search ran, so it maps to a unified `web_search` builtin-tool call. */
-function hasUrlCitation(annotations: unknown): boolean {
+function _hasUrlCitation(annotations: unknown): boolean {
   return (
     Array.isArray(annotations) &&
     annotations.some((a) => (a as Record<string, unknown>)?.type === 'url_citation')
@@ -53,27 +52,14 @@ export class OpenRouterAdapter extends OpenAIAdapter {
     return OPENROUTER_RESPONSE_REGISTRY;
   }
 
-  /** Stateful — emit a single `web_search` builtin-tool pair the first time
-   *  `url_citation` annotations appear in the stream (the `:online` search signal). */
-  override createStreamParser(): (event: SSEEvent) => StreamEvent[] {
-    let webSearchEmitted = false;
-    const state: OpenAIStreamState = { toolIdByIndex: new Map() };
-    return (event: SSEEvent): StreamEvent[] => {
-      const events = this.parseStreamEvent(event, state);
-      if (!webSearchEmitted) {
-        const choice = (JSON.parse(event.data).choices as Array<Record<string, unknown>>)?.[0];
-        const annotations =
-          (choice?.delta as Record<string, unknown>)?.annotations ??
-          (choice?.message as Record<string, unknown>)?.annotations;
-        if (hasUrlCitation(annotations)) {
-          webSearchEmitted = true;
-          events.push(
-            { type: 'builtin_tool_start', tool: 'web_search' },
-            { type: 'builtin_tool_end', tool: 'web_search' },
-          );
-        }
-      }
-      return events;
-    };
+  /** The `:online` web-search pair is the `openrouter` delta of the shared
+   *  stream spec, so naming the spec IS the override -- as it already is for the
+   *  request side and the buffered response. */
+  protected override streamSpecId(): string {
+    return 'openrouter/completions.stream';
+  }
+
+  protected override streamRegistry(): Registry {
+    return OPENROUTER_STREAM_REGISTRY;
   }
 }

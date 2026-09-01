@@ -12,6 +12,24 @@ const baseReq: NormalizedRequest = {
 };
 
 describe('XAIAdapter (Chat Completions)', () => {
+  it('emits reasoning_content ONCE, not twice', () => {
+    // XAIAdapter used to override parseStreamEvent to `unshift` a thinking event
+    // for `reasoning_content` -- while OpenAIAdapter, its parent, already pushed
+    // one for the same field. Every reasoning delta therefore produced TWO
+    // thinking events. `xai/completions` is not a corpus target (xAI defaults to
+    // the Responses API), so nothing was watching it. The override is gone; the
+    // shared spec handles the field once.
+    const parse = new XAIAdapter({ apiKey: 'k' }).createStreamParser();
+    const events = parse({
+      data: JSON.stringify({
+        choices: [{ index: 0, delta: { reasoning_content: 'because' } }],
+      }),
+    } as SSEEvent);
+    const thinking = events.filter((e) => e.type === 'thinking');
+    expect(thinking).toHaveLength(1);
+    expect(thinking[0]).toEqual({ type: 'thinking', text: 'because' });
+  });
+
   it('default baseURL is api.x.ai', () => {
     expect(new XAIAdapter({ apiKey: 'k' }).baseURL()).toBe('https://api.x.ai');
   });

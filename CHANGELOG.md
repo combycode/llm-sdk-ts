@@ -48,6 +48,20 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Changed
 
+- **Stream parsing is spec-driven too.** The other half of the same migration: all seven
+  `createStreamParser` implementations now run one driver over a declarative spec, and **682 more
+  lines of hand-written parsing are gone**. The driver is the buffered interpreter with two
+  differences — state is created once per STREAM rather than per call, and one reserved
+  accumulator is drained and returned after each SSE event.
+
+  Measured before starting: of 518 lines across the five parsers, 38 touched state. The rest was
+  dispatch, which is what a spec expresses. Behaviour is unchanged and checked the same way, against
+  29 recorded streams whose event sequences are frozen in the corpus, plus one live streaming call
+  per provider after the switch.
+
+  `parseStreamEvent` stays on the adapter interface as a stateless one-shot; `createStreamParser` is
+  the stateful one callers should use.
+
 - **Response parsing is spec-driven.** Requests have been built from specs since 3.0.0; the parse
   side was seven hand-written `parseResponse` implementations doing the same four things in four
   spellings. All seven now run one interpreter over a declarative spec, and **599 lines of
@@ -92,6 +106,19 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
   The audio bug above was found by the first run of the new cell: it tripped the existing invariant
   that every streaming cell must produce a terminal event.
+
+- **`XAIAdapter` emitted every reasoning delta TWICE.** Its `parseStreamEvent` override prepended a
+  `thinking` event for `reasoning_content` while `OpenAIAdapter`, its parent, already appended one
+  for the same field. `xai/completions` is not a corpus target — xAI defaults to the Responses
+  API — so nothing was watching. The override was both redundant and duplicating; it is gone, and
+  a regression test pins the count at one.
+
+- **A test that failed on timing alone.** `tiktoken-optional` builds a counter per case, and the
+  encoder is a ~5.6 MB WASM module loaded lazily per instance, landing either side of bun's 5s
+  default under load. It failed twice in one session, on a different case each time, with no
+  assertion involved. The limit is raised rather than the load hidden: the work is slow, not wrong.
+  (A first attempt to warm the encoder in `beforeAll` made it fail 3/3 instead of intermittently,
+  because the cache is per-instance and the warm-up only added a third load.)
 
 - **The corpus did not catch everything, and that is worth recording.** Switching the adapters
   dropped xAI's inline code-execution file extraction: `XAIResponsesAdapter` overrides

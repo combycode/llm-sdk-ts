@@ -12,6 +12,7 @@ import { bytesToBase64 } from '../../../util/base64';
 import { OpenAIResponsesAdapter } from '../openai/responses';
 import type { Registry } from '../../../wire/interpreter';
 import { XAI_RESPONSES_REGISTRY } from './responses-registry';
+import { XAI_STREAM_REGISTRY } from './stream-registry';
 
 export interface XAIResponsesAdapterConfig {
   apiKey: string;
@@ -55,6 +56,14 @@ export class XAIResponsesAdapter extends OpenAIResponsesAdapter {
 
   protected override responseRegistry(): Registry {
     return XAI_RESPONSES_REGISTRY;
+  }
+
+  protected override streamSpecId(): string {
+    return 'xai/responses.stream';
+  }
+
+  protected override streamRegistry(): Registry {
+    return XAI_STREAM_REGISTRY;
   }
 
   override readonly name: ProviderAdapter['name'] = 'xai';

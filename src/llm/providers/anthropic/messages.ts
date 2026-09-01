@@ -20,15 +20,15 @@ import { buildFromSpec } from '../../../wire/interpreter';
 import { buildResponse } from '../../../wire/response-interpreter';
 import { getResponseSpec } from '../../../wire/response-specs';
 import { ANTHROPIC_RESPONSE_REGISTRY } from './response-registry';
+import { createStreamBuilder } from '../../../wire/stream-interpreter';
+import { getStreamSpec } from '../../../wire/stream-specs';
+import { ANTHROPIC_STREAM_REGISTRY } from './stream-registry';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec, isChatSpec } from '../../../wire/chat-specs';
 import { pinFor, ANTHROPIC_MESSAGE_PINS } from '../../../wire/pins';
 import { makeRegistry } from '../../wire-transforms';
-import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import type { StreamEvent } from '../../types/stream';
-import { extractFinishReason } from '../_shared/response-utils';
 import { ANTHROPIC_API_VERSION } from './constants';
-import { sseJson } from '../_shared/sse';
 
 export interface AnthropicAdapterConfig {
   apiKey: string;
@@ -105,14 +105,6 @@ export function builtinInputPayload(
 export function resultStdout(content: unknown): string | undefined {
   const c = content as Record<string, unknown> | undefined;
   return c && typeof c.stdout === 'string' ? c.stdout : undefined;
-}
-
-/** Per-stream state threaded through `createStreamParser`. */
-interface AnthropicStreamState {
-  /** The currently-open `server_tool_use` block whose input JSON is being accumulated. */
-  current?: { id: string; tool: string; json: string };
-  /** Finalized server_tool_use inputs (code / query), by id, awaiting their result. */
-  pending: Map<string, { code?: string; query?: string; url?: string }>;
 }
 
 export function anthropicUsage(u: Record<string, unknown> | undefined): Usage {
@@ -270,144 +262,24 @@ export class AnthropicAdapter implements ProviderAdapter {
     ) as unknown as CompletionResponse;
   }
 
+  /** Stateless entry, as the ProviderAdapter interface requires: a fresh spec
+   *  run per event, so nothing correlates across events. */
   parseStreamEvent(event: SSEEvent): StreamEvent[] {
-    // Stateless entry — the per-event primitive; no server_tool_use input correlation.
-    return this.streamEvents(event, { pending: new Map() });
+    return createStreamBuilder(
+      getStreamSpec('anthropic/messages.stream'),
+      ANTHROPIC_STREAM_REGISTRY,
+    )(event) as StreamEvent[];
   }
 
-  /** Stateful — Anthropic streams `server_tool_use` input via `input_json_delta`
-   *  (empty at block start) and returns the result in a separate `*_tool_result`
-   *  block. The closure accumulates each call's input (code / query) and attaches it
-   *  to the matching `builtin_tool_end`. */
+  /** Stateful, and the one callers should use. Anthropic streams a
+   *  `server_tool_use` input via `input_json_delta` and returns the result in a
+   *  separate `*_tool_result` block, so the input has to be carried between
+   *  them; the spec's `state` is where that lives now. */
   createStreamParser(): (event: SSEEvent) => StreamEvent[] {
-    const state: AnthropicStreamState = { pending: new Map() };
-    return (event) => this.streamEvents(event, state);
-  }
-
-  private streamEvents(event: SSEEvent, state: AnthropicStreamState): StreamEvent[] {
-    if (event.event === 'ping') return [];
-    const data = sseJson(event);
-    const type = data.type as string;
-
-    if (type === 'content_block_delta') {
-      const delta = data.delta as Record<string, unknown>;
-      if (delta.type === 'text_delta') return [{ type: 'text', text: delta.text as string }];
-      if (delta.type === 'thinking_delta')
-        return [{ type: 'thinking', text: delta.thinking as string }];
-      if (delta.type === 'citations_delta') {
-        // The citation the ANSWER makes, which is not the same as the search
-        // results in the `web_search_tool_result` block: the model retrieves
-        // several pages and cites some of them.
-        const cite = (delta.citation as Record<string, unknown>) ?? {};
-        const url = cite.url as string | undefined;
-        return url
-          ? [
-              {
-                type: 'citation',
-                citation: {
-                  url,
-                  ...(cite.title ? { title: cite.title as string } : {}),
-                  ...(cite.cited_text ? { text: cite.cited_text as string } : {}),
-                },
-              },
-            ]
-          : [];
-      }
-      if (delta.type === 'input_json_delta') {
-        // A server_tool_use input is accumulated (attached to builtin_tool_end); a
-        // regular function tool_use streams its arguments as tool_call_delta.
-        if (state.current) {
-          state.current.json += (delta.partial_json as string) ?? '';
-          return [];
-        }
-        return [{ type: 'tool_call_delta', id: '', arguments: delta.partial_json as string }];
-      }
-    }
-
-    if (type === 'content_block_start') {
-      const block = data.content_block as Record<string, unknown>;
-      if (block.type === 'tool_use') {
-        state.current = undefined;
-        return [{ type: 'tool_call_start', id: block.id as string, name: block.name as string }];
-      }
-      const events: StreamEvent[] = [];
-      const blockType = block.type as string;
-      // Provider-run builtin tool: `server_tool_use` is the call (its input streams in
-      // via input_json_delta), `*_tool_result` its completion (carrying output +
-      // any code-execution files).
-      if (blockType === 'server_tool_use') {
-        const tool = unifiedBuiltinTool(block.name as string);
-        state.current = { id: (block.id as string) ?? '', tool, json: '' };
-        events.push({
-          type: 'builtin_tool_start',
-          tool,
-          ...(typeof block.id === 'string' ? { id: block.id } : {}),
-        });
-      } else if (blockType?.endsWith('_tool_result')) {
-        const tool = unifiedBuiltinTool(blockType);
-        const id = typeof block.tool_use_id === 'string' ? block.tool_use_id : undefined;
-        const input = id ? state.pending.get(id) : undefined;
-        if (id) state.pending.delete(id);
-        const output = resultStdout(block.content);
-        events.push({
-          type: 'builtin_tool_end',
-          tool,
-          ...(id ? { id } : {}),
-          ...(input?.code ? { code: input.code } : {}),
-          ...(input?.query ? { query: input.query } : {}),
-          ...(input?.url ? { url: input.url } : {}),
-          ...(output ? { output } : {}),
-        });
-      }
-      // Server-computed code-execution result blocks arrive complete in
-      // content_block_start (not token-streamed) — surface their output files.
-      for (const file of filesFromCodeExecBlock(block)) events.push({ type: 'file', file });
-      return events;
-    }
-
-    if (type === 'content_block_stop') {
-      // Finalize an accumulated server_tool_use input → payload keyed by id, ready
-      // for its *_tool_result.
-      if (state.current) {
-        let input: Record<string, unknown> = {};
-        try {
-          input = JSON.parse(state.current.json || '{}') as Record<string, unknown>;
-        } catch {
-          /* partial/invalid JSON → no payload */
-        }
-        state.pending.set(state.current.id, builtinInputPayload(state.current.tool, input));
-        state.current = undefined;
-      }
-    }
-
-    if (type === 'message_delta') {
-      const delta = data.delta as Record<string, unknown>;
-      const usage = data.usage as Record<string, unknown> | undefined;
-      const events: StreamEvent[] = [];
-      if (usage) events.push({ type: 'usage', usage: this.parseUsage(usage) });
-      const sr = delta.stop_reason as string;
-      if (sr)
-        events.push({
-          type: 'done',
-          finishReason: extractFinishReason(sr === 'tool_use', sr, {
-            max_tokens: 'length',
-            model_context_window_exceeded: 'length',
-            refusal: 'content_filter',
-          }),
-        });
-      return events;
-    }
-
-    if (type === 'message_start') {
-      const msg = data.message as Record<string, unknown>;
-      const usage = msg.usage as Record<string, unknown> | undefined;
-      if (usage) return [{ type: 'usage', usage: this.parseUsage(usage) }];
-    }
-
-    return [];
-  }
-
-  private parseUsage(u: Record<string, unknown> | undefined): Usage {
-    return anthropicUsage(u);
+    const parse = createStreamBuilder(
+      getStreamSpec('anthropic/messages.stream'),
+      ANTHROPIC_STREAM_REGISTRY,
+    );
+    return (event) => parse(event) as StreamEvent[];
   }
 }

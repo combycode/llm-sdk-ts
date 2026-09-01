@@ -5,6 +5,9 @@ import { buildFromSpec } from '../../../wire/interpreter';
 import { buildResponse } from '../../../wire/response-interpreter';
 import { getResponseSpec } from '../../../wire/response-specs';
 import { OPENAI_RESPONSE_REGISTRY } from './response-registry';
+import { createStreamBuilder } from '../../../wire/stream-interpreter';
+import { getStreamSpec } from '../../../wire/stream-specs';
+import { OPENAI_STREAM_REGISTRY } from './stream-registry';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec } from '../../../wire/chat-specs';
 import { makeRegistry } from '../../wire-transforms';
@@ -13,9 +16,6 @@ import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider'
 import type { NormalizedRequest } from '../../types/request';
 import { emptyUsage, type CompletionResponse, type Usage } from '../../types/response';
 import type { StreamEvent } from '../../types/stream';
-import { parseNativeModeration } from '../../moderation/native';
-import { extractFinishReason } from '../_shared/response-utils';
-import { sseJson } from '../_shared/sse';
 
 export interface OpenAIAdapterConfig {
   apiKey: string;
@@ -247,143 +247,26 @@ export class OpenAIAdapter implements ProviderAdapter {
     }) as unknown as CompletionResponse;
   }
 
-  parseStreamEvent(event: SSEEvent, state?: OpenAIStreamState): StreamEvent[] {
-    const data = sseJson(event);
-
-    // Native moderation arrives on a dedicated chunk (choices empty/absent).
-    if (data.moderation) {
-      const report = parseNativeModeration(data.moderation);
-      const out: StreamEvent[] = [];
-      if (report?.input)
-        out.push({ type: 'moderation', phase: 'input', result: report.input, source: 'native' });
-      if (report?.output)
-        out.push({ type: 'moderation', phase: 'output', result: report.output, source: 'native' });
-      if (out.length) return out;
-    }
-
-    const choices = (data.choices as Array<Record<string, unknown>>) ?? [];
-    const choice = choices[0];
-    if (!choice) {
-      // Usage-only chunk (stream_options: include_usage)
-      if (data.usage)
-        return [{ type: 'usage', usage: this.parseUsage(data.usage as Record<string, unknown>) }];
-      return [];
-    }
-
-    const delta = (choice.delta as Record<string, unknown>) ?? {};
-    const events: StreamEvent[] = [];
-
-    // reasoning_content from OpenAI-compatible providers (DeepSeek, xAI via Chat Completions)
-    if (delta.reasoning_content) {
-      events.push({ type: 'thinking', text: delta.reasoning_content as string });
-    }
-
-    if (delta.content) {
-      events.push({ type: 'text', text: delta.content as string });
-    }
-
-    // gpt-audio streams its reply as `delta.audio`, which was ignored entirely.
-    // A streamed audio turn therefore produced NO text, NO media and — because
-    // these chunks never carry a finish_reason — no terminal event either, so a
-    // caller awaiting `done` waited forever. Measured on a real stream: the
-    // transcript arrives once up front, the bytes in fragments, and a final
-    // `expires_at`-only delta closes it.
-    const audio = delta.audio as
-      | { id?: string; transcript?: string; data?: string; expires_at?: number }
-      | undefined;
-    if (audio) {
-      // Degrades the same way the tool-id map does when no state is threaded.
-      const av = state ? (state.audio ??= { open: false }) : { open: false };
-      if (audio.id && !av.id) av.id = audio.id;
-      if (audio.transcript) events.push({ type: 'text', text: audio.transcript });
-      if (audio.data) {
-        if (!av.open) {
-          av.open = true;
-          // Streamed audio from Chat Completions is ALWAYS pcm16: the API
-          // refuses any other `audio.format` when stream=true. Raw PCM carries
-          // no magic bytes, so it cannot be sniffed as the buffered path does.
-          events.push({ type: 'media_start', mediaType: 'audio', mimeType: 'audio/pcm' });
-        }
-        events.push({ type: 'media_chunk', data: audio.data });
-      }
-      if (audio.expires_at !== undefined && av.open) {
-        av.open = false;
-        events.push({ type: 'media_end', ...(av.id ? { mediaId: av.id } : {}) });
-        // The only terminal signal an audio stream gives.
-        events.push({ type: 'done', finishReason: 'stop' });
-      }
-    }
-
-    // Measured on OpenRouter `:online`: annotations arrive on their own chunks,
-    // one per chunk, BEFORE the text that cites them. `url_citation.content` is
-    // the whole scraped page and is deliberately not mapped to `text`, which
-    // elsewhere means the short passage the source supports.
-    for (const note of (delta.annotations as Array<Record<string, unknown>>) ?? []) {
-      const detail = ((note.url_citation as Record<string, unknown>) ?? note) as Record<
-        string,
-        unknown
-      >;
-      if (note.type === 'url_citation' && detail.url) {
-        events.push({
-          type: 'citation',
-          citation: {
-            url: detail.url as string,
-            ...(detail.title ? { title: detail.title as string } : {}),
-          },
-        });
-      }
-    }
-
-    // Correlate streamed tool-call fragments by `index` (the wire id, when present,
-    // only arrives on the first delta; arg fragments omit it). OpenAI-compatible
-    // backends (some OpenRouter routes, LiteLLM/Bedrock) may omit the id entirely —
-    // synthesize a stable `call_<uuid>` ONCE per index so parallel id-less calls
-    // don't collide into one. Assigned on first sighting and never changed.
-    const toolIdByIndex = state?.toolIdByIndex ?? new Map<number, string>();
-    const toolCalls = (delta.tool_calls as Array<Record<string, unknown>>) ?? [];
-    for (const tc of toolCalls) {
-      const index = (tc.index as number) ?? 0;
-      let id = toolIdByIndex.get(index);
-      if (id === undefined) {
-        id = (tc.id as string) || `call_${crypto.randomUUID()}`;
-        toolIdByIndex.set(index, id);
-      }
-      const fn = tc.function as Record<string, unknown> | undefined;
-      if (fn?.name) {
-        events.push({ type: 'tool_call_start', id, name: fn.name as string });
-      }
-      if (fn?.arguments) {
-        events.push({ type: 'tool_call_delta', id, arguments: fn.arguments as string });
-      }
-    }
-
-    const fr = choice.finish_reason as string | null;
-    if (fr) {
-      events.push({
-        type: 'done',
-        finishReason: extractFinishReason(false, fr, {
-          tool_calls: 'tool_use',
-          length: 'length',
-          content_filter: 'content_filter',
-        }),
-      });
-    }
-
-    if (data.usage) {
-      events.push({ type: 'usage', usage: this.parseUsage(data.usage as Record<string, unknown>) });
-    }
-
-    return events;
-  }
-
   /** Per-stream: correlates streamed tool-call fragments by index and synthesizes
    *  a stable id for backends that omit tool-call ids (see `parseStreamEvent`). */
-  createStreamParser(): (event: SSEEvent) => StreamEvent[] {
-    const state: OpenAIStreamState = { toolIdByIndex: new Map() };
-    return (event) => this.parseStreamEvent(event, state);
+  /** Stateless entry, as the ProviderAdapter interface requires: a fresh spec
+   *  run per event, so nothing correlates across events. */
+  parseStreamEvent(event: SSEEvent): StreamEvent[] {
+    return this.createStreamParser()(event);
   }
 
-  private parseUsage(u: Record<string, unknown> | undefined): Usage {
-    return openaiUsage(u);
+  /** Stateful, and the one callers should use. Tool-call fragments correlate by index because only the first carries an id. */
+  createStreamParser(): (event: SSEEvent) => StreamEvent[] {
+    const parse = createStreamBuilder(getStreamSpec(this.streamSpecId()), this.streamRegistry());
+    return (event) => parse(event) as StreamEvent[];
+  }
+
+  /** Overridden by OpenRouter, which appends its `:online` web-search pair. */
+  protected streamSpecId(): string {
+    return 'openai/completions.stream';
+  }
+
+  protected streamRegistry(): Registry {
+    return OPENAI_STREAM_REGISTRY;
   }
 }
