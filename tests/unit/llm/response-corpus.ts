@@ -209,6 +209,11 @@ export const RESPONSE_SCENARIOS: ResponseScenario[] = [
       'google/generate',
       'google/interactions',
       'xai/responses',
+      // OpenRouter's `:online` search leaves no tool-call item -- url_citation
+      // annotations are the only signal it ran -- so the rule that reads them
+      // was unproven until this target was added. Deleting that rule left the
+      // whole differential green.
+      'openrouter/completions',
     ],
     input: 'Search the web for the current population of Reykjavik, and cite your source.',
     options: { tools: [{ type: 'web_search' }], maxTokens: 512 },
@@ -283,6 +288,11 @@ export const RESPONSE_SCENARIOS: ResponseScenario[] = [
       'google/generate',
       'google/interactions',
       'xai/responses',
+      // OpenRouter's `:online` search leaves no tool-call item -- url_citation
+      // annotations are the only signal it ran -- so the rule that reads them
+      // was unproven until this target was added. Deleting that rule left the
+      // whole differential green.
+      'openrouter/completions',
     ],
     input: 'Search the web for the current population of Reykjavik, and cite your source.',
     options: { tools: [{ type: 'web_search' }], maxTokens: 512 },

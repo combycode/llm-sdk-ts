@@ -18041,5 +18041,260 @@
         "finishReason": "stop"
       }
     ]
+  },
+  "openrouter/completions::builtin.search": {
+    "target": "openrouter/completions",
+    "scenario": "builtin.search",
+    "provider": "openrouter",
+    "model": "openai/gpt-5.4-nano",
+    "streaming": false,
+    "recordedAt": "2026-09-01",
+    "raw": {
+      "id": "gen-1788223885-YyjJuDYUzfKcUkPsxinc",
+      "object": "chat.completion",
+      "created": 1788223885,
+      "model": "openai/gpt-5.4-nano",
+      "provider": "OpenAI",
+      "system_fingerprint": null,
+      "service_tier": "default",
+      "choices": [
+        {
+          "index": 0,
+          "logprobs": null,
+          "finish_reason": "stop",
+          "native_finish_reason": "completed",
+          "message": {
+            "role": "assistant",
+            "content": "The current population of **Reykjavík, Iceland** is **about 138,772 people** (latest available data shown as **2026**). ([citypopulationdata.com](https://www.citypopulationdata.com/city/reykjavik-iceland?utm_source=openai))",
+            "refusal": null,
+            "reasoning": null,
+            "annotations": [
+              {
+                "type": "url_citation",
+                "url_citation": {
+                  "url": "https://www.citypopulationdata.com/city/reykjavik-iceland?utm_source=openai",
+                  "title": "Reykjavík Population 2026 — 138,772 People | Growth & Area",
+                  "start_index": 120,
+                  "end_index": 223
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "usage": {
+        "prompt_tokens": 8558,
+        "completion_tokens": 83,
+        "total_tokens": 8641,
+        "cost": 0.01181535,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01181535,
+          "upstream_inference_prompt_cost": 0.0017116,
+          "upstream_inference_completions_cost": 0.00010375
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 33,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        },
+        "server_tool_use_details": {
+          "web_search_requests": 1
+        }
+      }
+    },
+    "parsed": {
+      "latencyMs": 0,
+      "raw": {
+        "id": "gen-1788223885-YyjJuDYUzfKcUkPsxinc",
+        "object": "chat.completion",
+        "created": 1788223885,
+        "model": "openai/gpt-5.4-nano",
+        "provider": "OpenAI",
+        "system_fingerprint": null,
+        "service_tier": "default",
+        "choices": [
+          {
+            "index": 0,
+            "logprobs": null,
+            "finish_reason": "stop",
+            "native_finish_reason": "completed",
+            "message": {
+              "role": "assistant",
+              "content": "The current population of **Reykjavík, Iceland** is **about 138,772 people** (latest available data shown as **2026**). ([citypopulationdata.com](https://www.citypopulationdata.com/city/reykjavik-iceland?utm_source=openai))",
+              "refusal": null,
+              "reasoning": null,
+              "annotations": [
+                {
+                  "type": "url_citation",
+                  "url_citation": {
+                    "url": "https://www.citypopulationdata.com/city/reykjavik-iceland?utm_source=openai",
+                    "title": "Reykjavík Population 2026 — 138,772 People | Growth & Area",
+                    "start_index": 120,
+                    "end_index": 223
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 8558,
+          "completion_tokens": 83,
+          "total_tokens": 8641,
+          "cost": 0.01181535,
+          "is_byok": false,
+          "prompt_tokens_details": {
+            "cached_tokens": 0,
+            "cache_write_tokens": 0,
+            "audio_tokens": 0,
+            "video_tokens": 0
+          },
+          "cost_details": {
+            "upstream_inference_cost": 0.01181535,
+            "upstream_inference_prompt_cost": 0.0017116,
+            "upstream_inference_completions_cost": 0.00010375
+          },
+          "completion_tokens_details": {
+            "reasoning_tokens": 33,
+            "image_tokens": 0,
+            "audio_tokens": 0
+          },
+          "server_tool_use_details": {
+            "web_search_requests": 1
+          }
+        }
+      },
+      "id": "gen-1788223885-YyjJuDYUzfKcUkPsxinc",
+      "model": "openai/gpt-5.4-nano",
+      "content": [
+        {
+          "type": "text",
+          "text": "The current population of **Reykjavík, Iceland** is **about 138,772 people** (latest available data shown as **2026**). ([citypopulationdata.com](https://www.citypopulationdata.com/city/reykjavik-iceland?utm_source=openai))"
+        }
+      ],
+      "toolCalls": [],
+      "media": [],
+      "thinking": null,
+      "builtinToolCalls": [
+        {
+          "tool": "web_search"
+        }
+      ],
+      "text": "The current population of **Reykjavík, Iceland** is **about 138,772 people** (latest available data shown as **2026**). ([citypopulationdata.com](https://www.citypopulationdata.com/city/reykjavik-iceland?utm_source=openai))",
+      "usage": {
+        "inputTokens": 8558,
+        "outputTokens": 83,
+        "totalTokens": 8641,
+        "cachedTokens": 0,
+        "cacheWriteTokens": 0,
+        "reasoningTokens": 33,
+        "serviceTier": "default",
+        "pricingTier": "standard"
+      },
+      "finishReason": "stop",
+      "citations": [
+        {
+          "url": "https://www.citypopulationdata.com/city/reykjavik-iceland?utm_source=openai",
+          "title": "Reykjavík Population 2026 — 138,772 People | Growth & Area"
+        }
+      ]
+    }
+  },
+  "openrouter/completions::stream.builtin.search": {
+    "target": "openrouter/completions",
+    "scenario": "stream.builtin.search",
+    "provider": "openrouter",
+    "model": "openai/gpt-5.4-nano",
+    "streaming": true,
+    "recordedAt": "2026-09-01",
+    "raw": [
+      {
+        "data": "{\"id\":\"gen-1788223888-FiSq9TjciFBckgmhsNhL\",\"object\":\"chat.completion.chunk\",\"created\":1788223888,\"model\":\"openai/gpt-5.4-nano\",\"provider\":\"OpenAI\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Reykjavik’s current\",\"role\":\"assistant\"},\"finish_reason\":null,\"native_finish_reason\":null}]}"
+      },
+      {
+        "data": "{\"id\":\"gen-1788223888-FiSq9TjciFBckgmhsNhL\",\"object\":\"chat.completion.chunk\",\"created\":1788223888,\"model\":\"openai/gpt-5.4-nano\",\"provider\":\"OpenAI\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\" population is **about 138\",\"role\":\"assistant\"},\"finish_reason\":null,\"native_finish_reason\":null}]}"
+      },
+      {
+        "data": "{\"id\":\"gen-1788223888-FiSq9TjciFBckgmhsNhL\",\"object\":\"chat.completion.chunk\",\"created\":1788223888,\"model\":\"openai/gpt-5.4-nano\",\"provider\":\"OpenAI\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\",772 people (2026)**,\",\"role\":\"assistant\"},\"finish_reason\":null,\"native_finish_reason\":null}]}"
+      },
+      {
+        "data": "{\"id\":\"gen-1788223888-FiSq9TjciFBckgmhsNhL\",\"object\":\"chat.completion.chunk\",\"created\":1788223888,\"model\":\"openai/gpt-5.4-nano\",\"provider\":\"OpenAI\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\" according to CityPopulationData. \",\"role\":\"assistant\"},\"finish_reason\":null,\"native_finish_reason\":null}]}"
+      },
+      {
+        "data": "{\"id\":\"gen-1788223888-FiSq9TjciFBckgmhsNhL\",\"object\":\"chat.completion.chunk\",\"created\":1788223888,\"model\":\"openai/gpt-5.4-nano\",\"provider\":\"OpenAI\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"([citypopulationdata.com](https://www.citypopulationdata.com/city/reykjavik-iceland?utm_source=openai))\",\"role\":\"assistant\"},\"finish_reason\":null,\"native_finish_reason\":null}]}"
+      },
+      {
+        "data": "{\"id\":\"gen-1788223888-FiSq9TjciFBckgmhsNhL\",\"object\":\"chat.completion.chunk\",\"created\":1788223888,\"model\":\"openai/gpt-5.4-nano\",\"provider\":\"OpenAI\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"\",\"role\":\"assistant\",\"annotations\":[{\"type\":\"url_citation\",\"url_citation\":{\"url\":\"https://www.citypopulationdata.com/city/reykjavik-iceland?utm_source=openai\",\"title\":\"Reykjavík Population 2026 — 138,772 People | Growth & Area\",\"start_index\":100,\"end_index\":203}}]},\"finish_reason\":null,\"native_finish_reason\":null}]}"
+      },
+      {
+        "data": "{\"id\":\"gen-1788223888-FiSq9TjciFBckgmhsNhL\",\"object\":\"chat.completion.chunk\",\"created\":1788223888,\"model\":\"openai/gpt-5.4-nano\",\"provider\":\"OpenAI\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"\",\"role\":\"assistant\"},\"finish_reason\":\"stop\",\"native_finish_reason\":\"completed\"}]}"
+      },
+      {
+        "data": "{\"id\":\"gen-1788223888-FiSq9TjciFBckgmhsNhL\",\"object\":\"chat.completion.chunk\",\"created\":1788223888,\"model\":\"openai/gpt-5.4-nano\",\"provider\":\"OpenAI\",\"service_tier\":\"default\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"\",\"role\":\"assistant\"},\"finish_reason\":\"stop\",\"native_finish_reason\":\"completed\"}],\"usage\":{\"prompt_tokens\":8633,\"completion_tokens\":77,\"total_tokens\":8710,\"cost\":0.01115469,\"is_byok\":false,\"prompt_tokens_details\":{\"cached_tokens\":3712,\"cache_write_tokens\":0,\"audio_tokens\":0,\"video_tokens\":0},\"cost_details\":{\"upstream_inference_cost\":0.01115469,\"upstream_inference_prompt_cost\":0.00105844,\"upstream_inference_completions_cost\":0.00009625},\"completion_tokens_details\":{\"reasoning_tokens\":33,\"image_tokens\":0,\"audio_tokens\":0},\"server_tool_use_details\":{\"web_search_requests\":1}}}"
+      }
+    ],
+    "parsed": [
+      {
+        "type": "text",
+        "text": "Reykjavik’s current"
+      },
+      {
+        "type": "text",
+        "text": " population is **about 138"
+      },
+      {
+        "type": "text",
+        "text": ",772 people (2026)**,"
+      },
+      {
+        "type": "text",
+        "text": " according to CityPopulationData. "
+      },
+      {
+        "type": "text",
+        "text": "([citypopulationdata.com](https://www.citypopulationdata.com/city/reykjavik-iceland?utm_source=openai))"
+      },
+      {
+        "type": "citation",
+        "citation": {
+          "url": "https://www.citypopulationdata.com/city/reykjavik-iceland?utm_source=openai",
+          "title": "Reykjavík Population 2026 — 138,772 People | Growth & Area"
+        }
+      },
+      {
+        "type": "builtin_tool_start",
+        "tool": "web_search"
+      },
+      {
+        "type": "builtin_tool_end",
+        "tool": "web_search"
+      },
+      {
+        "type": "done",
+        "finishReason": "stop"
+      },
+      {
+        "type": "done",
+        "finishReason": "stop"
+      },
+      {
+        "type": "usage",
+        "usage": {
+          "inputTokens": 8633,
+          "outputTokens": 77,
+          "totalTokens": 8710,
+          "cachedTokens": 3712,
+          "cacheWriteTokens": 0,
+          "reasoningTokens": 33
+        }
+      }
+    ]
   }
 }

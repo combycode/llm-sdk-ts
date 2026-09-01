@@ -2918,6 +2918,14 @@
         "choices[].index",
         "choices[].logprobs",
         "choices[].message",
+        "choices[].message.annotations",
+        "choices[].message.annotations[]",
+        "choices[].message.annotations[].type",
+        "choices[].message.annotations[].url_citation",
+        "choices[].message.annotations[].url_citation.end_index",
+        "choices[].message.annotations[].url_citation.start_index",
+        "choices[].message.annotations[].url_citation.title",
+        "choices[].message.annotations[].url_citation.url",
         "choices[].message.content",
         "choices[].message.reasoning",
         "choices[].message.refusal",
@@ -2956,6 +2964,8 @@
         "usage.prompt_tokens_details.cache_write_tokens",
         "usage.prompt_tokens_details.cached_tokens",
         "usage.prompt_tokens_details.video_tokens",
+        "usage.server_tool_use_details",
+        "usage.server_tool_use_details.web_search_requests",
         "usage.total_tokens"
       ],
       "expected": [
@@ -3002,6 +3012,9 @@
           "stop",
           "tool_calls"
         ],
+        "choices[].message.annotations[].type": [
+          "url_citation"
+        ],
         "choices[].message.role": [
           "assistant"
         ],
@@ -3019,6 +3032,14 @@
           "choices",
           "choices[]",
           "choices[].delta",
+          "choices[].delta.annotations",
+          "choices[].delta.annotations[]",
+          "choices[].delta.annotations[].type",
+          "choices[].delta.annotations[].url_citation",
+          "choices[].delta.annotations[].url_citation.end_index",
+          "choices[].delta.annotations[].url_citation.start_index",
+          "choices[].delta.annotations[].url_citation.title",
+          "choices[].delta.annotations[].url_citation.url",
           "choices[].delta.content",
           "choices[].delta.role",
           "choices[].delta.tool_calls",
@@ -3056,6 +3077,8 @@
           "usage.prompt_tokens_details.cache_write_tokens",
           "usage.prompt_tokens_details.cached_tokens",
           "usage.prompt_tokens_details.video_tokens",
+          "usage.server_tool_use_details",
+          "usage.server_tool_use_details.web_search_requests",
           "usage.total_tokens"
         ],
         "expected": [
@@ -3074,6 +3097,9 @@
           "provider"
         ],
         "values": {
+          "choices[].delta.annotations[].type": [
+            "url_citation"
+          ],
           "choices[].delta.role": [
             "assistant"
           ],

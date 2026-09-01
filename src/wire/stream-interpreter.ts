@@ -56,14 +56,28 @@ export const EVENTS = 'events';
 export interface EventRule {
   /** Guard on the whole event, before any discrimination. */
   when?: Cond;
-  /** Stop processing this SSE event entirely when `when` holds.
+  /** Handle this rule and then stop: no later rule sees the event.
    *
-   *  Anthropic sends `ping` keep-alives that mean nothing and must not fall
-   *  through to the type switch below. Without this a spec would need a
-   *  `not(ping)` guard repeated on every case. */
+   *  Two shapes need it. Anthropic's `ping` keep-alives mean nothing and must
+   *  not fall through to the type switch, so the rule has no body at all.
+   *  OpenAI's moderation and usage-only chunks emit and THEN return early,
+   *  which is why `stop` fires after the body rather than before it. */
   stop?: boolean;
-  /** Field of the parsed payload that selects the case, e.g. `type`. */
-  match?: string;
+  /** Walk an array inside the payload and apply this rule to EACH element,
+   *  with the element as `ctx.item` so `@`-paths address it.
+   *
+   *  Google sends `candidates[0].content.parts[]` on every chunk, and each part
+   *  is a different kind of thing decided by which key it has -- the same shape
+   *  `collect` handles on the buffered side. Without this the whole loop would
+   *  collapse into one effect, which is code where it could be data. */
+  each?: string;
+  /** Field of the parsed payload (or of the current element, under `each`) that
+   *  selects the case, e.g. `type`.
+   *
+   *  A LIST means "whichever of these is present", first defined wins. Google's
+   *  Interactions stream discriminates on `event_type ?? type`, and writing that
+   *  as two rules would fire both whenever the first was present. */
+  match?: string | string[];
   cases?: Record<string, EmitRule | EmitRule[]>;
   /** Payloads matching no case. Omitted means ignore them, which is right:
    *  providers add event types continuously and an unknown one must not break
@@ -161,11 +175,47 @@ export function createStreamBuilder(
 
     for (const rule of spec.on ?? []) {
       if (rule.when && !evalCond(rule.when, ctx, reg)) continue;
+      const scopes: Ctx[] = [];
+      if (rule.each !== undefined) {
+        const arr = getPath(root, rule.each);
+        // A missing or non-array source is not an error: a chunk with no parts
+        // is a normal chunk.
+        if (Array.isArray(arr)) {
+          for (let i = 0; i < arr.length; i++) {
+            scopes.push({
+              ...ctx,
+              item: { value: arr[i], index: i, isLast: i === arr.length - 1 },
+            });
+          }
+        }
+      } else {
+        scopes.push(ctx);
+      }
+
+      for (const scope of scopes) {
+        const subject = rule.each !== undefined ? scope.item?.value : raw;
+        let key: string | undefined;
+        if (rule.match !== undefined) {
+          for (const path of Array.isArray(rule.match) ? rule.match : [rule.match]) {
+            const v = getPath(subject, path);
+            if (v !== undefined) {
+              key = String(v);
+              break;
+            }
+          }
+          // Every candidate path was absent: no case can match, but `default`
+          // still applies, exactly as it does for an unrecognised value.
+          if (key === undefined) key = String(undefined);
+        }
+        const picked = (key !== undefined ? rule.cases?.[key] : undefined) ?? rule.default;
+        if (!picked) continue;
+        for (const r of Array.isArray(picked) ? picked : [picked]) apply(r, scope);
+      }
+      // AFTER the rule body, so `stop` is "handle this and go no further".
+      // Anthropic's ping needs the plain form (a rule with nothing to do, which
+      // just stops); OpenAI's moderation and usage-only chunks need to emit and
+      // then stop, which is the same early `return` the hand-written parser does.
       if (rule.stop) return out[EVENTS] as unknown[];
-      const key = rule.match !== undefined ? String(getPath(raw, rule.match)) : undefined;
-      const picked = (key !== undefined ? rule.cases?.[key] : undefined) ?? rule.default;
-      if (!picked) continue;
-      for (const r of Array.isArray(picked) ? picked : [picked]) apply(r, ctx);
     }
 
     return out[EVENTS] as unknown[];
