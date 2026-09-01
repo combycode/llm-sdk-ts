@@ -192,15 +192,31 @@ export function resolveResponseSpec(
 }
 
 /** The accumulators, initialised from their declarations. */
-function initOut(spec: ResponseSpec): Record<string, unknown> {
+export function initAccumulators(
+  decls: Record<string, AccumulatorDecl> | undefined,
+): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  for (const [name, decl] of Object.entries(spec.accumulators ?? {})) {
-    out[name] = decl.kind === 'array' ? [] : (decl.default ?? null);
+  for (const [name, decl] of Object.entries(decls ?? {})) {
+    // The default is CLONED, never handed out by reference. A spec's
+    // `default: {}` is one object literal living in the spec, so sharing it
+    // would let every stream mutate the same map: the second conversation
+    // opened holding the first one's pending tool calls. Found by an isolation
+    // test on the streaming driver, but the buffered path had it too -- there it
+    // would have leaked between successive parses instead of between streams.
+    out[name] =
+      decl.kind === 'array'
+        ? []
+        : decl.default === undefined || decl.default === null
+          ? (decl.default ?? null)
+          : structuredClone(decl.default);
   }
   return out;
 }
 
-function emitInto(
+const initOut = (spec: ResponseSpec): Record<string, unknown> =>
+  initAccumulators(spec.accumulators);
+
+export function emitInto(
   out: Record<string, unknown>,
   rule: EmitRule,
   value: unknown,
