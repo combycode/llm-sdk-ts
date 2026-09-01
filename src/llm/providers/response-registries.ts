@@ -11,6 +11,7 @@
  *  missing from here is a failing test, not a runtime surprise.
  */
 import { ANTHROPIC_RESPONSE_REGISTRY } from './anthropic/response-registry';
+import { ANTHROPIC_STREAM_REGISTRY } from './anthropic/stream-registry';
 import { GOOGLE_INTERACTIONS_REGISTRY } from './google/interactions-registry';
 import { GOOGLE_RESPONSE_REGISTRY } from './google/response-registry';
 import { OPENAI_RESPONSE_REGISTRY } from './openai/response-registry';
@@ -21,6 +22,7 @@ import type { Registry } from '../../wire/interpreter';
 
 export const RESPONSE_REGISTRIES: Record<string, Registry> = {
   'anthropic/messages.response': ANTHROPIC_RESPONSE_REGISTRY,
+  'anthropic/messages.stream': ANTHROPIC_STREAM_REGISTRY,
   'google/generate.response': GOOGLE_RESPONSE_REGISTRY,
   'google/interactions.response': GOOGLE_INTERACTIONS_REGISTRY,
   'openai/completions.response': OPENAI_RESPONSE_REGISTRY,

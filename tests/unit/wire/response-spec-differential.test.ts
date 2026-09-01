@@ -17,13 +17,15 @@ import { describe, expect, it } from 'bun:test';
 import golden from '../../fixtures/response-golden.json' with { type: 'json' };
 import { buildResponse } from '../../../src/wire/response-interpreter';
 import { getResponseSpec, RESPONSE_SPECS, responseSpecId } from '../../../src/wire/response-specs';
+import { getStreamSpec, STREAM_SPECS, streamSpecId } from '../../../src/wire/stream-specs';
+import { createStreamBuilder, type StreamInput } from '../../../src/wire/stream-interpreter';
 import { RESPONSE_REGISTRIES } from '../../../src/llm/providers/response-registries';
 import type { ResponseCell } from '../llm/response-corpus';
 
 const corpus = golden as unknown as Record<string, ResponseCell>;
 
-/** Buffered cells whose target has a spec. Streaming is a separate phase: a
- *  stream parser is a state machine across events, not a mapping. */
+/** Buffered cells whose target has a response spec. Streamed cells are checked
+ *  by the second describe below, against their own specs. */
 const covered = Object.entries(corpus).filter(
   ([, c]) => !c.streaming && RESPONSE_SPECS.has(responseSpecId(c.target)),
 );
@@ -55,6 +57,36 @@ describe('response specs reproduce their adapters', () => {
   for (const [id, cell] of covered) {
     it(`${id} builds the same response the adapter does`, () => {
       expect(plain(build(cell))).toEqual(cell.parsed as never);
+    });
+  }
+});
+
+describe('stream specs reproduce their adapters', () => {
+  const streamed = Object.entries(corpus).filter(
+    ([, c]) => c.streaming && STREAM_SPECS.has(streamSpecId(c.target)),
+  );
+
+  const replay = (cell: ResponseCell): unknown[] => {
+    const id = streamSpecId(cell.target);
+    const reg = RESPONSE_REGISTRIES[id];
+    if (!reg) throw new Error(`no stream registry for ${id}`);
+    // A FRESH parser per cell, exactly as a new conversation gets one. Reusing
+    // it would let one cell's pending tool calls answer another cell's result.
+    const parse = createStreamBuilder(getStreamSpec(id), reg);
+    return (cell.raw as StreamInput[]).flatMap((e) => parse(e));
+  };
+
+  it('is actually checking something', () => {
+    expect(streamed.length).toBeGreaterThanOrEqual(5);
+    const unproven = [...STREAM_SPECS.keys()].filter(
+      (id) => !streamed.some(([, c]) => streamSpecId(c.target) === id),
+    );
+    expect(unproven).toEqual([]);
+  });
+
+  for (const [id, cell] of streamed) {
+    it(`${id} emits the same events the adapter does`, () => {
+      expect(plain(replay(cell))).toEqual(cell.parsed as never);
     });
   }
 });

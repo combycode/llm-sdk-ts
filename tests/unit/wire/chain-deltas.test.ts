@@ -122,7 +122,11 @@ describe('every name a spec uses resolves to real code', () => {
     }
     if (!node || typeof node !== 'object') return;
     const o = node as Record<string, unknown>;
-    for (const key of ['pred', '$call', 'fn', 'call']) {
+    // `effect` is the SCALAR form an EmitRule uses; `effects` below is the array
+    // form the request specs use. Only the array was collected, so a typo in any
+    // `"effect": "..."` resolved to nothing and failed at the first response
+    // that happened to take that branch.
+    for (const key of ['pred', '$call', 'fn', 'call', 'effect']) {
       if (typeof o[key] === 'string') out.add(o[key] as string);
     }
     if (Array.isArray(o.effects)) {
@@ -156,7 +160,10 @@ describe('every name a spec uses resolves to real code', () => {
       const names = new Set<string>();
       namesIn(JSON.parse(readFileSync(f, 'utf8')), names);
       referenced += names.size;
-      const resolvesAgainst = rel.startsWith('responses/') ? knownResponse : known;
+      // `responses/` and `stream/` both resolve against the per-provider
+      // registries — a stream spec names the same kind of helper.
+      const resolvesAgainst =
+        rel.startsWith('responses/') || rel.startsWith('stream/') ? knownResponse : known;
       for (const n of names) {
         if (!resolvesAgainst.has(n)) missing.push(`${rel}: "${n}"`);
       }
@@ -166,14 +173,14 @@ describe('every name a spec uses resolves to real code', () => {
     expect(missing).toEqual([]);
   });
 
-  it('every response spec has a registry to resolve its names', () => {
+  it('every response and stream spec has a registry to resolve its names', () => {
     // A response spec with no entry in RESPONSE_REGISTRIES cannot be run at all.
     // Without this, adding the spec file and forgetting the wiring looks fine
     // until the first response arrives.
     const orphans: string[] = [];
     for (const f of specFiles) {
       const rel = relative(SPEC_DIR, f).split(SEP).join('/');
-      if (!rel.startsWith('responses/')) continue;
+      if (!rel.startsWith('responses/') && !rel.startsWith('stream/')) continue;
       const id = (JSON.parse(readFileSync(f, 'utf8')) as { id?: string }).id ?? '(no id)';
       if (!RESPONSE_REGISTRIES[id]) orphans.push(`${rel}: id "${id}"`);
     }
