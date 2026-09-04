@@ -155,34 +155,50 @@ describe('GoogleBatchAdapter.getResults', () => {
 describe('XAIBatchAdapter.getResults', () => {
   const x = new XAIBatchAdapter({ apiKey: 'xai-k' });
 
+  /** A row in the shape xAI ACTUALLY sends. Measured live 2026-09-04: the
+   *  answer is nested and TAGGED, `batch_result.response.<variant>`, where the
+   *  variant names the API that ran it. The flat `{status, response}` these
+   *  tests used to assert is a shape xAI has never sent — which is why every
+   *  answer came back as a failure with no error, and why the corpus cell for
+   *  xAI batch was marked unsupported rather than fixed. */
+  const row = (id: string, answer: unknown, variant = 'chat_get_completion') => ({
+    batch_request_id: id,
+    batch_result: { response: { [variant]: answer } },
+  });
+
   it('prefers batch_request_id, falling back to custom_id then to the empty string', async () => {
     const s = stub({
       results: [
-        { batch_request_id: 'brid-1', custom_id: 'ignored', status: 'succeeded', response: { id: 'r' } },
-        { custom_id: 'cid-2', status: 'succeeded', response: { id: 'r2' } },
-        { status: 'failed', error_message: 'nope' },
+        { ...row('brid-1', { id: 'r' }), custom_id: 'ignored' },
+        { custom_id: 'cid-2', batch_result: { response: { chat_get_completion: { id: 'r2' } } } },
+        { error_message: 'nope' },
       ],
     });
     expect((await x.getResults('b', s.fetch)).map((r) => r.customId)).toEqual(['brid-1', 'cid-2', '']);
   });
 
-  it('success is status "succeeded" OR the mere presence of a response', async () => {
+  it('unwraps the tagged answer, and a row with none is not a success', async () => {
     const s = stub({
-      results: [
-        { custom_id: 'a', status: 'succeeded' },
-        { custom_id: 'b', status: 'in_progress', response: { id: 'r' } },
-        { custom_id: 'c', status: 'failed' },
-      ],
+      results: [row('a', { id: 'r' }), { batch_request_id: 'b' }],
     });
-    expect((await x.getResults('b', s.fetch)).map((r) => r.success)).toEqual([true, true, false]);
+    const got = await x.getResults('b', s.fetch);
+    expect(got.map((r) => r.success)).toEqual([true, false]);
+    expect(got[0].response).toEqual({ id: 'r' });
+  });
+
+  it('takes the variant whatever it is called', async () => {
+    // xAI has already added variants (chat_get_completion, responses,
+    // image_generation, …). An unknown one is still an answer.
+    const s = stub({ results: [row('a', { id: 'r' }, 'something_new')] });
+    expect((await x.getResults('b', s.fetch))[0].response).toEqual({ id: 'r' });
   });
 
   it('error_message wins over a structured error object', async () => {
     const s = stub({
       results: [
-        { custom_id: 'a', status: 'failed', error_message: 'rate limited', error: { code: 429 } },
-        { custom_id: 'b', status: 'failed', error: { code: 500 } },
-        { custom_id: 'c', status: 'failed' },
+        { batch_request_id: 'a', error_message: 'rate limited', error: { code: 429 } },
+        { batch_request_id: 'b', error: { code: 500 } },
+        { batch_request_id: 'c' },
       ],
     });
     expect((await x.getResults('b', s.fetch)).map((r) => r.error)).toEqual([
@@ -193,13 +209,56 @@ describe('XAIBatchAdapter.getResults', () => {
   });
 
   it('accepts the `data` envelope as well as `results`', async () => {
-    const s = stub({ data: [{ custom_id: 'a', status: 'succeeded', response: { id: 'r' } }] });
+    const s = stub({ data: [row('a', { id: 'r' })] });
     expect((await x.getResults('b', s.fetch)).map((r) => r.customId)).toEqual(['a']);
   });
 
   it('an absent list, a null body, or an error status all yield []', async () => {
     expect(await x.getResults('b', stub({}).fetch)).toEqual([]);
     expect(await x.getResults('b', stub(null).fetch)).toEqual([]);
-    expect(await x.getResults('b', stub({ results: [{ custom_id: 'a' }] }, 500).fetch)).toEqual([]);
+    expect(await x.getResults('b', stub({ results: [row('a', { id: 'r' })] }, 500).fetch)).toEqual([]);
+  });
+});
+
+describe('XAIBatchAdapter.getStatus', () => {
+  const x = new XAIBatchAdapter({ apiKey: 'xai-k' });
+
+  it('reads the counts from `state`, which is where xAI puts them', async () => {
+    // Measured live 2026-09-04. Read from the TOP level they are all absent, so
+    // `total` is 0, the job never looks finished, and a polling caller waits on
+    // a batch that completed in seconds. That was the bug.
+    const nested = stub({ state: { num_requests: 5, num_pending: 0, num_success: 5 } });
+    expect(await x.getStatus('b', nested.fetch)).toEqual({
+      id: 'b',
+      status: 'completed',
+      total: 5,
+      completed: 5,
+      failed: 0,
+      pending: 0,
+    });
+
+    const topLevel = stub({ num_requests: 5, num_pending: 0, num_success: 5 });
+    expect((await x.getStatus('b', topLevel.fetch)).total).toBe(0);
+  });
+
+  it('derives the state from the counts', async () => {
+    const running = stub({ state: { num_requests: 5, num_pending: 2, num_success: 3 } });
+    expect((await x.getStatus('b', running.fetch)).status).toBe('processing');
+
+    const failed = stub({ state: { num_requests: 3, num_pending: 0, num_error: 3 } });
+    expect((await x.getStatus('b', failed.fetch)).status).toBe('failed');
+
+    const cancelled = stub({ state: { num_requests: 2, num_pending: 0, num_cancelled: 2 } });
+    expect((await x.getStatus('b', cancelled.fetch)).status).toBe('cancelled');
+  });
+
+  it('totals the counts when the provider does not', async () => {
+    const s = stub({ state: { num_pending: 1, num_success: 2, num_error: 1 } });
+    expect((await x.getStatus('b', s.fetch)).total).toBe(4);
+  });
+
+  it('an error status is a failed batch, not a thrown error', async () => {
+    // A poll is a loop. Raising from it would end a run over one bad minute.
+    expect((await x.getStatus('b', stub({}, 500).fetch)).status).toBe('failed');
   });
 });

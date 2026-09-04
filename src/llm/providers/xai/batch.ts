@@ -18,6 +18,33 @@ export interface XAIBatchAdapterConfig {
   baseURL?: string;
 }
 
+/** One xAI result row, unwrapped.
+ *
+ *  The answer is nested and TAGGED, exactly as the request is: the row carries
+ *  `batch_result.response.<variant>`, where the variant names the API that ran
+ *  it (`chat_get_completion`, `responses`, `image_generation`, …). Reading
+ *  `r.response` — which is what a flat shape suggests, and what this adapter
+ *  did — finds nothing, so every answer came back as a failure with no error to
+ *  explain it. Measured live 2026-09-04.
+ *
+ *  The variant is taken WHATEVER it is called rather than matched against a
+ *  list: xAI has already added variants, and an unknown one is still an answer. */
+function unwrapResult(row: Record<string, unknown>): {
+  response: unknown;
+  error: string | null;
+} {
+  const outer = (row.batch_result as Record<string, unknown>) ?? row;
+  const rawError = row.error_message ?? row.error ?? outer.error ?? null;
+  let response = outer.response as unknown;
+  if (response && typeof response === 'object') {
+    const values = Object.values(response as Record<string, unknown>);
+    if (values.length === 1 && values[0] && typeof values[0] === 'object') response = values[0];
+  }
+  const error =
+    rawError == null ? null : typeof rawError === 'string' ? rawError : JSON.stringify(rawError);
+  return { response: response ?? null, error };
+}
+
 export class XAIBatchAdapter implements BatchProviderAdapter {
   readonly name = 'xai';
   private readonly apiKey: string;
@@ -94,13 +121,21 @@ export class XAIBatchAdapter implements BatchProviderAdapter {
       return { id: batchId, status: 'failed', total: 0, completed: 0, failed: 0, pending: 0 };
 
     const data = (res.body as Record<string, unknown>) ?? {};
-    const numPending = (data.num_pending as number) ?? 0;
-    const numSuccess = (data.num_success as number) ?? 0;
-    const numError = (data.num_error as number) ?? 0;
-    const total = (data.num_requests as number) ?? numPending + numSuccess + numError;
+    // The counts live under `state`, NOT at the top level. Measured live
+    // 2026-09-04: read from the top they are all zero, so `total` is 0, the
+    // batch never looks finished, and a polling caller waits forever on a job
+    // that completed in under a minute.
+    const counts = (data.state as Record<string, number>) ?? {};
+    const numPending = counts.num_pending ?? 0;
+    const numSuccess = counts.num_success ?? 0;
+    const numError = counts.num_error ?? 0;
+    const numCancelled = counts.num_cancelled ?? 0;
+    const total = counts.num_requests ?? numPending + numSuccess + numError + numCancelled;
 
+    const settled: BatchStatus['status'] =
+      numError === total ? 'failed' : numCancelled === total ? 'cancelled' : 'completed';
     const status: BatchStatus['status'] =
-      numPending === 0 && total > 0 ? (numError === total ? 'failed' : 'completed') : 'processing';
+      numPending === 0 && total > 0 ? settled : 'processing';
 
     return {
       id: batchId,
@@ -122,12 +157,15 @@ export class XAIBatchAdapter implements BatchProviderAdapter {
       (data.data as Array<Record<string, unknown>>) ??
       [];
 
-    return results.map((r) => ({
-      customId: (r.batch_request_id as string) ?? (r.custom_id as string) ?? '',
-      success: r.status === 'succeeded' || !!r.response,
-      response: r.response ?? null,
-      error: (r.error_message as string) ?? (r.error ? JSON.stringify(r.error) : null),
-    }));
+    return results.map((r) => {
+      const { response, error } = unwrapResult(r);
+      return {
+        customId: (r.batch_request_id as string) ?? (r.custom_id as string) ?? '',
+        success: !!response && !error,
+        response: response ?? null,
+        error,
+      };
+    });
   }
 
   async cancel(batchId: string, fetch: EngineFetch): Promise<void> {

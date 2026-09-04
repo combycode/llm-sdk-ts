@@ -1,6 +1,6 @@
 {
-  "_doc": "What the embeddings and seamless-media adapters sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed. REFROZEN 2026-08-23 for one deliberate change: the Google API key moved out of the URL and into the x-goog-api-key header. 21 artifacts across the two corpora changed and every one differs ONLY in that way, checked pairwise against the previous fixture; the key set is identical. Verified live first - google files, image, tts and batch all pass with header auth. REFROZEN 2026-08-28 for one deliberate change: xai batch_request is a tagged union whose variant name is the KEY, so {endpoint: 'responses', body} became {responses: body}. Exactly two artifacts changed and both differ only in that way. Measured live - the old form is rejected 422 as an unknown variant, so this corpus had frozen a request xAI has never accepted.",
-  "frozenAtCommit": "dece5b4434d0f22a89748f89b686bdba210ca01c",
+  "_doc": "What the embeddings and seamless-media adapters sent, captured through an injected fetch. Regenerate ONLY with --force and only when the wire genuinely changed. REFROZEN 2026-08-23 for one deliberate change: the Google API key moved out of the URL and into the x-goog-api-key header. 21 artifacts across the two corpora changed and every one differs ONLY in that way, checked pairwise against the previous fixture; the key set is identical. Verified live first - google files, image, tts and batch all pass with header auth. REFROZEN 2026-08-28 for one deliberate change: xai batch_request is a tagged union whose variant name is the KEY, so {endpoint: 'responses', body} became {responses: body}. Exactly two artifacts changed and both differ only in that way. Measured live - the old form is rejected 422 as an unknown variant, so this corpus had frozen a request xAI has never accepted. REFROZEN 2026-09-04 for one deliberate change: the xai batch cancel route is `<id>:cancel`, not `<id>/cancel`. Exactly ONE artifact changed and it differs only in that way. Measured live -- the slash form answers 404 'No handler found on route', DELETE and PATCH on the bare batch answer 405, and the colon form answers 200. This corpus had frozen a route xAI has never served.",
+  "frozenAtCommit": "d358f1ed59aaeebbb104f74914edf0260bb4f191",
   "counts": {
     "cases": 84
   },
@@ -921,7 +921,7 @@
       "model": "batch",
       "provider": "xai",
       "responseType": "json",
-      "url": "https://api.x.ai/v1/batches/batch_abc/cancel"
+      "url": "https://api.x.ai/v1/batches/batch_abc:cancel"
     },
     "files/anthropic/upload": {
       "body": {
