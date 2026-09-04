@@ -4,6 +4,7 @@
 
 import type { ContentPart } from '../../llm/types/messages';
 import type { ContextLayer, RenderOptions } from './types';
+import { byCodepoint } from '../../util/compare';
 
 export interface CollectedEntry {
   layer: ContextLayer;
@@ -22,7 +23,7 @@ export function passesFilter(layer: ContextLayer, opts: RenderOptions): boolean 
 export function sortLayers(a: CollectedEntry, b: CollectedEntry): number {
   if (a.layer.priority !== b.layer.priority) return a.layer.priority - b.layer.priority;
   if (a.layer.updatedAt !== b.layer.updatedAt) return a.layer.updatedAt - b.layer.updatedAt;
-  return a.layer.name.localeCompare(b.layer.name);
+  return byCodepoint(a.layer.name, b.layer.name);
 }
 
 export function layerToText(layer: ContextLayer): string {

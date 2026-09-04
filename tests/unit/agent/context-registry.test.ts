@@ -159,6 +159,27 @@ describe('ContextRegistry — render (single registry)', () => {
     expect(parts).toEqual(['a', 'b', 'c']);
   });
 
+  it('breaks a priority/updatedAt tie the same way on every host', () => {
+    // The name is the last tie-break, and it decides the order of the rendered
+    // system prompt parts. localeCompare would read the host's locale here, so
+    // an agent running in a Swedish locale would compose a different prompt
+    // from identical layers.
+    const r = new ContextRegistry();
+    for (const name of ['ünique', 'user_name', 'Account', 'account']) {
+      r.set(name, name, { priority: 100 });
+      // Pinned rather than left to Date.now(): four sets inside one millisecond
+      // is what makes this a tie, and that is not something a test should be
+      // betting on.
+      r.patch(name, (l) => ({ ...l!, updatedAt: 0 }));
+    }
+    expect(r.render().parts.map((p) => p.name)).toEqual([
+      'Account',
+      'account',
+      'user_name',
+      'ünique',
+    ]);
+  });
+
   it('filters by include / exclude', () => {
     const r = new ContextRegistry();
     r.set('a', 'A');

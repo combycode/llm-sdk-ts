@@ -9,7 +9,9 @@ import type { HistoryEntry } from '../../agent/history-types';
 import type { ContextRegistry } from '../../agent/context-registry/registry';
 import { LAYER_CHAT_FACTS, PRIORITY_CHAT_FACTS } from '../../agent/context-registry/layers';
 import type { ExtractedFact } from './facts';
+import { toFactCategory } from './facts';
 import type { ContextTools, FactInjectionSite, StrategyTools } from './types';
+import { byCodepoint } from '../../util/compare';
 
 export interface StrategyToolsDeps {
   history: ConversationHistory;
@@ -218,7 +220,7 @@ export function renderFactsBlock(
   facts: ExtractedFact[],
   opts: { bareBlock?: boolean } = {},
 ): string {
-  const sorted = [...facts].sort((a, b) => a.key.localeCompare(b.key));
+  const sorted = [...facts].sort((a, b) => byCodepoint(a.key, b.key));
   const lines = [FACTS_HEADER];
   for (const f of sorted) {
     lines.push(`- ${f.key} [${f.category}]: ${f.value}`);
@@ -229,7 +231,7 @@ export function renderFactsBlock(
 }
 
 export function renderFactsLayer(facts: ExtractedFact[]): string {
-  const sorted = [...facts].sort((a, b) => a.key.localeCompare(b.key));
+  const sorted = [...facts].sort((a, b) => byCodepoint(a.key, b.key));
   const lines = [FACTS_HEADER];
   for (const f of sorted) {
     lines.push(`- ${f.key} [${f.category}]: ${f.value}`);
@@ -260,7 +262,7 @@ function parseFactsLayerText(text: string): ExtractedFact[] {
     if (!m) continue;
     facts.push({
       key: m[1],
-      category: m[2] as ExtractedFact['category'],
+      category: toFactCategory(m[2]),
       value: m[3],
     });
   }
@@ -282,7 +284,7 @@ export function parseFactsBlock(system: string): ExtractedFact[] {
     if (!m) continue;
     facts.push({
       key: m[1],
-      category: m[2] as ExtractedFact['category'],
+      category: toFactCategory(m[2]),
       value: m[3],
     });
   }
