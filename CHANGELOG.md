@@ -8,6 +8,24 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **xAI's batch API had never worked, and could not say so.** Three readings were wrong. The
+  status counts live under `state`, not at the top level, so `total` was always 0, the job never
+  reached a terminal state, and a polling caller waited on a batch that had completed in seconds --
+  no error, no output, just a wait. The results are nested and TAGGED,
+  `batch_result.response.<variant>`, so reading `row.response` found nothing and every answer came
+  back a failure with no error to explain it. And the cancel route is `<id>:cancel`; the slash form
+  answers 404 (`DELETE` and `PATCH` on the bare batch answer 405). All three measured live against
+  `api.x.ai` on 2026-09-04, which is also when the corpus cell for xAI batch went from unsupported
+  to green in 17 seconds -- the fastest of the four providers.
+
+- **A hosted tool the provider cannot run was dropped without a word.** Asking OpenRouter for
+  `code_interpreter` put `tools: []` on the wire and said nothing: the catalog is right (OpenRouter
+  routes function tools and its own plugins, not hosted code execution), so omitting it is correct,
+  but the silent loss of a capability the caller asked for is the exact thing this library's
+  tool-constraint mechanic exists to prevent. An unsupported builtin now produces a
+  `request_adjusted` warning naming the tool and what the provider does run, and an empty `tools`
+  array no longer reaches any provider -- it used to be dropped only on the `web_search` path.
+
 - **The local chunker silently dropped space-free text: CJK prose, minified JSON, base64 blobs,
   long URLs.** `snapStep` moved the cursor to the next ASCII space no matter how far away it was,
   and to the END of the document when there was none -- in both cases without emitting a chunk for

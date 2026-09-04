@@ -49,6 +49,22 @@ describe('OpenRouterAdapter (Chat Completions)', () => {
     expect(r.body.tools).toBeUndefined(); // empty tools array dropped
   });
 
+  it('leaves no empty `tools` behind when the only builtin is unsupported', () => {
+    // OpenRouter runs no hosted code execution, so the spec maps nothing and
+    // the array comes out empty. It used to be dropped only on the web_search
+    // path, so `builtinTools: ['code_interpreter']` reached OpenRouter as
+    // `tools: []` -- measured live 2026-09-04, and an empty tools array is
+    // never meaningful to any provider.
+    const a = new OpenRouterAdapter({ apiKey: 'k' });
+    const r = a.buildRequest({
+      ...baseReq,
+      model: 'openai/gpt-4o',
+      tools: [{ type: 'code_interpreter' }],
+    });
+    expect(r.body.tools).toBeUndefined();
+    expect(r.body.model).toBe('openai/gpt-4o'); // and no `:online` was invented
+  });
+
   it('passes through providerOptions.openrouter (e.g. routing prefs)', () => {
     const a = new OpenRouterAdapter({ apiKey: 'k' });
     const r = a.buildRequest({

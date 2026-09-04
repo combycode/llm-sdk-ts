@@ -286,9 +286,15 @@ export function makeRegistry(a: AdapterHandles): Registry {
     /** OpenRouter expresses web search as a `:online` model suffix, not a tool. */
     openrouterOnline: (ctx) => {
       const uses = ctx.req.tools?.some((t: any) => !isFunctionToolValue(t) && t.type === 'web_search');
-      if (!uses) return;
-      const model = ctx.body.model as string | undefined;
-      if (model && !model.endsWith(':online')) ctx.body.model = `${model}:online`;
+      if (uses) {
+        const model = ctx.body.model as string | undefined;
+        if (model && !model.endsWith(':online')) ctx.body.model = `${model}:online`;
+      }
+      // An empty `tools` is never meaningful to any provider, and it is exactly
+      // what a request carrying ONLY an unsupported hosted tool leaves behind.
+      // Dropped unconditionally rather than on the web_search path alone:
+      // `builtinTools: ['code_interpreter']` reached OpenRouter as `tools: []`,
+      // measured live 2026-09-04.
       if (Array.isArray(ctx.body.tools) && ctx.body.tools.length === 0) delete ctx.body.tools;
     },
 
