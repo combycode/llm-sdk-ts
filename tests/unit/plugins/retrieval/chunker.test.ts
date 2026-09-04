@@ -262,6 +262,57 @@ describe('chunkText — the degenerate inputs that hang a naive implementation',
   });
 });
 
+describe('chunkText — the approach to a space-free run', () => {
+  /** Prose, then a base64 image, then prose: the shape of a README. */
+  const readme = `${words(400)} ![logo](data:image/png;base64,${'Q'.repeat(20000)}) ${words(400)}`;
+
+  // The step is derived from the SNAPPED length, so a window snapped back hard —
+  // its only space near its start, which is what the last window before a blob
+  // looks like — leaves a step below the overlap, and `max(step, 1)` becomes 1.
+  // The walk then crawled one word at a time across the whole approach, emitting
+  // a shorter chunk each time: 42 of 58 chunks under half the budget, the
+  // smallest 8 characters. Each one was embedded, and they crowded each other
+  // out of the results, being the same sentence shifted by a word.
+  it('emits no runt chunks where a document turns space-free', () => {
+    const chunks = chunkText(readme, { maxTokens: 512, overlapTokens: 64 });
+    const budget = 512 * 4;
+    const runts = chunks.filter((c, i) => i < chunks.length - 1 && c.text.length < budget / 2);
+
+    expect(runts).toEqual([]);
+    expect(chunks.length).toBeLessThan(20);
+    expect(droppedContent(readme, chunks)).toBe(0);
+  });
+
+  it('cuts a token only where there is no word within a window to cut', () => {
+    // What refusing the snap costs. It is only ever spent inside a run with no
+    // space in it — base64, minified JSON — because a window that ends in prose
+    // always has a space in its second half.
+    const chunks = chunkText(readme, { maxTokens: 512, overlapTokens: 64 });
+    const budget = 512 * 4;
+    for (const c of chunks) {
+      const end = c.offset + c.text.length;
+      if (end === readme.length || readme[end] === ' ' || readme[end - 1] === ' ') continue;
+      // A mid-token cut: the half-window behind it must hold no space at all,
+      // or a word really was split.
+      const behind = readme.slice(Math.max(0, end - budget / 2), end);
+      expect(behind).not.toContain(' ');
+    }
+  });
+
+  it('leaves ordinary prose alone', () => {
+    // The refusal must never fire on a document made of words: every window
+    // ending in prose has a space well past the halfway mark.
+    const text = words(6000);
+    const chunks = chunkText(text, { maxTokens: 512, overlapTokens: 64 });
+
+    expect(droppedContent(text, chunks)).toBe(0);
+    for (const c of chunks) {
+      const next = c.offset + c.text.length;
+      expect(next === text.length || text[next] === ' ').toBe(true);
+    }
+  });
+});
+
 describe('chunkText — defaults', () => {
   it('exports the documented default window and overlap', () => {
     expect(DEFAULT_CHUNK_MAX_TOKENS).toBe(512);

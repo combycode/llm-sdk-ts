@@ -19,6 +19,18 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
   against real OpenAI embeddings, with the answer inside a minified payload: no hit before, the
   right hit after, for the payload at the end of the document and in the middle of it.
 
+- **A document that mixed prose with a space-free run was chunked into dozens of runts.** The
+  step is derived from the SNAPPED window length, so a window trimmed back hard -- its only space
+  near its start, which is exactly what the last window before a base64 blob or a minified payload
+  looks like -- left a step below the overlap, and the `max(step, 1)` floor became the actual step.
+  The walk then crawled one word at a time across the whole approach to the blob: on a README with
+  one embedded image, 42 of 58 chunks came out under half the budget and the smallest was 8
+  characters. Every one was embedded at the caller's expense, and because they are the same
+  sentence shifted by a word they crowded each other out of the results. A boundary is now taken
+  only when it leaves at least half the window; below that the window is used whole. The cut that
+  buys can only ever land inside a run with no space in it for 1024 characters, where there is no
+  word to split. Same README: 16 chunks, no runts. Prose is byte-for-byte unaffected.
+
 - **The tail of every locally-indexed document was embedded several times over.** Once a window
   reached the end of the text the walk kept going, re-emitting the same tail as a run of
   ever-shorter chunks that all ended in the same place. Not lost text -- duplicate index entries,

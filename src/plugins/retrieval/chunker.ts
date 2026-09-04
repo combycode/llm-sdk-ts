@@ -17,6 +17,18 @@ export const DEFAULT_CHUNK_OVERLAP_TOKENS = 64;
 /** Characters-per-token heuristic used when no external counter is injected. */
 const CHARS_PER_TOKEN_HEURISTIC = 4;
 
+/** How much of a window a snap-back must leave behind for it to be worth taking.
+ *
+ *  Not a matter of taste: a window whose last space sits in its first half has no
+ *  space at all in its second half -- 1024 characters at the defaults -- so there
+ *  is no word there to split. Refusing the snap costs one boundary inside a
+ *  base64 blob or a minified payload, where a token means nothing; taking it
+ *  costs a run of runt chunks, because the step is derived from the snapped
+ *  length and collapses to its floor of 1 when that length falls below the
+ *  overlap. Measured on a README with one embedded image: 58 chunks, 42 of them
+ *  runts, the smallest 8 characters. */
+const MIN_SNAP_FRACTION = 0.5;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface ChunkOptions {
@@ -95,11 +107,12 @@ function defaultEstimate(text: string): number {
   return Math.ceil(text.length / CHARS_PER_TOKEN_HEURISTIC);
 }
 
-/** Trim `raw` to the last whitespace boundary when it is not the final chunk. */
+/** Trim `raw` to the last whitespace boundary when it is not the final chunk and
+ *  the boundary leaves a window worth emitting. */
 function snapToWordBoundary(raw: string, hasMore: boolean): string {
   if (!hasMore) return raw;
   const lastSpace = raw.lastIndexOf(' ');
-  if (lastSpace > 0) return raw.slice(0, lastSpace);
+  if (lastSpace > 0 && lastSpace >= raw.length * MIN_SNAP_FRACTION) return raw.slice(0, lastSpace);
   return raw;
 }
 
