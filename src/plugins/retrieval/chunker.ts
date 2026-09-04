@@ -71,9 +71,18 @@ export function chunkText(
     const snapped = snapToWordBoundary(raw, end < text.length);
     chunks.push({ text: snapped, offset, index });
 
-    // Advance by (window - overlap), snapping to word boundary
+    // This window reached the end, so it already holds every character that is
+    // left. Walking on would re-emit the same tail as a run of ever-shorter
+    // chunks -- duplicate index entries, each one paid for at the embedding
+    // endpoint and each one competing with the others for a result slot.
+    if (end >= text.length) break;
+
+    // Advance by (window - overlap), snapping to word boundary. The chunk just
+    // emitted reaches `offset + snapped.length`, and the walk may consume the
+    // single space that separates it from the next window -- so that, plus one,
+    // is the furthest the cursor may legally land.
     const step = Math.max(snapped.length - overlapChars, 1);
-    offset += snapStep(text, offset, step);
+    offset += snapStep(text, offset, step, snapped.length + 1);
     index++;
   }
 
@@ -95,12 +104,24 @@ function snapToWordBoundary(raw: string, hasMore: boolean): string {
 }
 
 /** Find the number of characters to advance from `offset` by approx `step` chars,
- *  landing on a word boundary. */
-function snapStep(text: string, offset: number, step: number): number {
+ *  landing on a word boundary.
+ *
+ *  `limit` is how far the cursor may legally travel: past it, the next window
+ *  would start beyond the end of the chunk just emitted and the text in between
+ *  would belong to no chunk at all. */
+function snapStep(text: string, offset: number, step: number, limit: number): number {
   const target = offset + step;
   if (target >= text.length) return text.length - offset;
-  // Look for the next space at/after the target
+  // Look for the next space at/after the target -- but only accept it while it
+  // is close enough. The next space after a base64 blob or a minified payload
+  // can be thousands of characters away, and snapping to it steps over every
+  // one of them: they reach no chunk and cannot be retrieved at any query.
   const nextSpace = text.indexOf(' ', target);
-  if (nextSpace >= 0) return nextSpace - offset + 1;
-  return text.length - offset;
+  if (nextSpace >= 0 && nextSpace - offset + 1 <= limit) return nextSpace - offset + 1;
+  // No usable boundary: advance by the STEP, never to the end of the text.
+  // Jumping to the end here looks like termination and is really data loss --
+  // text carrying no ASCII space after the first window (CJK prose, minified
+  // JSON, base64, one long URL) would be indexed as that first window alone,
+  // with the remainder silently dropped and unretrievable.
+  return step;
 }

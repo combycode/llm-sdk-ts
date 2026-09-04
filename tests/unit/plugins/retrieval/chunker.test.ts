@@ -8,9 +8,10 @@
  *    2. COVERAGE. Every character of the source should appear in at least one
  *       chunk, or the missing text simply cannot be retrieved.
  *
- *  Two cases where the current implementation does NOT hold property 2 are
- *  pinned below under `DEFECT:`. They are recorded as behaviour so a port does
- *  not copy them by accident, and so a fix flips a clearly-labelled test.
+ *  Property 2 used to hold only for text that HAS spaces in it, and the tail of
+ *  every document was emitted several times over. Both were pinned here as
+ *  `DEFECT:` and both are now fixed; the tests that pinned them are still here,
+ *  inverted, under `Regression:`.
  */
 
 import { describe, expect, it } from 'bun:test';
@@ -174,53 +175,90 @@ describe('chunkText — the degenerate inputs that hang a naive implementation',
     }
   });
 
-  // KNOWN DEFECT (pinned as current behaviour, not endorsed).
-  // `snapStep` jumps the cursor to the END of the text when there is no space
-  // at or after its target, WITHOUT emitting a chunk for the span it skips. A
-  // document with no ASCII space after the first window is therefore silently
-  // truncated to that first window: 87% of the text below is never indexed,
-  // and the only production symptom is a document that cannot be retrieved
-  // past its first page. Affects CJK text, minified JSON, base64 and long URLs.
-  it('DEFECT: space-free text is truncated to the first window', () => {
+  // Regression. `snapStep` used to jump the cursor to the END of the text when
+  // there was no space at or after its target, WITHOUT emitting a chunk for the
+  // span it skipped, so a document with no ASCII space after the first window
+  // was silently truncated to that window -- 87% of the text below went
+  // unindexed, and the only production symptom was a document that could not be
+  // retrieved past its first page.
+  it('Regression: space-free text is windowed to the end, not truncated', () => {
     const text = 'x'.repeat(3000);
     const chunks = chunkText(text, { maxTokens: 100, overlapTokens: 10 });
 
-    expect(chunks).toHaveLength(1);
+    expect(chunks).toHaveLength(9);
     expect(chunks[0].text).toHaveLength(400); // 100 tokens at 4 chars each
-    expect(droppedContent(text, chunks)).toBe(2600);
+    expect(droppedContent(text, chunks)).toBe(0);
+    const last = chunks[chunks.length - 1];
+    expect(last.offset + last.text.length).toBe(text.length);
   });
 
-  it('DEFECT: the same truncation hits CJK text, which carries no ASCII spaces', () => {
+  it('Regression: CJK text, which carries no ASCII spaces, is covered too', () => {
     const text = '漢'.repeat(3000);
     const chunks = chunkText(text, { maxTokens: 100, overlapTokens: 10 });
-    expect(chunks).toHaveLength(1);
-    expect(droppedContent(text, chunks)).toBe(2600);
+    expect(chunks).toHaveLength(9);
+    expect(droppedContent(text, chunks)).toBe(0);
   });
 
-  it('a leading space is not itself a usable boundary, so the same truncation applies', () => {
+  it('Regression: a document that turns space-free part way through keeps its tail', () => {
+    // The realistic shape of that truncation: prose, then an embedded base64
+    // image or a minified payload. Everything past the last space was dropped.
+    const text = `${words(50)} ${'q'.repeat(2000)}`;
+    const chunks = chunkText(text, { maxTokens: 100, overlapTokens: 10 });
+
+    expect(droppedContent(text, chunks)).toBe(0);
+    expect(chunks.some((c) => c.text.includes('q'.repeat(400)))).toBe(true);
+  });
+
+  // Regression, and the harder half of the same defect: when the space-free run
+  // is in the MIDDLE, `text.indexOf(' ', target)` still finds a space -- the one
+  // on the far side of the blob, thousands of characters away -- and snapping to
+  // it steps over the whole blob. A README with one embedded base64 image lost
+  // 17983 of its 26991 characters this way, and the first fix, which only
+  // covered "no further space at all", did not touch this case.
+  it('Regression: a space-free run in the MIDDLE of a document is not stepped over', () => {
+    const blob = 'Q'.repeat(20000);
+    const text = `${words(400)} ${blob} ${words(400)}`;
+    const chunks = chunkText(text, { maxTokens: 512, overlapTokens: 64 });
+
+    expect(droppedContent(text, chunks)).toBe(0);
+    // Not merely covered -- windowed, so the blob is searchable in pieces.
+    const inside = chunks.filter((c) => c.text.startsWith('Q') && c.text.length > 1000);
+    expect(inside.length).toBeGreaterThan(5);
+  });
+
+  it('the cursor never lands beyond the chunk it just emitted', () => {
+    // The invariant that makes coverage hold, stated directly: a gap between
+    // one chunk's end and the next chunk's start is text in no chunk at all.
+    // One separator space is legitimately consumed, so +1 is the limit.
+    const text = `${words(300)} ${'Z'.repeat(9000)} ${words(300)}`;
+    const chunks = chunkText(text, { maxTokens: 256, overlapTokens: 32 });
+    for (let i = 1; i < chunks.length; i++) {
+      const prevEnd = chunks[i - 1].offset + chunks[i - 1].text.length;
+      expect(chunks[i].offset).toBeLessThanOrEqual(prevEnd + 1);
+    }
+  });
+
+  it('a leading space is not itself a usable boundary, and the text is still covered', () => {
     const text = ` ${'y'.repeat(3000)}`;
     const chunks = chunkText(text, { maxTokens: 100, overlapTokens: 10 });
     // No empty chunk is produced: snapToWordBoundary requires lastSpace > 0.
     expect(chunks.every((c) => c.text.length > 0)).toBe(true);
-    expect(chunks).toHaveLength(1);
     expect(chunks[0].text).toHaveLength(400);
+    expect(droppedContent(text, chunks)).toBe(0);
   });
 
-  // KNOWN DEFECT (pinned as current behaviour, not endorsed).
-  // Once a window reaches the end of the text, `hasMore` is false, so the chunk
-  // is the whole remainder and the step shrinks to one word at a time. The tail
-  // is re-emitted as a run of ever-shorter chunks that all end at the same
-  // place: redundant index entries rather than lost text.
-  it('DEFECT: the tail is re-emitted as a run of shrinking duplicate chunks', () => {
+  // Regression. Once a window reached the end of the text, `hasMore` was false,
+  // so the chunk was the whole remainder and the step shrank to one word at a
+  // time: the tail came out as a run of ever-shorter chunks all ending in the
+  // same place. Not lost text -- duplicate index entries, each one embedded at
+  // the caller's expense and each one competing for a result slot.
+  it('Regression: the tail is emitted once, by the last chunk only', () => {
     const text = words(400);
     const chunks = chunkText(text, { maxTokens: 50, overlapTokens: 10 });
 
     const endingAtEnd = chunks.filter((c) => c.offset + c.text.length === text.length);
-    expect(endingAtEnd.length).toBeGreaterThan(1);
-    for (let i = 1; i < endingAtEnd.length; i++) {
-      expect(endingAtEnd[i].text.length).toBeLessThan(endingAtEnd[i - 1].text.length);
-      expect(endingAtEnd[i - 1].text.endsWith(endingAtEnd[i].text)).toBe(true);
-    }
+    expect(endingAtEnd).toHaveLength(1);
+    expect(endingAtEnd[0]).toBe(chunks[chunks.length - 1]);
   });
 });
 

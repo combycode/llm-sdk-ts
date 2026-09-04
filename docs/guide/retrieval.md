@@ -345,7 +345,7 @@ interface RetrievalHit {
 
 ### Chunking defaults
 
-The local backend's built-in chunker splits on whitespace boundaries. Named constants:
+The local backend's built-in chunker splits on whitespace boundaries where the text has any, and on the character window where it does not -- so CJK prose, minified JSON and base64 blobs are windowed to the end rather than truncated at the first one. Named constants:
 
 | Constant | Value | Meaning |
 |---|---|---|

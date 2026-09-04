@@ -8,6 +8,23 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **The local chunker silently dropped space-free text: CJK prose, minified JSON, base64 blobs,
+  long URLs.** `snapStep` moved the cursor to the next ASCII space no matter how far away it was,
+  and to the END of the document when there was none -- in both cases without emitting a chunk for
+  the span it stepped over. So a document with a base64 image in the middle lost the image and
+  everything the walk skipped with it (measured: 17983 of 26991 characters), and one that turns
+  space-free and stays that way was indexed as its first window alone. The text was never embedded
+  and no query could retrieve it. A space is now a boundary only while the next window would still
+  start inside the chunk just emitted; past that the walk advances by the step. Verified live
+  against real OpenAI embeddings, with the answer inside a minified payload: no hit before, the
+  right hit after, for the payload at the end of the document and in the middle of it.
+
+- **The tail of every locally-indexed document was embedded several times over.** Once a window
+  reached the end of the text the walk kept going, re-emitting the same tail as a run of
+  ever-shorter chunks that all ended in the same place. Not lost text -- duplicate index entries,
+  each one paid for at the embedding endpoint and each one competing with the others for a result
+  slot. The walk now stops on the window that reaches the end.
+
 - **Every OpenAI model was routed to the Responses API, whatever the model.** `resolveApi` chose by
   PROVIDER alone, while the catalog had carried `preferredApi` per model from the start and nothing
   read it. Six catalogued models cannot be called on Responses at all: `gpt-audio`, `gpt-audio-1.5`,
