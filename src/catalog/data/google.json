@@ -48,7 +48,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": true
+      "summaryAvailable": true,
+      "canDisable": false
     },
     "type": "chat",
     "inputModalities": [
@@ -128,7 +129,8 @@
       ],
       "effortMeaning": "thinking_depth",
       "encryptedContent": false,
-      "summaryAvailable": true
+      "summaryAvailable": true,
+      "canDisable": false
     },
     "type": "chat",
     "inputModalities": [
@@ -184,7 +186,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": false
     },
     "type": "chat",
     "inputModalities": [
@@ -261,7 +264,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": true
+      "summaryAvailable": true,
+      "canDisable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -345,7 +349,8 @@
       ],
       "effortMeaning": "thinking_depth",
       "encryptedContent": false,
-      "summaryAvailable": true
+      "summaryAvailable": true,
+      "canDisable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -418,7 +423,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -495,7 +501,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -573,7 +580,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -746,7 +754,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": false
     },
     "type": "image",
     "inputModalities": [
@@ -1559,7 +1568,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -1613,7 +1623,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -2651,7 +2662,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": true
     },
     "type": "image",
     "inputModalities": [
@@ -2798,7 +2810,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -2872,7 +2885,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": true
     },
     "type": "chat",
     "inputModalities": [
@@ -2945,7 +2959,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": false
     },
     "type": "chat",
     "inputModalities": [
@@ -3009,7 +3024,8 @@
       "automatic": false,
       "effortControl": false,
       "encryptedContent": false,
-      "summaryAvailable": false
+      "summaryAvailable": false,
+      "canDisable": true
     },
     "type": "robotics",
     "inputModalities": [

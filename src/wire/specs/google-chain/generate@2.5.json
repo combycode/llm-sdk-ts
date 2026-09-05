@@ -6,7 +6,12 @@
   "toolConstraints": [
     {
       "tool": "code_interpreter",
-      "conflictsWith": { "hasPartType": ["document", "video"] },
+      "conflictsWith": {
+        "hasPartType": [
+          "document",
+          "video"
+        ]
+      },
       "why": "google: code execution cannot run alongside a PDF or video attachment, so the request was sent without it"
     }
   ],
@@ -268,6 +273,20 @@
           "$key": "thinking.effort",
           "$default": 16384
         }
+      }
+    },
+    {
+      "name": "thinking.off.budget",
+      "_note": "0 is the SDK's documented DISABLED. Measured: gemini-2.5-flash and -flash-lite return thoughtsTokenCount=0; 2.5-pro refuses (the catalog marks it canDisable:false, and the client drops the request before it is built).",
+      "when": {
+        "eq": [
+          "thinking.mode",
+          "off"
+        ]
+      },
+      "to": "generationConfig.thinkingConfig",
+      "template": {
+        "thinkingBudget": 0
       }
     },
     {

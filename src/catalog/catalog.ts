@@ -88,6 +88,18 @@ export interface ModelReasoning {
   effortValues?: string[];
   encryptedContent: boolean;
   summaryAvailable: boolean;
+  /** Whether `thinking: { mode: 'off' }` can actually be honoured.
+   *
+   *  Deliberately optional, and deliberately not defaulted. Absent means NOBODY
+   *  HAS ESTABLISHED IT for this model, which is not the same as `true`: only an
+   *  explicit `false` makes the client drop the request and warn, so a provider
+   *  nobody has measured keeps behaving exactly as it did.
+   *
+   *  It exists because some models refuse: Gemini 2.5 Pro answers `Budget 0 is
+   *  invalid. This model only works in thinking mode.`, and 3.7 Flash accepts a
+   *  zero budget and reasons anyway. Sending the disable field to those buys a
+   *  400 or a silent lie; saying so up front costs a warning. */
+  canDisable?: boolean;
 }
 
 export interface TokenizerInfo {

@@ -267,6 +267,25 @@ export class LLMClient {
     }
   }
 
+  /** Drop `thinking: { mode: 'off' }` where the model cannot honour it, and say
+   *  so. Returns the note, or null when there was nothing to adjust.
+   *
+   *  Dropped rather than sent: the wire spec turns `off` into a real field
+   *  (`thinkingBudget: 0` on 2.5, `thinkingLevel: MINIMAL` on 3.x), and the
+   *  models flagged here answer 400 to it. The caller gets a request that works
+   *  plus a warning that their instruction could not be followed, instead of a
+   *  failed call — or, worse, the silence this replaced, where `off` was
+   *  accepted, nothing was emitted, and the model reasoned anyway. */
+  private limitThinking(normalized: NormalizedRequest): string | null {
+    if (normalized.thinking?.mode !== 'off') return null;
+    if (this.catalog.get(this.provider, this.model)?.reasoning?.canDisable !== false) return null;
+    delete (normalized as { thinking?: unknown }).thinking;
+    return (
+      `${this.provider}/${this.model} cannot switch reasoning off — ` +
+      `thinking:{mode:'off'} was dropped and the model will reason as it defaults to.`
+    );
+  }
+
   async complete(
     input: string | ContentPart[] | Message[],
     options: ExecuteOptions = {},
@@ -351,7 +370,9 @@ export class LLMClient {
       normalized.messages = decision.messages;
     }
 
+    const thinkingNote = this.limitThinking(normalized);
     const providerReq = this.adapter.buildRequest(normalized);
+    if (thinkingNote) (providerReq.notes ??= []).push(thinkingNote);
     this.reportBuildNotes(providerReq, ctx);
     const url = this.adapter.baseURL() + (providerReq.path ?? this.adapter.completionPath());
 
@@ -559,7 +580,9 @@ export class LLMClient {
     normalized.messages = resolveCtx.messages;
     normalized.system = resolveCtx.system;
 
+    const thinkingNote = this.limitThinking(normalized);
     const providerReq = this.adapter.buildRequest(normalized);
+    if (thinkingNote) (providerReq.notes ??= []).push(thinkingNote);
     this.reportBuildNotes(providerReq, ctx);
     this.adapter.enableStreaming?.(providerReq, normalized);
     const url = this.adapter.baseURL() + (providerReq.path ?? this.adapter.completionPath());

@@ -134,6 +134,23 @@ const INTENTIONAL: Array<{ match: RegExp; reason: string }> = [
       'inherits the openai-completions spec, so every model routed through it now ' +
       'forwards the audio request the caller actually made instead of discarding it.',
   },
+  {
+    match: /^google\/.+ thinking\.off \[/,
+    reason:
+      '`thinking: { mode: off }` used to send NOTHING. The thinkingConfig block was ' +
+      'gated on `mode !== off`, so the option type-checked, produced no field, and ' +
+      'Google applied its own default — which is to think. Measured 2026-09-05 before ' +
+      'the fix: 387 thought tokens on gemini-2.5-flash and 684 on 2.5-pro for requests ' +
+      'that had asked for none. The wire form differs by family and both halves were ' +
+      'measured against the live v1beta API: 2.5 takes `thinkingBudget: 0` (the value ' +
+      "the official SDK documents as DISABLED) and rejects thinkingLevel outright; 3.x " +
+      'takes `thinkingLevel: MINIMAL`, because 3.5-flash-lite, 3.6-flash and the ' +
+      'gemma-4 models answer 400 to a budget. Models that cannot disable at all — ' +
+      '2.5-pro, 3.1-pro, 3.7-flash — are marked `reasoning.canDisable: false` in the ' +
+      'catalog and the client drops the request with a warning before it is built, ' +
+      'which is why the pro rows in this corpus show a field their live requests never ' +
+      'carry: the corpus builds bodies through the adapter, below that guard.',
+  },
 ];
 
 /** Which waivers actually fired, so an obsolete one cannot go unnoticed. */

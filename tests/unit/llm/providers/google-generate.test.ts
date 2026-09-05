@@ -266,6 +266,48 @@ describe('GoogleAdapter — thinking, structured, providerOptions', () => {
     });
   });
 
+  it('gemini-2.5 → mode:off sends thinkingBudget 0, not nothing at all', () => {
+    // It used to send nothing: the block was gated on `mode !== off`, so `off`
+    // type-checked, produced no field, and Google applied its own default.
+    // Measured before the fix: 387 thought tokens on 2.5-flash for a request
+    // that asked for none. 0 is the value the official SDK documents as
+    // DISABLED, and 2.5-flash returns thoughtsTokenCount=0 for it.
+    const r = a.buildRequest({
+      ...baseReq,
+      model: 'gemini-2.5-flash',
+      thinking: { mode: 'off' },
+    });
+    expect((r.body.generationConfig as Record<string, unknown>).thinkingConfig).toEqual({
+      thinkingBudget: 0,
+    });
+  });
+
+  it('gemini-3.x → mode:off sends thinkingLevel MINIMAL, because a budget is refused', () => {
+    // Measured: 3.5-flash-lite, 3.6-flash and the gemma-4 models answer 400 to
+    // thinkingBudget, while MINIMAL returns thoughtsTokenCount=0 on every 3.x
+    // model that can disable thinking at all.
+    const r = a.buildRequest({
+      ...baseReq,
+      model: 'gemini-3.5-flash',
+      thinking: { mode: 'off' },
+    });
+    expect((r.body.generationConfig as Record<string, unknown>).thinkingConfig).toEqual({
+      thinkingLevel: 'MINIMAL',
+    });
+  });
+
+  it('mode:off never emits an effort alongside the disable', () => {
+    // Both would be sent otherwise: the effort block is gated on `!== off`, and
+    // a request carrying both a budget and a level is rejected outright.
+    for (const model of ['gemini-2.5-flash', 'gemini-3.5-flash']) {
+      const cfg = (
+        a.buildRequest({ ...baseReq, model, thinking: { mode: 'off', effort: 'high' } as never })
+          .body.generationConfig as Record<string, unknown>
+      ).thinkingConfig as Record<string, unknown>;
+      expect(Object.keys(cfg).length).toBe(1);
+    }
+  });
+
   it('gemini-3.x → thinkingLevel', () => {
     const r = a.buildRequest({
       ...baseReq,
@@ -289,9 +331,16 @@ describe('GoogleAdapter — thinking, structured, providerOptions', () => {
     });
   });
 
-  it('thinking off omits thinkingConfig', () => {
+  it('thinking off is SENT, not omitted — omitting it left the model thinking', () => {
+    // This test used to assert the opposite, and the opposite was the bug: an
+    // omitted thinkingConfig means "use your default", and Google's default is
+    // to think. `baseReq` is gemini-2.5-pro, which cannot disable at all, so
+    // the client drops the request and warns before it ever gets built; the
+    // adapter's job is only to emit the field it was given.
     const r = a.buildRequest({ ...baseReq, thinking: { mode: 'off' } });
-    expect((r.body.generationConfig as Record<string, unknown>).thinkingConfig).toBeUndefined();
+    expect((r.body.generationConfig as Record<string, unknown>).thinkingConfig).toEqual({
+      thinkingBudget: 0,
+    });
   });
 
   it('structured output → responseMimeType + responseJsonSchema', () => {
