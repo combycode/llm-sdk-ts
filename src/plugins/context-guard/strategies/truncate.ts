@@ -44,7 +44,12 @@ export class TruncateStrategy implements ContextStrategy {
 
     ctx.tools.dropOldest(dropCount);
 
-    const percentUsed = ctx.window && ctx.window > 0 ? ctx.current / ctx.window : 0;
+    // Re-measured, not read off `ctx.current`: that still holds the count
+    // that TRIGGERED this compaction, so judging by it declines work that
+    // succeeded. A truncation taking a conversation from 100% of the window
+    // to 20% was refused for being "still above 95%" — after it had already
+    // destroyed the messages, costing the caller the history AND the call.
+    const percentUsed = ctx.window && ctx.window > 0 ? ctx.tools.measureCurrent() / ctx.window : 0;
     if (percentUsed >= this.declineCeiling) {
       return {
         action: 'decline',

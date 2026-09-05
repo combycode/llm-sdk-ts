@@ -121,7 +121,9 @@ export class AnchoredStrategy implements ContextStrategy {
       content: `${ANCHOR_MARKER}\n${merged}`,
     });
 
-    const percentUsed = ctx.window && ctx.window > 0 ? ctx.current / ctx.window : 0;
+    // On what the merge LEFT, not on the count that triggered it — see the
+    // same line in truncate.ts.
+    const percentUsed = ctx.window && ctx.window > 0 ? ctx.tools.measureCurrent() / ctx.window : 0;
     if (percentUsed >= this.declineCeiling) {
       return {
         action: 'decline',

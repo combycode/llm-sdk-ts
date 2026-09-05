@@ -66,6 +66,7 @@ function spyOnInjectFacts(
     },
     segment: (o) => impl.segment(o),
     measure: (i) => impl.measure(i),
+    measureCurrent: () => impl.measureCurrent(),
     extractFacts: (e, c) => impl.extractFacts(e, c),
     summarize: (e, n, f) => impl.summarize(e, n, f),
     replaceRange: (a, b, r) => impl.replaceRange(a, b, r),
@@ -583,6 +584,7 @@ describe('LayeredStrategy — declining', () => {
       historyLength: 5,
       segment: () => ({ recent: [], middle: [], old: [] }),
       measure: () => 0,
+      measureCurrent: () => 0,
       extractFacts: async () => [],
       summarize: async () => '',
       replaceRange: () => {

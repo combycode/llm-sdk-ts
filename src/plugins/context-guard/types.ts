@@ -104,6 +104,11 @@ export interface StrategyTools {
     old: HistoryEntry[];
   };
   measure(items: readonly HistoryEntry[] | Message[]): number;
+  /** Tokens in the request AS IT STANDS, after whatever this strategy has
+   *  already done to it. `ReactContext.current` is the count that TRIGGERED
+   *  the compaction and no mutation updates it, so it is the wrong number to
+   *  judge the compaction by. */
+  measureCurrent(): number;
   extractFacts(entries: readonly HistoryEntry[], categories?: string[]): Promise<ExtractedFact[]>;
   summarize(entries: readonly HistoryEntry[], maxLength: number, focus?: string): Promise<string>;
   replaceRange(from: number, to: number, replacement: Message): void;

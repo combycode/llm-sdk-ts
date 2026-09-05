@@ -69,6 +69,7 @@ function makeTools(entries: HistoryEntry[], summary: string) {
       old: [],
     }),
     measure: () => 0,
+    measureCurrent: () => 0,
     extractFacts: async () => [],
     summarize: async () => summary,
     replaceRange: (from, to, replacement) => {

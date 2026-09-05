@@ -79,6 +79,12 @@ export class StrategyToolsImpl implements StrategyTools {
     };
   }
 
+  /** What the request weighs right now, including any compaction already
+   *  applied in this call. */
+  measureCurrent(): number {
+    return this.measure(this.deps.activeMessages);
+  }
+
   measure(items: readonly HistoryEntry[] | Message[]): number {
     const ctx = { provider: this.deps.provider, model: this.deps.model };
     let total = 0;

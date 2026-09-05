@@ -6,10 +6,12 @@ import { ContextMeasurer } from '../../../../src/plugins/context-measurer/measur
 import { ContextGuard } from '../../../../src/plugins/context-guard/guard';
 import { TruncateStrategy } from '../../../../src/plugins/context-guard/strategies/truncate';
 import { LayeredStrategy } from '../../../../src/plugins/context-guard/strategies/layered';
+import { AnchoredStrategy } from '../../../../src/plugins/context-guard/strategies/anchored';
 import { LAYER_CHAT_FACTS } from '../../../../src/agent/context-registry/layers';
 import type { ContextTools } from '../../../../src/plugins/context-guard/types';
 import type { ExtractedFact } from '../../../../src/plugins/context-guard/facts';
 import type { Message } from '../../../../src/llm/types/messages';
+import type { MessageResolveContext } from '../../../../src/bus/hook-map';
 
 function buildCatalog(window = 1000): ModelCatalog {
   const c = new ModelCatalog();
@@ -52,6 +54,113 @@ describe('ContextGuard', () => {
 
     expect(history.length).toBe(3);
     expect(messages.length).toBe(3);
+    guard.destroy();
+    measurer.destroy();
+  });
+
+  it('does not decline a truncation that actually worked', async () => {
+    // The count that TRIGGERED compaction is not the count to judge it by:
+    // `dropOldest` does not update `ctx.current`, so reading it here refused
+    // work that succeeded. A conversation taken from 400% of the window down
+    // to 20% was declined for being "still above 95%" — after the entries were
+    // already destroyed, so the caller lost the history AND the call.
+    const hooks = new HookBus();
+    const catalog = buildCatalog(1000);
+    const measurer = new ContextMeasurer({ hooks, catalog });
+    const guard = new ContextGuard({
+      hooks,
+      measurer,
+      strategies: { truncate: new TruncateStrategy({ keepRecent: 1, declineCeiling: 0.95 }) },
+      defaultStrategy: 'truncate',
+    });
+
+    const history = new ConversationHistory();
+    fillHistory(history, 10, 400); // 4000 chars — four times the window
+
+    const messages = history.messages();
+    const ctx: MessageResolveContext = {
+      provider: 'test',
+      model: 'tiny',
+      messages,
+      history,
+    };
+    await hooks.emit('onMessageResolve', ctx);
+
+    expect(messages.length).toBe(1);
+    expect(ctx.abort).toBeFalsy();
+    guard.destroy();
+    measurer.destroy();
+  });
+
+  it('still declines when what is left really is over the ceiling', async () => {
+    // The other half of the same rule: re-measuring must not turn the ceiling
+    // off, only point it at the right number.
+    const hooks = new HookBus();
+    const catalog = buildCatalog(1000);
+    const measurer = new ContextMeasurer({ hooks, catalog });
+    const guard = new ContextGuard({
+      hooks,
+      measurer,
+      strategies: { truncate: new TruncateStrategy({ keepRecent: 2, declineCeiling: 0.95 }) },
+      defaultStrategy: 'truncate',
+    });
+
+    const history = new ConversationHistory();
+    fillHistory(history, 10, 4000); // each surviving entry alone fills the window
+
+    const ctx: MessageResolveContext = {
+      provider: 'test',
+      model: 'tiny',
+      messages: history.messages(),
+      history,
+    };
+    await hooks.emit('onMessageResolve', ctx);
+
+    expect(ctx.abort).toBe(true);
+    guard.destroy();
+    measurer.destroy();
+  });
+
+  it('does not decline an anchor merge that actually worked', async () => {
+    // Same rule as truncate, and it needs its own test: `replaceRange` does
+    // not update `ctx.current` either, so reading it declined a merge that had
+    // just taken the conversation well under the ceiling.
+    const hooks = new HookBus();
+    const catalog = buildCatalog(1000);
+    const measurer = new ContextMeasurer({ hooks, catalog });
+
+    const tools: ContextTools = {
+      async summarize() {
+        return 'short state';
+      },
+      async extractFacts(): Promise<ExtractedFact[]> {
+        return [];
+      },
+    };
+
+    const guard = new ContextGuard({
+      hooks,
+      measurer,
+      contextTools: tools,
+      strategies: {
+        anchored: new AnchoredStrategy({ keepRecent: 1, declineCeiling: 0.95 }),
+      },
+      defaultStrategy: 'anchored',
+    });
+
+    const history = new ConversationHistory();
+    fillHistory(history, 10, 400); // 4000 chars — four times the window
+
+    const ctx: MessageResolveContext = {
+      provider: 'test',
+      model: 'tiny',
+      messages: history.messages(),
+      history,
+    };
+    await hooks.emit('onMessageResolve', ctx);
+
+    expect(ctx.abort).toBeFalsy();
+    expect(history.length).toBeLessThan(10);
     guard.destroy();
     measurer.destroy();
   });

@@ -12,7 +12,7 @@
  *  heuristic would report an estimate as if it were exact.
  */
 
-import { describe, expect, it } from 'bun:test';
+import { beforeAll, describe, expect, it } from 'bun:test';
 import {
   isTiktokenUnavailable,
   TiktokenCounter,
@@ -28,6 +28,21 @@ const gpt4 = { provider: 'openai', model: 'gpt-4-turbo' } as const;
  *  every case that needs a warm encoder shares one counter. Cases about the
  *  COLD cache build their own. */
 const exact = new TiktokenCounter();
+
+/** A cold encoder is a 5.6 MB wasm import, which does not reliably finish
+ *  inside bun's 5s default when the machine is busy -- and it is busy exactly
+ *  when the whole gate runs, so this failed there while passing on its own.
+ *  The wait is real work, not a flaky assertion, so it gets a real budget. */
+const COLD_ENCODER_MS = 30_000;
+
+// Paid once, up front, for every case that wants a warm encoder. Both
+// encodings, because the cases below compare o200k against cl100k and a
+// half-warmed counter would make the second one pay the load inside its own
+// timeout, whichever happened to run first.
+beforeAll(async () => {
+  await exact.measure('warm', gpt4o);
+  await exact.measure('warm', gpt4);
+}, COLD_ENCODER_MS);
 
 describe('TiktokenCounter — exact measurement', () => {
   it('measure() counts with the real o200k encoder', async () => {
@@ -122,16 +137,21 @@ describe('TiktokenCounter — the synchronous estimate', () => {
     expect(cold.estimateMessage({ role: 'user', content: 'x'.repeat(39) }, gpt4o)).toBe(11);
   });
 
-  it('measure() warms exactly one encoding, and estimate() then uses it', async () => {
-    const counter = new TiktokenCounter();
-    expect(counter.estimate('hello world', gpt4o)).toBe(3); // ceil(11 / 3.8)
+  // Its own counter, deliberately cold, so it pays the wasm load itself.
+  it(
+    'measure() warms exactly one encoding, and estimate() then uses it',
+    async () => {
+      const counter = new TiktokenCounter();
+      expect(counter.estimate('hello world', gpt4o)).toBe(3); // ceil(11 / 3.8)
 
-    await counter.measure('warm it up', gpt4o); // loads o200k only
+      await counter.measure('warm it up', gpt4o); // loads o200k only
 
-    expect(counter.estimate('hello world', gpt4o)).toBe(2); // the real encoder
-    // gpt-4 routes to cl100k, which was never loaded → still the fallback.
-    expect(counter.estimate('hello world', gpt4)).toBe(3);
-  });
+      expect(counter.estimate('hello world', gpt4o)).toBe(2); // the real encoder
+      // gpt-4 routes to cl100k, which was never loaded → still the fallback.
+      expect(counter.estimate('hello world', gpt4)).toBe(3);
+    },
+    COLD_ENCODER_MS,
+  );
 
   it('estimateMessage() applies the same per-part rules as measureMessage', async () => {
     const args = { city: 'Prague' };
