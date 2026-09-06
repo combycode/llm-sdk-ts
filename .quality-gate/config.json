@@ -25,7 +25,7 @@
     ]
   },
   "apiSnapshot": {
-    "file": "api-snapshot.json",
+    "file": ".quality-gate/api-snapshot.json",
     "baseline": "auto",
     "breakingDocs": [
       "MIGRATION.md",
@@ -45,7 +45,7 @@
     ],
     "ignore": [],
     "ignoreKinds": [],
-    "debtFile": "example-debt.json",
+    "debtFile": ".quality-gate/example-debt.json",
     "typeAware": {
       "packageName": "@combycode/llm-sdk",
       "projects": [

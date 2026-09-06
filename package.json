@@ -46,11 +46,11 @@
     "check": "biome check src tests",
     "check:fix": "biome check --write src tests",
     "gen:registry": "bun run scripts/gen-wire-registry.ts",
-    "gate": "bun run scripts/gate.ts",
+    "gate": "bun run scripts/gate.ts --config .quality-gate/config.json",
     "gate:selftest": "node ../../quality-gate/selftest.mjs",
     "record:responses": "bun run scripts/record-responses.ts",
     "derive:shapes": "bun run scripts/derive-response-shapes.ts",
-    "gate:snapshot": "bun run scripts/gate.ts --only api-snapshot --update"
+    "gate:snapshot": "bun run scripts/gate.ts --config .quality-gate/config.json --only api-snapshot --update"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.13",
