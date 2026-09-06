@@ -6,6 +6,8 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+## [3.3.0] - 2026-09-06
+
 ### Fixed
 
 - **xAI's batch API had never worked, and could not say so.** Three readings were wrong. The
