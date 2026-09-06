@@ -10,4 +10,5 @@ playwright-report/
 .idea/
 .vscode/
 *.tgz
-.quality-gate/last-run.json
+.quality-gate/
+scripts/gate.ts
