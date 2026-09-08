@@ -6,6 +6,34 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+## [3.3.1] - 2026-09-08
+
+### Fixed
+
+- **xAI Imagine video renders were billed at up to a twenty-fifth of their real price.** The
+  pricing page's first price column is `Media Input`, and the extraction read it as the first
+  resolution's rate -- shifting every per-resolution price one slot along and dropping the last.
+  `grok-imagine-video` charged $0.002/sec for 480p where the page says $0.05, so an 8-second
+  render estimated at $0.016 instead of $0.40; its flat `perSecond` fallback held $0.01, the rate
+  for a second of *input* video, a 5x under-bill on any request that named no resolution.
+  `grok-imagine-video-1.5` and `grok-imagine-image-2.0` were shifted the same way. Corrected from
+  the page's own table markup, cross-checked against LiteLLM where it carries the model.
+  `perUnit`/`perImage`/`perSecond` are what a model EMITS -- the doc comment now says so, having
+  previously used the misread pair as its example.
+
+### Changed
+
+- Model catalog refreshed: 475 models, 20 added (`claude-fable-5.1`, `gpt-6-astra`,
+  `gemini-3.8-flash`, `gemini-3.5-transcribe`, `gemini-omni-1.1-flash`, `lyria-3.5` and 13 on
+  OpenRouter), 12 delisted and kept with `active: false`, none dropped. Prices, context windows
+  and deprecation dates updated across all five providers; every new chat model carries its
+  `wireSpec` pin and a frozen entry in the wire corpus.
+- `outputModalities` now comes from what a source publishes rather than being inferred from the
+  model's `type`, which could not tell a model that emits audio from one that only accepts it.
+  23 models gained a second modality: Gemini image models emit text alongside the image, Lyria
+  emits audio, `openrouter/auto` can route to an image model. Descriptive metadata -- no request
+  is built differently.
+
 ## [3.3.0] - 2026-09-06
 
 ### Fixed

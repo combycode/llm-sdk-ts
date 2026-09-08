@@ -34,7 +34,8 @@ export interface ModelPricing {
   perMinute?: number;
   perMChars?: number;
   /** Per-unit rates keyed by a quality/resolution tier (e.g. video
-   *  `{"720p":0.1,"1080p":0.12}`, image `{"1k":0.002,"2k":0.02}`). When the
+   *  `{"720p":0.1,"1080p":0.12}`, image `{"1k":0.02,"2k":0.02}`). Rates are what the model
+   *  EMITS: an input-media price does not belong here. When the
    *  selected resolution matches a key, it overrides the flat perImage/perSecond. */
   perUnit?: Record<string, number>;
   /** Per-service-tier rate overrides, keyed by the provider's OWN billed tier
