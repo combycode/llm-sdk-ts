@@ -19,12 +19,13 @@ to aggregate them into spans + counters.
 |---|---|
 | `createObserver(agent, event, reactor)` | Subscribe to a specific agent event. Reactor is a plain async function or an agent config that runs a sub-agent on each event. Returns an unsubscribe function. |
 | `TelemetryAdapter` | Attaches to a `HookBus` and builds in-memory spans + metrics from all events. Call `.toOtlpTraces()` to export for a real OTel collector. |
-| `HookBus` | Typed pub/sub bus. `.on(event, handler)` → unsubscribe fn. `.emit(event, ctx)` → async. `.emitSync(event, ctx)` → sync. |
+| `HookBus` | Typed pub/sub bus. `.on(event, handler)` → unsubscribe fn. `.onAny(handler)` → every event as one union, also returning an unsubscribe fn. `.emit(event, ctx)` → async. `.emitSync(event, ctx)` → sync. |
 | `AgentBus` | Secondary bus for plugin-to-tool / module events. |
 | `Logger` / `ConsoleSink` | Structured logger that routes `LogEvent`s to sinks. Wired to the hook bus. |
 
-Type-only exports: `HookMap`, `HookName`, `HookHandler`, `TelemetryEvent`,
-`TelemetryMetrics`, `Span`, `SpanKind`, `LogEvent`, `LogLevel`, `LogSink`.
+Type-only exports: `HookEvent`, `HookEventOf`, `AnyHookHandler`, `HookMap`, `HookName`,
+`HookHandler`, `TelemetryEvent`, `TelemetryMetrics`, `Span`, `SpanKind`, `LogEvent`,
+`LogLevel`, `LogSink`.
 
 ## Minimal examples
 
@@ -56,6 +57,54 @@ engine.hooks.on('onMediaProgress', ({ provider, operationId, progress }) => {
   console.log(`[video] ${provider} ${operationId} ${progress ?? '?'}%`);
 });
 ```
+
+### Every event through one handler (`onAny`)
+
+`on(name, handler)` is right when you want one thing. When you want the whole stream — a log
+line per event, your own metrics, forwarding somewhere — subscribe once with `onAny`.
+
+The stream is a single discriminated union: each event is `{ type, ctx }`, and `event.type`
+narrows `event.ctx` to the context that name actually carries. That is the point of the shape.
+A handler that took `(name, ctx)` had to cast to read anything, and a cast keeps compiling
+after a field is renamed — it just starts reading `undefined`, which for a token count is a
+metric that quietly goes to zero.
+
+```ts
+import { createEngine, complete, type HookEvent } from '@combycode/llm-sdk';
+
+const engine = createEngine({
+  catalog: 'defaults',
+  apiKeys: { anthropic: process.env.ANTHROPIC_API_KEY! },
+});
+
+const unsubscribe = engine.hooks.onAny((event: HookEvent) => {
+  switch (event.type) {
+    case 'onCompletion':
+      // `event.ctx` is the completion context here — no cast, and the compiler
+      // checks every field against it.
+      console.log(
+        `[completion] ${event.ctx.provider}/${event.ctx.model} ` +
+        `out=${event.ctx.response.usage.outputTokens}`,
+      );
+      break;
+    case 'onWarning':
+      console.warn(`[warning] ${event.ctx.source} ${event.ctx.code}: ${event.ctx.message}`);
+      break;
+    default:
+      break;
+  }
+});
+
+await complete({ model: 'anthropic/claude-haiku-4.5', prompt: 'Hello' });
+
+unsubscribe();
+```
+
+`onAny` returns its own unsubscribe function. Call it when the subscriber goes away — a
+long-lived engine otherwise keeps the handler, and with it whatever the closure holds.
+
+Keep a `default` branch. The event set grows between releases, and a `switch` without one
+stops compiling the moment it does.
 
 ### TelemetryAdapter -- OTel-style traces + metrics
 
