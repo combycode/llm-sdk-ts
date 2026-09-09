@@ -1,7 +1,13 @@
 # Migrating to 3.0.0
 
-**Almost certainly no source changes.** One type member was removed, and it was one the SDK
-set for its own adapters to read — not something an application was ever expected to write.
+Upgrading from 2.x almost certainly needs no source changes. One type member was removed, and it
+was one the SDK set for its own adapters to read rather than something an application was ever
+expected to write.
+
+**Already on 3.x? Nothing below applies to you.** 3.0.0 is the only release in the line that
+broke anything. 3.1.0 through 3.3.1 removed no public symbol and changed no signature — the one
+later `Removed` entry, in 3.2.0, took out five private functions whose names already began with
+an underscore.
 
 ## `ModelInfo.wire`, `NormalizedRequest.wire` and the `ModelWire` type are gone
 
