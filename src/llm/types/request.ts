@@ -75,9 +75,14 @@ export interface NormalizedRequest {
   temperature?: number;
   topP?: number;
   /** Restrict sampling to the k most likely tokens. Emitted only where the wire accepts it
-   *  (live-verified 2026-07-28): Anthropic, Google generateContent AND Interactions, xAI chat,
-   *  OpenRouter chat. OpenAI has no top-k on either surface, so it is dropped there rather
-   *  than sent and rejected. */
+   *  (live-verified 2026-07-28): Google generateContent AND Interactions, xAI chat, OpenRouter
+   *  chat. OpenAI has no top-k on either surface, so it is dropped there rather than sent and
+   *  rejected.
+   *
+   *  Anthropic is per VERSION, not per provider: `messages@4.1` through `@4.6` accept `top_k`;
+   *  models from `@4.7` reject it with a 400, so the spec removes it there. The pin decides,
+   *  which means an adapter driven without a catalog falls back to the newest spec and drops
+   *  `top_k` even for a model that would have taken it. */
   topK?: number;
   /** Best-effort deterministic sampling. Emitted only where the wire accepts it
    *  (live-verified 2026-07-28): OpenAI **chat-completions** — the Responses API rejects it

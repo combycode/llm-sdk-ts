@@ -5,6 +5,16 @@
     "README.md"
   ],
   "dist": "dist",
+  "_build": "G1 names the scripts explicitly so it does NOT run tests/live. `bun test` runs everything, and tests/live/moderation.live.test.ts self-enables on OPENAI_API_KEY -- which the gate wrapper puts in the environment. G1 was therefore calling a real provider and asserting on what it answered: measured 2 failures in 6 runs, never reproducible from a bare `bun test`, because a bare one has no key and the file skips. Live verification is G12's job, where the runs are declared. This keeps 254 of the 255 test files; only the live one is dropped.",
+  "build": {
+    "runner": "bun",
+    "scripts": [
+      "typecheck",
+      "lint",
+      "test:unit",
+      "test:integration"
+    ]
+  },
   "_receivers": "The name used in prose -> the class(es) it means. Class names, not file paths: moving a declaration between files is not an API change.",
   "receivers": {
     "agent": [
@@ -132,6 +142,11 @@
       { "file": "official-comparision/29b-mcp-protocol.ts", "expect": "negotiated" },
       { "file": "features-highlight/exact-token-count.ts", "apiKeyEnv": "XAI_API_KEY", "env": { "LLM_MODEL": "xai/grok-4.3" }, "expect": "exact" },
       { "file": "features-highlight/model-filters.ts", "expect": "aliasAgrees" },
+      { "file": "features-highlight/transcription-request-client.ts", "expect": "refusedImpossibleCombination" },
+      { "file": "features-highlight/provider-options-passthrough.ts", "expect": "googleKeysLeakedToAnthropic" },
+      { "file": "features-highlight/mcp-subscriptions-and-discovery.ts", "expect": "staleImmediately" },
+      { "file": "features-highlight/agent-reflect-and-retry.ts", "expect": "streakResetBySuccess" },
+      { "file": "features-highlight/seed-and-topk-per-provider.ts", "expect": "anthropicTopKBoundary" },
       { "file": "features-highlight/response-shape-check.ts", "expect": "quantum_confidence" },
       { "file": "features-highlight/event-stream.ts", "expect": "· onCostEntry" },
       { "file": "features-highlight/exact-token-count.ts", "apiKeyEnv": "ANTHROPIC_API_KEY", "env": { "LLM_MODEL": "anthropic/claude-haiku-4.5" }, "expect": "exact" },
