@@ -11,6 +11,17 @@ import type { TraceContext } from '../network/types';
 
 export type ContentClass = 'prose' | 'code' | 'mixed' | 'structured';
 
+export type RunEndReason =
+  | 'done'
+  | 'stopped'
+  | 'error'
+  | 'guardrail'
+  | 'max_steps'
+  /** The consumer stopped reading a streamed run — a `break` out of
+   *  `for await`, which closes the generator where it stands. The run is over
+   *  and is reported as over; it simply did not end on its own terms. */
+  | 'aborted';
+
 export interface TokenCountContext {
   provider?: string;
   model?: string;
@@ -123,7 +134,11 @@ export interface AgentRunReport {
   startedAt: number;
   completedAt: number;
   totalMs: number;
-  reason: 'done' | 'stopped' | 'error' | 'guardrail' | 'max_steps';
+  /** Why the run ended. `aborted` means the CONSUMER stopped reading a streamed
+   *  run -- a `break` out of `for await` -- which closes the generator where it
+   *  stands. It is reported like any other ending; before, such a run produced
+   *  no report at all. */
+  reason: RunEndReason;
   userMessage: string | ContentPart[] | Message[];
   finalText: string;
   error?: string;

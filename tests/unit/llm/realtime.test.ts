@@ -302,3 +302,49 @@ describe('RealtimeSession — listener registration', () => {
     expect(conns[0].closed).toBe(true);
   });
 });
+
+describe('Google Live: turnComplete alone no longer ends the turn', () => {
+  /** `interactionStatus` is sent ALONGSIDE `turnComplete`, and `IN_PROGRESS`
+   *  means "more model output may follow". Acting on `turnComplete` therefore
+   *  cut responses short as soon as Google started sending the field.
+   *
+   *  Mirrors `_is_interaction_complete` in google-py's live.py, including the
+   *  part the enum docs alone get wrong: `REQUIRES_ACTION` is documented as
+   *  "deprecated, use IDLE", but upstream completes ONLY on `IDLE`. */
+  const turnEnds = (serverContent: Record<string, unknown>): boolean => {
+    const { connect, conns } = fakeConnectFactory();
+    const session = new GoogleRealtimeAdapter({ apiKey: 'k' }).connect({ model: 'm' }, connect);
+    let ended = false;
+    session.on('turnComplete', () => {
+      ended = true;
+    });
+    conns[0].fireOpen();
+    conns[0].fireText(JSON.stringify({ setupComplete: {} }));
+    conns[0].fireText(JSON.stringify({ serverContent }));
+    return ended;
+  };
+
+  it('holds the turn open while the server is still working', () => {
+    expect(turnEnds({ turnComplete: true, interactionStatus: 'IN_PROGRESS' })).toBe(false);
+  });
+
+  it('ends the turn on IDLE', () => {
+    expect(turnEnds({ turnComplete: true, interactionStatus: 'IDLE' })).toBe(true);
+  });
+
+  it('does NOT end on the deprecated REQUIRES_ACTION, because upstream does not', () => {
+    expect(turnEnds({ turnComplete: true, interactionStatus: 'REQUIRES_ACTION' })).toBe(false);
+  });
+
+  it('falls back to turnComplete when the status is absent or unspecified', () => {
+    // Every server that predates the field, which must keep working unchanged.
+    expect(turnEnds({ turnComplete: true })).toBe(true);
+    expect(turnEnds({ turnComplete: true, interactionStatus: 'INTERACTION_STATUS_UNSPECIFIED' })).toBe(true);
+    expect(turnEnds({ turnComplete: false })).toBe(false);
+  });
+
+  it('an IDLE with no turnComplete still ends the turn', () => {
+    // Upstream keys on the status once it is present, not on the pair.
+    expect(turnEnds({ interactionStatus: 'IDLE' })).toBe(true);
+  });
+});

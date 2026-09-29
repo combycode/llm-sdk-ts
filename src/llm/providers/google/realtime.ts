@@ -147,8 +147,33 @@ class GoogleRealtimeSession extends BaseRealtimeSession {
         });
       }
     }
-    if (sc.turnComplete) this.emit({ type: 'turnComplete' });
+    if (isInteractionComplete(sc)) this.emit({ type: 'turnComplete' });
   }
+}
+
+/** Has the turn actually ended?
+ *
+ *  `turnComplete` alone does not say so any more. `interactionStatus` is sent
+ *  alongside it, and `IN_PROGRESS` means the server is still working -- "more
+ *  model output may follow". Ending the turn on `turnComplete` therefore cut
+ *  responses short as soon as Google started sending the field.
+ *
+ *  This mirrors `_is_interaction_complete` in google-py's live.py exactly,
+ *  including the part that is easy to get wrong from the enum docs alone:
+ *  `REQUIRES_ACTION` is documented as "deprecated, use IDLE", but upstream
+ *  completes the turn ONLY on `IDLE`, so a deprecated value does not end it
+ *  either. A server that sends no status at all, or `UNSPECIFIED`, falls back to
+ *  `turnComplete` -- which is every server that predates the field.
+ */
+function isInteractionComplete(sc: {
+  turnComplete?: boolean;
+  interactionStatus?: string;
+}): boolean {
+  const status = sc.interactionStatus;
+  if (status !== undefined && status !== '' && status !== 'INTERACTION_STATUS_UNSPECIFIED') {
+    return status === 'IDLE';
+  }
+  return Boolean(sc.turnComplete);
 }
 
 interface GoogleServerMessage {
@@ -158,6 +183,8 @@ interface GoogleServerMessage {
       parts?: Array<{ text?: string; inlineData?: { mimeType?: string; data?: string } }>;
     };
     turnComplete?: boolean;
+    /** The session's activity status. Always sent alongside `turnComplete`. */
+    interactionStatus?: string;
   };
   usageMetadata?: GoogleUsageMetadata;
 }

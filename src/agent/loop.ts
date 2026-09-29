@@ -731,12 +731,18 @@ export class AgentLoop {
     // Same reason as the buffered loop: sources cited in an early step belong to
     // the answer a later step gives. Deduped by url.
     const citationsByUrl = new Map<string, Citation>();
-    let reason: 'done' | 'stopped' | 'error' | 'guardrail' | 'max_steps' = 'done';
+    // `RunEndReason` rather than the inline union: only the streamed path can end
+    // in `aborted`, and it is the type that carries it.
+    let reason: RunEndReason = 'done';
     let errorMsg: string | undefined;
     // Original thrown error, re-thrown by complete()/stream() so a failed run never
     // silently returns empty text (run() keeps the non-throwing AgentRunReport).
     let caughtError: unknown;
     let guardrailTripReason: string | undefined;
+    /** False while the generator is parked on a `yield`. A consumer `break`
+     *  unwinds through `finally` without ever setting it. */
+    let endedOnItsOwn = false;
+    let finalResponse: CompletionResponse;
 
     try {
       while (true) {
@@ -880,53 +886,68 @@ export class AgentLoop {
           break;
         }
       }
+      endedOnItsOwn = true;
     } catch (e) {
+      // An error is still an ENDING: the run decided how it finished. Only a
+      // consumer walking away leaves the flag false.
+      endedOnItsOwn = true;
       reason = 'error';
       ({ errorMsg, caughtError } = await this.recordRunError(e, { runId, stepCount, runTrace }));
     } finally {
       this._running = false;
       this._abortController = null;
+
+      // Everything below used to sit AFTER this block, which meant it never ran
+      // when a consumer broke out of `for await`: closing a generator resumes it
+      // at the `yield` it is parked on and unwinds, so the run was left with no
+      // `onRunComplete`, no report, and an open span. The run had happened — it
+      // simply went unrecorded, and the case where that matters most is the one
+      // where somebody stopped listening because something looked wrong.
+      if (!endedOnItsOwn) reason = 'aborted';
+
+      finalText = this.resolveFinalText({ reason, guardrailTripReason, streamedText: finalText });
+
+      finalResponse = this.buildFinalResponse({
+        runId,
+        startPerf,
+        reason,
+        finalText,
+        finalContent,
+        totalUsage,
+        lastResponse,
+        citations: [...citationsByUrl.values()],
+        // The streaming path already emitted media as events, and never holds a
+        // raw provider payload.
+        media: [],
+        raw: null,
+      });
+
+      await this.settleRun({
+        runId,
+        startedAt,
+        startPerf,
+        userMessage: input,
+        userMessageText,
+        finalText,
+        reason,
+        error: errorMsg,
+        caughtError,
+        response: finalResponse,
+        steps,
+        stepCount,
+        toolCallCount,
+        totalUsage,
+        totalLlmTimeMs,
+        totalToolTimeMs,
+        runTrace,
+      });
     }
 
-    finalText = this.resolveFinalText({ reason, guardrailTripReason, streamedText: finalText });
-
-    const finalResponse = this.buildFinalResponse({
-      runId,
-      startPerf,
-      reason,
-      finalText,
-      finalContent,
-      totalUsage,
-      lastResponse,
-      citations: [...citationsByUrl.values()],
-      // The streaming path already emitted media as events, and never holds a
-      // raw provider payload.
-      media: [],
-      raw: null,
-    });
-
-    await this.settleRun({
-      runId,
-      startedAt,
-      startPerf,
-      userMessage: input,
-      userMessageText,
-      finalText,
-      reason,
-      error: errorMsg,
-      caughtError,
-      response: finalResponse,
-      steps,
-      stepCount,
-      toolCallCount,
-      totalUsage,
-      totalLlmTimeMs,
-      totalToolTimeMs,
-      runTrace,
-    });
-
+    // Not reached when the consumer aborted — the generator is already closing,
+    // and nobody is waiting for this event.
     yield { type: 'done', response: finalResponse };
   }
+
 
   /** Yield tool_call_start events for all tool calls in this step. */
   private *emitToolCallStarts(
@@ -1483,7 +1504,7 @@ export class AgentLoop {
     userMessage: string | ContentPart[] | Message[];
     userMessageText: string;
     finalText: string;
-    reason: 'done' | 'stopped' | 'error' | 'guardrail' | 'max_steps';
+    reason: RunEndReason;
     error?: string;
     response: CompletionResponse;
     steps: StepReport[];

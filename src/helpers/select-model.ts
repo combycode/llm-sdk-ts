@@ -236,6 +236,27 @@ function cmpVer(a: number[], b: number[]): number {
 }
 
 /** All matching models, ranked cheapest-first (tiebreak: newest version). */
+/** Has this model's announced SHUTDOWN date passed?
+ *
+ *  Deliberately `shutdownDate` and not `deprecation.date`: the two mean
+ *  different things here. A `date` says a source announced end-of-life, and the
+ *  model stays callable until the shutdown; hiding it would take away a model
+ *  that still works. A `shutdownDate` in the past says it does not.
+ *
+ *  Checked at QUERY time rather than baked into `active`, because a catalog
+ *  exported yesterday cannot know that a date passed overnight. Recommending a
+ *  model that has stopped is worse than returning one fewer candidate: the
+ *  caller is better off switching model than discovering it in production, and
+ *  a fallback chain is the place to absorb the difference.
+ *
+ *  `active: false` covers the other case — somebody CALLED the endpoint and it
+ *  was gone, which no date predicts. */
+function isPastShutdown(m: ModelInfo, now = new Date()): boolean {
+  const shutdown = m.deprecation?.shutdownDate;
+  if (!shutdown) return false;
+  return shutdown < now.toISOString().slice(0, 10);
+}
+
 export function selectModels(query: string | string[], opts: SelectOptions = {}): ModelInfo[] {
   const engine = opts.engine ?? coreRegistry.get();
   const th = { ...DEFAULT_THRESHOLDS, ...opts.prefs?.thresholds };
@@ -250,6 +271,7 @@ export function selectModels(query: string | string[], opts: SelectOptions = {})
     if (opts.provider && m.provider !== opts.provider) return false;
     if (available.size && !available.has(m.provider)) return false; // availability-aware
     if (!hasActiveFilter && m.active === false) return false; // default: callable only
+    if (!hasActiveFilter && isPastShutdown(m)) return false;
     return crits.every((c) => matches(m, c, th, opts.tier));
   });
 

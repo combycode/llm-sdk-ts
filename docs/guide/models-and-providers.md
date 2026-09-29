@@ -68,6 +68,7 @@ network required.
 | `status` | `string?` | Lifecycle: `stable`, `preview`, `legacy`. |
 | `availability` | `string?` | Access tier (independent of lifecycle): undefined = generally available; `limited` = gated / not enabled for every account; `preview` = early access. |
 | `active` | `boolean?` | Callable from this account right now. |
+| `unavailable` | `{ since, reason }?` | A MEASURED refusal: somebody called this model's endpoint and it was gone. Forces `active: false`. |
 
 ### Reading the catalog
 
@@ -276,6 +277,27 @@ const coder = select('type:code; tools; context > 100k');
 // Restrict to one provider
 const gemini = select('vision; streaming', { provider: 'google' });
 ```
+
+**What `select()` will never hand you.** Two kinds of model are filtered out
+before any clause is evaluated, because recommending one is worse than returning
+one fewer candidate:
+
+- **Measured unavailable** -- `unavailable` is set, meaning somebody called the
+  endpoint and it was gone. These also carry `active: false`. Ask
+  `catalog.unavailableReason(provider, model)` to refuse *without* a round trip:
+  it returns the reason and when it was measured, or `null` when nothing says
+  the model is dead.
+- **Past its announced shutdown date** -- `deprecation.shutdownDate` is in the
+  past. Checked when you query, not when the catalog was built, because a
+  catalog exported yesterday cannot know a date passed overnight.
+
+A model that is merely **deprecated** (`deprecation.date`, no shutdown yet) is
+still offered: it announced an end-of-life but still answers, and hiding it would
+take away something that works. Add an explicit `active:no` clause when you want
+the whole set anyway -- a model browser, an audit.
+
+In production, prefer a fallback chain over relying on any single id: a model can
+retire between your deploy and your traffic.
 
 Query syntax: a semicolon-separated string or string array. Each clause is one of:
 

@@ -164,6 +164,14 @@ export interface ModelInfo {
   active?: boolean;
   /** End-of-life signalled by a source. */
   deprecation?: { date?: string; shutdownDate?: string; source: string };
+  /** A MEASURED refusal: somebody called this model's endpoint and it was gone.
+   *
+   *  Different from `deprecation`, which a source ANNOUNCES and which leaves the
+   *  model callable until its shutdown date. This one is a fact about now, so it
+   *  can be acted on without spending a round trip to be told again — see
+   *  `unavailableReason()`. Models carrying it also ship `active: false`, which
+   *  is what keeps them out of `select()`. */
+  unavailable?: { since: string; reason: string };
   /** Server-side state retention as a duration string ("30d", "72h"). null = none. */
   stateRetentionDuration?: string | null;
   /** Whether server-state continuation requires the SAME model (true) or works
@@ -286,6 +294,7 @@ export class ModelCatalog {
       family: info.family,
       version: info.version,
       status: info.status,
+      unavailable: info.unavailable,
       availability: info.availability,
       active: info.active,
       deprecation: info.deprecation,
@@ -390,6 +399,25 @@ export class ModelCatalog {
     const info = this.get(provider, model);
     if (info?.stateModelBound !== undefined) return info.stateModelBound;
     return PROVIDER_STATE[provider]?.modelBound ?? true;
+  }
+
+  /** Why this model cannot be called, or null when nothing says it cannot.
+   *
+   *  The point is refusing WITHOUT a round trip, for the cases the catalog is
+   *  sure about: an endpoint somebody measured as gone, or a shutdown date that
+   *  has passed. An announced deprecation is NOT one of them — that model still
+   *  works until its shutdown. */
+  unavailableReason(provider: string, model: string, now = new Date()): string | null {
+    const info = this.get(provider, model);
+    if (!info) return null;
+    if (info.unavailable) {
+      return `${info.unavailable.reason} (measured ${info.unavailable.since})`;
+    }
+    const shutdown = info.deprecation?.shutdownDate;
+    if (shutdown && shutdown < now.toISOString().slice(0, 10)) {
+      return `announced shutdown date ${shutdown} has passed`;
+    }
+    return null;
   }
 
   list(provider?: string): ModelInfo[] {

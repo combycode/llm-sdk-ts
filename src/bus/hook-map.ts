@@ -14,6 +14,7 @@
  *      events like onClientCreate).
  */
 
+import type { RunEndReason } from '../agent/types';
 import type { ConversationHistory } from '../agent/history';
 import type { GuardrailTriggeredContext } from '../agent/guardrail-types';
 import type { ApprovalRequest, ApprovalDecision } from '../agent/approval-types';
@@ -354,7 +355,11 @@ export interface RunCompleteContext {
   agentId: string;
   /** Original input passed to `agent.complete(...)` for this run. */
   userMessage: string | ContentPart[] | Message[];
-  reason: 'done' | 'stopped' | 'error' | 'guardrail' | 'max_steps';
+  /** Why the run ended. `aborted` means the CONSUMER stopped reading a streamed
+   *  run -- a `break` out of `for await` -- which closes the generator where it
+   *  stands. It is reported like any other ending; before, such a run produced
+   *  no report at all. */
+  reason: RunEndReason;
   text: string;
   response: CompletionResponse;
   trace?: TraceContext;
