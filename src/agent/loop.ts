@@ -31,7 +31,7 @@ import {
 import type { FileStream, RetrievedFile } from '../llm/files/retrieve';
 import type { LLMClient } from '../llm/client';
 import { buildAssistantMessage, parseStructured as parseStructuredText } from '../llm/client-internal';
-import { AgentRunError } from '../llm/output-errors';
+import { AgentRunError, ApprovalMismatchError } from '../llm/output-errors';
 import { writeAgentLoopContext, writeAgentLoopSystem, writeLazyToolsProtocol } from './context-registry/layers';
 import { ConversationHistory } from './history';
 import { createLazyTools, unwrapLazyCall, type LazyToolsConfig } from './lazy-tools';
@@ -50,6 +50,7 @@ import { ReflectAndRetryPolicy, reflectionGuidance } from './reflect-retry';
 import type { AgentLoopConfig } from './loop-config';
 import type { RequestContext } from '../types/request-context';
 import type { PermissionPolicy } from '../plugins/permissions/policy';
+import { approvalDigest } from './approval-types';
 import type { ApprovalRequest, ApprovalDecision, PendingToolCall } from './approval-types';
 import {
   makeStepState,
@@ -1196,6 +1197,9 @@ export class AgentLoop {
       step,
       requestedAt: Date.now(),
       runId,
+      // What the approver is being shown. A decision fed back later is checked
+      // against THIS, not against a callId the resumed run happens to reuse.
+      digest: approvalDigest(tc.name, tc.arguments),
     };
     this._pendingToolCalls.push(pending);
 
@@ -1718,20 +1722,47 @@ export class AgentLoop {
       });
       return;
     }
+    const pending = this._pendingToolCalls[idx]!;
     this._pendingToolCalls.splice(idx, 1);
-    // Store the pre-fed decision so the next run can retrieve it.
-    this._prefedApprovals.set(callId, decision);
+    // Stored WITH what it was a decision about. The resumed run re-runs the model
+    // step, so the same callId can come back naming another tool or carrying
+    // other arguments -- and a decision applied to that is consent nobody gave.
+    this._prefedApprovals.set(callId, {
+      decision,
+      toolName: pending.toolName,
+      digest: pending.digest ?? approvalDigest(pending.toolName, pending.arguments),
+    });
   }
 
-  /** Pre-fed decisions supplied via resumeWithApproval — consumed on the next run. */
-  private _prefedApprovals = new Map<string, ApprovalDecision>();
+  /** Pre-fed decisions supplied via resumeWithApproval — consumed on the next run,
+   *  and only by the invocation they were made about. */
+  private _prefedApprovals = new Map<
+    string,
+    { decision: ApprovalDecision; toolName: string; digest: string }
+  >();
 
-  /** Return a prefed decision (consumed once) or fall back to the real approver. */
+  /** Return a prefed decision (consumed once) or fall back to the real approver.
+   *
+   *  A prefed decision is bound to its invocation: same callId, same tool, same
+   *  canonical arguments. Anything else raises `ApprovalMismatchError` rather
+   *  than falling through to the approver -- the human answered a different
+   *  question, and asking again in the same breath would let their old answer
+   *  stand in for consent they never gave. */
   private async resolveApproval(req: ApprovalRequest): Promise<ApprovalDecision> {
     const prefed = this._prefedApprovals.get(req.callId);
     if (prefed !== undefined) {
+      const attempted = { toolName: req.toolName, digest: approvalDigest(req.toolName, req.arguments) };
+      const approved = { toolName: prefed.toolName, digest: prefed.digest };
+      if (approved.toolName !== attempted.toolName) {
+        this._prefedApprovals.delete(req.callId);
+        throw new ApprovalMismatchError('tool_name_mismatch', req.callId, approved, attempted);
+      }
+      if (approved.digest !== attempted.digest) {
+        this._prefedApprovals.delete(req.callId);
+        throw new ApprovalMismatchError('arguments_mismatch', req.callId, approved, attempted);
+      }
       this._prefedApprovals.delete(req.callId);
-      return prefed;
+      return prefed.decision;
     }
     if (this._approve !== null) {
       return this._approve(req);

@@ -259,9 +259,39 @@ console.log(response.text); // 'Deployed to production.'
 **Why re-run the LLM step?** The pending state tracks the tool call *request*
 (callId, toolName, arguments) but not the tool *execution*. The canonical
 resume model is to replay the run: `AgentLoop.restore` rehydrates history up
-to the suspension point, then `complete()` re-sends to the model, receives
-the same tool call (because history is identical), and this time the gate
-immediately returns the pre-fed decision.
+to the suspension point, then `complete()` re-sends to the model, and this time
+the gate returns the pre-fed decision instead of suspending.
+
+**The model usually produces the same call — but nothing makes it.** An identical
+history makes it likely, not certain, and the same `callId` can come back with
+different arguments, or (providers reuse ids per turn) name a different tool. A
+decision keyed on the id alone was applied to whatever came back: approve
+`delete_file({path: '/tmp/x'})`, and a re-run asking for `{path: '/'}` executed
+under that answer.
+
+So a pre-fed decision is bound to the invocation it was given for — the tool
+name plus a digest of the canonical arguments — and a mismatch raises
+`ApprovalMismatchError` with `reason: 'tool_name_mismatch' | 'arguments_mismatch'`
+and both sides attached. It does **not** fall through to your approver: the
+person answered a different question, and asking again in the same breath would
+let their old answer stand in for consent they never gave. Catch it, show the
+two invocations, and ask afresh.
+
+Key ORDER is not a change (`{a,b}` and `{b,a}` are one call, and a model gives no
+guarantee of order); array order is.
+
+```ts
+import { ApprovalMismatchError } from '@combycode/llm-sdk';
+
+try {
+  await restored.complete(String(userMessage));
+} catch (err) {
+  if (err instanceof ApprovalMismatchError) {
+    console.log(`approved ${err.approved.toolName}, resumed run asked for ${err.attempted.toolName}`);
+    // Re-ask: this is a new decision, not the old one.
+  }
+}
+```
 
 ## Your options
 

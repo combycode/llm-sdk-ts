@@ -34,3 +34,51 @@ export class InvalidFinalOutputError extends AgentRunError {
     this.rawText = rawText;
   }
 }
+
+/** A pre-fed approval decision did not belong to the tool call it was about to
+ *  be applied to.
+ *
+ *  Resuming from an approval re-runs the model step (the pending record holds the
+ *  call's metadata, not the execution), so the call that comes back carries the
+ *  same `callId` and may carry DIFFERENT arguments -- or, with a reused id, a
+ *  different tool. Applying the stored decision then authorizes an invocation
+ *  nobody approved, which is the whole point of asking.
+ *
+ *  So the decision is bound to the invocation it was made about: the tool name
+ *  plus a digest of its canonical arguments. A mismatch raises this rather than
+ *  falling through to the approver -- the human already answered a different
+ *  question, and asking again in the same breath would present their old answer
+ *  as consent.
+ *
+ *  `reason` distinguishes WHAT changed, because the two mean different things: a
+ *  different tool under the same id is a provider or transport fault, while
+ *  different arguments are the model having reconsidered. */
+export class ApprovalMismatchError extends AgentRunError {
+  readonly reason: 'tool_name_mismatch' | 'arguments_mismatch';
+  readonly callId: string;
+  /** What was approved. */
+  readonly approved: { toolName: string; digest: string };
+  /** What the re-run produced. */
+  readonly attempted: { toolName: string; digest: string };
+  constructor(
+    reason: 'tool_name_mismatch' | 'arguments_mismatch',
+    callId: string,
+    approved: { toolName: string; digest: string },
+    attempted: { toolName: string; digest: string },
+  ) {
+    super(
+      reason,
+      reason === 'tool_name_mismatch'
+        ? `Approval for call ${callId} was given for tool "${approved.toolName}" and the resumed ` +
+            `run asked for "${attempted.toolName}". The decision was not applied.`
+        : `Approval for call ${callId} (${approved.toolName}) was given for different arguments ` +
+            `than the resumed run produced (${approved.digest} vs ${attempted.digest}). ` +
+            'The decision was not applied.',
+    );
+    this.name = 'ApprovalMismatchError';
+    this.reason = reason;
+    this.callId = callId;
+    this.approved = approved;
+    this.attempted = attempted;
+  }
+}

@@ -8,6 +8,15 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **A pre-fed approval decision is bound to the invocation it was given for.** Resuming re-runs the
+  model step -- the pending record holds the call's metadata, not its execution -- so the same
+  `callId` could come back with different arguments, or name a different tool where a provider
+  reuses ids. Keyed on the id alone, the stored decision was applied to whatever came back:
+  approving `delete_file({path:'/tmp/x'})` could execute `delete_file({path:'/'})` under that
+  answer. The decision now carries the tool name and a digest of the canonical arguments, and a
+  mismatch raises `ApprovalMismatchError` (`tool_name_mismatch` / `arguments_mismatch`, both sides
+  attached) rather than falling through to the approver -- asking again in the same breath would
+  let an old answer stand in for consent never given. Key order is not a change; array order is.
 - **Stored MCP OAuth credentials are bound to the authorization server that issued them.** The MCP
   server says where to authorize, so storing a registration or a token without recording WHICH
   server it came from meant a server that later pointed elsewhere was handed credentials minted for
