@@ -294,6 +294,28 @@ try {
 }
 ```
 
+**What your storage must round-trip: the `issuer` field.** The MCP *server* tells the client which
+authorization server to use, so credentials stored without recording where they came from can be
+handed to a server that later points somewhere else. Both `McpOAuthClientInfo` and `McpOAuthTokens`
+carry an `issuer` the library stamps on save, and a provider that drops unknown fields on the way
+into storage silently disables the binding.
+
+The two are enforced differently, on purpose:
+
+| Stored value | Stamp names another server | Stamp missing |
+|---|---|---|
+| Client registration | **throws**, naming both servers | used, then stamped |
+| Tokens | treated as absent — the flow authorizes again | used, then stamped |
+
+A registration throws because re-registering quietly would leave you with two registrations and no
+sign the server moved, and presenting the old one is the attack. Tokens are disposable, so starting
+over is the honest recovery rather than a failure. Credentials stored before this existed carry no
+stamp, are used as-is, and are stamped on their next save — nothing to migrate.
+
+The stamp is the URL discovery used, not the `issuer` in the authorization server's metadata
+document. Binding to a value the server hands us would let the server choose which stored
+credentials it receives, which is the thing being defended against.
+
 For full MCP design notes see [docs/design/mcp.md](../design/mcp.md).
 
 ## Observability hooks

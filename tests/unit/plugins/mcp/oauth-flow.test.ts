@@ -191,7 +191,11 @@ describe('McpOAuth.authorize: the interactive redirect', () => {
     const oauth = new McpOAuth(SERVER, provider, fetch);
     await oauth.authorize();
 
-    expect(provider.saved.clients).toEqual([{ client_id: 'dcr-id', client_secret: 'dcr-secret' }]);
+    // Stamped with the authorization server it was registered against, so a
+    // later run cannot present it to a different one.
+    expect(provider.saved.clients).toEqual([
+      { client_id: 'dcr-id', client_secret: 'dcr-secret', issuer: 'https://srv.example.com' },
+    ]);
     expect(new URL(provider.redirects[0]).searchParams.get('client_id')).toBe('dcr-id');
     // SEP-837: MCP clients are native, and some servers apply stricter redirect rules to `web`.
     const registerBody = seen.find((s) => s.url.includes('/register'))?.body as Record<string, unknown>;

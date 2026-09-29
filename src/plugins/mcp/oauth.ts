@@ -24,11 +24,22 @@ export interface McpOAuthTokens {
   scope?: string;
   /** Stamped by us when the tokens were obtained (for expiry math). */
   obtained_at?: number;
+  /** The authorization server these tokens came from, stamped by us on save.
+   *  Tokens whose stamp names a different server are treated as absent -- see
+   *  `issuersMatch`. Absent on anything stored before this existed, which is
+   *  used as-is and stamped on the next save. */
+  issuer?: string;
 }
 
 export interface McpOAuthClientInfo {
   client_id: string;
   client_secret?: string;
+  /** The authorization server this registration belongs to, stamped by us on
+   *  save. Unlike tokens, a MISMATCH here throws rather than re-registering:
+   *  presenting one server's client credentials to another is the thing this
+   *  binding exists to prevent, and doing it quietly would be worse than
+   *  failing. */
+  issuer?: string;
 }
 
 export interface McpOAuthClientMetadata {
@@ -74,6 +85,27 @@ export interface AuthServerMetadata {
    *  WITHOUT `iss` is rejected — otherwise an attacker could simply strip the parameter to dodge
    *  the check. */
   authorization_response_iss_parameter_supported?: boolean;
+}
+
+/** Compare two authorization-server identifiers for the STORAGE binding,
+ *  tolerating a single trailing `/` and differences in URL spelling.
+ *
+ *  **Deliberately more lenient than `validateAuthorizationResponseIss` below,
+ *  and the two must not be swapped.** That one is RFC 9207 §2.4, where exact
+ *  string equality IS the defence: leniency is what a mix-up attacker looks for.
+ *  This one decides whether credentials WE stored belong to the server we are
+ *  about to talk to, and both official MCP SDKs compare that leniently --
+ *  `String(new URL(x))` slash-suffixes an origin while an advertised issuer
+ *  usually does not, so a strict compare here would discard a valid
+ *  registration on every other run and re-register for no reason. */
+export function issuersMatch(a: string, b: string): boolean {
+  let [x, y] = [a, b];
+  try {
+    [x, y] = [new URL(a).href, new URL(b).href];
+  } catch {
+    // Not both URLs: compared as written.
+  }
+  return x === y || (x.endsWith('/') && x.slice(0, -1) === y) || (y.endsWith('/') && y.slice(0, -1) === x);
 }
 
 /** Validate the RFC 9207 authorization-response issuer.
@@ -292,7 +324,7 @@ export async function exchangeCode(
 export async function refreshTokens(
   fetch: EngineFetch,
   tokenEndpoint: string,
-  p: { refresh_token: string; client_id: string; client_secret?: string },
+  p: { refresh_token: string; client_id: string; client_secret?: string; resource?: string },
 ): Promise<McpOAuthTokens> {
   return toTokens(await postForm(fetch, 'mcp-oauth/token.refresh', { tokenEndpoint, ...p }));
 }
@@ -317,25 +349,39 @@ export class McpOAuth {
   /** Ensure a usable access token exists. Returns 'redirect' if the user must
    *  authorize interactively (the provider has been asked to redirect). */
   async authorize(): Promise<'authorized' | 'redirect'> {
-    const tokens = await this.provider.tokens();
+    const tokens = await this.boundTokens();
     if (tokens?.access_token && !isExpired(tokens)) return 'authorized';
     if (tokens?.refresh_token && (await this.tryRefresh(tokens.refresh_token))) return 'authorized';
     await this.startRedirect();
     return 'redirect';
   }
 
+  /** Stored tokens, unless they were minted by a different authorization server.
+   *
+   *  Discarded rather than refused, which is the opposite of the client
+   *  registration above and deliberately so: tokens are disposable, so the
+   *  honest recovery is to behave as if none were stored and authorize again.
+   *  An unstamped set is used as-is -- it predates the binding and says nothing
+   *  about where it came from. */
+  private async boundTokens(): Promise<McpOAuthTokens | undefined> {
+    const tokens = await this.provider.tokens();
+    if (!tokens) return undefined;
+    if (typeof tokens.issuer !== 'string') return tokens;
+    return issuersMatch(tokens.issuer, this.expectedIssuer()) ? tokens : undefined;
+  }
+
   /** Bearer header for a request (refreshing a stale token if possible). */
   async authHeader(): Promise<Record<string, string>> {
-    let tokens = await this.provider.tokens();
+    let tokens = await this.boundTokens();
     if (tokens?.access_token && isExpired(tokens) && tokens.refresh_token) {
-      if (await this.tryRefresh(tokens.refresh_token)) tokens = await this.provider.tokens();
+      if (await this.tryRefresh(tokens.refresh_token)) tokens = await this.boundTokens();
     }
     return tokens?.access_token ? { authorization: `Bearer ${tokens.access_token}` } : {};
   }
 
   /** Handle a 401: refresh if we can (return true -> retry), else start a redirect. */
   async reauthorize(): Promise<boolean> {
-    const tokens = await this.provider.tokens();
+    const tokens = await this.boundTokens();
     if (tokens?.refresh_token && (await this.tryRefresh(tokens.refresh_token))) return true;
     await this.startRedirect();
     return false;
@@ -365,7 +411,7 @@ export class McpOAuth {
       redirect_uri: this.provider.redirectUrl,
       resource: this.serverUrl,
     });
-    await this.provider.saveTokens(tokens);
+    await this.provider.saveTokens({ ...tokens, issuer: this.expectedIssuer() });
   }
 
   private async startRedirect(): Promise<void> {
@@ -394,8 +440,23 @@ export class McpOAuth {
         refresh_token: refreshToken,
         client_id: client.client_id,
         client_secret: client.client_secret,
+        // RFC 8707: the refresh has to name the resource too. Without it an
+        // authorization server that scopes tokens per resource hands back one
+        // scoped to nothing, and the retry 401s with a token that looks valid.
+        resource: this.serverUrl,
       });
-      await this.provider.saveTokens({ refresh_token: refreshToken, ...tokens });
+      await this.provider.saveTokens({
+        ...tokens,
+        // The OLD refresh token survives unless the server issued a new one.
+        // `toTokens` always sets the key -- to undefined when the response omits
+        // it -- so spreading `tokens` over a carried-forward value wiped it, and
+        // an authorization server that does not rotate refresh tokens (the
+        // common case, RFC 6749 §6) left us with none after the first refresh.
+        // The next expiry then fell back to interactive authorization, silently,
+        // which for a headless client is a dead end.
+        refresh_token: tokens.refresh_token ?? refreshToken,
+        issuer: this.expectedIssuer(),
+      });
       return true;
     } catch {
       return false;
@@ -407,14 +468,42 @@ export class McpOAuth {
     return this.metadata;
   }
 
+  /** The authorization server stored credentials are bound to: the URL discovery
+   *  used, which is the resource server's own origin here.
+   *
+   *  NOT the metadata document's `issuer`. Binding to a value the server hands
+   *  us would let the server choose which stored credentials it receives, which
+   *  is the whole thing being defended against; the official TypeScript SDK
+   *  declines it for the same reason and says so in the same place. */
+  private expectedIssuer(): string {
+    return new URL(this.serverUrl).origin;
+  }
+
   private async ensureClient(meta: AuthServerMetadata): Promise<McpOAuthClientInfo> {
+    const issuer = this.expectedIssuer();
     const existing = await this.provider.clientInformation();
-    if (existing) return existing;
+    if (existing) {
+      // A stamp naming a DIFFERENT server: refuse, loudly. Re-registering
+      // silently would leave the caller with two registrations and no idea the
+      // server moved; presenting the old one is the attack.
+      if (typeof existing.issuer === 'string' && !issuersMatch(existing.issuer, issuer)) {
+        throw new Error(
+          `MCP OAuth: the stored client registration belongs to ${existing.issuer} and will not be ` +
+            `presented to ${issuer}. Clear the stored client information if the server has moved.`,
+        );
+      }
+      // No stamp: stored before this existed, or by a provider that drops the
+      // field. Used as-is and stamped now, so the NEXT run is bound.
+      if (existing.issuer === undefined) {
+        await this.provider.saveClientInformation?.({ ...existing, issuer });
+      }
+      return existing;
+    }
     if (!meta.registration_endpoint) {
       throw new Error('MCP OAuth: no client registered and the server has no registration endpoint');
     }
     const info = await registerClient(this.fetch, meta.registration_endpoint, this.provider.clientMetadata, this.serverUrl, this.security);
-    await this.provider.saveClientInformation?.(info);
+    await this.provider.saveClientInformation?.({ ...info, issuer });
     return info;
   }
 }

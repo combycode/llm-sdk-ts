@@ -8,6 +8,20 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **Stored MCP OAuth credentials are bound to the authorization server that issued them.** The MCP
+  server says where to authorize, so storing a registration or a token without recording WHICH
+  server it came from meant a server that later pointed elsewhere was handed credentials minted for
+  somebody else -- quietly, and by us. Both official MCP SDKs bind them for this reason (mcp-py
+  cites SEP-2352). A client registration bound elsewhere now RAISES, naming both servers, because
+  re-registering silently would leave two registrations and no sign the server moved; tokens bound
+  elsewhere are treated as ABSENT, because they are disposable and authorizing again is the honest
+  recovery. Anything stored before this existed is unstamped, used as-is, and stamped on its next
+  save. The binding key is the URL discovery used, NOT the metadata document's `issuer`: binding to
+  a value the server hands us would let the server choose which credentials it receives, which is
+  the thing being defended against -- the official TypeScript SDK declines it for the same reason.
+- **A token refresh names the resource it is for** (RFC 8707). Only the code exchange did, so an
+  authorization server that scopes tokens per resource returned a refreshed token scoped to
+  nothing, and the retried request 401'd with a token that looked valid.
 - **`thinking: { mode: 'between_tools' }`** — Anthropic's reason-between-tool-calls mode, and a
   gate in front of it. Measured 2026-09-29 against every active Anthropic chat model: exactly one
   accepts it (`claude-sonnet-5.5`) and the other twelve answer `400 "thinking.type.between_tools"
@@ -74,6 +88,12 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **An MCP token refresh wiped the refresh token whenever the server did not replace it.** Most
+  authorization servers do not rotate refresh tokens (RFC 6749 §6), and the saved object spread the
+  response over the carried-forward value -- which `toTokens` always sets, to `undefined` when the
+  response omits it. So after one refresh we held none, and the next expiry fell back to
+  interactive authorization with nothing said, which for a headless client is a dead end. The
+  Python port had this right already; the two now agree.
 - **A tool call whose arguments did not parse ran with `{}`.** That is a valid call, so a stream
   cut at `{"path": "/et` reached the executor as `delete_files()`. Malformed calls are now marked
   and never executed, still answered so the history stays valid, and reported as
