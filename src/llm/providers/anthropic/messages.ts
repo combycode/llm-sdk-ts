@@ -7,7 +7,7 @@
 import { isBrowser } from '../../../runtime/runtime';
 import { base64ToUtf8 } from '../../../util/base64';
 import type { SSEEvent } from '../../../network/types';
-import type { ContentPart } from '../../types/messages';
+import type { ContentPart, ToolResultPart } from '../../types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import type { NormalizedRequest } from '../../types/request';
 import {
@@ -241,11 +241,28 @@ export class AnthropicAdapter implements ProviderAdapter {
         return {
           type: 'tool_result',
           tool_use_id: part.id,
-          content: typeof part.content === 'string' ? part.content : JSON.stringify(part.content),
+          content: this.buildToolResultContent(part.content),
         };
       default:
         return { type: 'text', text: `[unsupported: ${(part as ContentPart).type}]` };
     }
+  }
+
+  /** What a tool handed back, in the slot Anthropic gives it.
+   *
+   *  `tool_result.content` takes a string OR a block array, and the block array
+   *  accepts the same `text`/`image`/`document` blocks a user message does — so
+   *  an image a tool produced needs no separate message and no re-encoding. A
+   *  plain string result still sends the string, byte for byte as before.
+   *
+   *  Audio and video have no block form here; `buildContentPart` renders those
+   *  as an `[unsupported: …]` note, which is the honest outcome — better a
+   *  visible gap than base64 silently billed as prose. */
+  private buildToolResultContent(
+    content: ToolResultPart['content'],
+  ): string | Record<string, unknown>[] {
+    if (typeof content === 'string') return content;
+    return content.map((p) => this.buildContentPart(p));
   }
 
   parseResponse(raw: unknown, latencyMs: number): CompletionResponse {

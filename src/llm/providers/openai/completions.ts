@@ -11,6 +11,7 @@ import { OPENAI_STREAM_REGISTRY } from './stream-registry';
 import type { Registry } from '../../../wire/interpreter';
 import { chatSpec } from '../../../wire/chat-specs';
 import { makeRegistry } from '../../wire-transforms';
+import { splitToolResult } from '../_shared/tool-result';
 import type { ContentPart, TextPart } from '../../types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import type { NormalizedRequest } from '../../types/request';
@@ -127,12 +128,20 @@ export class OpenAIAdapter implements ProviderAdapter {
           : msg.content;
       const results = parts.filter((p) => p.type === 'tool_result');
       if (results.length > 0) {
-        return results.map((result) => ({
-          role: 'tool',
-          tool_call_id: result.id,
-          content:
-            typeof result.content === 'string' ? result.content : JSON.stringify(result.content),
-        }));
+        // A tool message on this API carries TEXT and nothing else — there is
+        // no content-part form for it. So a tool that answered with media
+        // sends the text half here and the media half follows in a user
+        // message, after every tool result, because a tool message may not be
+        // interrupted by another role while calls are still unanswered.
+        const out: Record<string, unknown>[] = [];
+        const trailing: ContentPart[] = [];
+        for (const result of results) {
+          const { text, media } = splitToolResult(result.content);
+          out.push({ role: 'tool', tool_call_id: result.id, content: text });
+          trailing.push(...media);
+        }
+        if (trailing.length > 0) out.push(this.buildMessage({ role: 'user', content: trailing }));
+        return out;
       }
     }
     return [this.buildMessage(msg)];

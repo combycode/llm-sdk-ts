@@ -4,7 +4,7 @@
  *  output items (not choices), function_call/function_call_output for tools. */
 
 import type { SSEEvent } from '../../../network/types';
-import type { Message, TextPart, ToolCaller } from '../../types/messages';
+import type { ContentPart, Message, TextPart, ToolCaller } from '../../types/messages';
 import { buildFromSpec } from '../../../wire/interpreter';
 import { buildResponse } from '../../../wire/response-interpreter';
 import { getResponseSpec } from '../../../wire/response-specs';
@@ -269,6 +269,42 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
     ) as ProviderHttpRequest;
   }
 
+  /** Content parts in the `input_*` shapes this API reads them back as.
+   *
+   *  Shared by user messages and by `function_call_output`, whose `output`
+   *  takes the same items — so an image a tool produced is sent as an image
+   *  rather than as base64 in the output string, with no second message and no
+   *  provider-specific shape invented for tools. */
+  private inputContent(content: ContentPart[]): unknown[] {
+    const parts: unknown[] = [];
+    for (const p of content) {
+      if (p.type === 'text') parts.push({ type: 'input_text', text: p.text });
+      else if (p.type === 'image') {
+        const s = p.source;
+        if (s.type === 'base64')
+          parts.push({
+            type: 'input_image',
+            image_url: `data:${s.mimeType};base64,${s.data}`,
+          });
+        else if (s.type === 'url') parts.push({ type: 'input_image', image_url: s.url });
+        else if (s.type === 'provider_ref') parts.push({ type: 'input_file', file_id: s.refId });
+      } else if (p.type === 'document') {
+        const s = p.source;
+        if (s.type === 'provider_ref') parts.push({ type: 'input_file', file_id: s.refId });
+        else if (s.type === 'base64')
+          parts.push({
+            type: 'input_file',
+            // Inline file_data REQUIRES a filename (with the right extension)
+            // or the Responses API rejects the request.
+            filename: filenameForMime(s.mimeType),
+            file_data: `data:${s.mimeType};base64,${s.data}`,
+          });
+        else if (s.type === 'url') parts.push({ type: 'input_file', url: s.url });
+      }
+    }
+    return parts;
+  }
+
   /** Convert a universal Message to Responses API input items.
    *  `toolNames` is threaded across messages so a tool result can name its originating call. */
   /** Reached through the wire registry while building the request. */
@@ -281,33 +317,7 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
         items.push({ role: msg.role, content: msg.content });
       } else {
         // Content parts → convert to input format
-        const parts: unknown[] = [];
-        for (const p of msg.content) {
-          if (p.type === 'text') parts.push({ type: 'input_text', text: p.text });
-          else if (p.type === 'image') {
-            const s = p.source;
-            if (s.type === 'base64')
-              parts.push({
-                type: 'input_image',
-                image_url: `data:${s.mimeType};base64,${s.data}`,
-              });
-            else if (s.type === 'url') parts.push({ type: 'input_image', image_url: s.url });
-            else if (s.type === 'provider_ref')
-              parts.push({ type: 'input_file', file_id: s.refId });
-          } else if (p.type === 'document') {
-            const s = p.source;
-            if (s.type === 'provider_ref') parts.push({ type: 'input_file', file_id: s.refId });
-            else if (s.type === 'base64')
-              parts.push({
-                type: 'input_file',
-                // Inline file_data REQUIRES a filename (with the right extension)
-                // or the Responses API rejects the request.
-                filename: filenameForMime(s.mimeType),
-                file_data: `data:${s.mimeType};base64,${s.data}`,
-              });
-            else if (s.type === 'url') parts.push({ type: 'input_file', url: s.url });
-          }
-        }
+        const parts = this.inputContent(msg.content);
         if (parts.length > 0) items.push({ role: msg.role, content: parts });
       }
     }
@@ -409,7 +419,10 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
           items.push({
             type: 'function_call_output',
             call_id: p.id,
-            output: typeof p.content === 'string' ? p.content : JSON.stringify(p.content),
+            // `output` takes a string OR the same input items a user message
+            // carries, so a tool that answered with content parts sends its
+            // image as an image. A string result is unchanged.
+            output: typeof p.content === 'string' ? p.content : this.inputContent(p.content),
             ...(name !== undefined ? { name } : {}),
             ...(p.namespace !== undefined ? { namespace: p.namespace } : {}),
             ...(p.caller ? { caller: toWireCaller(p.caller) } : {}),

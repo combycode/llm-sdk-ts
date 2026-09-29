@@ -1,8 +1,9 @@
 /** Google Gemini provider adapter (generateContent API). */
 
 import type { SSEEvent } from '../../../network/types';
-import type { ContentPart } from '../../types/messages';
+import type { ContentPart, DataSource } from '../../types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
+import { splitToolResult } from '../_shared/tool-result';
 import { buildFromSpec } from '../../../wire/interpreter';
 import { buildResponse } from '../../../wire/response-interpreter';
 import { getResponseSpec } from '../../../wire/response-specs';
@@ -22,6 +23,18 @@ import type { StreamEvent } from '../../types/stream';
 export interface GoogleAdapterConfig {
   apiKey: string;
   baseURL?: string;
+}
+
+/** One media part of a `functionResponse`.
+ *
+ *  A narrower shape than an ordinary content part: `FunctionResponsePart` holds
+ *  `inlineData` or `fileData` and nothing else — no `text`, which is why the
+ *  textual half of a tool result stays in `response`. `fileData` is documented
+ *  as Vertex-only, so a source we cannot inline yields nothing rather than a
+ *  field the Gemini API will reject. */
+function functionResponsePart(s: DataSource): Record<string, unknown> | null {
+  if (s.type === 'base64') return { inlineData: { mimeType: s.mimeType, data: s.data } };
+  return null;
 }
 
 /** generateContent token usage. Exported so the spec-driven parser runs this
@@ -135,13 +148,28 @@ export class GoogleAdapter implements ProviderAdapter {
           }
           case 'tool_result': {
             const fnName = this.toolCallNames.get(p.id) ?? '';
-            parts.push({
-              functionResponse: {
-                name: fnName,
-                id: p.id,
-                response: typeof p.content === 'string' ? { result: p.content } : p.content,
-              },
-            });
+            const fr: Record<string, unknown> = { name: fnName, id: p.id };
+            if (typeof p.content === 'string') {
+              fr.response = { result: p.content };
+            } else {
+              // `response` is a JSON object, so media cannot live there; the API
+              // gives it `functionResponse.parts` instead. Splitting the two
+              // also fixes a content-part result being sent as an ARRAY in a
+              // field the API defines as an object.
+              const { text, media } = splitToolResult(p.content);
+              const frParts: Record<string, unknown>[] = [];
+              const notes: string[] = [];
+              for (const m of media) {
+                const fp = functionResponsePart(m.source);
+                if (fp) frParts.push(fp);
+                // Said out loud rather than dropped: a tool whose media could
+                // not travel should leave a mark the model can act on.
+                else notes.push(`[${m.type} omitted: a function response takes inline bytes]`);
+              }
+              fr.response = { result: [text, ...notes].filter(Boolean).join('\n') };
+              if (frParts.length > 0) fr.parts = frParts;
+            }
+            parts.push({ functionResponse: fr });
             break;
           }
         }

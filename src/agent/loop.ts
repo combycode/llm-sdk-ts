@@ -1407,7 +1407,11 @@ export class AgentLoop {
       ...(inner ? { discoveredVia: 'search' as const } : {}),
       ...(customData !== undefined ? { customData } : {}),
     });
-    return { type: 'tool_result', id: tc.id, content: resultStr };
+    // `resultValue` is the STRUCTURE the tool returned, not its serialisation:
+    // a tool that answered with content parts keeps them, so an image it
+    // produced reaches the provider as an image rather than as base64 text.
+    // `resultStr` stays what the guardrails read and what the report measures.
+    return { type: 'tool_result', id: tc.id, content: resultValue };
   }
 
   /** Declare `tool_search` + `call_tool`, once, on the first lazy registration.

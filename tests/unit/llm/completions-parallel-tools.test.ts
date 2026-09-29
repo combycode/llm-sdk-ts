@@ -79,7 +79,11 @@ describe('chat-completions parallel tool results', () => {
     expect(out).toEqual([{ role: 'tool', tool_call_id: 'call_1', content: 'ok' }]);
   });
 
-  it('serialises structured tool result content', () => {
+  it('unwraps structured tool result content into the text the tool meant', () => {
+    // This used to send `[{"type":"text","text":"a"}]` — the part WRAPPER, as
+    // JSON, to a model that only ever wanted `a`. A tool message on this API
+    // carries text, so text is what it carries; media in a result travels in its
+    // own message (tests/unit/llm/tool-result-media.test.ts).
     const out = messagesOf([
       {
         role: 'tool',
@@ -90,7 +94,7 @@ describe('chat-completions parallel tool results', () => {
       },
     ]);
     expect(out).toHaveLength(2);
-    expect(out[0].content).toBe(JSON.stringify([{ type: 'text', text: 'a' }]));
+    expect(out[0].content).toBe('a');
     expect(out[1].content).toBe('b');
   });
 

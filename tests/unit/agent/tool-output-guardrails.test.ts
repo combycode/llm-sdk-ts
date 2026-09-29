@@ -249,3 +249,40 @@ describe('guardrails a tool brought with it', () => {
     expect(followUp).not.toContain('4111');
   });
 });
+
+describe('a tool that answered with content parts', () => {
+  // The parts are serialised FOR THE CHECKER, so a rule written against text
+  // still applies to a tool that returns media — and a trip withholds the media
+  // along with everything else.
+  const shot = (): AgentTool => ({
+    definition: { name: 'lookup', description: 'Take a picture', parameters: {} },
+    execute: async () => [
+      { type: 'text' as const, text: SECRET },
+      {
+        type: 'image' as const,
+        source: { type: 'base64' as const, mimeType: 'image/png', data: 'iVBO' },
+      },
+    ],
+  });
+
+  it('is still inspected, as text', async () => {
+    let saw = '';
+    const watch: ToolOutputGuardrail = {
+      name: 'watch',
+      check: (ctx) => {
+        saw = ctx.result;
+        return { pass: true };
+      },
+    };
+    await runWith({ toolOutputGuardrails: [watch] }, shot());
+    expect(saw).toContain('4111');
+    expect(saw).toContain('image');
+  });
+
+  it('withholds the media too when it trips', async () => {
+    const { followUp } = await runWith({ toolOutputGuardrails: [blockCards] }, shot());
+    expect(followUp).not.toContain('4111');
+    expect(followUp).not.toContain('iVBO');
+    expect(followUp).toContain(TOOL_OUTPUT_WITHHELD);
+  });
+});

@@ -6,6 +6,27 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+### Fixed
+
+- **A tool that returns media now sends media.** `AgentTool.execute` has always been typed
+  `Promise<string | ContentPart[]>` and the loop always carried the array into
+  `ToolResultPart.content`, whose type says the same -- then every adapter called `JSON.stringify`
+  on it. So the documented way to return a screenshot worked in the sense that the request
+  succeeded: the model received a wall of base64 as prose, was billed for it as prose, and could
+  not see the picture. Measured 2026-09-30 with a tool returning a solid-colour square and the
+  model asked to name the colour: **0 of 6 targets right before, 6 of 6 after** -- and two of the
+  six did not say they could not see it, they named a confident wrong colour. Each API has its own
+  slot and they disagree about where, so the result is split into its text half and its media half:
+  Anthropic takes blocks inside `tool_result.content`, OpenAI Responses items inside
+  `function_call_output.output`, Google `functionResponse.parts[].inlineData`; chat-completions and
+  Google Interactions have no slot at all, so the media follows in its own user turn after every
+  tool result -- after, because this API rejects a request where a call is still unanswered. A
+  string result builds exactly the body it did before on every backend. Where a part cannot travel
+  it says so (`[unsupported: audio]` on Anthropic, `[image omitted: …]` for a URL source on Google,
+  whose function response takes inline bytes only) rather than dropping it. One behaviour change
+  beyond the fix: a content-part result holding only text now sends the TEXT, where it used to send
+  the part wrapper as JSON.
+
 ### Added
 
 - **`toolOutputGuardrails`** -- inspect what a tool returned before anything keeps it, loop-wide or

@@ -4,7 +4,8 @@
  *  previous_interaction_id for stateful, 72h retention. */
 
 import type { SSEEvent } from '../../../network/types';
-import type { Message } from '../../types/messages';
+import type { ContentPart, Message } from '../../types/messages';
+import { splitToolResult } from '../_shared/tool-result';
 import { buildFromSpec } from '../../../wire/interpreter';
 import { buildResponse } from '../../../wire/response-interpreter';
 import { getResponseSpec } from '../../../wire/response-specs';
@@ -79,6 +80,26 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
     ) as ProviderHttpRequest;
   }
 
+  /** Content parts in the shapes a `user_input` item takes them. */
+  private userContent(content: ContentPart[]): unknown[] {
+    const parts: unknown[] = [];
+    for (const p of content) {
+      if (p.type === 'text') parts.push({ type: 'text', text: p.text });
+      else if (p.type === 'image') {
+        const s = p.source;
+        if (s.type === 'base64') parts.push({ type: 'image', mime_type: s.mimeType, data: s.data });
+        else if (s.type === 'url') parts.push({ type: 'image', uri: s.url });
+      } else if (p.type === 'audio') {
+        const s = p.source;
+        if (s.type === 'base64') parts.push({ type: 'audio', mime_type: s.mimeType, data: s.data });
+      } else if (p.type === 'video') {
+        const s = p.source;
+        if (s.type === 'url') parts.push({ type: 'video', uri: s.url });
+      }
+    }
+    return parts;
+  }
+
   // step_list input items (post May-2026): user turns -> {type:'user_input'},
   // assistant turns -> {type:'model_output'}, tool results -> {type:'function_result'}.
   /** Reached through the wire registry while building the request. */
@@ -89,23 +110,7 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
       if (typeof msg.content === 'string') {
         items.push({ type: 'user_input', content: [{ type: 'text', text: msg.content }] });
       } else {
-        const parts: unknown[] = [];
-        for (const p of msg.content) {
-          if (p.type === 'text') parts.push({ type: 'text', text: p.text });
-          else if (p.type === 'image') {
-            const s = p.source;
-            if (s.type === 'base64')
-              parts.push({ type: 'image', mime_type: s.mimeType, data: s.data });
-            else if (s.type === 'url') parts.push({ type: 'image', uri: s.url });
-          } else if (p.type === 'audio') {
-            const s = p.source;
-            if (s.type === 'base64')
-              parts.push({ type: 'audio', mime_type: s.mimeType, data: s.data });
-          } else if (p.type === 'video') {
-            const s = p.source;
-            if (s.type === 'url') parts.push({ type: 'video', uri: s.url });
-          }
-        }
+        const parts = this.userContent(msg.content);
         if (parts.length > 0) items.push({ type: 'user_input', content: parts });
       }
     }
@@ -147,15 +152,27 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
         typeof msg.content === 'string'
           ? [{ type: 'text' as const, text: msg.content }]
           : msg.content;
+      // A `function_result` carries a `result` string. Whether this API has a
+      // media slot inside one is not something the pinned SDK says -- it has no
+      // Interactions types at all -- so rather than invent a field name, the
+      // text half goes in `result` and the media half follows as a `user_input`
+      // item, after every result, so no tool call is left unanswered in between.
+      const trailing: ContentPart[] = [];
       for (const p of parts) {
         if (p.type === 'tool_result') {
+          const { text, media } = splitToolResult(p.content);
           items.push({
             type: 'function_result',
             name: this.toolCallNames.get(p.id) ?? '',
             call_id: p.id,
-            result: typeof p.content === 'string' ? p.content : JSON.stringify(p.content),
+            result: text,
           });
+          trailing.push(...media);
         }
+      }
+      if (trailing.length > 0) {
+        const content = this.userContent(trailing);
+        if (content.length > 0) items.push({ type: 'user_input', content });
       }
     }
 

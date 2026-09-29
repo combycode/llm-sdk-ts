@@ -160,6 +160,51 @@ const loggedTool = defineTool({
 });
 ```
 
+## Returning an image (or a PDF, or audio) from a tool
+
+`execute` may return `ContentPart[]` instead of a string, and media in it is sent to the model **as
+media**. A screenshot tool, a chart renderer, a "fetch this page as a PDF" tool: the model sees the
+picture rather than a description of one.
+
+```ts
+const screenshot = defineTool({
+  name: 'take_screenshot',
+  description: 'Take a screenshot of the current screen.',
+  params: {},
+  execute: async () => [
+    { type: 'text', text: 'screenshot taken' },
+    { type: 'image', source: { type: 'base64', mimeType: 'image/png', data: await grabPng() } },
+  ],
+});
+```
+
+Each API has its own place for this and they disagree about where, so the SDK splits the result into
+its text half and its media half and puts each where that provider takes it:
+
+| API | media travels as |
+| --- | --- |
+| Anthropic Messages | blocks inside `tool_result.content` |
+| OpenAI Responses | items inside `function_call_output.output` |
+| Google `generateContent` | `functionResponse.parts[].inlineData` |
+| OpenAI Chat Completions | its own user message, right after the tool results — the API has no slot |
+| Google Interactions | its own `user_input` item, for the same reason |
+
+Verified live on 2026-09-30 against `claude-haiku-4.5`, `gpt-5.4-nano` (Responses **and**
+Completions), `gemini-3.1-flash-lite` (generateContent **and** Interactions) and `grok-4.3`: a tool
+returned a solid-colour square, and every model named the colour — which it can only do by decoding
+the image.
+
+A **string** result is unchanged on every backend, so this costs nothing when a tool returns text.
+
+Two edges worth knowing:
+
+- Anthropic has no `tool_result` block for **audio or video**, so those render as an
+  `[unsupported: …]` note. Google's `functionResponse` takes **inline bytes only** (`fileData` there
+  is documented Vertex-only), so a URL-sourced image leaves an `[image omitted: …]` line in the
+  result text. Both say so rather than dropping the part.
+- A content-part result containing only text now sends **the text**. It used to send the part
+  wrapper as JSON — `[{"type":"text","text":"a"}]` to a model that only wanted `a`.
+
 ## Attaching out-of-band data — `customDataExtractor`
 
 An `AgentTool` may declare an optional `customDataExtractor(result, args, context)` that runs
