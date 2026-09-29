@@ -55,6 +55,23 @@ export interface CompletionResponse {
     message?: string;
   };
 
+  /** Opaque provider state this turn produced that the NEXT request has to send
+   *  back, verbatim. Never interpreted here, and never portable: an adapter
+   *  consumes it only when it produced it.
+   *
+   *  Google Interactions is the case that forced it. A turn returns a `thought`
+   *  step carrying nothing but a `signature`, which this library used to drop on
+   *  the floor -- the buffered parse had no case for the step type, and the
+   *  stream spec called the delta "internal". Measured 2026-09-29: echoing the
+   *  step on the next turn is accepted, and echoing it with the signature
+   *  corrupted is refused 400 "Corrupted thought signature", so the server reads
+   *  it rather than tolerating it. Dropping it silently discards the model's own
+   *  reasoning continuity.
+   *
+   *  `buildAssistantMessage` copies this onto `message.origin.signatures`, which
+   *  is where an adapter reads it back. */
+  signatures?: unknown;
+
   /** Why the prompt cache could not reuse the prefix of an earlier request, when
    *  `cacheDiagnostics` asked the provider to compare against one. Absent unless
    *  it was asked for and the provider had something to say. */

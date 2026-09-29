@@ -465,7 +465,9 @@ export const RESPONSE_SCENARIOS: ResponseScenario[] = [
       provenance:
         'openai-ts 7.4.0 `ResponseError` (code is a closed enum; `server_error` is a member) ' +
         'with `Response.status: ResponseStatus` = failed. google/interactions status per our ' +
-        'own adapter mapping, matching the recorded envelope key `status`.',
+        'own adapter mapping, matching the recorded envelope key `status`. Its `errors[]` is ' +
+        'google-ts `Interaction.errors: Array<ErrorT>` with `ErrorT {code?, message?}` -- ' +
+        'TYPE-DERIVED, not measured: a platform fault cannot be provoked on demand.',
       build: {
         'openai/responses': (raw) => ({
           ...raw,
@@ -474,7 +476,19 @@ export const RESPONSE_SCENARIOS: ResponseScenario[] = [
           incomplete_details: null,
           output: [],
         }),
-        'google/interactions': (raw) => ({ ...raw, status: 'failed', steps: [] }),
+        // `errors[]` is what a failed interaction records; without it the
+        // caller gets `finishReason: 'error'` and no reason at all.
+        'google/interactions': (raw) => ({
+          ...raw,
+          status: 'failed',
+          steps: [],
+          errors: [
+            {
+              code: 'https://developers.google.com/errors/internal',
+              message: 'The model failed to generate a response.',
+            },
+          ],
+        }),
       },
     },
   },

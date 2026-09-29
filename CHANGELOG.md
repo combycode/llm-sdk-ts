@@ -8,6 +8,24 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **Google Interactions hands its thought signature back.** A turn returns a `thought` step
+  carrying nothing but a `signature`, and this library dropped it on both paths: the buffered parse
+  had no case for the step type, and the stream spec's note called the delta "internal". Measured
+  2026-09-29 on `gemini-3.1-flash-lite` -- echoing the step on the next turn is accepted, and
+  echoing it with the signature corrupted is refused `400 Corrupted thought signature`, so the
+  server reads it rather than tolerating it. It now rides on `response.signatures`, is stamped onto
+  `message.origin.signatures` by `assistantMessage()`, and is sent back in the position it arrived
+  in -- only by the provider that minted it. A streamed turn keeps it too: the signature reaches
+  the client only as its own delta (the terminal frame carries no steps), so it is rebuilt there
+  and carried out on `done`. Kept for ANY signed step, not a list of types: `processing_call`,
+  `processing_result`, `retrieval_call` and `retrieval_result` all declare one and are all accepted
+  as input, and a type list would lose each new one silently.
+- **A failed interaction says why.** `Interaction.errors[]` is lifted onto `response.error`, where
+  a failure used to arrive as `finishReason: 'error'` and nothing else -- an empty answer, no
+  exception to catch, and no way to tell a content refusal from a platform fault. Every recorded
+  message is joined, not just the first. On a *completed* interaction the field stays on
+  `response.raw`: Google documents it as diagnostics rather than as a cause, and reporting a
+  successful call as failed would be worse than saying nothing.
 - **`cacheDiagnostics` asks WHY the prompt cache missed**, and `response.cacheDiagnostics` carries
   the answer. `usage.cachedTokens` says how much was reused; on a long system prompt the useful
   question is what broke the prefix, and Anthropic and OpenAI both answer it under different names

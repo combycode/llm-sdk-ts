@@ -33,6 +33,9 @@ export function buildAssistantMessage(
       provider: origin.provider,
       model: origin.model,
       ...(stateful && response.id ? { serverStateId: response.id } : {}),
+      // Opaque and provider-bound: copied, never read. The adapter that
+      // produced it is the only one allowed to send it back.
+      ...(response.signatures ? { signatures: response.signatures } : {}),
     },
   };
 }

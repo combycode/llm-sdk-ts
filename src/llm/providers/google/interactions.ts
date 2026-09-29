@@ -111,6 +111,17 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
     }
 
     if (msg.role === 'assistant') {
+      // Signed steps first, in the order they arrived: they preceded the
+      // model_output in the turn that produced them, and that is where the API
+      // accepts them back (measured 2026-09-29 -- echoing a `thought` step is
+      // accepted, and corrupting its signature is refused 400, so the server
+      // reads it).
+      //
+      // Only OUR OWN: `origin.signatures` is provider-bound by contract, and a
+      // signature minted by another provider would be a 400 at best.
+      if (msg.origin?.provider === 'google' && Array.isArray(msg.origin.signatures)) {
+        items.push(...(msg.origin.signatures as unknown[]));
+      }
       const parts =
         typeof msg.content === 'string'
           ? [{ type: 'text' as const, text: msg.content }]

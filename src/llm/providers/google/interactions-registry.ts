@@ -97,6 +97,48 @@ export const GOOGLE_INTERACTIONS_REGISTRY: Registry = {
     gaFinish: (_arg: unknown, ctx: Ctx) =>
       extractFinishReason(outOf(ctx).toolCalls.length > 0, rawOf(ctx).status as string, FINISH),
 
+    /** Steps that carry a `signature`, kept verbatim so the next turn can send
+     *  them back exactly as they arrived.
+     *
+     *  Matched on the PRESENCE of a signature rather than on a list of step
+     *  types: `thought` is the one seen today, and `processing_call`,
+     *  `processing_result`, `retrieval_call` and `retrieval_result` all declare
+     *  one too (google-ts) and are all accepted as input types -- the live API
+     *  enumerates them when it rejects an unknown one. A type list here would
+     *  need editing every time Google adds a signed step, and until someone did,
+     *  the signature would go missing with nothing to show for it. */
+    gaSignatures: (_arg: unknown, ctx: Ctx) => {
+      const raw = rawOf(ctx);
+      const steps = (raw.steps as Item[] | undefined) ?? (raw.outputs as Item[] | undefined) ?? [];
+      const signed = steps.filter((s) => typeof s.signature === 'string' && s.signature);
+      return signed.length ? signed : undefined;
+    },
+
+    /** `Interaction.errors[]` -- "diagnostic faults / platform errors recorded on
+     *  the interaction", per google-ts. A failed interaction used to arrive as
+     *  `finishReason: 'error'` and nothing else: an empty answer, no exception to
+     *  catch, and no way to tell a content refusal from a platform fault.
+     *
+     *  Read only on a FAILED interaction. The field is output-only and Google
+     *  documents it as diagnostics rather than as the cause, so putting it on
+     *  `error` for a completed turn would report a successful call as failed. On
+     *  a completed one it stays reachable through `response.raw`. */
+    gaError: (_arg: unknown, ctx: Ctx) => {
+      const raw = rawOf(ctx);
+      if (raw.status !== 'failed') return undefined;
+      const errors = Array.isArray(raw.errors) ? (raw.errors as Array<Record<string, unknown>>) : [];
+      const first = errors[0];
+      const code = typeof first?.code === 'string' ? first.code : undefined;
+      // Every message, not just the first: a platform fault can record several,
+      // and the one that explains it is not reliably the first.
+      const message = errors
+        .map((e) => (typeof e.message === 'string' ? e.message : ''))
+        .filter(Boolean)
+        .join('; ');
+      if (!code && !message) return { message: 'The interaction failed and reported no detail.' };
+      return { ...(code ? { code } : {}), ...(message ? { message } : {}) };
+    },
+
     gaCitations: (_arg: unknown, ctx: Ctx) => {
       const c = extractCitations('interactions', rawOf(ctx));
       return c.length ? c : undefined;

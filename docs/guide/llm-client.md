@@ -309,6 +309,42 @@ const r2 = await llm.complete(messages);
 console.log(r2.text);
 ```
 
+### `assistantMessage()` carries more than text (Google Interactions)
+
+`llm.assistantMessage(response)` is not a convenience wrapper around the text — it stamps the
+turn's provenance, and on Google Interactions that provenance is load-bearing. **Build history
+with it rather than by hand**, or the next turn goes out missing state the provider expects back.
+
+A Gemini Interactions turn returns a `thought` step carrying nothing but a `signature`. Measured
+2026-09-29 on `gemini-3.1-flash-lite`: echoing that step on the next request is accepted, and
+echoing it with the signature corrupted is refused `400 Corrupted thought signature` — so the
+server reads it rather than tolerating it. The library keeps it on `response.signatures`, copies
+it to `message.origin.signatures`, and the adapter sends it back in the position it arrived in.
+
+```ts
+const first = await llm.complete('Think, then say OK.');
+const history = [
+  { role: 'user', content: 'Think, then say OK.' },
+  llm.assistantMessage(first),          // carries origin.signatures
+  { role: 'user', content: 'Now say DONE.' },
+] satisfies Message[];
+await llm.complete(history);            // the signed step rides along
+```
+
+`signatures` is **opaque and provider-bound**: nothing here reads it, and the adapter sends it only
+when `origin.provider` matches its own. A streamed turn keeps it too — the signature arrives as its
+own delta mid-stream and rides out on the terminal `done` event onto `response.signatures`.
+
+When you continue server-side instead (`previousResponseId`, or the default `stateful` behaviour),
+the transcript is not resent at all and the provider already holds the state, so nothing is echoed.
+
+**A failed interaction now says why.** `Interaction.errors[]` — Google's diagnostic faults — is
+lifted onto `response.error` when the interaction failed, where it used to arrive as
+`finishReason: 'error'` and nothing else: an empty answer, no exception to catch, and no way to
+tell a content refusal from a platform fault. On a *completed* interaction the field stays on
+`response.raw`, because Google documents it as diagnostics rather than as a cause and reporting a
+successful call as failed would be worse than saying nothing.
+
 ### Capability-based model selection
 
 ```ts

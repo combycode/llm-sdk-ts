@@ -21,7 +21,11 @@ export type StreamEvent =
   | { type: 'tool_call_delta'; id: string; arguments: string }
   | { type: 'tool_call_end'; id: string }
   | { type: 'usage'; usage: Usage }
-  | { type: 'done'; finishReason: string }
+  /** `signatures` is opaque provider state the NEXT request must echo, carried
+   *  here rather than as its own event because a caller never reads it and a
+   *  stream they do read should not fill with blobs. Collected onto the
+   *  streamed final response, exactly as the buffered parse returns it. */
+  | { type: 'done'; finishReason: string; signatures?: unknown }
   | { type: 'error'; error: Error }
   | { type: 'media_start'; mediaType: MediaStreamType; mimeType: string }
   | { type: 'media_chunk'; data: string; progress?: number }

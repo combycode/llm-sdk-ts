@@ -650,6 +650,7 @@ export class LLMClient {
     let thinking = '';
     let usage: Usage = emptyUsage();
     let cacheDiagnostics: CacheDiagnostics | undefined;
+    let signatures: unknown;
     let finishReason: FinishReason = 'stop';
     let moderationReport: ModerationReport | undefined;
     const files: FileOutput[] = [];
@@ -726,6 +727,9 @@ export class LLMClient {
           break;
         case 'done':
           finishReason = event.finishReason as FinishReason;
+          // Opaque, provider-bound, and the streamed turn's only chance to keep
+          // it: the terminal frame is where it rides out.
+          if (event.signatures) signatures = event.signatures;
           break;
         case 'file':
           // Hosted-tool output file (code-execution artifact) — collect for the
@@ -779,6 +783,7 @@ export class LLMClient {
       ...(citationsByUrl.size ? { citations: [...citationsByUrl.values()] } : {}),
       ...(moderationReport ? { moderation: moderationReport } : {}),
       ...(cacheDiagnostics ? { cacheDiagnostics } : {}),
+      ...(signatures ? { signatures } : {}),
       latencyMs: performance.now() - start,
       raw: null,
     };
