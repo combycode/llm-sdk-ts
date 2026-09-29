@@ -66,6 +66,20 @@ const audio = await media.generateAudio({
 console.log(`Audio bytes: ${audio?.meta.size}`);
 ```
 
+### Image `quality` on xAI
+
+`grok-imagine-image-2.0` takes `params.quality` of `low` or `medium`,
+defaulting to `medium` when omitted. The catalog records it on that model
+alone, which is what the xAI SDK documents.
+
+Worth knowing why the catalog is narrower than the wire: `quality: "ultra"` is
+refused with a 422 on *every* imagine model, because that is the request body
+being deserialized before any model dispatch. A 200 on another model therefore
+means the schema accepts the field, not that the model honours it -- and xAI
+published OpenAPI does not carry `quality` at all, so its silence is not
+evidence either. Ask `catalog.get(...)?.mediaParams?.quality` rather than
+inferring support from a status code.
+
 ### Two retired endpoints, and what happens now
 
 Both were checked live on 2026-09-29, because a deprecation notice in an SDK's types

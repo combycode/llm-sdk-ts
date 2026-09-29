@@ -198,15 +198,31 @@ Errors surface immediately. `processLoop` is not involved.
 ## SSE parser (`src/network/sse.ts`)
 
 `parseSSEStream(body: ReadableStream<Uint8Array>)` is a shared implementation
-used by all providers (no per-provider parsing). It:
+used by all providers (no per-provider parsing). It is LINE-based and
+incremental:
 - Uses `TextDecoder` with `{ stream: true }` for incremental decoding.
-- Splits on `\n\n`, `\r\n\r\n`, or `\r\r` (SSE block separators per the WHATWG HTML
-  Living Standard).
-- Parses each block field-by-field: `event:`, `id:`, `data:`. Lines starting
+- Splits into lines on LF, CRLF or CR, in any mixture, and dispatches an event
+  on a blank line -- which is what the WHATWG HTML Living Standard actually
+  says. A CRLF straddling two chunks is carried across the boundary, so the LF
+  arriving in the next chunk is recognised as the partner of the previous CR
+  rather than as a blank line of its own.
+- Never rescans what it already scanned: each chunk is scanned once, from where
+  the previous one stopped.
+- Parses each event field-by-field: `event:`, `id:`, `data:`. Lines starting
   with `:` are SSE comments and are ignored.
+- Strips exactly ONE leading space from a field value, per the spec, so a
+  payload that legitimately begins with whitespace survives.
 - Drops frames where `data === '[DONE]'` (OpenAI terminator) or where no `data`
   field was present.
-- Flushes the leftover `buffer` after the stream ends.
+- Delivers a final event even when the stream ends without a blank line.
+
+Three of those were faults, and none is visible in a small test. The parser
+used to re-split the WHOLE accumulated buffer on every chunk, which is
+quadratic in one event size -- a base64 partial image is exactly that shape.
+Its block separator knew only LF-LF, CRLF-CRLF and CR-CR, so a MIXED terminator
+such as CRLF followed by LF was not a boundary and two events arrived as one.
+And `data:` values were `trimStart()`ed, which eats every leading space rather
+than one.
 
 ## Rate limiter (`src/network/rate-limiter.ts`)
 
@@ -316,6 +332,14 @@ Priority = { RETRY: 0, INTERACTIVE: 1, BACKGROUND: 2, LOW: 3 }
 
 `LLMError` fields: `message`, `kind`, `provider`, `status?`, `retryable`,
 `retryAfterMs?`, `raw?`, `shouldRetry?`.
+
+`Retry-After` (and `Retry-After-Ms`) is parsed as a FLOAT: `1.5` is a second
+and a half, and truncating a server instruction is the wrong direction to
+round. An unrepresentable wait becomes `Infinity` rather than `undefined` --
+the difference between "the server asked for longer than we will wait", which
+is a refusal, and "the server said nothing", which used to leave the request
+retrying on the short exponential backoff. A large but finite wait already
+worked: it exceeds `maxRetryAfterMs` and is refused on that comparison.
 
 `shouldRetry` carries the server's `x-should-retry` header when it sent one.
 `false` is a veto that overrides the per-kind policy; `true` only permits, so it

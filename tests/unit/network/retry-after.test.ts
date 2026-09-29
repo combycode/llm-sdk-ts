@@ -281,3 +281,79 @@ describe('engine-wide retry policy', () => {
     expect(performance.now() - started).toBeLessThan(1_000);
   });
 });
+
+describe('Retry-After: fractions are not thrown away', () => {
+  /** `parseInt` truncated, so half a second of the server's instruction went
+   *  missing. Rounding a wait DOWN is the wrong direction to round. */
+  it('parses fractional seconds', () => {
+    expect(err(h({ 'retry-after': '1.5' })).retryAfterMs).toBe(1500);
+    expect(err(h({ 'retry-after': '0.25' })).retryAfterMs).toBe(250);
+  });
+
+  it('parses fractional milliseconds', () => {
+    expect(err(h({ 'retry-after-ms': '1500.7' })).retryAfterMs).toBeCloseTo(1500.7, 5);
+  });
+
+  it('still parses whole seconds exactly as before', () => {
+    expect(err(h({ 'retry-after': '2' })).retryAfterMs).toBe(2000);
+    expect(err(h({ 'retry-after-ms': '1500' })).retryAfterMs).toBe(1500);
+  });
+
+  it('still reads an HTTP-date, which starts with a day name and is not a number', () => {
+    const soon = new Date(Date.now() + 30_000).toUTCString();
+    const ms = err(h({ 'retry-after': soon })).retryAfterMs;
+    expect(ms).toBeGreaterThan(20_000);
+    expect(ms).toBeLessThan(40_000);
+  });
+});
+
+describe('Retry-After: an overflow is a refusal, not a silence', () => {
+  /** The dangerous direction. An unrepresentable wait used to collapse into
+   *  `undefined` — "the server said nothing" — so `retryAfterTooLong` stayed
+   *  false and the request went out again on the SHORT exponential backoff. A
+   *  server asking us to wait forever got a retry almost immediately. */
+  it('carries an unrepresentable wait as Infinity', () => {
+    expect(err(h({ 'retry-after': '1e400' })).retryAfterMs).toBe(Number.POSITIVE_INFINITY);
+    expect(err(h({ 'retry-after-ms': '1e400' })).retryAfterMs).toBe(Number.POSITIVE_INFINITY);
+  });
+
+  it('which the cap then refuses', () => {
+    const e = err(h({ 'retry-after': '1e400' }));
+    expect(e.retryAfterMs).toBeGreaterThan(DEFAULT_RETRY.maxRetryAfterMs);
+  });
+
+  it('a large but FINITE wait already worked, and still does', () => {
+    const e = err(h({ 'retry-after': '86400' }));
+    expect(e.retryAfterMs).toBe(86_400_000);
+    expect(e.retryAfterMs).toBeGreaterThan(DEFAULT_RETRY.maxRetryAfterMs);
+  });
+
+  it('a negative or unparseable value is no instruction at all', () => {
+    expect(err(h({ 'retry-after': '-5' })).retryAfterMs).toBeUndefined();
+    expect(err(h({ 'retry-after': 'not-a-date' })).retryAfterMs).toBeUndefined();
+    expect(err(h({ 'retry-after-ms': 'abc' })).retryAfterMs).toBeUndefined();
+  });
+
+  it('an overflowing wait is not retried', async () => {
+    let calls = 0;
+    const fetchFn = ((_u: string, _i?: RequestInit) => {
+      calls++;
+      return Promise.resolve(
+        new Response(JSON.stringify({ error: { message: 'slow down' } }), {
+          status: 429,
+          headers: new Headers({ 'retry-after': '1e400' }),
+        }),
+      );
+    }) as unknown as typeof globalThis.fetch;
+    const engine = new NetworkEngine({ hooks: new HookBus(), fetch: fetchFn });
+    const req: HttpRequest = {
+      url: 'https://example.com/v1/x',
+      headers: {},
+      body: {},
+      provider: 'openai',
+      model: 'm',
+    };
+    await expect(engine.fetch(req)).rejects.toThrow();
+    expect(calls).toBe(1);
+  });
+});

@@ -127,27 +127,46 @@ function extractErrorMessage(body: unknown): string {
   return JSON.stringify(body).slice(0, 500);
 }
 
-/** A delay is usable only if it is a finite, non-negative number of milliseconds. Anything else —
- *  NaN from a malformed header, Infinity, a negative value — is discarded rather than propagated:
- *  `setTimeout(fn, NaN)` fires immediately, turning one bad header into a retry storm. */
+/** What a parsed `Retry-After` means, in milliseconds.
+ *
+ *  Three outcomes, and the middle one used to be missing:
+ *
+ *    undefined   no usable instruction — NaN from a malformed header, or a
+ *                negative wait, which is nonsense rather than a request.
+ *    Infinity    the server asked for longer than any number can hold. This is a
+ *                REFUSAL and must be carried as one.
+ *    a number    the wait, as asked.
+ *
+ *  Overflow used to collapse into `undefined`, i.e. "the server said nothing" —
+ *  so `retryAfterTooLong` stayed false and the request was retried on the SHORT
+ *  exponential backoff. A server asking us to wait essentially forever got a
+ *  retry almost immediately, which is the precise opposite of the instruction.
+ *  A large but finite value already worked: it exceeds `maxRetryAfterMs` and is
+ *  refused on that comparison. */
 function usableDelay(ms: number): number | undefined {
-  return Number.isFinite(ms) && ms >= 0 ? ms : undefined;
+  if (Number.isNaN(ms)) return undefined;
+  if (ms < 0) return undefined;
+  if (!Number.isFinite(ms)) return Number.POSITIVE_INFINITY;
+  return ms;
 }
 
 /** `Retry-After` per RFC 9110: delay-seconds OR an HTTP-date. Both forms are parsed now; the date
  *  form used to return `undefined`, which was safe but silently ignored the server's instruction.
  *  A skewed client clock can only yield a value the caller's cap rejects, never a negative wait. */
 function parseRetryAfter(headers: Record<string, string>): number | undefined {
+  // parseFLOAT, not parseInt: `Retry-After: 1.5` is half a second of waiting that
+  // `parseInt` threw away, and `retry-after-ms: 1500.7` lost its fraction too.
+  // Rounding a server's instruction DOWN is the wrong direction to round.
   const ms = headers['retry-after-ms'];
   if (ms) {
-    const parsed = usableDelay(Number.parseInt(ms, 10));
+    const parsed = usableDelay(Number.parseFloat(ms));
     if (parsed !== undefined) return parsed;
   }
 
   const value = headers['retry-after'];
   if (!value) return undefined;
 
-  const seconds = Number.parseInt(value, 10);
+  const seconds = Number.parseFloat(value);
   if (!Number.isNaN(seconds)) return usableDelay(seconds * 1000);
 
   const at = Date.parse(value);
