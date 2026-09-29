@@ -66,6 +66,25 @@ const audio = await media.generateAudio({
 console.log(`Audio bytes: ${audio?.meta.size}`);
 ```
 
+### Two retired endpoints, and what happens now
+
+Both were checked live on 2026-09-29, because a deprecation notice in an SDK's types
+cannot tell you whether the endpoint still answers:
+
+- **Google Imagen `:predict` is gone from the Developer API** -- `models/imagen-4.0-generate-001:predict`
+  returns 404, "not supported for predict", and both Google SDKs deleted their Developer-API
+  converters. It was also this library's default image model, so the default Google image path
+  was broken. The default is now `gemini-3.1-flash-image`, verified generating an image through
+  `generateContent` in the same check. Naming an `imagen*` model explicitly still builds the
+  `:predict` request -- an Enterprise (Gemini Enterprise Agent Platform) deployment can reach it,
+  and the frozen media corpus records that envelope as the adapter's contract.
+- **The OpenAI Sora API shut down on 2026-09-24**, the date its own deprecation notice named;
+  `/v1/videos` returns 404. `submitVideo` now raises a typed `unsupported` error saying so,
+  instead of returning an empty id that reads as a submitted job. The exported function and the
+  public video surface are unchanged -- other providers serve them. Note that `sora-2` and
+  `sora-2-pro` are **still listed by `/v1/models`**, so a catalog built from a provider's model
+  list will keep reporting a model that nothing serves.
+
 ### Video generation (+ extend / edit)
 
 `generateVideo()` is async (submit -> poll -> download). Text-to-video by default;

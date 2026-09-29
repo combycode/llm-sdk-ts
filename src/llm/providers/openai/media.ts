@@ -8,6 +8,7 @@ import type { Registry } from '../../../wire/interpreter';
 import { mediaSpec } from '../../../wire/media-specs';
 import { makeRegistry } from '../../wire-transforms';
 import type { EngineFetch, HttpRequest } from '../../../network/types';
+import { LLMError } from '../../../network/errors';
 import { emptyUsage, type Usage } from '../../types/response';
 import type {
   AudioGenRequest,
@@ -191,8 +192,28 @@ export class OpenAIMediaAdapter implements MediaProviderAdapter {
   }
 
   // ─── Sora video (async: create → poll → download) ──────────────────────
+  //
+  // The Sora API shut down on 2026-09-24, the date its own SDK deprecation
+  // notice named. Measured 2026-09-29: `/v1/videos` answers 404 to both GET and
+  // POST. `sora-2` and `sora-2-pro` are still listed by `/v1/models`, which is
+  // why nothing downstream noticed -- a catalog built from ListModels keeps
+  // reporting a model whose endpoint is gone.
+  //
+  // The method stays (R7) and so does the public `videogen` surface, which other
+  // providers serve. What changes is that it fails with a typed error naming the
+  // cause, instead of a bare 404 and an empty id that reads as "submitted".
   async submitVideo(req: VideoGenRequest, fetch: EngineFetch): Promise<string> {
     const res = await fetch(this.buildVideoRequest(req));
+    if (res.status === 404) {
+      throw new LLMError(
+        'The OpenAI Sora video API shut down on 2026-09-24 and /v1/videos now answers 404. ' +
+          `"${req.model ?? 'sora-2'}" is still listed by /v1/models, but no endpoint serves it. ` +
+          'Use another provider for video generation.',
+        'unsupported',
+        'openai',
+        res.status,
+      );
+    }
     const data = res.body as Record<string, unknown>;
     return (data.id as string) ?? '';
   }

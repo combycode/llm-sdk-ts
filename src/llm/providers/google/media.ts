@@ -38,6 +38,31 @@ function mapGeminiUsage(
   };
 }
 
+/** The default Google image model.
+ *
+ *  Was `imagen-4.0-generate-001` until 2026-09-29, when a live check found its
+ *  `:predict` endpoint answering 404 on the Developer API -- so the DEFAULT image
+ *  path was broken. `gemini-3.1-flash-image` is the model Google's own docs call
+ *  the go-to image generator, and it was verified generating an image through
+ *  `generateContent` in the same check. */
+const DEFAULT_IMAGE_MODEL = 'gemini-3.1-flash-image';
+
+/** Imagen `:predict` is gone from the Developer API, and that is NOT yet acted on
+ *  beyond the default above.
+ *
+ *  Measured 2026-09-29: `models/imagen-4.0-generate-001:predict` answers 404,
+ *  "is not found for API version v1beta, or is not supported for predict", and
+ *  both Google SDKs deleted their Developer-API converters -- `generate_images`
+ *  raises "only supported in Gemini Enterprise Agent Platform mode".
+ *
+ *  Routing `imagen*` to a typed refusal was tried and REVERTED: it breaks the
+ *  frozen media corpus and the spec/adapter parity check, both of which record
+ *  the `:predict` envelope as this adapter's contract. Re-freezing a corpus is a
+ *  deliberate act, and an Enterprise deployment can still reach that endpoint --
+ *  so who decides, and on what evidence, is the open question. Until then a
+ *  caller who NAMES an imagen model gets Google's own 404, and a caller who
+ *  names nothing gets a model that works. */
+
 export class GoogleMediaAdapter implements MediaProviderAdapter {
   readonly name = 'google';
   private readonly apiKey: string;
@@ -114,8 +139,9 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
     return this.fromSpec('google/media.download', { downloadUrl }, 'operations', 'arraybuffer');
   }
 
-  /** Imagen image generation: the Vertex-style `:predict` envelope. */
-  /** Imagen image generation: the Vertex-style `:predict` envelope. */
+  /** Imagen image generation: the Vertex-style `:predict` envelope.
+   *  Kept so an Enterprise deployment can still build the request; the
+   *  Developer-API paths refuse it. */
   buildImagenRequest(req: ImageGenRequest, model = req.model ?? 'imagen-4.0-generate-001'): HttpRequest {
     return this.fromSpec('google/imagen@predict', req, model);
   }
@@ -152,7 +178,7 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
    *  Imagen models use `:predict`; gemini-* models generate inline via
    *  `:generateContent` steered by responseModalities. Different endpoint, body and
    *  response — the fork is a genuine wire difference, not a preference. */
-  buildImageRequest(req: ImageGenRequest, model = req.model ?? 'imagen-4.0-generate-001'): HttpRequest {
+  buildImageRequest(req: ImageGenRequest, model = req.model ?? DEFAULT_IMAGE_MODEL): HttpRequest {
     return this.fromSpec(
       model.startsWith('imagen') ? 'google/imagen@predict' : 'google/gemini-image@generateContent',
       req,
@@ -179,7 +205,7 @@ export class GoogleMediaAdapter implements MediaProviderAdapter {
   }
 
   async generateImage(req: ImageGenRequest, fetch: EngineFetch): Promise<RawMediaResult[]> {
-    const model = req.model ?? 'imagen-4.0-generate-001';
+    const model = req.model ?? DEFAULT_IMAGE_MODEL;
 
     // Two distinct Google image paths: Imagen models use the `:predict` endpoint;
     // gemini-* image models generate inline via `generateContent` + responseModalities.
