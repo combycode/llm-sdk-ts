@@ -8,6 +8,18 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **`thinking: { mode: 'between_tools' }`** — Anthropic's reason-between-tool-calls mode, and a
+  gate in front of it. Measured 2026-09-29 against every active Anthropic chat model: exactly one
+  accepts it (`claude-sonnet-5.5`) and the other twelve answer `400 "thinking.type.between_tools"
+  is not supported for this model`, `claude-opus-5.5` included; an invalid thinking type is refused
+  everywhere, so the field is read rather than tolerated. Asking for it elsewhere drops the mode,
+  sends a request that works, and reports `request_adjusted` naming the model that takes it -- what
+  Anthropic's own fallback middleware does with this value. The gate is the MIRROR of
+  `reasoning.canDisable`: that one stops on an explicit `false` because almost every model can
+  disable reasoning; this one sends only on an explicit `true` because almost none accepts it, which
+  is one catalog annotation instead of twelve. The flag is also excluded from family inheritance --
+  `claude-sonnet` is one family spanning 4.5 through 5.5 and the measurement splits it, so donating
+  a measured YES would look exactly like a measured fact.
 - **Google Interactions hands its thought signature back.** A turn returns a `thought` step
   carrying nothing but a `signature`, and this library dropped it on both paths: the buffered parse
   had no case for the step type, and the stream spec's note called the delta "internal". Measured

@@ -176,6 +176,26 @@ export type ThinkingConfig =
       visibility?: ThinkingVisibility;
       context?: ReasoningContext;
     }
+  | {
+      /** Reason only BETWEEN tool calls, not before the first answer.
+       *
+       *  Anthropic-only and MODEL-GATED: measured 2026-09-29 across every active
+       *  Anthropic chat model, exactly one accepts it -- `claude-sonnet-5.5` --
+       *  and the other twelve answer `400 "thinking.type.between_tools" is not
+       *  supported for this model`, including `claude-opus-5.5`. A deliberately
+       *  invalid type is refused everywhere, so the field is read rather than
+       *  tolerated.
+       *
+       *  Asking for it on a model the catalog does not record as accepting it is
+       *  DOWNGRADED to that model's ordinary reasoning and reported as
+       *  `request_adjusted` -- the same thing Anthropic's own fallback
+       *  middleware does when it hops to a model that may not take it. Providers
+       *  other than Anthropic ignore it, as they ignore every mode they have no
+       *  field for. */
+      mode: 'between_tools';
+      visibility?: ThinkingVisibility;
+      context?: ReasoningContext;
+    }
   | { mode: 'off' };
 
 export type CacheConfig =

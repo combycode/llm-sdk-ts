@@ -101,6 +101,19 @@ export interface ModelReasoning {
    *  zero budget and reasons anyway. Sending the disable field to those buys a
    *  400 or a silent lie; saying so up front costs a warning. */
   canDisable?: boolean;
+  /** Whether `thinking: { mode: 'between_tools' }` is accepted.
+   *
+   *  Gated the OPPOSITE way round to `canDisable`, and deliberately so. Almost
+   *  every model can disable reasoning, so only an explicit `false` there stops
+   *  the request. Almost none accepts `between_tools`: measured 2026-09-29,
+   *  one of thirteen active Anthropic models takes it and twelve answer 400 by
+   *  name. So this one is sent only on an explicit `true`, which is one
+   *  annotation instead of twelve and never buys the caller a surprise 400.
+   *
+   *  The cost is that a newly-released model that accepts it needs the
+   *  annotation before callers can use it -- and until then the caller gets a
+   *  warning naming the models that do, not silence. */
+  betweenTools?: boolean;
 }
 
 export interface TokenizerInfo {

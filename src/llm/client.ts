@@ -305,12 +305,37 @@ export class LLMClient {
    *  failed call — or, worse, the silence this replaced, where `off` was
    *  accepted, nothing was emitted, and the model reasoned anyway. */
   private limitThinking(normalized: NormalizedRequest): string | null {
+    if (normalized.thinking?.mode === 'between_tools') return this.limitBetweenTools(normalized);
     if (normalized.thinking?.mode !== 'off') return null;
     if (this.catalog.get(this.provider, this.model)?.reasoning?.canDisable !== false) return null;
     delete (normalized as { thinking?: unknown }).thinking;
     return (
       `${this.provider}/${this.model} cannot switch reasoning off — ` +
       `thinking:{mode:'off'} was dropped and the model will reason as it defaults to.`
+    );
+  }
+
+  /** `between_tools` is accepted by almost nothing, so it is sent only where the
+   *  catalog RECORDS it as accepted.
+   *
+   *  The inverse of `canDisable`, which gates on an explicit `false` because
+   *  almost every model can disable reasoning. Measured 2026-09-29: of thirteen
+   *  active Anthropic chat models, one takes `between_tools` and twelve answer
+   *  `400 "thinking.type.between_tools" is not supported for this model` --
+   *  including claude-opus-5.5. Gating on `false` there would mean twelve
+   *  annotations and a surprise 400 for every model nobody had got to yet.
+   *
+   *  Downgraded rather than refused, which is what Anthropic's own fallback
+   *  middleware does with this value when it hops to another model: the caller
+   *  gets a request that works, plus a warning saying what was dropped. */
+  private limitBetweenTools(normalized: NormalizedRequest): string | null {
+    const reasoning = this.catalog.get(this.provider, this.model)?.reasoning;
+    if (reasoning?.betweenTools === true) return null;
+    delete (normalized as { thinking?: unknown }).thinking;
+    return (
+      `${this.provider}/${this.model} does not accept thinking:{mode:'between_tools'} — ` +
+      `it was dropped and the model will reason as it defaults to. ` +
+      `Measured 2026-09-29, anthropic/claude-sonnet-5.5 is the model that takes it.`
     );
   }
 

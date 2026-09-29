@@ -152,6 +152,8 @@ await complete({ model: 'openai/gpt-5.4-nano', apiKey, prompt: '…', presencePe
 `thinking` turns on a model's reasoning and maps to each provider's own control:
 
 - `mode: 'auto' | 'on' | 'off'` — enable/disable reasoning.
+- `mode: 'between_tools'` — reason only BETWEEN tool calls. Anthropic-only and model-gated;
+  see below.
 - `effort: 'low' | 'medium' | 'high' | 'max'` — intensity, mapped per provider (Anthropic
   `budget_tokens` below 4.6 and `output_config.effort` on 4.6+, OpenAI/xAI `effort`, Google
   `thinkingBudget` on 2.5 / `thinkingLevel` on 3.x).
@@ -170,6 +172,22 @@ everything below 4.6 has no adaptive mode and requires the budget. An unrecognis
 await complete({ model: 'anthropic/claude-haiku-4.5', apiKey, prompt: '…',
   thinking: { mode: 'auto', effort: 'high', visibility: 'hidden' } });
 ```
+
+**`between_tools` is accepted by almost nothing, and the library checks before sending.** Measured
+2026-09-29 against every active Anthropic chat model: exactly one takes it — `claude-sonnet-5.5` —
+and the other twelve answer `400 "thinking.type.between_tools" is not supported for this model`,
+`claude-opus-5.5` included. A deliberately invalid thinking type is refused everywhere, so the field
+is read rather than tolerated.
+
+Ask for it on a model the catalog does not record as accepting it and the mode is **dropped**, the
+request goes out with the model's ordinary reasoning, and you get an `onWarning` with code
+`request_adjusted` naming the model that does take it. That is what Anthropic's own fallback
+middleware does with this value when it hops to another model — a request that works beats a 400.
+
+Note this gate is the mirror of `reasoning.canDisable`: that one stops a request only on an explicit
+`false`, because almost every model *can* disable reasoning. This one sends only on an explicit
+`true`, because almost none accepts it. The cost is that a newly-released model that takes it needs
+a catalog entry before callers can use it — and until then they get a warning, not silence.
 
 (OpenAI's Responses-only execution mode `standard`/`pro` is `providerOptions.reasoningMode` — see below.)
 
