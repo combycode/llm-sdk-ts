@@ -8,6 +8,17 @@ import type { CacheConfig, ProviderOptions, ThinkingConfig } from './request';
 import type { ServiceTier } from './tiers';
 import type { Tool, ToolChoice } from './tools';
 
+/** What to compare this request's prompt against when asking for cache
+ *  diagnostics.
+ *
+ *  `compareWith` is the id of an earlier response from the SAME provider --
+ *  Anthropic `msg_...`, OpenAI `resp_...`. Passing `null` (or leaving it out)
+ *  opts in without naming a comparison, which is what the first turn of a
+ *  conversation has to do. */
+export interface CacheDiagnosticsRequest {
+  compareWith?: string | null;
+}
+
 export interface ExecuteOptions {
   /** Per-call system prompt. Stacked with LLMClient.system + any role:'system'
    *  messages from the input (in this priority order). When AgentLoop calls
@@ -83,6 +94,18 @@ export interface ExecuteOptions {
    *  OpenAI runs it natively; other providers are emulated via OpenAI's
    *  moderations endpoint. See ModerationRequest. */
   moderation?: ModerationRequest;
+
+  /** Ask the provider WHY the prompt cache did not reuse the prefix of an earlier
+   *  request. Anthropic and OpenAI both offer it, under different names
+   *  (`diagnostics.previous_message_id` / `prompt_cache_options.comparison_response_id`);
+   *  the answer arrives as `response.cacheDiagnostics`.
+   *
+   *  An id that no longer exists is not an error on either provider -- the reply
+   *  is a 200 whose status is `comparison_not_found` -- so this is safe to pass
+   *  from a stored id without guarding the age. Requesting it on a provider or
+   *  surface with no such field is reported as `request_adjusted` rather than
+   *  dropped in silence. */
+  cacheDiagnostics?: CacheDiagnosticsRequest;
 
   // Provider-specific — see ProviderOptions.
   providerOptions?: ProviderOptions;

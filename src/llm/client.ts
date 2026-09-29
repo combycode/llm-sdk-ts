@@ -43,6 +43,7 @@ import type { NormalizedRequest } from './types/request';
 import { emptyUsage } from './types/response';
 import type {
   BuiltinToolCall,
+  CacheDiagnostics,
   Citation,
   CompletionResponse,
   FileOutput,
@@ -267,6 +268,33 @@ export class LLMClient {
     }
   }
 
+  /** `cacheDiagnostics` is a two-provider feature (Anthropic `diagnostics`,
+   *  OpenAI Responses `prompt_cache_options.comparison_response_id`). Asking for
+   *  it anywhere else is dropped by the spec that has no field for it, and the
+   *  caller would be left watching for a `cacheDiagnostics` that can never
+   *  arrive.
+   *
+   *  Decided on the BUILT body rather than against a list of providers: the
+   *  question is whether the request that is about to go out carries the field,
+   *  which is the same question after a spec changes. A list would be right
+   *  today and quietly wrong later. */
+  private noteUnsupportedCacheDiagnostics(
+    normalized: NormalizedRequest,
+    req: ProviderHttpRequest,
+  ): string | null {
+    if (!normalized.cacheDiagnostics) return null;
+    const body = req.body as Record<string, unknown> | undefined;
+    const cacheOptions = body?.prompt_cache_options as { comparison_response_id?: unknown } | undefined;
+    const sent =
+      body?.diagnostics !== undefined || cacheOptions?.comparison_response_id !== undefined;
+    if (sent) return null;
+    return (
+      `cacheDiagnostics was requested, but ${this.provider} has no field for it on this ` +
+      `surface, so it was not sent and the response will carry none. Anthropic messages and ` +
+      `OpenAI Responses (gpt-5.6 and later) are the surfaces that report it.`
+    );
+  }
+
   /** Drop `thinking: { mode: 'off' }` where the model cannot honour it, and say
    *  so. Returns the note, or null when there was nothing to adjust.
    *
@@ -323,6 +351,7 @@ export class LLMClient {
       cache: options.cache,
       serviceTier: options.serviceTier,
       moderation: options.moderation,
+      cacheDiagnostics: options.cacheDiagnostics,
       providerOptions: options.providerOptions,
       audio: options.audio,
       outputModalities: options.outputModalities,
@@ -373,6 +402,8 @@ export class LLMClient {
     const thinkingNote = this.limitThinking(normalized);
     const providerReq = this.adapter.buildRequest(normalized);
     if (thinkingNote) (providerReq.notes ??= []).push(thinkingNote);
+    const cacheDiagNote = this.noteUnsupportedCacheDiagnostics(normalized, providerReq);
+    if (cacheDiagNote) (providerReq.notes ??= []).push(cacheDiagNote);
     this.reportBuildNotes(providerReq, ctx);
     const url = this.adapter.baseURL() + (providerReq.path ?? this.adapter.completionPath());
 
@@ -552,6 +583,7 @@ export class LLMClient {
       cache: options.cache,
       serviceTier: options.serviceTier,
       moderation: options.moderation,
+      cacheDiagnostics: options.cacheDiagnostics,
       providerOptions: options.providerOptions,
       audio: options.audio,
       outputModalities: options.outputModalities,
@@ -583,6 +615,8 @@ export class LLMClient {
     const thinkingNote = this.limitThinking(normalized);
     const providerReq = this.adapter.buildRequest(normalized);
     if (thinkingNote) (providerReq.notes ??= []).push(thinkingNote);
+    const cacheDiagNote = this.noteUnsupportedCacheDiagnostics(normalized, providerReq);
+    if (cacheDiagNote) (providerReq.notes ??= []).push(cacheDiagNote);
     this.reportBuildNotes(providerReq, ctx);
     this.adapter.enableStreaming?.(providerReq, normalized);
     const url = this.adapter.baseURL() + (providerReq.path ?? this.adapter.completionPath());
@@ -615,6 +649,7 @@ export class LLMClient {
     let text = '';
     let thinking = '';
     let usage: Usage = emptyUsage();
+    let cacheDiagnostics: CacheDiagnostics | undefined;
     let finishReason: FinishReason = 'stop';
     let moderationReport: ModerationReport | undefined;
     const files: FileOutput[] = [];
@@ -683,6 +718,12 @@ export class LLMClient {
         case 'usage':
           usage = event.usage;
           break;
+        case 'cache_diagnostics':
+          // Same reason as `file` and `citation`: the streamed response must
+          // answer what complete() answers, or which call style you used
+          // changes the answer.
+          cacheDiagnostics = event.diagnostics;
+          break;
         case 'done':
           finishReason = event.finishReason as FinishReason;
           break;
@@ -737,6 +778,7 @@ export class LLMClient {
       ...(builtinToolCalls.length ? { builtinToolCalls } : {}),
       ...(citationsByUrl.size ? { citations: [...citationsByUrl.values()] } : {}),
       ...(moderationReport ? { moderation: moderationReport } : {}),
+      ...(cacheDiagnostics ? { cacheDiagnostics } : {}),
       latencyMs: performance.now() - start,
       raw: null,
     };

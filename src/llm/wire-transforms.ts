@@ -94,6 +94,24 @@ export function makeRegistry(a: AdapterHandles): Registry {
       return decided.value as never;
     },
 
+    /** `prompt_cache_options` has two callers: the raw passthrough, which owns
+     *  `mode`/`ttl`/breakpoint settings, and the unified `cacheDiagnostics`,
+     *  which owns only the comparison id. Merged here, passthrough first, so a
+     *  caller who sets both keeps both -- and so an explicit
+     *  `comparison_response_id` in providerOptions still wins over the unified
+     *  option, which is the direction R5 requires. */
+    openaiPromptCacheOptions: (_v, ctx: Ctx) => {
+      const passthrough = (ctx.req.providerOptions as { promptCacheOptions?: Record<string, unknown> } | undefined)
+        ?.promptCacheOptions;
+      const asked = ctx.req.cacheDiagnostics as { compareWith?: string | null } | undefined;
+      if (!asked) return passthrough as never;
+      return {
+        // null, not omitted: it is how a first turn opts in without a comparison.
+        comparison_response_id: asked.compareWith ?? null,
+        ...(passthrough ?? {}),
+      } as never;
+    },
+
     // ── audio ─────────────────────────────────────────────────────────────
     resolveVoiceOpenAI: (_v, ctx: Ctx) => resolveVoice('openai', ctx.req.audio?.voice) ?? 'alloy',
     resolveVoiceGoogle: (_v, ctx: Ctx) => resolveVoice('google', ctx.req.audio?.voice),

@@ -55,10 +55,57 @@ export interface CompletionResponse {
     message?: string;
   };
 
+  /** Why the prompt cache could not reuse the prefix of an earlier request, when
+   *  `cacheDiagnostics` asked the provider to compare against one. Absent unless
+   *  it was asked for and the provider had something to say. */
+  cacheDiagnostics?: CacheDiagnostics;
+
   // Timing
   latencyMs: number;
 
   // Provider's raw response (escape hatch)
+  raw: unknown;
+}
+
+/** What the provider reported about prompt-cache reuse against a named earlier
+ *  request. Two providers, one concept, and the shapes were MEASURED on
+ *  2026-09-29 rather than read out of their SDK types -- which would have got
+ *  the most important case wrong.
+ *
+ *  **A hit is not reported the same way.** OpenAI answers `{type: 'cache_hit'}`.
+ *  Anthropic has no hit variant at all: a request whose prefix WAS reused comes
+ *  back with `diagnostics: null`, the same body an undiagnosed request gets. Its
+ *  SDK documents that null as "diagnosis still pending", which is true and is not
+ *  the whole truth. So `status: 'hit'` is only ever set from a provider that said
+ *  so; on Anthropic the absence of this field is not evidence of a miss, and
+ *  `usage.cachedTokens` is what answers "was the cache used". Inferring a hit
+ *  from the token counts here would dress our arithmetic as the provider's
+ *  answer.
+ *
+ *  `status` and `reason` are OPEN unions (R1): both providers have added values
+ *  to these enums already, and a value we have not seen must reach the caller
+ *  rather than be flattened into a neighbouring one. */
+export interface CacheDiagnostics {
+  /** `hit` | `miss` | `comparison_not_found` (the id named by `compareWith` is
+   *  unknown or expired -- both providers answer 200, not an error) |
+   *  `unavailable` (the provider declined to diagnose: too little to cache, or
+   *  the feature is off for this account). Open union. */
+  status: 'hit' | 'miss' | 'comparison_not_found' | 'unavailable' | (string & {});
+  /** Present on a miss: what diverged. Anthropic reports the block that changed
+   *  (`model_changed` | `system_changed` | `tools_changed` | `messages_changed`);
+   *  OpenAI reports a finer set (`input_changed`, `reasoning_effort_changed`,
+   *  `service_tier_changed`, ...). Open union -- the two vocabularies are NOT
+   *  mapped onto each other, because a shared name would be a guess about which
+   *  of the other's values it stands for. */
+  reason?: string;
+  /** Approximate input tokens that would have been read from cache had the
+   *  prefix matched. Anthropic `cache_missed_input_tokens`, OpenAI
+   *  `cache_missed_tokens`. */
+  missedTokens?: number;
+  /** OpenAI only: the reusable prefix length in the compared response
+   *  (`comparison_reusable_tokens`). Anthropic does not report it. */
+  reusableTokens?: number;
+  /** The provider's own object, unflattened. */
   raw: unknown;
 }
 

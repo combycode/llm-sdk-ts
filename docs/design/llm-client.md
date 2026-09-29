@@ -109,6 +109,7 @@ interface CompletionResponse {
   media: MediaOutputPart[];          // generated media (image/audio/video)
   files?: FileOutput[];              // hosted-tool file outputs (e.g. code execution): {id?,name?,mimeType?,data?,url?,source?}
   moderation?: ModerationReport;     // inline-moderation outcome when the `moderation` option was used: {input?,output?,source}
+  cacheDiagnostics?: CacheDiagnostics; // why the prompt cache missed, when `cacheDiagnostics` asked: {status,reason?,missedTokens?,reusableTokens?,raw}. Anthropic reports a HIT by saying nothing, so absence is not a miss.
   latencyMs: number;
   raw: unknown;                     // provider's raw HTTP response body
 }
@@ -145,7 +146,8 @@ type StreamEvent =
   | { type: 'file'; file: FileOutput }         // hosted-tool output file (code-execution artifact)
   | { type: 'builtin_tool_start'; tool: string; id?: string }  // provider-run tool began (web_search/code_interpreter)
   | { type: 'builtin_tool_end'; tool: string; id?: string; code?: string; output?: string; query?: string; url?: string }  // finished + payload
-  | { type: 'moderation'; phase: 'input'|'output'; result: ModerationEntry; source: 'native'|'emulated' };
+  | { type: 'moderation'; phase: 'input'|'output'; result: ModerationEntry; source: 'native'|'emulated' }
+  | { type: 'cache_diagnostics'; diagnostics: CacheDiagnostics };  // why the prompt cache missed, when asked
 ```
 
 ## `LLMClient` class (`src/llm/client.ts`)

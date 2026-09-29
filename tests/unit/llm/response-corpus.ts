@@ -178,6 +178,42 @@ export const RESPONSE_SCENARIOS: ResponseScenario[] = [
     },
   },
   {
+    /** The prompt-cache diagnosis, which only two providers report and which no
+     *  other cell carries. Recorded against an id that cannot exist, because
+     *  that is the one outcome a recorder can produce ON DEMAND: a hit needs a
+     *  prior request inside the cache window, and a miss needs a prior request
+     *  that differs in a chosen way. Both providers answer HTTP 200 to an
+     *  unknown id (measured 2026-09-29), so this is a normal response body and
+     *  not an error path.
+     *
+     *  It also pins the field Anthropic now sends on EVERY response:
+     *  `diagnostics`, null unless asked for. Without a cell that carries it,
+     *  `checkResponseShapes` reports it as a new field forever. */
+    name: 'cache.diagnostics',
+    streaming: false,
+    targets: ['anthropic/messages'],
+    input: 'Reply with exactly: OK',
+    options: {
+      maxTokens: 16,
+      cacheDiagnostics: { compareWith: 'msg_01DoesNotExistAtAll000000' },
+    },
+  },
+  {
+    /** Same shape, declared separately because the model differs: OpenAI gates
+     *  diagnostics to gpt-5.6 and later. Measured on the corpus's own
+     *  gpt-5.4-nano, the identical request answers `unavailable` -- which would
+     *  have recorded a cell that proves nothing and reads as a working one. */
+    name: 'cache.diagnostics',
+    streaming: false,
+    targets: ['openai/responses'],
+    model: 'gpt-5.6-luna',
+    input: 'Reply with exactly: OK',
+    options: {
+      maxTokens: 16,
+      cacheDiagnostics: { compareWith: 'resp_000000000000000000000000000000000000000000000000' },
+    },
+  },
+  {
     name: 'stream.text',
     streaming: true,
     input: 'Count from 1 to 5, separated by spaces.',
@@ -341,6 +377,78 @@ export const RESPONSE_SCENARIOS: ResponseScenario[] = [
     options: { maxTokens: 16, moderation: { input: true, output: true } },
   },
 
+  {
+    /** The miss branch of both mappers, each in its provider's own vocabulary.
+     *  `system_changed` stands for Anthropic's four `*_changed` values, which
+     *  share one shape; OpenAI's `input_changed` is one of nine and carries a
+     *  second token count nobody else reports. */
+    name: 'cache.diagnostics.miss',
+    streaming: false,
+    targets: ['anthropic/messages', 'openai/responses'],
+    input: '(synthetic)',
+    options: {},
+    synthetic: {
+      from: 'cache.diagnostics',
+      provenance: 'Bodies MEASURED on 2026-09-29, not read out of a type: claude-haiku-4-5 on GA /v1/messages and gpt-5.6-luna on /v1/responses, each with a ~10k-token cached prefix. Synthetic only because one recorded cell is ONE request, and a hit or a chosen miss needs a prior request to compare against.',
+      build: {
+        'anthropic/messages': (raw) => ({
+          ...raw,
+          diagnostics: {
+            cache_miss_reason: { type: 'system_changed', cache_missed_input_tokens: 9197 },
+          },
+        }),
+        'openai/responses': (raw) => ({
+          ...raw,
+          prompt_cache_diagnostics: {
+            type: 'cache_miss',
+            reason: 'input_changed',
+            cache_missed_tokens: 10052,
+            comparison_reusable_tokens: 10052,
+          },
+        }),
+      },
+    },
+  },
+  {
+    /** OpenAI only. Anthropic reports a hit by saying nothing at all, which every
+     *  other recorded cell already shows. */
+    name: 'cache.diagnostics.hit',
+    streaming: false,
+    targets: ['openai/responses'],
+    input: '(synthetic)',
+    options: {},
+    synthetic: {
+      from: 'cache.diagnostics',
+      provenance: 'Bodies MEASURED on 2026-09-29, not read out of a type: claude-haiku-4-5 on GA /v1/messages and gpt-5.6-luna on /v1/responses, each with a ~10k-token cached prefix. Synthetic only because one recorded cell is ONE request, and a hit or a chosen miss needs a prior request to compare against.',
+      build: {
+        'openai/responses': (raw) => ({ ...raw, prompt_cache_diagnostics: { type: 'cache_hit' } }),
+      },
+    },
+  },
+  {
+    /** "I have nothing to diagnose" -- the common answer when the prompt is too
+     *  small to cache, and on OpenAI also what a model before gpt-5.6 always
+     *  returns. Measured on gpt-5.4-nano, which answers this to every request. */
+    name: 'cache.diagnostics.unavailable',
+    streaming: false,
+    targets: ['anthropic/messages', 'openai/responses'],
+    input: '(synthetic)',
+    options: {},
+    synthetic: {
+      from: 'cache.diagnostics',
+      provenance: 'Bodies MEASURED on 2026-09-29, not read out of a type: claude-haiku-4-5 on GA /v1/messages and gpt-5.6-luna on /v1/responses, each with a ~10k-token cached prefix. Synthetic only because one recorded cell is ONE request, and a hit or a chosen miss needs a prior request to compare against.',
+      build: {
+        'anthropic/messages': (raw) => ({
+          ...raw,
+          diagnostics: { cache_miss_reason: { type: 'unavailable' } },
+        }),
+        'openai/responses': (raw) => ({
+          ...raw,
+          prompt_cache_diagnostics: { type: 'unavailable' },
+        }),
+      },
+    },
+  },
   {
     name: 'error',
     streaming: false,

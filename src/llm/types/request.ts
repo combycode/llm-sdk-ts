@@ -7,6 +7,7 @@
 import type { ModerationRequest } from '../moderation/types';
 import type { AudioOptions } from './audio';
 import type { Message } from './messages';
+import type { CacheDiagnosticsRequest } from './options';
 import type { ServiceTier } from './tiers';
 import type { Tool, ToolChoice } from './tools';
 
@@ -122,6 +123,10 @@ export interface NormalizedRequest {
   // Inline moderation (report-only). OpenAI maps it to a native `moderation`
   // request field; other providers are emulated client-side. See ModerationRequest.
   moderation?: ModerationRequest;
+
+  /** Ask why the prompt cache missed, against a named earlier response.
+   *  Anthropic and OpenAI only; see CacheDiagnosticsRequest. */
+  cacheDiagnostics?: CacheDiagnosticsRequest;
 
   // Provider-specific passthrough — see ProviderOptions.
   providerOptions?: ProviderOptions;

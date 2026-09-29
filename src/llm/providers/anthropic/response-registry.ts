@@ -18,6 +18,7 @@ import {
   filesFromCodeExecBlock,
   resultStdout,
 } from './messages';
+import { anthropicCacheDiagnostics } from '../../cache-diagnostics';
 import { extractCitations } from '../_shared/citations';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import { extractFinishReason } from '../_shared/response-utils';
@@ -84,6 +85,11 @@ export const ANTHROPIC_RESPONSE_REGISTRY: Registry = {
         rawOf(ctx).stop_reason as string,
         FINISH,
       ),
+
+    /** Absent when the provider said nothing -- which on Anthropic covers a
+     *  cache HIT as well as an undiagnosed request. See cache-diagnostics.ts. */
+    anthropicCacheDiagnostics: (_arg: unknown, ctx: Ctx) =>
+      anthropicCacheDiagnostics(rawOf(ctx).diagnostics),
 
     /** Absent, not empty, when the model cited nothing. Returning undefined is
      *  how a `$call` tells the interpreter to omit the key. */

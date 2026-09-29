@@ -8,6 +8,23 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **`cacheDiagnostics` asks WHY the prompt cache missed**, and `response.cacheDiagnostics` carries
+  the answer. `usage.cachedTokens` says how much was reused; on a long system prompt the useful
+  question is what broke the prefix, and Anthropic and OpenAI both answer it under different names
+  (`diagnostics.previous_message_id` / `prompt_cache_options.comparison_response_id`). Every shape
+  was measured on 2026-09-29 rather than read out of the SDK types, which would have got the
+  central case wrong: **Anthropic has no cache-hit variant** -- a request whose prefix WAS reused
+  returns `diagnostics: null`, the same body an undiagnosed request returns, so nothing here turns
+  that silence into `status: 'hit'`. Three more measured facts the types do not carry: an unknown
+  comparison id is a 200 on both providers (`comparison_not_found`, not an error); OpenAI gates the
+  feature to `gpt-5.6` and later, so every earlier model answers `unavailable`; and Anthropic keeps
+  the fingerprint only for requests that themselves opted in, so a chain must pass the option on
+  every call, not only the one being asked about. `status` and `reason` are open unions (R1) and
+  each provider's own reason word is kept rather than translated into the other's. Requesting it
+  where no field exists is reported as `request_adjusted` rather than dropped silently.
+  `stream()` reports it too, as a `cache_diagnostics` event and on the streamed final
+  response: both providers send it in the stream, and a request must not answer a different
+  question depending on how it was fetched.
 - **`catalog.refuseCall(provider, model)`** turns a measured `unavailable` into the refusal
   itself: the sentence to fail with, or `null` to go ahead. The media plugins call it before
   `generateImage`, `editImage`, `generateAudio` and `generateVideo`, so a dead endpoint costs an

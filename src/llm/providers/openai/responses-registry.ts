@@ -12,6 +12,7 @@ import {
   openaiResponsesUsage,
 } from './responses';
 import { openaiBilledTier } from './tiers';
+import { openaiCacheDiagnostics } from '../../cache-diagnostics';
 import { parseNativeModeration } from '../../moderation/native';
 import { extractCitations } from '../_shared/citations';
 import { extractFinishReason } from '../_shared/response-utils';
@@ -193,6 +194,11 @@ export const OPENAI_RESPONSES_REGISTRY: Registry = {
       if (reason && bySubReason[reason]) return bySubReason[reason];
       return extractFinishReason(outOf(ctx).toolCalls.length > 0, raw.status as string, FINISH);
     },
+
+    /** Present only when the request asked for it via `cacheDiagnostics`; the
+     *  provider answers `unavailable` when there was too little to cache. */
+    oaiRespCacheDiagnostics: (_arg: unknown, ctx: Ctx) =>
+      openaiCacheDiagnostics(rawOf(ctx).prompt_cache_diagnostics),
 
     /** A Responses call can fail INSIDE a 200, so there is no exception to
      *  catch and this is the only signal the caller gets. */

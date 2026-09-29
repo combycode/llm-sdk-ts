@@ -25,6 +25,7 @@ import type { ContentPart, Message } from '../llm/types/messages';
 import type { CompletionResponse, FileOutput } from '../llm/types/response';
 import type { FileStream, RetrievedFile } from '../llm/files/retrieve';
 import type { ProviderName } from '../llm/types/provider';
+import type { CacheDiagnosticsRequest } from '../llm/types/options';
 import type { ServiceTier } from '../llm/types/tiers';
 import type { BuiltinTool } from '../llm/types/tools';
 import { isNamespacedModelId, parseModelId, parseModelTier } from './client-resolver';
@@ -87,6 +88,10 @@ export interface CompleteOptions {
   /** Service tier for this call. Also settable as a `model:tier` suffix (e.g.
    *  `anthropic/claude-opus-4.8:priority`); an explicit value here wins. */
   serviceTier?: ServiceTier;
+  /** Ask WHY the prompt cache missed, against a named earlier response.
+   *  Anthropic and OpenAI Responses (gpt-5.6 and later) only; the answer arrives
+   *  as `result.response.cacheDiagnostics`. */
+  cacheDiagnostics?: CacheDiagnosticsRequest;
 
   /** Provider prompt caching: `'auto'`, `'off'`, or which segments to mark
    *  (`{ system: true, tools: true }`).
@@ -186,6 +191,7 @@ export async function complete<T = unknown>(opts: CompleteOptions): Promise<Comp
         outputModalities: opts.outputModalities,
         serviceTier,
         cache: opts.cache,
+        cacheDiagnostics: opts.cacheDiagnostics,
         topK: opts.topK,
         seed: opts.seed,
         thinking: opts.thinking,
@@ -201,6 +207,7 @@ export async function complete<T = unknown>(opts: CompleteOptions): Promise<Comp
         outputModalities: opts.outputModalities,
         serviceTier,
         cache: opts.cache,
+        cacheDiagnostics: opts.cacheDiagnostics,
         topK: opts.topK,
         seed: opts.seed,
         thinking: opts.thinking,

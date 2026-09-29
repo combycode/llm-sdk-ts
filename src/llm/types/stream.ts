@@ -2,7 +2,7 @@
 
 import type { ModerationEntry } from '../moderation/types';
 import type { AssistantPhase } from './messages';
-import type { Citation, FileOutput, Usage } from './response';
+import type { CacheDiagnostics, Citation, FileOutput, Usage } from './response';
 
 export type MediaStreamType = 'image' | 'audio' | 'video';
 
@@ -55,4 +55,12 @@ export type StreamEvent =
   /** A moderation result for the input or output. `source` distinguishes a
    *  provider-native result from a client-emulated one. Emitted by the moderation
    *  option (report-only). */
-  | { type: 'moderation'; phase: 'input' | 'output'; result: ModerationEntry; source: 'native' | 'emulated' };
+  | { type: 'moderation'; phase: 'input' | 'output'; result: ModerationEntry; source: 'native' | 'emulated' }
+  /** The prompt-cache diagnosis for THIS request, when `cacheDiagnostics` asked
+   *  for one. Both providers send it in the stream as well as in a buffered
+   *  reply -- Anthropic on `message_start`, OpenAI inside the response envelope
+   *  (measured 2026-09-29) -- and without this the same request answered a
+   *  different question depending on how it was fetched. Also collected onto the
+   *  streamed final response's `cacheDiagnostics`, for the same reason `file`
+   *  and `citation` are. */
+  | { type: 'cache_diagnostics'; diagnostics: CacheDiagnostics };

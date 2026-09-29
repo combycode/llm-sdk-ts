@@ -18,6 +18,7 @@ import {
 } from './messages';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import { extractFinishReason } from '../_shared/response-utils';
+import { anthropicCacheDiagnostics } from '../../cache-diagnostics';
 import type { Ctx, Registry } from '../../../wire/interpreter';
 
 type Block = Record<string, unknown>;
@@ -83,7 +84,12 @@ export const ANTHROPIC_STREAM_REGISTRY: Registry = {
     anthropicStreamMessageStart: (_arg: unknown, ctx: Ctx) => {
       const msg = (rawOf(ctx).message as Record<string, unknown>) ?? {};
       const usage = msg.usage as Record<string, unknown> | undefined;
-      return usage ? [{ type: 'usage', usage: anthropicUsage(usage) }] : [];
+      const events: unknown[] = usage ? [{ type: 'usage', usage: anthropicUsage(usage) }] : [];
+      // The diagnosis rides the opening frame, not the closing one -- it is a
+      // fact about the REQUEST, known before a token is generated.
+      const diagnostics = anthropicCacheDiagnostics(msg.diagnostics);
+      if (diagnostics) events.push({ type: 'cache_diagnostics', diagnostics });
+      return events;
     },
   },
 

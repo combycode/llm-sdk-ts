@@ -226,6 +226,74 @@ cost model should assume the hit**. Treat `usage.cachedTokens` as an observation
 When you need a guaranteed, billable cache on Google, create a `cachedContents` resource and pass
 its name through `providerOptions.cachedContent` — that is explicit and deterministic.
 
+### Asking WHY the cache missed (`cacheDiagnostics`)
+
+`usage.cachedTokens` says how much was reused. It does not say what broke the prefix, and on a
+long system prompt that is the only question worth asking. Anthropic and OpenAI both answer it,
+under different names; the unified option asks, and `response.cacheDiagnostics` carries the reply.
+
+```ts
+import { createLLM } from '@combycode/llm-sdk';
+
+const llm = createLLM({ model: 'anthropic/claude-haiku-4.5' });
+const longPolicyText = 'Rule: answer in one word. '.repeat(900);
+
+const first = await llm.complete('Summarise the policy.', {
+  system: longPolicyText,
+  cache: { system: true },
+  cacheDiagnostics: {},                       // opt in, nothing to compare yet
+});
+
+const second = await llm.complete('And the exceptions?', {
+  system: longPolicyText,
+  cache: { system: true },
+  cacheDiagnostics: { compareWith: first.id },
+});
+
+second.cacheDiagnostics;
+// -> { status: 'miss', reason: 'system_changed', missedTokens: 9197, raw: {...} }
+// or undefined on Anthropic when the prefix WAS reused — see below.
+```
+
+**Opt in on every request in the chain, not only the one you are asking about.** Measured on
+2026-09-29: Anthropic keeps the prompt fingerprint only for requests that themselves sent
+`cacheDiagnostics`. Comparing against an ordinary response returns `comparison_not_found` even
+though the id is perfectly valid — which reads exactly like a broken feature. That is why the
+first call above passes `cacheDiagnostics: {}` with nothing to compare.
+
+**A hit is not reported the same way, and this is the part to design around.**
+
+| | Anthropic | OpenAI |
+|---|---|---|
+| Prefix reused | `cacheDiagnostics` is **absent** | `status: 'hit'` |
+| Prefix broken | `status: 'miss'` + `reason` + `missedTokens` | same, with a finer `reason` set and `reusableTokens` |
+| Unknown `compareWith` | `status: 'comparison_not_found'` (HTTP 200) | same (HTTP 200) |
+| Nothing to diagnose | absent | `status: 'unavailable'` |
+
+Anthropic has no hit variant: a request whose prefix was reused returns the same body an
+undiagnosed request returns. Nothing here turns that silence into `status: 'hit'`, because that
+would publish our inference as the provider's answer — **read `usage.cachedTokens` for whether the
+cache was used, and this for why it was not.**
+
+Two more measured facts worth knowing before you build on it:
+
+- **OpenAI gates it to `gpt-5.6` and later.** Every earlier model answers `unavailable` to an
+  otherwise identical request, so testing on a mini/nano model shows a feature that appears dead.
+- **It is a Responses-only feature on OpenAI.** Chat Completions takes a `prompt_cache_options`
+  too, but that one carries `mode` and `ttl` and nothing else — there is no field to name a
+  comparison against, so the request is reported as adjusted rather than sent.
+- `reason` keeps each provider's own word. `system_changed` (Anthropic) and `input_changed`
+  (OpenAI) are not the same claim, so neither is translated into the other; both `status` and
+  `reason` are open unions (R1) and an unrecognised value reaches you unchanged.
+
+Requesting it where no field exists — Google, xAI, Chat Completions — is reported as an
+`onWarning` with code `request_adjusted` rather than dropped in silence.
+
+**Streaming reports it too.** Both providers send the diagnosis in the stream (Anthropic on
+`message_start`, before a token is generated; OpenAI in the response envelope), so it arrives as a
+`cache_diagnostics` stream event and is also collected onto the streamed final response —
+`stream()` and `complete()` answer the same question.
+
 ### Multi-turn with server-state
 
 ```ts

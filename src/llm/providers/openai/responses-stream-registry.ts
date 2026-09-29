@@ -11,6 +11,7 @@
  *  override got silently dropped.
  */
 import { builtinCallFromResponsesItem, filesFromResponsesOutputItem, openaiResponsesUsage } from './responses';
+import { openaiCacheDiagnostics } from '../../cache-diagnostics';
 import { parseNativeModeration } from '../../moderation/native';
 import { extractFinishReason } from '../_shared/response-utils';
 import type { Ctx, Registry } from '../../../wire/interpreter';
@@ -100,6 +101,8 @@ export const OPENAI_RESPONSES_STREAM_REGISTRY: Registry = {
           source: 'native',
         });
       }
+      const diagnostics = openaiCacheDiagnostics(response.prompt_cache_diagnostics);
+      if (diagnostics) events.push({ type: 'cache_diagnostics', diagnostics });
       const usage = response.usage as Record<string, unknown> | undefined;
       if (usage) events.push({ type: 'usage', usage: openaiResponsesUsage(usage) });
       events.push({
