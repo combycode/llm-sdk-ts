@@ -73,13 +73,16 @@ describe('AnthropicFileAdapter', () => {
     await expect(a.upload(attachment(), s.fetch)).rejects.toThrow(/Anthropic file upload failed \(413\).*too large/);
   });
 
-  it('delete issues DELETE /v1/files/{id} with the beta header', async () => {
+  it('delete issues DELETE /v1/files/{id}, with no beta header', async () => {
     const s = stubFetch({ body: {} });
     await a.delete('file_011', s.fetch);
     const req = s.seen()[0];
     expect(req.method).toBe('DELETE');
     expect(req.url).toBe('https://api.anthropic.com/v1/files/file_011');
-    expect(req.headers['anthropic-beta']).toBe('files-api-2025-04-14');
+    // The Files API went GA. Live-checked 2026-09-29: upload, list and a
+    // file-backed message all answer 200 with no beta header, and sending it
+    // selects the OLD list shape, so it is not merely redundant.
+    expect(req.headers['anthropic-beta']).toBeUndefined();
     expect(req.headers['x-api-key']).toBe('sk-ant');
   });
 

@@ -1641,8 +1641,8 @@
               ]
             },
             "anthropic": {
-              "support": "beta",
-              "note": "Behind the `files-api-2025-04-14` beta header — the resource lives in the beta namespace, not the GA client.",
+              "support": "full",
+              "note": "GA since 2026-09; no beta header. Checked live 2026-09-29: upload, list and a file-backed message all answer 200 without it, and sending it selects the older list shape.",
               "refs": [
                 {
                   "sdk": "anthropic-ts",

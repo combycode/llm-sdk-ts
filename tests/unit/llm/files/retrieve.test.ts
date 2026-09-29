@@ -58,12 +58,15 @@ describe('retrieveFile', () => {
     expect(r.size).toBe(3);
   });
 
-  it('anthropic id → GET /v1/files/{id}/content?beta=true with beta headers', async () => {
+  it('anthropic id → GET /v1/files/{id}/content?beta=true, with no beta header', async () => {
     const rec = recordingFetch(new Uint8Array([9]).buffer, { 'content-type': 'image/png' });
     await retrieveFile({ id: 'file_abc' }, ctx({ provider: 'anthropic', fetch: rec.fetch }));
     const r = rec.last();
     expect(r.url).toBe('https://api.anthropic.com/v1/files/file_abc/content?beta=true');
-    expect(r.headers['anthropic-beta']).toBe('files-api-2025-04-14');
+    // The Files API went GA. Live-checked 2026-09-29: upload, list and a
+    // file-backed message all answer 200 with no beta header, and sending it
+    // selects the OLD list shape, so it is not merely redundant.
+    expect(r.headers['anthropic-beta']).toBeUndefined();
     expect(r.headers['x-api-key']).toBe('sk-test');
     expect(r.responseType).toBe('arraybuffer');
     // On Node/Bun the browser CORS opt-in header is omitted.

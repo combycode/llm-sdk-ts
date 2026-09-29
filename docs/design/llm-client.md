@@ -268,8 +268,10 @@ Five provider directories: `src/llm/providers/{anthropic,openai,google,xai,openr
 - `thinking` → `{ type: 'enabled', budget_tokens: N }` where `N` is mapped from
   `effort` via `ANTHROPIC_THINKING_BUDGETS`. Lifts `max_tokens` above `budget_tokens`.
 - `structured` → `output_config.format.type = 'json_schema'`.
-- File refs (source type `provider_ref` or `file`) in content parts trigger the
-  `anthropic-beta: files-api-2025-04-14` header.
+- File refs (source type `provider_ref` or `file`) in content parts need no beta
+  header: the Files API is GA. Live-checked 2026-09-29 -- upload, list and a
+  file-backed message all answer 200 without it, and sending it selects the OLD
+  list shape, so it changed the response contract rather than gating access.
 - Tool role `'tool'` is remapped to `'user'` (Anthropic's wire format).
 - `web_search` builtin maps to `{ type: 'web_search_20250305', name: 'web_search' }`;
   `code_interpreter` maps to `{ type: 'code_execution_20260521', name: 'code_execution' }`.

@@ -43,7 +43,9 @@ re-passes model or key — the retrieval reuses the exact provider + credentials
 `contentRequest(ctx, file)` builds the authenticated download request:
 
 - **Anthropic** — `GET /v1/files/{id}/content?beta=true` with `x-api-key`, `anthropic-version`,
-  `anthropic-beta: files-api-2025-04-14`, `accept: application/binary`.
+  `accept: application/binary`. No `anthropic-beta` header: the Files API is GA
+  (checked live 2026-09-29). The `?beta=true` on the path is a separate thing and
+  stays -- it is what routes to the content endpoint that serves file bytes.
 - **OpenAI / xAI / OpenRouter** — container path `/v1/containers/{containerId}/files/{id}/content`
   when `file.ref.containerId` is set, else `/v1/files/{id}/content`; `Authorization: Bearer`.
 - **Google** — `GET /v1beta/files/{id}:download?alt=media` with `x-goog-api-key` (rare; Google

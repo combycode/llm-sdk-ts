@@ -472,7 +472,7 @@ describe('AnthropicAdapter — content parts', () => {
     ]);
   });
 
-  it('document with file ref → triggers beta header', () => {
+  it('document with file ref → sends no beta header now the Files API is GA', () => {
     const r = a.buildRequest({
       ...baseReq,
       messages: [
@@ -484,7 +484,10 @@ describe('AnthropicAdapter — content parts', () => {
         },
       ],
     });
-    expect(r.headers).toEqual({ 'anthropic-beta': 'files-api-2025-04-14' });
+    // The Files API went GA. Live-checked 2026-09-29: upload, list and a
+    // file-backed message all answer 200 with no beta header, and sending it
+    // selects the OLD list shape, so it is not merely redundant.
+    expect(r.headers).toEqual({});
     const msg = (r.body.messages as Array<Record<string, unknown>>)[0];
     expect(msg.content).toEqual([
       {
