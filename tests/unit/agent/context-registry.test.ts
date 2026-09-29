@@ -165,12 +165,21 @@ describe('ContextRegistry — render (single registry)', () => {
     // an agent running in a Swedish locale would compose a different prompt
     // from identical layers.
     const r = new ContextRegistry();
-    for (const name of ['ünique', 'user_name', 'Account', 'account']) {
-      r.set(name, name, { priority: 100 });
-      // Pinned rather than left to Date.now(): four sets inside one millisecond
-      // is what makes this a tie, and that is not something a test should be
-      // betting on.
-      r.patch(name, (l) => ({ ...l!, updatedAt: 0 }));
+    // The tie has to be a FACT, not an accident. `set` stamps `updatedAt` from the
+    // clock and accepts no override, so the previous `patch(..., { updatedAt: 0 })`
+    // handed the value to a parameter `set` never reads: the tie existed only while
+    // four writes landed inside one millisecond. They do on a quiet Linux runner.
+    // They did not on Windows CI, the sort fell through to `updatedAt`, and the
+    // order became the order of insertion. Freezing the clock is what the comment
+    // always claimed was happening.
+    const realNow = Date.now;
+    Date.now = () => 1_700_000_000_000;
+    try {
+      for (const name of ['ünique', 'user_name', 'Account', 'account']) {
+        r.set(name, name, { priority: 100 });
+      }
+    } finally {
+      Date.now = realNow;
     }
     expect(r.render().parts.map((p) => p.name)).toEqual([
       'Account',
