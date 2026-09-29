@@ -13,6 +13,7 @@
  */
 import { googleUsage } from './generate';
 import { extractFinishReason } from '../_shared/response-utils';
+import { GOOGLE_FINISH } from './response-registry';
 import type { Ctx, Registry } from '../../../wire/interpreter';
 
 type Part = Record<string, unknown>;
@@ -80,7 +81,9 @@ export const GOOGLE_STREAM_REGISTRY: Registry = {
     googleStreamDone: (_arg: unknown, ctx: Ctx) => {
       const fr = candidateOf(ctx).finishReason as string | undefined;
       if (!fr) return undefined;
-      return { type: 'done', finishReason: extractFinishReason(false, fr, { MAX_TOKENS: 'length' }) };
+      // The SAME table the buffered path uses. Inlining a one-entry copy here is
+      // what made a streamed SAFETY block look like a clean stop.
+      return { type: 'done', finishReason: extractFinishReason(false, fr, GOOGLE_FINISH) };
     },
   },
 

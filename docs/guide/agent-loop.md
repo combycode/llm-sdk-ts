@@ -193,6 +193,19 @@ try {
 **Bounded stops** are not errors: `max_steps` returns `finishReason: 'length'` (see
 above) and a model refusal returns normally — both are inspectable via `finishReason` / `report.reason`.
 
+**`finishReason` is an open union, so always write a `default` branch.** Providers keep inventing
+terminal states, and the union is open (CONSTITUTION R1) precisely so that a new one is not a
+breaking change for every consumer — including consumers of providers that changed nothing. Values
+beyond the documented set reach you rather than being flattened: Google's `TOO_MANY_TOOL_CALLS`
+arrives as `too_many_tool_calls` instead of `stop`, and OpenAI's `incomplete_details.reason`
+distinguishes `max_messages` (a message cap, not a token cap) and `steered` (the turn was
+superseded and a successor response follows automatically) instead of reporting both as `length`.
+The raw provider value stays on `response.raw`.
+
+And the answer does not depend on how the turn was fetched: the streamed and buffered paths share
+one table per provider. They did not, once — the stream carried a copy holding a single entry, so a
+streamed Google SAFETY block read as a clean stop with no content.
+
 ## Recovering from a model failure (`reflectAndRetry`)
 
 Some failures are the model's, not the network's: a malformed tool call, a truncated call, a

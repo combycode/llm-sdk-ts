@@ -13,7 +13,7 @@ import { ensureAdditionalProperties, strictSupport } from './types/schema-utils'
 import { resolveVoice } from './audio/voices';
 import { buildNativeModeration } from './moderation/native';
 import { googleRequestTier } from './providers/google/tiers';
-import { openaiRequestTier } from './providers/openai/tiers';
+import { openaiTierDecision } from './providers/openai/tiers';
 import { xaiRequestTier } from './providers/xai/tiers';
 import { bytesToBase64 } from '../util/base64';
 import { fnv1a32Hex } from '../util/hash';
@@ -81,7 +81,18 @@ export function makeRegistry(a: AdapterHandles): Registry {
 
     // ── provider value maps that are already functions in the library ─────
     googleTier: (v) => googleRequestTier(v as any),
-    openaiTier: (v) => openaiRequestTier(v as any),
+    openaiTier: (v, ctx: Ctx) => {
+      // The surface decides: `ultrafast` is a Responses value and chat-completions
+      // rejects it. A downgrade is recorded rather than performed quietly --
+      // `ctx.notes` is what the client turns into `request_adjusted`.
+      const decided = openaiTierDecision(v as any, ctx.spec?.api);
+      if (decided.note && ctx.notes && !ctx.notes.includes(decided.note)) {
+        ctx.notes.push(decided.note);
+      }
+      // undefined, NOT null: the interpreter reads undefined as OMIT, and null
+      // would put `service_tier: null` on every request that names no tier.
+      return decided.value as never;
+    },
 
     // ── audio ─────────────────────────────────────────────────────────────
     resolveVoiceOpenAI: (_v, ctx: Ctx) => resolveVoice('openai', ctx.req.audio?.voice) ?? 'alloy',

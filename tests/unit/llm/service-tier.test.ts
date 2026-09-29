@@ -214,3 +214,66 @@ describe('cost prices by service tier', () => {
     expect(collector.total().total).toBeCloseTo(30, 5);
   });
 });
+
+// ─── the accepted set is PER SURFACE, and a downgrade is never silent ───
+//
+// The fallback to `auto` has now cost two releases. `fast` arrived in 2026-08
+// and was downgraded to the project default for a month; `ultrafast` would have
+// gone the same way. Both are billing and latency decisions taken on the
+// caller's behalf, and neither was visible from outside — which is the part
+// worth pinning, not just the value.
+//
+// Verified against the openai-ts clone: Responses (GA and beta) accept
+// `ultrafast`; chat-completions does not.
+describe('serviceTier: surface-specific vocabularies', () => {
+  const build = (surface: 'responses' | 'chat-completions', serviceTier?: string) => {
+    const adapter =
+      surface === 'responses'
+        ? new OpenAIResponsesAdapter({ apiKey: 'k' })
+        : new OpenAIAdapter({ apiKey: 'k' });
+    const built = adapter.buildRequest(req(serviceTier ? { serviceTier } : {}));
+    return {
+      tier: (built.body as Record<string, unknown>).service_tier,
+      notes: (built as unknown as { notes?: string[] }).notes ?? [],
+    };
+  };
+
+  it('Responses sends ultrafast, the value that used to become auto', () => {
+    const { tier, notes } = build('responses', 'ultrafast');
+    expect(tier).toBe('ultrafast');
+    expect(notes).toEqual([]);
+  });
+
+  it('chat-completions does NOT send ultrafast, and says it did not', () => {
+    const { tier, notes } = build('chat-completions', 'ultrafast');
+    expect(tier).toBe('auto');
+    expect(notes).toHaveLength(1);
+    expect(notes[0]).toContain('ultrafast');
+    expect(notes[0]).toContain('chat-completions');
+  });
+
+  it('chat-completions still sends fast, which it does accept', () => {
+    const { tier, notes } = build('chat-completions', 'fast');
+    expect(tier).toBe('fast');
+    expect(notes).toEqual([]);
+  });
+
+  it('a tier neither surface knows falls back to auto, audibly', () => {
+    for (const surface of ['responses', 'chat-completions'] as const) {
+      const { tier, notes } = build(surface, 'hyperfast');
+      expect(tier).toBe('auto');
+      expect(notes[0]).toContain('hyperfast');
+      expect(notes[0]).toContain(surface);
+    }
+  });
+
+  // `undefined` means OMIT to the interpreter; `null` would put
+  // `service_tier: null` on every request that names no tier.
+  it('no tier omits the field rather than sending null, and warns about nothing', () => {
+    for (const surface of ['responses', 'chat-completions'] as const) {
+      const { tier, notes } = build(surface);
+      expect(tier).toBeUndefined();
+      expect(notes).toEqual([]);
+    }
+  });
+});

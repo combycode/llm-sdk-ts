@@ -235,6 +235,18 @@ OpenAI's `fast` tier is recognised on Responses and chat-completions. Note the r
 billed*, not as confirmation of which of the two you asked for. Being an entitlement-level tier, a
 200 does not by itself prove the request was served in Fast mode.
 
+**The accepted set differs per surface, and a downgrade is never silent.** `ultrafast` is a
+Responses value -- GA and beta -- and chat-completions rejects it; it is also access-controlled and
+served only by `gpt-5.6-sol`, so an account without access gets a 400 naming `service_tier`, which
+is the honest answer. Ask for a tier the surface will not take and the request still goes out as
+`auto`, but you are TOLD: the build records it and the client raises `onWarning` with code
+`request_adjusted`, naming the tier, the surface and what was sent instead.
+
+That warning exists because the quiet version cost two releases. `fast` arrived in 2026-08 and was
+downgraded to the project default for a month before anyone noticed, and `ultrafast` was on course
+to repeat it. A tier is a billing and latency decision; substituting a different one without saying
+so is making that decision on your behalf.
+
 Note: `batch` is NOT a service tier. Batch is a separate, asynchronous request flow --
 the Batch API (`submitBatch` / the [Batch guide](/docs/examples/22-batch/)), with its own
 ~50% pricing. The `batch` key under `pricing.tiers` exists only so the cost layer can

@@ -8,4 +8,14 @@
  *  endpoint), not a per-request flag on a synchronous call.
  *
  *  Tier mapping is provider-specific and lives ENTIRELY in the adapters. */
-export type ServiceTier = 'auto' | 'standard' | 'priority' | 'flex' | 'fast' | (string & {});
+export type ServiceTier =
+  | 'auto'
+  | 'standard'
+  | 'priority'
+  | 'flex'
+  | 'fast'
+  /** OpenAI Responses only, and access-controlled: an account without it gets a
+   *  400 naming `service_tier`. Not accepted on chat-completions, where the
+   *  adapter reports the downgrade rather than performing it quietly. */
+  | 'ultrafast'
+  | (string & {});

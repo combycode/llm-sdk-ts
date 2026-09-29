@@ -171,12 +171,26 @@ export const OPENAI_RESPONSES_REGISTRY: Registry = {
       };
     },
 
-    /** `incomplete` carries a sub-reason: a content_filter block must not be
-     *  reported as a length truncation. */
+    /** `incomplete` carries a sub-reason, and only one of the four means what
+     *  `length` means. The clone's enum is
+     *  `max_output_tokens | max_messages | content_filter | steered`; everything
+     *  but `content_filter` used to arrive as `length`, i.e. "your output was cut
+     *  off by the token limit" -- which is wrong for a MESSAGE cap, and actively
+     *  misleading for `steered`, where the turn was superseded and a successor
+     *  `response.created` follows it automatically.
+     *
+     *  The distinct values ride the open `FinishReason` union (R1). The raw
+     *  provider value stays reachable on `response.raw`. */
     oaiRespFinish: (_arg: unknown, ctx: Ctx) => {
       const raw = rawOf(ctx);
       const reason = (raw.incomplete_details as { reason?: string } | undefined)?.reason;
-      if (reason === 'content_filter') return 'content_filter';
+      const bySubReason: Record<string, string> = {
+        content_filter: 'content_filter',
+        max_output_tokens: 'length',
+        max_messages: 'max_messages',
+        steered: 'steered',
+      };
+      if (reason && bySubReason[reason]) return bySubReason[reason];
       return extractFinishReason(outOf(ctx).toolCalls.length > 0, raw.status as string, FINISH);
     },
 

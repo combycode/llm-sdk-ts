@@ -34,14 +34,29 @@ const partsOf = (raw: Record<string, unknown>): Part[] =>
 const hasCodeExec = (raw: Record<string, unknown>): boolean =>
   partsOf(raw).some((p) => p.executableCode || p.codeExecutionResult);
 
-const FINISH: Record<string, string> = {
+/** Google's terminal reasons, for BOTH the buffered and the streamed path.
+ *
+ *  Exported because the stream registry used to carry its own inline table
+ *  holding a single entry, `MAX_TOKENS`. Everything else fell through to `stop`,
+ *  so the SAME response finished differently depending on whether it was
+ *  streamed: a SAFETY block read as a clean finish with no content, and
+ *  MALFORMED_FUNCTION_CALL never reached `reflectAndRetry` on a stream. Two
+ *  tables for one provider's vocabulary can only drift; there is now one. */
+export const GOOGLE_FINISH: Record<string, string> = {
   MAX_TOKENS: 'length',
   SAFETY: 'content_filter',
   // Verified in google-ts src/types.ts:510. Unmapped it fell through to `stop`,
   // so a turn that failed to produce a usable tool call looked like a clean
   // finish with no content.
   MALFORMED_FUNCTION_CALL: 'malformed_tool_call',
+  // google-ts types.ts:554. `FinishReason` is open by design (R1) precisely so a
+  // provider inventing a terminal state is not a breaking change for everyone
+  // else, so this keeps its own name rather than being folded into `stop` (which
+  // would claim the turn ended cleanly) or `length` (which would blame tokens).
+  TOO_MANY_TOOL_CALLS: 'too_many_tool_calls',
 };
+
+const FINISH = GOOGLE_FINISH;
 
 export const GOOGLE_RESPONSE_REGISTRY: Registry = {
   transforms: {
