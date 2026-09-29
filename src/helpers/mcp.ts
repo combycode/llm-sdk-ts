@@ -8,6 +8,7 @@
  *  Client-side execution: the model sees ordinary function tools; our loop runs
  *  `tools/call`. Works identically across every provider. See docs/design/mcp.md. */
 
+import type { ToolOutputGuardrail } from '../agent/guardrail-types';
 import type { AgentTool } from '../agent/types';
 import { McpClient } from '../plugins/mcp/client';
 import { McpError, McpErrorCode } from '../plugins/mcp/jsonrpc';
@@ -68,6 +69,14 @@ export interface ConnectMcpOptions {
   roots?: McpRoot[] | (() => McpRoot[] | Promise<McpRoot[]>);
   /** Validate tool `structuredContent` against the tool's `outputSchema`. */
   validateOutput?: boolean;
+  /** Output guardrails for every tool this server provides.
+   *
+   *  A trip withholds that tool's output: the model, the conversation and any
+   *  checkpoint get a placeholder instead. Stated here rather than on the loop
+   *  because it is a fact about THIS server -- and the tools carry it, so it
+   *  holds in whatever loop they are handed to. Loop-wide guardrails still run
+   *  as well, and either can withhold. */
+  toolOutputGuardrails?: ToolOutputGuardrail[];
   /** Register this server's tools WITHOUT declaring them: the model finds them with
    *  `tool_search` and calls them through `call_tool`. Exposure only — every tool is
    *  still registered, namespaced and collision-checked exactly as today.
@@ -168,7 +177,11 @@ export async function connectMcp(
     const defs = await c.listTools();
     tools.length = 0;
     for (const d of defs) {
-      tools.push(mcpToolToAgentTool(c, d, ns, { validateOutput: opts.validateOutput, lazy: opts.lazy }));
+      tools.push(mcpToolToAgentTool(c, d, ns, {
+        validateOutput: opts.validateOutput,
+        lazy: opts.lazy,
+        outputGuardrails: opts.toolOutputGuardrails,
+      }));
     }
   };
 

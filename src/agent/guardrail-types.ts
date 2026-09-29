@@ -76,6 +76,66 @@ export interface ToolInputGuardrailContext {
  *  halt the run — a trip denies just this one tool call. */
 export type ToolInputGuardrailDecision = { pass: true } | { pass: false; reason: string };
 
+// ─── Tool-output guardrails (per tool result, not run-halting) ────────────
+
+/** Context for a tool-output guardrail: what the tool actually returned. */
+export interface ToolOutputGuardrailContext {
+  toolName: string;
+  arguments: Record<string, unknown>;
+  callId: string;
+  step: number;
+  trace: TraceContext;
+  /** What the tool returned, as the model would receive it. */
+  result: string;
+}
+
+/** A tool-output guardrail decision.
+ *
+ *  A trip does NOT halt the run and does not fail the call: the output is
+ *  WITHHELD and a placeholder takes its place. That is the difference that
+ *  matters -- a tool that returned somebody else's data has already run, so the
+ *  only thing left to control is what reaches the model and the transcript.
+ *  Halting would leave the output in the history it was meant to be kept out of. */
+export type ToolOutputGuardrailDecision =
+  | { pass: true }
+  | {
+      pass: false;
+      /** Why it was withheld. Reaches hooks and reports, NOT the model -- a
+       *  reason that quotes what it found would put the thing back. */
+      reason: string;
+      /** What the model sees instead. Defaults to the loop's
+       *  `toolOutputBlockedMessage`, itself defaulting to a data-free sentence. */
+      replaceWith?: string;
+    };
+
+/** Inspects a tool's output AFTER it ran and before it reaches the model or the
+ *  history. On a trip the output is replaced by a placeholder everywhere it
+ *  would otherwise be kept: the result the model sees, the conversation, and any
+ *  checkpoint written from it. */
+export interface ToolOutputGuardrail {
+  name: string;
+  check(
+    ctx: ToolOutputGuardrailContext,
+  ): Promise<ToolOutputGuardrailDecision> | ToolOutputGuardrailDecision;
+}
+
+/** What the model is told when a tool's output was withheld.
+ *
+ *  A string, or a formatter for something more specific. The formatter FAILS
+ *  CLOSED: if it throws or returns nothing usable, the default sentence is used
+ *  rather than the output it was deciding about. */
+export type ToolOutputBlockedMessage =
+  | string
+  | ((args: {
+      defaultMessage: string;
+      guardrailName: string;
+      toolName: string;
+      callId: string;
+    }) => string | undefined | Promise<string | undefined>);
+
+/** The data-free placeholder, used when nothing else resolves. */
+export const TOOL_OUTPUT_WITHHELD = 'Output withheld by an output guardrail.';
+
 /** Validates a tool call's arguments BEFORE it executes (and before any HITL
  *  approval interruption). On a trip the call is denied — the model receives the
  *  denial reason as an error tool result; the run continues and the approver is

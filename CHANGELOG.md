@@ -8,6 +8,16 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **`toolOutputGuardrails`** -- inspect what a tool returned before anything keeps it, loop-wide or
+  per MCP server (`connectMcp({ toolOutputGuardrails })`, which attaches them to the tools it
+  returns so the rule travels with them). By the time one runs the tool has ALREADY executed, so a
+  trip does not halt the run: the output is withheld and a placeholder replaces it everywhere it
+  would have been kept -- the model's result, the conversation, any checkpoint, the
+  `onToolCallComplete` hook a logger listens on, and the report (`customDataExtractor` is not run
+  on a withheld output, since its product lands there). Both halves fail closed: a guardrail that
+  throws counts as tripped, and a `toolOutputBlockedMessage` formatter that throws falls back to the
+  default sentence rather than to the output it was deciding about. The trip REASON reaches hooks
+  and reports but never the model -- one that quoted what it found would put the thing back.
 - **A pre-fed approval decision is bound to the invocation it was given for.** Resuming re-runs the
   model step -- the pending record holds the call's metadata, not its execution -- so the same
   `callId` could come back with different arguments, or name a different tool where a provider

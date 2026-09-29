@@ -2,6 +2,7 @@
  *  ConversationHistory, and the ContextMeasurer plugin.
  *  Also defines AgentTool (executable tool) and run-report types. */
 
+import type { ToolOutputGuardrail } from './guardrail-types';
 import type { AssistantPhase, ContentPart, Message } from '../llm/types/messages';
 import type { Tool } from '../llm/types/tools';
 import type { Usage } from '../llm/types/response';
@@ -84,6 +85,14 @@ export interface AgentTool {
     args: Record<string, unknown>,
     context: Omit<ToolExecutionContext, 'signal'>,
   ) => unknown | Promise<unknown>;
+  /** Output guardrails that travel WITH this tool, on top of the loop's own.
+   *
+   *  It exists so a tool source can carry its own rule: `connectMcp` attaches
+   *  these to every tool it returns, so "what this server may hand back" is
+   *  stated where the server is configured and holds wherever those tools are
+   *  used. Enforcement stays in one place -- the loop runs these and its own
+   *  through the same path, so a withheld output is withheld identically. */
+  outputGuardrails?: ToolOutputGuardrail[];
 }
 
 export interface ToolExecutionContext {

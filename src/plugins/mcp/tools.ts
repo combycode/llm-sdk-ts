@@ -1,6 +1,7 @@
 /** Adapt MCP results into our shapes: tool-call results -> AgentTool results,
  *  and prompt results -> Message[]. */
 
+import type { ToolOutputGuardrail } from '../../agent/guardrail-types';
 import type { AgentTool } from '../../agent/types';
 import type { ContentPart, Message } from '../../llm/types/messages';
 import { validateJsonSchema } from '../../util/json-schema';
@@ -13,6 +14,10 @@ export interface McpToolAdapterOptions {
   validateOutput?: boolean;
   /** Register the tool without declaring it — see `AgentTool.lazy`. */
   lazy?: boolean;
+  /** Output guardrails to attach to every tool from this server. They travel
+   *  WITH the tool, so "what this server may hand back" is stated where the
+   *  server is configured and holds wherever those tools end up. */
+  outputGuardrails?: ToolOutputGuardrail[];
 }
 
 /** Map one MCP content block to a ContentPart (null for unknown types). */
@@ -73,6 +78,7 @@ export function mcpToolToAgentTool(
 ): AgentTool {
   return {
     ...(opts.lazy ? { lazy: true } : {}),
+    ...(opts.outputGuardrails?.length ? { outputGuardrails: opts.outputGuardrails } : {}),
     definition: {
       type: 'function',
       name: `${namespace}__${tool.name}`,

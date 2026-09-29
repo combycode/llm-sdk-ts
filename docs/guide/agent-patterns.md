@@ -315,6 +315,62 @@ const agent = createAgent({
 A pass runs the normal permission/approval/execution path. Use these to gate tool arguments;
 use message-level `Guardrail`s (Step 6) to halt a run.
 
+### Step 6c -- per-tool-call output guardrails (`toolOutputGuardrails`)
+
+The input guardrail above stops a call before it runs. An output guardrail runs **after** — and
+that changes what it can usefully do. By then the tool has already executed, so halting is the
+wrong lever: the output exists, and what is left to control is **what it touches**.
+
+So a trip does not halt the run and does not fail the call. The output is **withheld** and a
+placeholder takes its place everywhere it would otherwise have been kept:
+
+- the result the model reads,
+- the conversation, and any checkpoint written from it,
+- the `onToolCallComplete` hook — the most likely place for a logger, and so for the leak,
+- the tool report: `customDataExtractor` is **not run** on a withheld output, because its product
+  lands in the report.
+
+```ts
+import type { ToolOutputGuardrail } from '@combycode/llm-sdk';
+
+const noCardNumbers: ToolOutputGuardrail = {
+  name: 'no-card-numbers',
+  check: (ctx) =>
+    /4[0-9]{3}(?:[ -]?[0-9]{4}){3}/.test(ctx.result)
+      ? { pass: false, reason: 'card number in tool output' }
+      : { pass: true },
+};
+
+const agent = createAgent({
+  model: 'anthropic/claude-haiku-4.5',
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  toolOutputGuardrails: [noCardNumbers],
+  // Optional. Defaults to a data-free sentence; a formatter may name the tool
+  // and the guardrail. Either way the REASON never reaches the model — a
+  // reason that quoted what it found would put the thing back.
+  toolOutputBlockedMessage: 'That result was withheld. Ask your administrator.',
+});
+```
+
+**Both halves fail closed.** A guardrail that throws counts as having tripped: a checker that
+crashed has approved nothing, and the run where it crashed is exactly the run where it might have
+caught something. A `toolOutputBlockedMessage` formatter that throws — or returns nothing usable —
+falls back to the default sentence, never to the output it was deciding about.
+
+**Per MCP server.** A rule about what *one server* may hand back belongs where that server is
+configured, not on every loop that uses it. `connectMcp` attaches guardrails to the tools it
+returns, so the rule travels with them:
+
+```ts
+const mcp = await connectMcp(
+  { url: 'https://tools.example.com/mcp', name: 'vendor' },
+  { toolOutputGuardrails: [noCardNumbers] },
+);
+```
+
+Loop-wide guardrails still run as well, and either can withhold — the first to do so decides, so a
+permissive guardrail behind a strict one does not reinstate the output.
+
 ### Step 7 -- built-in moderation guardrail
 
 `moderationGuardrail()` is a factory that creates one or two `Guardrail` instances backed by the OpenAI moderation endpoint. Use it as the fastest path to content screening.

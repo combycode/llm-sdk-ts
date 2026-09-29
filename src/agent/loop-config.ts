@@ -8,7 +8,7 @@ import type { HistorySnapshot } from './history-types';
 import type { ReflectAndRetryConfig } from './reflect-retry';
 import type { AgentTool } from './types';
 import type { LazyToolsConfig } from './lazy-tools';
-import type { Guardrail, ToolInputGuardrail } from './guardrail-types';
+import type { Guardrail, ToolInputGuardrail, ToolOutputBlockedMessage, ToolOutputGuardrail } from './guardrail-types';
 import type { PermissionPolicy } from '../plugins/permissions/policy';
 import type { ApprovalRequest, ApprovalDecision } from './approval-types';
 import type { Persistence } from '../plugins/persistence/types';
@@ -122,6 +122,21 @@ export interface AgentLoopConfig {
    *  BEFORE the permission/approval check and execution. A trip denies just that
    *  call (error result to the model) without halting the run or invoking `approve`. */
   toolInputGuardrails?: ToolInputGuardrail[];
+
+  /** Per-tool-call OUTPUT guardrails. Each runs against what the tool returned,
+   *  before that reaches the model or the history.
+   *
+   *  A trip does not halt the run and does not fail the call: the output is
+   *  withheld and a placeholder takes its place everywhere it would have been
+   *  kept -- the result, the conversation, and any checkpoint written from it.
+   *  The tool has already run, so what is left to control is what the output
+   *  touches. */
+  toolOutputGuardrails?: ToolOutputGuardrail[];
+
+  /** What the model is told when a tool's output was withheld. A string, or a
+   *  formatter. Defaults to a data-free sentence, and a formatter that throws
+   *  or returns nothing falls back to it rather than to the output. */
+  toolOutputBlockedMessage?: ToolOutputBlockedMessage;
 
   /** Permission policy wired into the tool-execution path.
    *  Called after lookup, before execution.

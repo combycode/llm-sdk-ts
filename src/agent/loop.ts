@@ -44,7 +44,16 @@ import type {
   ToolCallReport,
   ToolExecutionContext,
 } from './types';
-import type { Guardrail, GuardrailDecision, ToolInputGuardrail } from './guardrail-types';
+import type {
+  Guardrail,
+  GuardrailDecision,
+  ToolInputGuardrail,
+  ToolOutputBlockedMessage,
+  ToolOutputGuardrail,
+  ToolOutputGuardrailContext,
+  ToolOutputGuardrailDecision,
+} from './guardrail-types';
+import { TOOL_OUTPUT_WITHHELD } from './guardrail-types';
 import { describeTool, toolKey } from './tool-key';
 import { ReflectAndRetryPolicy, reflectionGuidance } from './reflect-retry';
 import type { AgentLoopConfig } from './loop-config';
@@ -103,6 +112,8 @@ export class AgentLoop {
   private _maxSteps: number;
   private _guardrails: Guardrail[];
   private _toolInputGuardrails: ToolInputGuardrail[];
+  private _toolOutputGuardrails: ToolOutputGuardrail[];
+  private _toolOutputBlockedMessage?: ToolOutputBlockedMessage;
   private _policy: PermissionPolicy | null;
   private _approve: ((req: ApprovalRequest) => Promise<ApprovalDecision>) | null;
   private _checkpoint: import('../plugins/persistence/types').Persistence | null;
@@ -138,6 +149,8 @@ export class AgentLoop {
         : DEFAULT_MAX_STEPS;
     this._guardrails = config.guardrails ?? [];
     this._toolInputGuardrails = config.toolInputGuardrails ?? [];
+    this._toolOutputGuardrails = config.toolOutputGuardrails ?? [];
+    this._toolOutputBlockedMessage = config.toolOutputBlockedMessage;
     this._policy = config.policy ?? null;
     this._approve = config.approve ?? null;
     this._checkpoint = config.checkpoint ?? null;
@@ -1090,6 +1103,79 @@ export class AgentLoop {
     }
   }
 
+  /** Run the tool-output guardrails. Returns the replacement text when one
+   *  withheld the output, or null when it passes.
+   *
+   *  FAIL CLOSED, twice over. A guardrail that throws is treated as having
+   *  tripped -- a checker that crashed has not approved anything, and the one
+   *  time that matters is the one where it crashed ON the input it would have
+   *  caught. And a message formatter that throws or returns nothing falls back
+   *  to the default sentence rather than to the output it was deciding about. */
+  private async checkToolOutput(
+    tc: ToolCallPart,
+    result: string,
+    step: number,
+    runTrace: RunTrace,
+    tool?: AgentTool,
+  ): Promise<string | null> {
+    // The loop's own first, then the ones the tool brought with it. Either can
+    // withhold; the first that does decides, so a source-level rule cannot be
+    // talked out of by a later one.
+    const guardrails = [...this._toolOutputGuardrails, ...(tool?.outputGuardrails ?? [])];
+    if (guardrails.length === 0) return null;
+    const ctx: ToolOutputGuardrailContext = {
+      toolName: tc.name,
+      arguments: tc.arguments,
+      callId: tc.id,
+      step,
+      trace: { ...runTrace, callId: tc.id },
+      result,
+    };
+
+    for (const g of guardrails) {
+      let decision: ToolOutputGuardrailDecision;
+      try {
+        decision = await g.check(ctx);
+      } catch (e) {
+        decision = { pass: false, reason: `guardrail "${g.name}" failed: ${String(e)}` };
+      }
+      if (decision.pass) continue;
+
+      const message =
+        decision.replaceWith ?? (await this.resolveBlockedMessage(g.name, tc));
+      this.hooks.emitSync('onWarning', {
+        source: 'agent',
+        code: 'tool_output_withheld',
+        message: `${g.name} withheld the output of ${tc.name}: ${decision.reason}`,
+        details: { callId: tc.id, toolName: tc.name, guardrail: g.name, step },
+      });
+      return message;
+    }
+    return null;
+  }
+
+  /** The placeholder a withheld output is replaced by. */
+  private async resolveBlockedMessage(guardrailName: string, tc: ToolCallPart): Promise<string> {
+    const configured = this._toolOutputBlockedMessage;
+    if (typeof configured === 'string') {
+      return configured.length > 0 ? configured : TOOL_OUTPUT_WITHHELD;
+    }
+    if (typeof configured === 'function') {
+      try {
+        const resolved = await configured({
+          defaultMessage: TOOL_OUTPUT_WITHHELD,
+          guardrailName,
+          toolName: tc.name,
+          callId: tc.id,
+        });
+        if (typeof resolved === 'string' && resolved.length > 0) return resolved;
+      } catch {
+        // Fails closed: the default, never the output.
+      }
+    }
+    return TOOL_OUTPUT_WITHHELD;
+  }
+
   /** Build a skipped-tool result content part and push the report. */
   /** A call whose arguments never parsed still gets a RESULT, because the
    *  provider requires every tool call in the history to be answered on the next
@@ -1260,12 +1346,27 @@ export class AgentLoop {
     context?: Omit<ToolExecutionContext, 'signal'>,
   ): Promise<ContentPart> {
     const latencyMs = performance.now() - toolStart;
-    const resultStr = typeof result === 'string' ? result : JSON.stringify(result);
+    let resultStr = typeof result === 'string' ? result : JSON.stringify(result);
+    let resultValue: string | ContentPart[] = result;
+
+    // The output is inspected BEFORE anything keeps it. The tool has already
+    // run, so the only thing left to control is what it touches: the model's
+    // view, the conversation, and any checkpoint written from it. A withheld
+    // output is replaced everywhere, not merely hidden from the reply.
+    const withheld = await this.checkToolOutput(tc, resultStr, step, runTrace, tool);
+    if (withheld !== null) {
+      resultStr = withheld;
+      resultValue = withheld;
+    }
 
     // Opt-in out-of-band metadata for the tool report (model never sees it).
     // A throwing extractor must never break the tool result.
+    //
+    // NOT run on a withheld output. The extractor's product lands in the report,
+    // which is exactly the kind of place the guardrail was keeping the output
+    // out of -- running it here would carry the data out through the side door.
     let customData: unknown;
-    if (tool?.customDataExtractor && context) {
+    if (tool?.customDataExtractor && context && withheld === null) {
       try {
         customData = await tool.customDataExtractor(result, tc.arguments, context);
       } catch {
@@ -1280,7 +1381,10 @@ export class AgentLoop {
       callId: tc.id,
       toolName: tc.name,
       arguments: tc.arguments,
-      result,
+      // The REPLACED value, for the same reason: a subscriber logging this to
+      // disk is the leak the guardrail exists to prevent, and a hook is the
+      // most likely place for one.
+      result: resultValue,
       resultSizeBytes: resultStr.length,
       latencyMs,
       metrics,
