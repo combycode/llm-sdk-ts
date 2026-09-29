@@ -149,13 +149,15 @@ engine.fetch(req, opts?)
    - 429: if `error.retryAfterMs` is set, `rateLimiter.pause(retryAfterMs)` (conditional);
      emit `onRateLimitHit`.
    - Call `handleRetry(entry, error, ...)`.
-7. On thrown error (network, AbortError):
+7. On thrown error (network, AbortError), in order:
+   - `request.signal.aborted` → reject with the original error. The caller stopped it.
+   - A 2xx was already received → reject, non-retryable. The request succeeded.
    - `DOMException.AbortError` → `kind: 'timeout'`; other → `kind: 'network'`.
    - Call `handleRetry(entry, error, ...)`.
 
 **handleRetry**:
 - Resolves `maxRetries` and `retryable` from `retry.perKind[error.kind]` with
-  fallback to top-level defaults.
+  fallback to top-level defaults; `error.shouldRetry === false` vetoes the result.
 - `willRetry = isRetryable && attempt < maxRetries && elapsed < totalTimeoutMs`.
 - Emit `onModelError` (async, always).
 - If retrying: calculate backoff (priority: `error.retryAfterMs` > `fixedBackoffMs`
@@ -305,12 +307,34 @@ Priority = { RETRY: 0, INTERACTIVE: 1, BACKGROUND: 2, LOW: 3 }
 | 400 (unsupported) | `unsupported` |
 | 400 (other) | `invalid_request` |
 | 402, 413 | `quota_exceeded` |
+| Any other 4xx (404, 405, 409, 422, ...) | `invalid_request` |
 | 5xx | `server_error` (retryable) |
-| AbortError | `timeout` |
+| AbortError, caller's signal aborted | rejected with the original `AbortError` |
+| AbortError, attempt timeout | `timeout` |
+| Thrown after a 2xx | `network`, NOT retryable |
 | Thrown non-LLMError | `network` |
 
 `LLMError` fields: `message`, `kind`, `provider`, `status?`, `retryable`,
-`retryAfterMs?`, `raw?`.
+`retryAfterMs?`, `raw?`, `shouldRetry?`.
+
+`shouldRetry` carries the server's `x-should-retry` header when it sent one.
+`false` is a veto that overrides the per-kind policy; `true` only permits, so it
+never overrides an operator who configured a kind as non-retryable.
+
+Three of these rows are deliberate refusals rather than classifications:
+
+- **Unmapped 4xx.** These used to fall through to `server_error`. The error's own
+  `retryable` was already `false`, but that is not what decides -- `perKind` wins
+  over the error's flag, and `server_error` is retryable. So a 404 was re-sent
+  twice and a 409 Conflict was retried into the same conflict. Reusing
+  `invalid_request` fixes it without adding an `ErrorKind`, which would break any
+  consumer switching exhaustively over the union.
+- **The caller's abort.** A cancelled request and an attempt timeout raise the
+  same `AbortError`, so the name alone cannot separate them; only
+  `request.signal.aborted` can. Before, a cancelled request was retried and then
+  reported as `kind: 'timeout'`.
+- **A throw after a 2xx.** If the response arrived and only the body failed to
+  parse, the request SUCCEEDED. Re-sending it is a second request, not a retry.
 
 ## Realtime WebSocket (`src/network/realtime-connection.ts`)
 

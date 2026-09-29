@@ -23,6 +23,13 @@ export class LLMError extends Error {
     public readonly retryable: boolean = false,
     public readonly retryAfterMs?: number,
     public readonly raw?: unknown,
+    /** The server's own `x-should-retry` instruction, when it sent one.
+     *  `false` is authoritative: a server that says "do not retry this" knows
+     *  something the status code alone does not. `true` only PERMITS a retry --
+     *  it never overrides an operator who configured this kind as non-retryable,
+     *  because that configuration is a cost decision, not a guess about
+     *  idempotence. Undefined when the header is absent or unparseable. */
+    public readonly shouldRetry?: boolean,
   ) {
     super(message);
     this.name = 'LLMError';
@@ -37,7 +44,21 @@ export function classifyError(
   headers: Record<string, string>,
 ): LLMError {
   const msg = extractErrorMessage(body);
+  const shouldRetry = parseShouldRetry(headers);
+  const withHint = (e: LLMError): LLMError =>
+    shouldRetry === undefined
+      ? e
+      : new LLMError(e.message, e.kind, e.provider, e.status, e.retryable, e.retryAfterMs, e.raw, shouldRetry);
 
+  return withHint(classifyByStatus(provider, status, msg, headers));
+}
+
+function classifyByStatus(
+  provider: string,
+  status: number,
+  msg: string,
+  headers: Record<string, string>,
+): LLMError {
   if (status === 401 || status === 403) {
     return new LLMError(msg, 'auth', provider, status);
   }
@@ -68,7 +89,30 @@ export function classifyError(
     return new LLMError(msg, 'server_error', provider, status, true);
   }
 
-  return new LLMError(msg, 'server_error', provider, status, status >= 500);
+  // Every other 4xx -- 404, 405, 409, 422 and friends -- used to fall through to
+  // `server_error`. The error's own `retryable` was correctly false, but that is
+  // not what decides: `perKind.server_error` is retryable, and the per-kind rule
+  // wins over the error's flag. So a 404 was re-sent twice, and a 409 Conflict --
+  // a status whose entire meaning is "this already happened" -- was retried into
+  // the same conflict. The kind was the bug, not the flag.
+  //
+  // `invalid_request` is already non-retryable, so this needs no new ErrorKind:
+  // adding one would break any consumer exhaustively switching over the union.
+  if (status >= 400) {
+    return new LLMError(msg, 'invalid_request', provider, status);
+  }
+
+  return new LLMError(msg, 'server_error', provider, status, false);
+}
+
+/** `x-should-retry` as the OpenAI and Anthropic clients send it. Only the two
+ *  exact tokens count; anything else is treated as no instruction at all rather
+ *  than guessed at. */
+function parseShouldRetry(headers: Record<string, string>): boolean | undefined {
+  const raw = headers['x-should-retry'] ?? headers['X-Should-Retry'];
+  if (raw === 'true') return true;
+  if (raw === 'false') return false;
+  return undefined;
 }
 
 function extractErrorMessage(body: unknown): string {

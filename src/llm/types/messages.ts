@@ -105,6 +105,15 @@ export interface ToolCallPart {
   caller?: ToolCaller;
   /** Provider-specific metadata (e.g. Google thought signatures). */
   _meta?: Record<string, unknown>;
+  /** The model asked for this tool but its arguments did not parse — a stream
+   *  truncated mid-JSON is the usual cause. Absent in the ordinary case, so
+   *  existing consumers read exactly as before.
+   *
+   *  A call marked this way is NEVER executed. `arguments` is left empty because
+   *  nothing could be recovered from it, and an empty object is indistinguishable
+   *  from a deliberate no-argument call — which is precisely how a truncated
+   *  `delete_files({"path": "/et` once became `delete_files({})`. */
+  malformed?: true;
 }
 
 export interface ToolResultPart {

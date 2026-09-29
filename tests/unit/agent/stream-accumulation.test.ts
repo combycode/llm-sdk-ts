@@ -14,6 +14,7 @@
 import { describe, expect, it } from 'bun:test';
 import {
   accumulateStreamEvent,
+  buildStepResponse,
   finalizeUnendedToolCalls,
   makeStepState,
 } from '../../../src/agent/loop-internals';
@@ -179,14 +180,21 @@ describe('accumulateStreamEvent — tool call reassembly', () => {
     ]);
   });
 
-  it('malformed argument JSON degrades to {} instead of throwing away the call', () => {
+  // This test used to assert `arguments: {}` and nothing more, under the heading
+  // "degrades to {} instead of throwing away the call". Half of that was right and
+  // is kept: the call must survive, with its id and name, or the step loses the
+  // model's intent entirely. The other half was the bug -- `{}` is a VALID call,
+  // so "degraded" was indistinguishable from "the model asked for no arguments",
+  // and the tool ran. The call is still kept; it is now MARKED, and the loop
+  // refuses to execute it.
+  it('malformed argument JSON keeps the call but marks it, rather than running it with {}', () => {
     const { state } = feed([
       { type: 'tool_call_start', id: 'c1', name: 'broken' },
       { type: 'tool_call_delta', id: 'c1', arguments: '{"unclosed":' },
       { type: 'tool_call_end', id: 'c1' },
     ] as StreamEvent[]);
     expect(state.stepToolCalls).toEqual([
-      { type: 'tool_call', id: 'c1', name: 'broken', arguments: {} },
+      { type: 'tool_call', id: 'c1', name: 'broken', arguments: {}, malformed: true },
     ]);
   });
 
@@ -266,5 +274,96 @@ describe('accumulateStreamEvent — terminal + collected events', () => {
     expect(accumulateStreamEvent({ type: 'brand_new_event' } as never, state)).toBeNull();
     expect(state.stepText).toBe('');
     expect(state.stepToolCalls).toEqual([]);
+  });
+});
+
+describe('accumulateStreamEvent — arguments that never parsed', () => {
+  /** The failure this guards against: a stream cut mid-JSON used to become `{}`,
+   *  and `{}` is a VALID call. `delete_files({"path": "/et` ran as
+   *  `delete_files()` — the most destructive reading of an unfinished sentence,
+   *  and nothing downstream could tell it from a deliberate no-argument call. */
+  it('marks a truncated tool call instead of running it with {}', () => {
+    const { state } = feed([
+      { type: 'tool_call_start', id: 'c1', name: 'delete_files' },
+      { type: 'tool_call_delta', id: 'c1', arguments: '{"path": "/et' },
+    ] as StreamEvent[]);
+    finalizeUnendedToolCalls(state);
+    expect(state.stepToolCalls).toHaveLength(1);
+    expect(state.stepToolCalls[0]!.malformed).toBe(true);
+    expect(state.stepToolCalls[0]!.arguments).toEqual({});
+    expect(state.stepToolCalls[0]!.name).toBe('delete_files');
+  });
+
+  it('a genuine no-argument call is NOT malformed', () => {
+    for (const args of ['', '   ', '{}']) {
+      const { state } = feed([
+        { type: 'tool_call_start', id: 'c1', name: 'ping' },
+        ...(args ? [{ type: 'tool_call_delta', id: 'c1', arguments: args }] : []),
+      ] as StreamEvent[]);
+      finalizeUnendedToolCalls(state);
+      expect(state.stepToolCalls[0]!.arguments).toEqual({});
+      expect('malformed' in state.stepToolCalls[0]!).toBe(false);
+    }
+  });
+
+  it('a scalar or array parses as JSON but is not an argument object', () => {
+    for (const args of ['"just a string"', '42', 'null', '[1,2]']) {
+      const { state } = feed([
+        { type: 'tool_call_start', id: 'c1', name: 't' },
+        { type: 'tool_call_delta', id: 'c1', arguments: args },
+      ] as StreamEvent[]);
+      finalizeUnendedToolCalls(state);
+      expect(state.stepToolCalls[0]!.malformed).toBe(true);
+      expect(state.stepToolCalls[0]!.arguments).toEqual({});
+    }
+  });
+
+  it('well-formed arguments are untouched and carry no marker', () => {
+    const { state } = feed([
+      { type: 'tool_call_start', id: 'c1', name: 'get_weather' },
+      { type: 'tool_call_delta', id: 'c1', arguments: '{"city":' },
+      { type: 'tool_call_delta', id: 'c1', arguments: '"Berlin"}' },
+    ] as StreamEvent[]);
+    finalizeUnendedToolCalls(state);
+    expect(state.stepToolCalls[0]!.arguments).toEqual({ city: 'Berlin' });
+    expect('malformed' in state.stepToolCalls[0]!).toBe(false);
+  });
+
+  /** Only Google's API reports MALFORMED_FUNCTION_CALL, so before this the same
+   *  truncation on OpenAI or Anthropic finished as `tool_use` and looked like a
+   *  successful turn — `reflectAndRetry` defaults to this reason and never fired. */
+  it('the step reports malformed_tool_call, not tool_use', () => {
+    const { state } = feed([
+      { type: 'tool_call_start', id: 'c1', name: 'x' },
+      { type: 'tool_call_delta', id: 'c1', arguments: '{"a":' },
+    ] as StreamEvent[]);
+    finalizeUnendedToolCalls(state);
+    const { response } = buildStepResponse(state, 'test-model', 0);
+    expect(response.finishReason).toBe('malformed_tool_call');
+  });
+
+  it('a step whose calls all parsed still reports tool_use', () => {
+    const { state } = feed([
+      { type: 'tool_call_start', id: 'c1', name: 'x' },
+      { type: 'tool_call_delta', id: 'c1', arguments: '{"a":1}' },
+    ] as StreamEvent[]);
+    finalizeUnendedToolCalls(state);
+    const { response } = buildStepResponse(state, 'test-model', 0);
+    expect(response.finishReason).toBe('tool_use');
+  });
+
+  it('one bad call among good ones still fails the step', () => {
+    const { state } = feed([
+      { type: 'tool_call_start', id: 'good', name: 'a' },
+      { type: 'tool_call_delta', id: 'good', arguments: '{"ok":true}' },
+      { type: 'tool_call_end', id: 'good' },
+      { type: 'tool_call_start', id: 'bad', name: 'b' },
+      { type: 'tool_call_delta', id: 'bad', arguments: '{"cut' },
+    ] as StreamEvent[]);
+    finalizeUnendedToolCalls(state);
+    const { response } = buildStepResponse(state, 'test-model', 0);
+    expect(response.finishReason).toBe('malformed_tool_call');
+    expect(state.stepToolCalls.find((t) => t.id === 'good')!.arguments).toEqual({ ok: true });
+    expect(state.stepToolCalls.find((t) => t.id === 'bad')!.malformed).toBe(true);
   });
 });

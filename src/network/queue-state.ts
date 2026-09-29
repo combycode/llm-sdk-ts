@@ -286,6 +286,12 @@ export class QueueState {
       return;
     }
 
+    // Set the moment the server's answer is known to be a success. Everything
+    // after that point is OUR failure to read a response that already arrived,
+    // and re-sending a POST the server has already accepted is not a retry --
+    // it is a second request.
+    let responseSucceeded = false;
+
     try {
       const response = await this.executeOnce(entry.request);
       const latencyMs = performance.now() - startTime;
@@ -308,6 +314,7 @@ export class QueueState {
       this.processed++;
 
       if (response.ok) {
+        responseSucceeded = true;
         // 'stream' → hand back the raw body un-buffered (large downloads pipe to a
         // sink); the slot is released immediately so the queue isn't held open for
         // the whole transfer.
@@ -360,6 +367,34 @@ export class QueueState {
         return;
       }
 
+      // The caller asked us to stop. Both their abort and our attempt timeout
+      // surface as the same AbortError, so the name alone cannot tell them apart
+      // -- which is why a cancelled request used to be RETRIED and then reported
+      // as `kind: 'timeout'`, wrong about what happened and wrong about whose
+      // decision it was. Their signal is the only thing that distinguishes them.
+      // Rejected with the original AbortError so the standard `err.name` check a
+      // caller already wrote keeps working.
+      if (entry.request.signal?.aborted) {
+        entry.reject(e instanceof Error ? e : new Error(String(e)));
+        return;
+      }
+
+      if (responseSucceeded) {
+        // The POST landed; we simply could not read what came back. Retrying
+        // would send it a second time, and for anything non-idempotent that is
+        // the one outcome a retry layer must never produce.
+        entry.reject(
+          new LLMError(
+            `Response body could not be read after a successful response: ${String(e)}`,
+            'network',
+            entry.request.provider,
+            undefined,
+            false,
+          ),
+        );
+        return;
+      }
+
       const isTimeout = e instanceof DOMException && e.name === 'AbortError';
       const error = new LLMError(
         String(e),
@@ -380,7 +415,11 @@ export class QueueState {
   ): void {
     const retry = this.retryFor(entry.request);
     const kindConfig = retry.perKind?.[error.kind];
-    const isRetryable = kindConfig?.retryable ?? error.retryable;
+    // A server that sent `x-should-retry: false` has told us something the status
+    // code does not carry, and it is the one voice that can veto. `true` only
+    // permits; it never overrules an operator who configured this kind off.
+    const configuredRetryable = kindConfig?.retryable ?? error.retryable;
+    const isRetryable = error.shouldRetry === false ? false : configuredRetryable;
     // Precedence: a per-request override beats the per-kind rule, which beats the queue default.
     // The override is the most specific statement of intent, so it wins.
     const maxRetries = entry.request.retry?.maxRetries ?? kindConfig?.maxRetries ?? retry.maxRetries;

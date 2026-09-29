@@ -352,6 +352,15 @@ If `opts.validateOutput` is true and `tool.outputSchema` is present: validate
 `res.structuredContent` via `validateJsonSchema` (`src/util/json-schema.ts`); on
 mismatch return an error string to the model.
 
+The validator accepts the schema forms MCP servers actually ship, not just object
+schemas: a **boolean subschema** (`true` accepts anything, `false` accepts
+nothing) is spec-valid anywhere a schema is expected, and used to throw
+`TypeError: schema is not an Object` -- a conforming server crashed the caller
+instead of failing validation. Local **`$ref`** pointers (`#/$defs/Name`) resolve
+against the schema itself; a reference that cannot be resolved -- an external
+document, an `#anchor` -- validates as ACCEPT, because our inability to check
+something must not become the server's rejection. Recursive schemas terminate.
+
 ### `mcpContentToResult(res)`
 
 Maps `McpCallResult` to `string | ContentPart[]`:

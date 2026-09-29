@@ -980,6 +980,12 @@ export class AgentLoop {
     reports: ToolCallReport[],
     runTrace: RunTrace,
   ): Promise<ContentPart> {
+    // Refused BEFORE any hook or dispatch. `onToolCallStart` is an interception
+    // point for a call that is about to happen, and this one never will; handing
+    // it a call whose arguments are empty only because they failed to parse would
+    // invite a hook to act on arguments the model never actually sent.
+    if (tc.malformed) return this.buildMalformedResult(tc, reports);
+
     const metrics = new Map<string, { value: number | string | boolean; type: string }>();
 
     const beforeCtx = {
@@ -1063,6 +1069,27 @@ export class AgentLoop {
   }
 
   /** Build a skipped-tool result content part and push the report. */
+  /** A call whose arguments never parsed still gets a RESULT, because the
+   *  provider requires every tool call in the history to be answered on the next
+   *  turn. The result says what went wrong, so the model can re-issue the call
+   *  rather than being left to guess why nothing happened. */
+  private buildMalformedResult(tc: ToolCallPart, reports: ToolCallReport[]): ContentPart {
+    const result =
+      `Tool call arguments for "${tc.name}" were not valid JSON, so the tool was not run. ` +
+      'Re-issue the call with complete, well-formed arguments.';
+    reports.push({
+      callId: tc.id,
+      toolName: tc.name,
+      arguments: tc.arguments,
+      resultSizeBytes: result.length,
+      latencyMs: 0,
+      skipped: true,
+      error: 'malformed_tool_call',
+      metrics: {},
+    });
+    return { type: 'tool_result', id: tc.id, content: result, isError: true };
+  }
+
   private buildSkippedResult(
     tc: ToolCallPart,
     overrideResult: string | undefined,
@@ -1305,6 +1332,54 @@ export class AgentLoop {
 
   // ─── Run helpers ────────────────────────────────────────────────────────
 
+  /** Answer any tool call the history never answered.
+   *
+   *  The synthetic result says the call was interrupted rather than pretending it
+   *  succeeded: the model can see that the work did not happen and decide whether
+   *  to ask again. Dropping the call instead would also satisfy the providers,
+   *  but it would erase the fact that it was ever made -- and with it any chance
+   *  for the model to notice the gap. */
+  private repairUnansweredToolCalls(): void {
+    const messages = this._history.messages();
+    const answered = new Set<string>();
+    for (const m of messages) {
+      if (!Array.isArray(m.content)) continue;
+      for (const part of m.content) {
+        if (part.type === 'tool_result') answered.add(part.id);
+      }
+    }
+
+    const orphans: ContentPart[] = [];
+    const seen = new Set<string>();
+    for (const m of messages) {
+      if (m.role !== 'assistant' || !Array.isArray(m.content)) continue;
+      for (const part of m.content) {
+        // A duplicate id is answered by the first result; counting it twice would
+        // append a second result and create the opposite imbalance.
+        if (part.type !== 'tool_call' || answered.has(part.id) || seen.has(part.id)) continue;
+        seen.add(part.id);
+        orphans.push({
+          type: 'tool_result',
+          id: part.id,
+          content:
+            `Tool "${part.name}" was never run: the previous turn ended before it could execute.`,
+          isError: true,
+        });
+      }
+    }
+    if (orphans.length === 0) return;
+
+    this._history.append({ role: 'tool', content: orphans });
+    void this.hooks.emit('onWarning', {
+      source: 'agent',
+      code: 'unanswered_tool_calls_repaired',
+      message:
+        `${orphans.length} tool call(s) from an interrupted turn had no result and were answered ` +
+        'synthetically, because a provider rejects a history that leaves one open.',
+      details: { callIds: [...seen] },
+    });
+  }
+
   private async beginRun(
     input: string | ContentPart[] | Message[],
     callerCtx?: Partial<RequestContext>,
@@ -1375,6 +1450,19 @@ export class AgentLoop {
       historyLength: this._history.length,
       trace: runTrace,
     });
+
+    // Before a single new message goes in. A turn can end between "the model
+    // asked for a tool" and "the tool answered" in at least five ways -- an early
+    // break out of stream(), an output guardrail tripping, continueOnError:false,
+    // a pending approval, a caller who simply stopped -- and every one of them
+    // leaves the assistant's tool call as the last thing in history.
+    //
+    // Anthropic and OpenAI both REJECT a request whose history contains a tool
+    // call with no result. So the next run died on send, one turn away from the
+    // thing that actually caused it, with an error naming neither. Repairing it
+    // in the five places it can happen means missing the sixth; this is the one
+    // gate every run passes through.
+    this.repairUnansweredToolCalls();
 
     // Append (NOT replace). For Message[], append each; for string/ContentPart[], wrap as user.
     if (typeof input === 'string') {

@@ -257,15 +257,45 @@ export class ConversationHistory {
     this._updatedAt = Date.now();
   }
 
-  /** Truncate to last N entries */
+  /** Truncate to last N entries.
+   *
+   *  Never leaves a tool RESULT whose call was cut away. A count-based cut knows
+   *  nothing about pairs, so it could land between "the model asked" and "the
+   *  tool answered" and keep only the second half -- and Anthropic and OpenAI
+   *  both reject a result that answers nothing, exactly as they reject a call
+   *  that nothing answered. The orphan is dropped with the call it belonged to,
+   *  so `keepLast` is a ceiling rather than an exact count. Anything else would
+   *  have to invent the call that was removed.
+   *
+   *  `anchored` already respected pairs; `truncate` is what every other path
+   *  (including ContextGuard's dropOldest) goes through. */
   truncate(keepLast: number): HistoryEntry[] {
     if (keepLast >= this.entries.length) return [];
-    const removed = this.entries.splice(0, this.entries.length - keepLast);
+    let cut = this.entries.length - keepLast;
+    while (cut < this.entries.length && this.isOrphanedResult(cut)) cut++;
+    const removed = this.entries.splice(0, cut);
     this.entries.forEach((e, i) => {
       e.index = i;
     });
     this._updatedAt = Date.now();
     return removed;
+  }
+
+  /** Would the entry at `i` become the first kept one, carrying a tool result
+   *  whose call sits before the cut? */
+  private isOrphanedResult(i: number): boolean {
+    const content = this.entries[i]?.message.content;
+    if (!Array.isArray(content)) return false;
+    const resultIds = content.filter((p) => p.type === 'tool_result').map((p) => p.id);
+    if (resultIds.length === 0) return false;
+    // Every call that survives the cut lives at or after `i`, and a result always
+    // follows its call -- so if the call is not among the kept entries, it was cut.
+    const keptCallIds = new Set<string>();
+    for (const e of this.entries.slice(i)) {
+      if (!Array.isArray(e.message.content)) continue;
+      for (const p of e.message.content) if (p.type === 'tool_call') keptCallIds.add(p.id);
+    }
+    return resultIds.some((id) => !keptCallIds.has(id));
   }
 
   /** Replace entries in [from, to) with a single synthetic message.

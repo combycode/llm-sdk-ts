@@ -112,18 +112,39 @@ export function accumulateStreamEvent(
 }
 
 /** Parse a single accumulator entry into a ToolCallPart.
- *  Silently treats invalid JSON as an empty args object. */
+ *
+ *  Unparseable arguments are MARKED, not discarded. This used to fall back to an
+ *  empty object, which is a different call rather than a failed one: a stream cut
+ *  at `{"path": "/et` arrived as `{}` and the tool ran with no arguments at all.
+ *  For anything destructive that is the worst available reading of the model's
+ *  intent, and nothing downstream could tell it from a real no-argument call.
+ *
+ *  An absent or empty `args` string is NOT malformed — that is how a genuine
+ *  no-argument call comes across the wire. */
 function parseAccumEntry(acc: ToolCallAccumEntry): ToolCallPart {
   let parsedArgs: Record<string, unknown> = {};
-  try {
-    parsedArgs = JSON.parse(acc.args || '{}');
-  } catch {}
+  let malformed = false;
+  const raw = acc.args ?? '';
+  if (raw.trim() !== '') {
+    try {
+      const parsed: unknown = JSON.parse(raw);
+      // A bare scalar parses but is not an argument object.
+      if (parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)) {
+        parsedArgs = parsed as Record<string, unknown>;
+      } else {
+        malformed = true;
+      }
+    } catch {
+      malformed = true;
+    }
+  }
   return {
     type: 'tool_call',
     id: acc.id,
     name: acc.name,
     arguments: parsedArgs,
     ...(acc._meta ? { _meta: acc._meta } : {}),
+    ...(malformed ? { malformed: true as const } : {}),
   };
 }
 
@@ -163,13 +184,28 @@ export function buildStepResponse(
   content.push(...state.stepToolCalls);
 
   const hasToolCalls = state.stepToolCalls.length > 0;
-  const effectiveFinishReason = hasToolCalls ? 'tool_use' : state.stepFinishReason;
+  // A step holding a call we cannot run did not finish in `tool_use`: no tool is
+  // going to be used. Saying so is what lets `reflectAndRetry` fire on EVERY
+  // provider — until now only Google ever produced this reason, because only
+  // Google's own API reports it, so the same truncation on OpenAI or Anthropic
+  // was silently indistinguishable from a successful turn.
+  const hasMalformed = state.stepToolCalls.some((tc) => tc.malformed);
+  const effectiveFinishReason = hasMalformed
+    ? 'malformed_tool_call'
+    : hasToolCalls
+      ? 'tool_use'
+      : state.stepFinishReason;
 
   const response: CompletionResponse = {
     id: crypto.randomUUID(),
     model,
     content,
-    finishReason: effectiveFinishReason === 'tool_use' ? 'tool_use' : 'stop',
+    finishReason:
+      effectiveFinishReason === 'tool_use'
+        ? 'tool_use'
+        : effectiveFinishReason === 'malformed_tool_call'
+          ? 'malformed_tool_call'
+          : 'stop',
     usage: state.stepUsage,
     text: state.stepText,
     toolCalls: state.stepToolCalls,

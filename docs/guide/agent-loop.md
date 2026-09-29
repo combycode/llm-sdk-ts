@@ -199,6 +199,26 @@ Some failures are the model's, not the network's: a malformed tool call, a trunc
 hallucinated tool name. Resending the identical request would never fix them, so the network retry
 layer correctly leaves them alone — and the run used to end there.
 
+A tool call whose arguments do not parse is **never executed**. It used to fall back to `{}`, which
+is a valid call rather than a failed one, so a stream cut at `{"path": "/et` ran the tool with no
+arguments at all. The call is now marked, answered with an error result so the history stays valid,
+and the step finishes as `malformed_tool_call` on **every** provider — previously only Google
+reported that reason, so the same truncation elsewhere looked like a clean turn and nothing below
+ever fired.
+
+### Interrupted turns are repaired
+
+A turn can end between "the model asked for a tool" and "the tool answered": an early break out of
+`stream()`, an output guardrail tripping, `continueOnError: false`, a pending approval, a caller who
+stopped. Anthropic and OpenAI both reject a history containing a tool call with no result, so the
+NEXT run died on send — one turn away from the cause, with an error naming neither.
+
+Every run now repairs the history before its first request: an unanswered call gets a synthetic
+result saying the tool never ran, and `onWarning` fires with `unanswered_tool_calls_repaired`. The
+result is not a pretend success — the model can see the work did not happen. History truncation is
+pair-aware for the same reason: a count-based cut that would keep a result whose call it removed
+drops the orphan too, so `keepLast` is a ceiling rather than an exact count.
+
 `reflectAndRetry` gives the model a bounded number of second chances, telling it what went wrong:
 
 ```ts
