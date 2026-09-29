@@ -12,6 +12,7 @@ import type {
   FileProviderAdapter,
   FileUploadResult,
   RemoteFileInfo,
+  FileUploadOptions,
 } from '../../../plugins/files/provider-adapter';
 import { ANTHROPIC_API_VERSION } from './constants';
 
@@ -62,8 +63,12 @@ export class AnthropicFileAdapter implements FileProviderAdapter {
     } as HttpRequest;
   }
 
-  buildUploadRequest(file: FileAttachment, data: Uint8Array): HttpRequest {
-    return this.fromSpec('anthropic/files.upload', {}, {
+  buildUploadRequest(
+    file: FileAttachment,
+    data: Uint8Array,
+    opts?: FileUploadOptions,
+  ): HttpRequest {
+    return this.fromSpec('anthropic/files.upload', { lifetimeSeconds: opts?.lifetimeSeconds }, {
       data,
       filename: file.filename,
       mimeType: file.mimeType,
@@ -79,16 +84,24 @@ export class AnthropicFileAdapter implements FileProviderAdapter {
     return this.fromSpec('anthropic/files.list', {});
   }
 
-  async upload(file: FileAttachment, fetch: EngineFetch): Promise<FileUploadResult> {
+  async upload(
+    file: FileAttachment,
+    fetch: EngineFetch,
+    opts?: FileUploadOptions,
+  ): Promise<FileUploadResult> {
     const data = await file.toBuffer();
-    const res = await fetch(this.buildUploadRequest(file, data));
+    const res = await fetch(this.buildUploadRequest(file, data, opts));
 
     if (res.status >= 400) {
       throw new Error(`Anthropic file upload failed (${res.status}): ${JSON.stringify(res.body)}`);
     }
 
     const body = (res.body as Record<string, unknown>) ?? {};
-    return { remoteId: body.id as string, expiresAt: null };
+    // Anthropic returns an ISO STRING here, where OpenAI and xAI return unix
+    // seconds. Measured, not assumed -- `expiresAt` used to be hardcoded null.
+    const expiresAt =
+      typeof body.expires_at === 'string' ? Date.parse(body.expires_at) || null : null;
+    return { remoteId: body.id as string, expiresAt };
   }
 
   async delete(remoteId: string, fetch: EngineFetch): Promise<void> {

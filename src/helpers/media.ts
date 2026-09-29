@@ -17,6 +17,7 @@ import { OpenAIMediaAdapter } from '../llm/providers/openai/media';
 import { OpenRouterMediaAdapter } from '../llm/providers/openrouter/media';
 import { XAIMediaAdapter } from '../llm/providers/xai/media';
 import type { ProviderName } from '../llm/types/provider';
+import { LLMError } from '../network/errors';
 import { FileMediaStore } from '../plugins/media/file-store';
 import { MediaOutput, type MediaOutputInit } from '../plugins/media/output';
 import type {
@@ -137,8 +138,18 @@ export function createMediaOutput(opts: CreateMediaOutputOptions): MediaOutputHa
   // Translate our normalised slug to the provider's callable id (e.g.
   // `gemini-3.1-flash-tts` -> `gemini-3.1-flash-tts-preview`) via the catalog,
   // the same way createLLM does. Unknown/callable ids pass through unchanged.
-  const resolveModelId = (provider: string, model: string | undefined): string | undefined =>
-    model ? engine.catalog.resolveModelId(provider, model) : model;
+  //
+  // The refusal comes FIRST, on what the caller wrote. `MediaOutput` refuses too,
+  // but by the time a request reaches it through here the slug has already been
+  // rewritten to the provider's own id — and naming that id outright is the one
+  // deliberate way THROUGH the refusal. Resolving before asking turned every
+  // refusal into a pass for exactly the models it was written for.
+  const resolveModelId = (provider: string, model: string | undefined): string | undefined => {
+    if (!model) return model;
+    const refusal = engine.catalog.refuseCall(provider, model);
+    if (refusal) throw new LLMError(refusal, 'unsupported', provider);
+    return engine.catalog.resolveModelId(provider, model);
+  };
 
   return {
     raw: output,

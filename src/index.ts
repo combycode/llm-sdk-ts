@@ -216,7 +216,12 @@ export { DefaultBatchStrategy } from './plugins/batch/strategy';
 export type { BatchProviderAdapter, BatchRequest, BatchResult, BatchStatus, BatchStrategy, PendingBatchJob } from './plugins/batch/types';
 export { FileAttachment } from './plugins/files/attachment';
 export type { FileAttachmentSnapshot, FileContent, FileUploadState } from './plugins/files/attachment';
-export type { FileProviderAdapter, FileUploadResult, RemoteFileInfo } from './plugins/files/provider-adapter';
+export type {
+  FileProviderAdapter,
+  FileUploadOptions,
+  FileUploadResult,
+  RemoteFileInfo,
+} from './plugins/files/provider-adapter';
 export { FilesRegistry } from './plugins/files/registry';
 export type { FilesRegistryConfig } from './plugins/files/registry';
 export { DefaultFileStrategy } from './plugins/files/strategy';

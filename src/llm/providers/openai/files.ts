@@ -12,6 +12,7 @@ import type {
   FileProviderAdapter,
   FileUploadResult,
   RemoteFileInfo,
+  FileUploadOptions,
 } from '../../../plugins/files/provider-adapter';
 
 export interface OpenAIFileAdapterConfig {
@@ -60,8 +61,12 @@ export class OpenAIFileAdapter implements FileProviderAdapter {
     } as HttpRequest;
   }
 
-  buildUploadRequest(file: FileAttachment, data: Uint8Array): Promise<HttpRequest> {
-    return this.fromSpec('openai/files.upload', {}, {
+  buildUploadRequest(
+    file: FileAttachment,
+    data: Uint8Array,
+    opts?: FileUploadOptions,
+  ): Promise<HttpRequest> {
+    return this.fromSpec('openai/files.upload', { lifetimeSeconds: opts?.lifetimeSeconds }, {
       data,
       filename: file.filename,
       mimeType: file.mimeType,
@@ -77,9 +82,13 @@ export class OpenAIFileAdapter implements FileProviderAdapter {
     return this.fromSpec('openai/files.list', {});
   }
 
-  async upload(file: FileAttachment, fetch: EngineFetch): Promise<FileUploadResult> {
+  async upload(
+    file: FileAttachment,
+    fetch: EngineFetch,
+    opts?: FileUploadOptions,
+  ): Promise<FileUploadResult> {
     const data = await file.toBuffer();
-    const res = await fetch(await this.buildUploadRequest(file, data));
+    const res = await fetch(await this.buildUploadRequest(file, data, opts));
 
     if (res.status >= 400) {
       throw new Error(`OpenAI file upload failed (${res.status}): ${JSON.stringify(res.body)}`);

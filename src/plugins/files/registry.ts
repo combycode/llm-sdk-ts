@@ -18,6 +18,13 @@ export interface FilesRegistryConfig {
   /** Engine fetch — every adapter HTTP call dispatches through this so it
    *  inherits NetworkEngine queue semantics (rate limits, retry, hooks). */
   fetch: EngineFetch;
+  /** Seconds from upload until the provider deletes an uploaded file.
+   *
+   *  Off by default, which is the providers' own default: an uploaded file lives
+   *  until something deletes it. Set it and the file expires on the provider's
+   *  side without anything here having to remember. Google ignores it -- its
+   *  expiry is not settable -- and says so through `onWarning`. */
+  uploadLifetimeSeconds?: number;
 }
 
 type FilePartType = 'image' | 'document' | 'audio' | 'video';
@@ -29,6 +36,7 @@ export class FilesRegistry {
   private catalog: ModelCatalog | null;
   private strategy: FileStrategy;
   private fetch: EngineFetch;
+  private uploadLifetimeSeconds?: number;
   private unsub: (() => void) | null = null;
 
   constructor(config: FilesRegistryConfig) {
@@ -36,6 +44,7 @@ export class FilesRegistry {
     this.catalog = config.catalog ?? null;
     this.strategy = config.strategy ?? new DefaultFileStrategy();
     this.fetch = config.fetch;
+    this.uploadLifetimeSeconds = config.uploadLifetimeSeconds;
 
     this.unsub = this.hooks.on('onMessageResolve', (ctx) => this.resolveMessages(ctx));
   }
@@ -88,7 +97,17 @@ export class FilesRegistry {
     if (!adapter) throw new Error(`No file adapter for provider: ${provider}`);
 
     const start = performance.now();
-    const result = await adapter.upload(file, this.fetch);
+    const result = await adapter.upload(file, this.fetch, {
+      lifetimeSeconds: this.uploadLifetimeSeconds,
+      warn: (message, details) => {
+        this.hooks.emitSync('onWarning', {
+          source: 'files',
+          code: 'request_adjusted',
+          message,
+          details: { fileId, provider, ...details },
+        });
+      },
+    });
     const latencyMs = performance.now() - start;
 
     file.setUploaded(provider, result.remoteId, result.expiresAt);

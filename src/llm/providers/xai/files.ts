@@ -12,6 +12,7 @@ import type {
   FileProviderAdapter,
   FileUploadResult,
   RemoteFileInfo,
+  FileUploadOptions,
 } from '../../../plugins/files/provider-adapter';
 
 export interface XAIFileAdapterConfig {
@@ -66,8 +67,12 @@ export class XAIFileAdapter implements FileProviderAdapter {
     } as HttpRequest;
   }
 
-  buildUploadRequest(file: FileAttachment, data: Uint8Array): Promise<HttpRequest> {
-    return this.fromSpec('xai/files.upload', {}, {
+  buildUploadRequest(
+    file: FileAttachment,
+    data: Uint8Array,
+    opts?: FileUploadOptions,
+  ): Promise<HttpRequest> {
+    return this.fromSpec('xai/files.upload', { lifetimeSeconds: opts?.lifetimeSeconds }, {
       data,
       filename: file.filename,
       mimeType: file.mimeType,
@@ -83,16 +88,21 @@ export class XAIFileAdapter implements FileProviderAdapter {
     return this.fromSpec('xai/files.list', {});
   }
 
-  async upload(file: FileAttachment, fetch: EngineFetch): Promise<FileUploadResult> {
+  async upload(
+    file: FileAttachment,
+    fetch: EngineFetch,
+    opts?: FileUploadOptions,
+  ): Promise<FileUploadResult> {
     const data = await file.toBuffer();
-    const res = await fetch(await this.buildUploadRequest(file, data));
+    const res = await fetch(await this.buildUploadRequest(file, data, opts));
 
     if (res.status >= 400) {
       throw new Error(`xAI file upload failed (${res.status}): ${JSON.stringify(res.body)}`);
     }
 
     const body = (res.body as Record<string, unknown>) ?? {};
-    return { remoteId: body.id as string, expiresAt: null };
+    const expiresAt = body.expires_at ? (body.expires_at as number) * 1000 : null;
+    return { remoteId: body.id as string, expiresAt };
   }
 
   async delete(remoteId: string, fetch: EngineFetch): Promise<void> {

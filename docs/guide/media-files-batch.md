@@ -167,6 +167,37 @@ const { text } = await complete({
 console.log(text);
 ```
 
+### Letting an upload expire by itself
+
+Uploaded files do not clean themselves up. OpenAI states that everything except
+`purpose=batch` persists until something deletes it, so an agent that attaches a
+document per turn grows an unbounded pile on the customer's account. Set
+`uploadLifetimeSeconds` and the provider deletes the file for you:
+
+```ts
+import { createEngine, FilesRegistry } from '@combycode/llm-sdk';
+
+const engine = createEngine({ catalog: 'defaults' });
+const files = new FilesRegistry({
+  hooks: engine.hooks,
+  catalog: engine.catalog,
+  fetch: engine.fetch,
+  uploadLifetimeSeconds: 3600,
+});
+```
+
+Off by default, which is the providers' own default. Anthropic, OpenAI and xAI
+each accept a lifetime in a different field shape; the registry handles that.
+
+**Google is the exception, and it is worth knowing before you rely on this.**
+Google's `expiration_time` is marked "Output only" -- Google decides, asking
+changes nothing, and the file still expires on Google's own schedule (reported
+back as `expiresAt`). The adapter says so through `onWarning` with code
+`request_adjusted` rather than dropping the request quietly, because a unified
+option that silently does nothing on one provider is worse than one that is
+honest about where it applies. Deleting the file yourself stays available on
+every provider.
+
 ### Batch -- auto mode
 
 ```ts

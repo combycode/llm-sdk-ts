@@ -10,6 +10,7 @@ import type { HookBus } from '../../bus/hook-bus';
 import type { MediaOutputPart } from '../../llm/types/messages';
 import { emptyUsage, type Usage } from '../../llm/types/response';
 import type { EngineFetch } from '../../network/types';
+import { LLMError } from '../../network/errors';
 import type { ModelCatalog } from '../../catalog/catalog';
 import {
   MEDIA_OUTPUT_DEFAULTS,
@@ -75,6 +76,7 @@ export class MediaOutput {
   }
 
   async generateImage(req: ImageGenRequest): Promise<MediaResult[]> {
+    this.refuseIfUnavailable(req.provider, req.model);
     const adapter = this.getAdapter(req.provider);
     if (!adapter.capabilities().imageGeneration) {
       throw new Error(`Provider ${req.provider} does not support image generation`);
@@ -94,6 +96,7 @@ export class MediaOutput {
   }
 
   async editImage(req: ImageEditRequest): Promise<MediaResult[]> {
+    this.refuseIfUnavailable(req.provider, req.model);
     const adapter = this.getAdapter(req.provider);
     if (!adapter.capabilities().imageEditing || !adapter.editImage) {
       throw new Error(`Provider ${req.provider} does not support image editing`);
@@ -113,6 +116,7 @@ export class MediaOutput {
   }
 
   async generateAudio(req: AudioGenRequest): Promise<MediaResult> {
+    this.refuseIfUnavailable(req.provider, req.model);
     const adapter = this.getAdapter(req.provider);
     if (!adapter.capabilities().audioGeneration) {
       throw new Error(`Provider ${req.provider} does not support audio generation`);
@@ -133,6 +137,7 @@ export class MediaOutput {
   }
 
   async generateVideo(req: VideoGenRequest): Promise<MediaResult> {
+    this.refuseIfUnavailable(req.provider, req.model);
     const adapter = this.getAdapter(req.provider);
     const caps = adapter.capabilities();
     if (!caps.videoGeneration || !adapter.submitVideo) {
@@ -149,6 +154,23 @@ export class MediaOutput {
   }
 
   // ─── Internal ────────────────────────────────────────────────────────
+
+  /** Refuse a model the catalog has MEASURED as unreachable, before spending a
+   *  round trip to be told the same thing in a less useful way.
+   *
+   *  Here rather than in the adapter on purpose. The adapter's job is the wire,
+   *  and its request shape is recorded in the frozen media corpus and in the
+   *  spec/adapter parity check -- refusing there would rewrite a contract to
+   *  express a policy. The plugin is where the catalog already lives, and the
+   *  catalog is what this library says decides how to talk to a model.
+   *
+   *  Skipped entirely when no catalog is configured: an engine without one is
+   *  not one that can be sure. */
+  private refuseIfUnavailable(provider: string, model: string | undefined): void {
+    if (!this.catalog || !model) return;
+    const refusal = this.catalog.refuseCall(provider, model);
+    if (refusal) throw new LLMError(refusal, 'unsupported', provider);
+  }
 
   private getAdapter(provider: string): MediaProviderAdapter {
     const adapter = this.providers.get(provider);

@@ -299,6 +299,37 @@ the whole set anyway -- a model browser, an audit.
 In production, prefer a fallback chain over relying on any single id: a model can
 retire between your deploy and your traffic.
 
+### Refusing before the request leaves
+
+`catalog.unavailableReason()` is the knowledge; `catalog.refuseCall()` is the
+decision built on it. It returns the sentence to refuse with, or `null` to go
+ahead. The media plugins call it themselves, so `generateImage`, `editImage`,
+`generateAudio` and `generateVideo` fail with an explanation instead of a 404
+from the provider.
+
+```ts
+import { createEngine } from '@combycode/llm-sdk';
+
+const engine = createEngine({ catalog: 'defaults' });
+
+const refusal = engine.catalog.refuseCall('google', 'imagen-4');
+// -> 'google/imagen-4 is not callable: Imagen :predict is Enterprise-only. ...
+//     To request it anyway, name the provider's own id: "imagen-4.0-generate-001".'
+
+engine.catalog.refuseCall('google', 'imagen-4.0-generate-001'); // -> null
+```
+
+**Naming the provider's own id is the force mode.** We measured one account, not
+every account, and an endpoint that is Enterprise-only is exactly the kind that
+answers for somebody. `imagen-4` is this library's slug: asking for it is asking
+the catalog, and the catalog answers with what it measured. `imagen-4.0-generate-001`
+is Google's id, and typing it is a deliberate request for that endpoint -- most
+plausibly from someone whose deployment does serve it. The measurement does not
+change either way: `unavailableReason()` still reports it for both spellings, and
+only the refusal is lifted. Where the slug and the provider id are the same string
+-- `openai/sora-2`, whose whole API shut down -- there is nothing to force, and
+the refusal says so by offering no override.
+
 Query syntax: a semicolon-separated string or string array. Each clause is one of:
 
 | Clause | Meaning |

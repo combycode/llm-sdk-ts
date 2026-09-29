@@ -234,7 +234,8 @@ standard `Blob` or `File` object.
 ```ts
 interface FileProviderAdapter {
   readonly name: string;
-  upload(file: FileAttachment, fetch: EngineFetch): Promise<FileUploadResult>;
+  upload(file: FileAttachment, fetch: EngineFetch,
+         opts?: FileUploadOptions): Promise<FileUploadResult>;
   delete(remoteId: string, fetch: EngineFetch): Promise<void>;
   getInfo(remoteId: string, fetch: EngineFetch): Promise<RemoteFileInfo | null>;
   list(fetch: EngineFetch): Promise<RemoteFileInfo[]>;
@@ -242,12 +243,37 @@ interface FileProviderAdapter {
   maxFileSize: number;          // bytes
   supportedTypes: string[] | null;  // null = accept all
 }
+
+interface FileUploadOptions {
+  /** Seconds until the provider deletes it. Undefined = never ask. */
+  lifetimeSeconds?: number;
+  /** For what the provider will not honour. Routed to `onWarning`
+   *  (`request_adjusted`) with the file id and provider filled in. */
+  warn?: (message: string, details?: Record<string, unknown>) => void;
+}
 ```
 
 ### `FilesRegistry` (`src/plugins/files/registry.ts`)
 
-Constructed with `{ hooks, catalog?, strategy?, fetch }`. Subscribes to
-`hooks.on('onMessageResolve', ...)` at construction. Call `destroy()` to unsubscribe.
+Constructed with `{ hooks, catalog?, strategy?, fetch, uploadLifetimeSeconds? }`.
+Subscribes to `hooks.on('onMessageResolve', ...)` at construction. Call `destroy()`
+to unsubscribe.
+
+`uploadLifetimeSeconds` is passed down to every `adapter.upload()` as
+`FileUploadOptions { lifetimeSeconds, warn }`, and each adapter puts it on the wire
+in the shape its provider accepts. The three shapes are not interchangeable, and
+each was measured on 2026-09-29 rather than read from a doc:
+
+| Provider | On the wire | Notes |
+|---|---|---|
+| Anthropic | `expires_in_seconds`, plain scalar | `expires_at` returns as an ISO string. |
+| OpenAI | `expires_after[anchor]` + `expires_after[seconds]`, BRACKET fields | Sending the object as a JSON string is refused 400. `expires_at` returns as unix seconds. |
+| xAI | `expires_after`, **before the file part** | After it: 400, "expires_after must appear before the file field". `expires_in_seconds` is accepted with a 200 and silently ignored, so status alone would not catch a wrong name. |
+| Google | nothing | `expiration_time` is "Output only". The adapter emits `onWarning` (`request_adjusted`) rather than dropping the request silently. |
+
+Absent means absent: the specs guard on `defined`, so a `lifetimeSeconds` that is
+`undefined` must not reach the payload as a present key, or OpenAI's `anchor`
+field goes out on every upload.
 
 **File registration**: `add({ filename, mimeType, content, sizeBytes? })` creates a
 `FileAttachment` with a UUID id. Size is estimated from content when not provided:

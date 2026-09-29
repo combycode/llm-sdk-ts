@@ -420,6 +420,49 @@ export class ModelCatalog {
     return null;
   }
 
+  /** Should a call to this model be refused before it is sent, and why?
+   *
+   *  `unavailableReason` says what the catalog KNOWS. This says what to DO about
+   *  it, and the difference is one deliberate escape hatch:
+   *
+   *  Naming the PROVIDER's own id is treated as an override. That is not a new
+   *  rule -- `resolveModelId` already draws the same line and says why: our slug
+   *  means "give me whatever the catalog calls this", while an id the provider
+   *  itself accepts "is a deliberate choice". Someone who types
+   *  `imagen-4.0-generate-001` rather than `imagen-4` has gone looking for that
+   *  name, and the most likely reason is an Enterprise deployment where the
+   *  endpoint genuinely answers. We measured that it is gone for US; we cannot
+   *  measure that it is gone for everyone.
+   *
+   *  The refusal message NAMES the escape, so this stays a documented door
+   *  rather than a hidden one.
+   *
+   *  No escape is offered when the slug and the provider id are the same string,
+   *  and that lines up with when an escape is WARRANTED. `imagen-4` is refused
+   *  with a door, because its endpoint exists and is entitlement-gated -- gone
+   *  for us, quite possibly there for an Enterprise caller. `sora-2` is refused
+   *  without one, because its endpoint shut down on an announced date and there
+   *  is nobody for whom it still answers. The rule reads the naming, but what it
+   *  tracks is the difference between "we cannot reach it" and "it is gone". */
+  refuseCall(provider: string, model: string, now = new Date()): string | null {
+    const reason = this.unavailableReason(provider, model, now);
+    if (!reason) return null;
+
+    // Exactly the test `resolveModelId` uses: a hit in the alias index means the
+    // provider accepts this spelling as written.
+    const usedSlug = this.models.has(this.key(provider, model));
+    const usedProviderId = !usedSlug && this.aliasIndex.has(this.key(provider, model));
+    if (usedProviderId) return null;
+
+    const info = this.get(provider, model);
+    const providerId = info?.providerModelName;
+    const overrideHint =
+      providerId && providerId !== model
+        ? ` To request it anyway, name the provider's own id: "${providerId}".`
+        : '';
+    return `${provider}/${model} is not callable: ${reason}.${overrideHint}`;
+  }
+
   list(provider?: string): ModelInfo[] {
     const all = [...this.models.values()];
     return provider ? all.filter((m) => m.provider === provider) : all;

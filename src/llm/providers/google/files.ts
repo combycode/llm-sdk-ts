@@ -13,6 +13,7 @@ import type {
   FileProviderAdapter,
   FileUploadResult,
   RemoteFileInfo,
+  FileUploadOptions,
 } from '../../../plugins/files/provider-adapter';
 
 const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
@@ -119,7 +120,24 @@ export class GoogleFileAdapter implements FileProviderAdapter {
     return this.fromSpec('google/files.list', {});
   }
 
-  async upload(file: FileAttachment, fetch: EngineFetch): Promise<FileUploadResult> {
+  async upload(
+    file: FileAttachment,
+    fetch: EngineFetch,
+    opts?: FileUploadOptions,
+  ): Promise<FileUploadResult> {
+    // Google decides how long a file lives; `expiration_time` is marked "Output
+    // only" in its own types, so there is nowhere to put a requested lifetime.
+    // Saying so is the point: a unified option that quietly does nothing on one
+    // provider is how a caller ends up believing in a cleanup that never runs.
+    // The file still expires -- Google sets the time and reports it below.
+    if (opts?.lifetimeSeconds !== undefined) {
+      opts.warn?.(
+        `Google does not accept a file lifetime: expiration_time is set by Google, not by the ` +
+          `caller, so the requested ${opts.lifetimeSeconds}s was not sent. The file still ` +
+          `expires on Google's own schedule, reported as expiresAt.`,
+        { requestedLifetimeSeconds: opts.lifetimeSeconds },
+      );
+    }
     const data = await file.toBuffer();
 
     const startRes = await fetch(this.buildStartUploadRequest(file, data.length));
