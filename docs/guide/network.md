@@ -116,6 +116,39 @@ them in `perKind`.
 > retry machinery was always correct, but it was only reachable by hand-building an `HttpRequest`;
 > `createEngine({ retry })` now exposes it where a cross-cutting setting belongs.
 
+### What is never replayed
+
+Four things stop a retry regardless of policy, because repeating them is worse than failing:
+
+| | Why |
+|---|---|
+| The caller aborted | Their signal, not our timeout. Re-sending is work nobody asked for. |
+| A streamed request body | Consumed by the first attempt; the second would send an empty one. |
+| A response that already arrived | The POST landed and only the body failed to parse. Retrying sends it twice. |
+| **A request that continues server-side state** | See below. |
+
+**Server-side state.** A body carrying `previous_response_id` (OpenAI Responses) or
+`previous_interaction_id` (Google Interactions) does not stand alone — the provider appends the
+turn to a conversation it is holding. A failure that reached it may therefore have produced that
+turn already, so a retry appends a **second** one, into a transcript you will read back later, with
+nothing in the reply to say so. A duplicated HTTP request costs money; a duplicated *turn* changes
+what the model sees on the next call.
+
+This matters by default: `stateful` is on, so a multi-turn conversation sends
+`previous_response_id` without you writing it. Those calls now surface the failure instead of
+retrying it. Opt back in per request when you know the call is safe to repeat — the provider told
+you it never landed, or the conversation is disposable:
+
+```ts
+await engine.fetch({
+  url, headers: {}, body, provider: 'openai', model: 'gpt-5.6-luna',
+  retry: { approveUnsafeReplay: true },
+});
+```
+
+A **stateless** request is unaffected and still retries, timeouts included: refusing those would
+trade a common recovery for a rare one.
+
 ### `Retry-After` is honoured, but bounded
 
 A server-supplied `Retry-After` is capped by `RetryConfig.maxRetryAfterMs` (default **120 s**), and a

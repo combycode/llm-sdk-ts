@@ -97,6 +97,15 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **A request that continues server-side state is no longer replayed by the retry layer.** A body
+  carrying `previous_response_id` (OpenAI Responses) or `previous_interaction_id` (Google
+  Interactions) does not stand alone: the provider appends the turn to a conversation it holds, so
+  a failure that reached it may have produced that turn already -- and the retry appended a SECOND
+  one, silently, into a transcript the caller reads back later. A duplicated HTTP request costs
+  money; a duplicated TURN changes what the model sees next. Set
+  `retry.approveUnsafeReplay: true` on the request when you know it is safe to repeat. A stateless
+  request is unaffected and still retries, timeouts included -- refusing those would trade a common
+  recovery for a rare one.
 - **An MCP token refresh wiped the refresh token whenever the server did not replace it.** Most
   authorization servers do not rotate refresh tokens (RFC 6749 §6), and the saved object spread the
   response over the carried-forward value -- which `toTokens` always sets, to `undefined` when the

@@ -11,6 +11,7 @@ import { sleep } from '../util/async';
 import {
   anySignal,
   headersToRecord,
+  isStatefulRequest,
   isStreamBody,
   parseIntHeader,
   parseResponseBody,
@@ -433,8 +434,21 @@ export class QueueState {
       error.retryAfterMs !== undefined &&
       error.retryAfterMs !== null &&
       error.retryAfterMs > retry.maxRetryAfterMs;
+    // A request that continues SERVER-SIDE state is not replayed on its own.
+    // The provider appends the turn to a conversation it holds, so a failure
+    // that reached it may have produced that turn already -- and the retry
+    // appends a second one, silently, into a transcript the caller will read
+    // back later. A stateless request is unaffected and still retries, timeouts
+    // included.
+    const replaySafe =
+      !isStatefulRequest(entry.request.body) || entry.request.retry?.approveUnsafeReplay === true;
     const willRetry =
-      isRetryable && entry.attempt < maxRetries && withinBudget && replayableBody && !retryAfterTooLong;
+      isRetryable &&
+      entry.attempt < maxRetries &&
+      withinBudget &&
+      replayableBody &&
+      replaySafe &&
+      !retryAfterTooLong;
 
     void this.hooks.emit('onModelError', {
       provider: entry.request.provider,

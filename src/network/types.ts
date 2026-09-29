@@ -47,6 +47,21 @@ export interface RequestRetryOverride {
   attemptTimeoutMs?: number;
   maxRetryAfterMs?: number;
   backoff?: Partial<{ initialMs: number; maxMs: number; multiplier: number; jitter: number }>;
+  /** Permit retrying a request that continues SERVER-SIDE state.
+   *
+   *  A request carrying `previous_response_id` (OpenAI Responses) or
+   *  `previous_interaction_id` (Google Interactions) does not stand alone: the
+   *  provider appends the turn to a conversation it holds. A failure that
+   *  reached the server therefore may have already produced that turn, and a
+   *  retry appends a SECOND one -- the transcript now contains a turn nobody
+   *  asked for, and nothing in the reply says so.
+   *
+   *  So these are not retried by default. Set this when you know the call is
+   *  safe to repeat -- the provider has told you it never landed, or the
+   *  conversation is disposable -- and accept the duplicate if you are wrong.
+   *  It does not affect anything else: a stateless request retries as it always
+   *  has, including on timeout. */
+  approveUnsafeReplay?: boolean;
 }
 
 /** Raw HTTP response (post-fetch, pre-provider-parse). */

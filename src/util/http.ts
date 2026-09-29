@@ -21,6 +21,21 @@ export function header(headers: Record<string, string>, name: string): string | 
 
 /** True when a request body cannot be replayed for a retry (the first attempt
  *  consumes it). FormData, strings and byte views are replayable; a stream is not. */
+/** Whether this body continues a conversation the PROVIDER is holding.
+ *
+ *  `previous_response_id` (OpenAI Responses) and `previous_interaction_id`
+ *  (Google Interactions) both say "append to that". Read off the built body
+ *  rather than from a provider list: the question is what this request does,
+ *  which stays the same question when another provider grows the same idea.
+ *
+ *  It matters to the retry layer, where replaying such a request appends a
+ *  SECOND turn to a transcript the caller will read back later -- silently. */
+export function isStatefulRequest(body: unknown): boolean {
+  if (!body || typeof body !== 'object') return false;
+  const b = body as Record<string, unknown>;
+  return Boolean(b.previous_response_id) || Boolean(b.previous_interaction_id);
+}
+
 export function isStreamBody(body: unknown): boolean {
   return typeof ReadableStream !== 'undefined' && body instanceof ReadableStream;
 }
