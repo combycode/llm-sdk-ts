@@ -10,6 +10,7 @@
 import { describe, expect, it } from 'bun:test';
 import { HookBus } from '../../../src/bus/hook-bus';
 import { NetworkEngine } from '../../../src/network/engine';
+import { LLMError } from '../../../src/network/errors';
 import type { HttpRequest } from '../../../src/network/types';
 
 const req = (over?: Partial<HttpRequest>): HttpRequest => ({
@@ -51,6 +52,10 @@ describe('fetchStream — error reporting', () => {
     const engine = new NetworkEngine({
       hooks,
       fetch: stubFetch(429, { error: { message: 'slow down' } }, RL_HEADERS),
+      // About the REPORT, not the retry ladder. `perKind` is what decides for a
+      // 429 -- the top-level `maxRetries` does not reach it, which is the
+      // documented precedence -- so the rate_limit kind is the layer to pin.
+      retry: { perKind: { rate_limit: { retryable: false } } },
     });
     await expect(drain(engine.fetchStream(req()))).rejects.toBeDefined();
 
@@ -73,7 +78,14 @@ describe('fetchStream — error reporting', () => {
     hooks.on('onRateLimitHit', (c) => {
       hit = c as unknown as Record<string, unknown>;
     });
-    const engine = new NetworkEngine({ hooks, fetch: stubFetch(429, { error: 'x' }) });
+    const engine = new NetworkEngine({
+      hooks,
+      fetch: stubFetch(429, { error: 'x' }),
+      // About the REPORT, not the retry ladder. `perKind` is what decides for a
+      // 429 -- the top-level `maxRetries` does not reach it, which is the
+      // documented precedence -- so the rate_limit kind is the layer to pin.
+      retry: { perKind: { rate_limit: { retryable: false } } },
+    });
     await expect(drain(engine.fetchStream(req()))).rejects.toBeDefined();
     expect(hit).toMatchObject({
       remainingRequests: null,
@@ -115,7 +127,14 @@ describe('fetchStream — error reporting', () => {
     hooks.on('onModelError', () => {
       order.push('model');
     });
-    const engine = new NetworkEngine({ hooks, fetch: stubFetch(429, { error: 'x' }) });
+    const engine = new NetworkEngine({
+      hooks,
+      fetch: stubFetch(429, { error: 'x' }),
+      // About the REPORT, not the retry ladder. `perKind` is what decides for a
+      // 429 -- the top-level `maxRetries` does not reach it, which is the
+      // documented precedence -- so the rate_limit kind is the layer to pin.
+      retry: { perKind: { rate_limit: { retryable: false } } },
+    });
     await expect(drain(engine.fetchStream(req()))).rejects.toBeDefined();
     expect(order).toEqual(['rate', 'model']);
   });
@@ -195,5 +214,83 @@ describe('queue worker — recovery from a crashing sync hook', () => {
     boom = false;
     const res = await engine.fetch(req());
     expect(res.status).toBe(200);
+  });
+});
+
+describe('fetchStream — the connect phase is retried, the stream is not', () => {
+  /** `executeOnce` used to run exactly once here, so a 429 or a 503 arriving
+   *  before a single byte ended the stream outright — the one failure a retry is
+   *  actually for, and the buffered path has always retried it. */
+  it('retries a 429 before the first byte', async () => {
+    let calls = 0;
+    const fetchFn = ((_u: string, _i?: RequestInit) => {
+      calls++;
+      return Promise.resolve(
+        new Response(JSON.stringify({ error: 'slow down' }), { status: 429 }),
+      );
+    }) as unknown as typeof globalThis.fetch;
+    const engine = new NetworkEngine({
+      hooks: new HookBus(),
+      fetch: fetchFn,
+      retry: {
+        // A 429 is decided by `perKind`, not by the top-level maxRetries.
+        perKind: { rate_limit: { retryable: true, maxRetries: 2 } },
+        backoff: { initialMs: 1, maxMs: 2, multiplier: 1, jitter: 0 },
+      },
+    });
+    await expect(drain(engine.fetchStream(req()))).rejects.toBeDefined();
+    expect(calls).toBe(3); // the attempt plus two retries
+  });
+
+  it('does not retry an auth failure, which resending cannot fix', async () => {
+    let calls = 0;
+    const fetchFn = ((_u: string, _i?: RequestInit) => {
+      calls++;
+      return Promise.resolve(new Response(JSON.stringify({ error: 'bad key' }), { status: 401 }));
+    }) as unknown as typeof globalThis.fetch;
+    const engine = new NetworkEngine({
+      hooks: new HookBus(),
+      fetch: fetchFn,
+      retry: { maxRetries: 3, backoff: { initialMs: 1, maxMs: 2, multiplier: 1, jitter: 0 } },
+    });
+    await expect(drain(engine.fetchStream(req()))).rejects.toBeDefined();
+    expect(calls).toBe(1);
+  });
+
+  /** After the first event the caller already holds part of the answer, so a
+   *  resend would deliver a second, overlapping stream. */
+  it('wraps a mid-stream failure as a non-retryable LLMError instead of a bare TypeError', async () => {
+    let calls = 0;
+    const fetchFn = ((_u: string, _i?: RequestInit) => {
+      calls++;
+      let pulls = 0;
+      const body = new ReadableStream<Uint8Array>({
+        pull(controller) {
+          // Deliver on the first pull, fail on the second: enqueue-then-error in
+          // one turn can surface the error before the chunk is ever read.
+          if (pulls++ === 0) {
+            controller.enqueue(new TextEncoder().encode('data: {"a":1}\n\n'));
+            return;
+          }
+          controller.error(new TypeError('connection reset'));
+        },
+      });
+      return Promise.resolve(new Response(body, { status: 200 }));
+    }) as unknown as typeof globalThis.fetch;
+    const engine = new NetworkEngine({ hooks: new HookBus(), fetch: fetchFn });
+
+    const seen: unknown[] = [];
+    let caught: unknown;
+    try {
+      for await (const ev of engine.fetchStream(req())) seen.push(ev);
+    } catch (e) {
+      caught = e;
+    }
+    expect(seen).toHaveLength(1); // the event that did arrive is delivered
+    expect(caught).toBeInstanceOf(LLMError);
+    expect((caught as LLMError).kind).toBe('network');
+    expect((caught as LLMError).retryable).toBe(false);
+    expect((caught as LLMError).message).toContain('1 event');
+    expect(calls).toBe(1); // and the stream is NOT re-opened
   });
 });

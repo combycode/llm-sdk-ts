@@ -123,51 +123,47 @@ export class QueueState {
     }
 
     const start = performance.now();
+    const retry = this.retryFor(req);
     try {
-      const response = await this.executeOnce(req);
-      const latencyMs = performance.now() - start;
-      const resHeaders = headersToRecord(response.headers);
-      this.rateLimiter.updateFromHeaders(resHeaders);
-
-      await this.hooks.emit('onRequestComplete', {
-        provider: req.provider,
-        model: req.model,
-        queueName: this.queueName,
-        status: response.status,
-        headers: resHeaders,
-        latencyMs,
-        attempt: 0,
-        bodySize: 0,
-        streaming: true,
-        trace: req.trace,
-      });
-      this.processed++;
-
-      if (!response.ok) {
-        let errorBody: unknown;
-        try {
-          errorBody = await response.json();
-        } catch {
-          errorBody = null;
-        }
-        const error = classifyError(req.provider, response.status, errorBody, resHeaders);
-        await this.emitErrorHooks(req, error, resHeaders, 0);
-        throw error;
-      }
+      // The CONNECT phase may be retried; everything after the first event may
+      // not. `executeOnce` used to run exactly once here, so a 429 or a 503
+      // arriving before a single byte ended the stream outright -- the one
+      // failure a retry is actually for, and the buffered path has always
+      // retried it. Replay is safe only until the caller has seen something:
+      // after that, resending would deliver a second, overlapping stream.
+      const response = await this.connect(req, retry, idempotencyKey, start);
 
       if (!response.body) throw new LLMError('No response body', 'server_error', req.provider);
 
       let chunkIndex = 0;
-      for await (const event of parseSSEStream(response.body)) {
-        this.hooks.emitSync('onStreamChunk', {
-          provider: req.provider,
-          model: req.model,
-          queueName: this.queueName,
-          chunkIndex: chunkIndex++,
-          raw: event,
-          trace: req.trace,
-        });
-        yield event;
+      try {
+        for await (const event of parseSSEStream(response.body)) {
+          this.hooks.emitSync('onStreamChunk', {
+            provider: req.provider,
+            model: req.model,
+            queueName: this.queueName,
+            chunkIndex: chunkIndex++,
+            raw: event,
+            trace: req.trace,
+          });
+          yield event;
+        }
+      } catch (e) {
+        // A connection dropped mid-stream surfaced as a bare TypeError or
+        // DOMException -- outside the taxonomy entirely, so a caller branching
+        // on `LLMError.kind` saw nothing and a generic handler reported a
+        // programming fault. It is a network error, and it is NOT retryable:
+        // the caller already has part of the answer.
+        if (e instanceof LLMError) throw e;
+        if (req.signal?.aborted) throw e instanceof Error ? e : new Error(String(e));
+        const isTimeout = e instanceof DOMException && e.name === 'AbortError';
+        throw new LLMError(
+          `Stream failed after ${chunkIndex} event(s): ${String(e)}`,
+          isTimeout ? 'timeout' : 'network',
+          req.provider,
+          undefined,
+          false,
+        );
       }
     } finally {
       this.semaphore.release();
@@ -514,6 +510,84 @@ export class QueueState {
     const base = Math.min(initialMs * multiplier ** attempt, maxMs);
     const j = 1 - (Math.random() * jitter * 2 - jitter);
     return Math.round(base * j);
+  }
+
+  /** The connect phase of a stream, retried while nothing has been delivered.
+   *
+   *  Mirrors the buffered path's decision but stops at the first success: there
+   *  is no `handleRetry` re-enqueue here because a stream is a live generator,
+   *  not a queue entry that can be replayed later. A caller's abort and a body
+   *  that cannot be replayed are refused for the same reasons as there. */
+  private async connect(
+    req: HttpRequest,
+    retry: RetryConfig,
+    idempotencyKey: string,
+    start: number,
+  ): Promise<Response> {
+    for (let attempt = 0; ; attempt++) {
+      let error: LLMError;
+      try {
+        const response = await this.executeOnce(req);
+        const latencyMs = performance.now() - start;
+        const resHeaders = headersToRecord(response.headers);
+        this.rateLimiter.updateFromHeaders(resHeaders);
+
+        await this.hooks.emit('onRequestComplete', {
+          provider: req.provider,
+          model: req.model,
+          queueName: this.queueName,
+          status: response.status,
+          headers: resHeaders,
+          latencyMs,
+          attempt,
+          bodySize: 0,
+          streaming: true,
+          trace: req.trace,
+        });
+        this.processed++;
+        if (response.ok) return response;
+
+        let errorBody: unknown;
+        try {
+          errorBody = await response.json();
+        } catch {
+          errorBody = null;
+        }
+        error = classifyError(req.provider, response.status, errorBody, resHeaders);
+        await this.emitErrorHooks(req, error, resHeaders, attempt);
+      } catch (e) {
+        if (e instanceof LLMError) throw e;
+        if (req.signal?.aborted) throw e instanceof Error ? e : new Error(String(e));
+        const isTimeout = e instanceof DOMException && e.name === 'AbortError';
+        error = new LLMError(String(e), isTimeout ? 'timeout' : 'network', req.provider, undefined, true);
+      }
+
+      const kindConfig = retry.perKind?.[error.kind];
+      const configured = kindConfig?.retryable ?? error.retryable;
+      const retryable = error.shouldRetry === false ? false : configured;
+      const maxRetries = req.retry?.maxRetries ?? kindConfig?.maxRetries ?? retry.maxRetries;
+      const tooLong =
+        error.retryAfterMs !== undefined &&
+        error.retryAfterMs !== null &&
+        error.retryAfterMs > retry.maxRetryAfterMs;
+      const withinBudget = performance.now() - start < retry.totalTimeoutMs;
+      if (!retryable || attempt >= maxRetries || tooLong || !withinBudget || isStreamBody(req.body)) {
+        throw error;
+      }
+
+      const backoffMs = this.calculateBackoff(attempt, error, kindConfig, retry);
+      this.hooks.emitSync('onRetry', {
+        provider: req.provider,
+        model: req.model,
+        queueName: this.queueName,
+        attempt: attempt + 1,
+        backoffMs,
+        reason: error.kind,
+        idempotencyKey,
+        trace: req.trace,
+      });
+      await sleep(backoffMs);
+    }
   }
 
   private async executeOnce(req: HttpRequest): Promise<Response> {
