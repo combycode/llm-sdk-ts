@@ -254,7 +254,7 @@ export { MemoryMediaStore } from './plugins/media/memory-store';
 export { MediaOutput } from './plugins/media/output';
 export type { MediaOutputInit } from './plugins/media/output';
 export { MEDIA_OUTPUT_DEFAULTS } from './plugins/media/types';
-export type { AudioGenRequest, ImageEditRequest, ImageGenRequest, MediaCapabilities, MediaMeta, MediaOutputConfig, MediaProviderAdapter, MediaResult, MediaStore, MediaType, RawMediaResult, VideoGenRequest, VideoStatus } from './plugins/media/types';
+export type { AudioGenRequest, SpeechSegment, VoiceRef, ImageEditRequest, ImageGenRequest, MediaCapabilities, MediaMeta, MediaOutputConfig, MediaProviderAdapter, MediaResult, MediaStore, MediaType, RawMediaResult, VideoGenRequest, VideoStatus } from './plugins/media/types';
 export type { EmbedRequest, EmbedResult, EmbeddingProviderAdapter } from './plugins/embeddings/types';
 // Concrete embedding adapters (needed to construct localRetrieval's embedAdapter).
 export { OpenAIEmbeddingAdapter } from './llm/providers/openai/embeddings';

@@ -10,7 +10,7 @@
  */
 import type { Ctx, Registry } from '../wire/interpreter';
 import { ensureAdditionalProperties, strictSupport } from './types/schema-utils';
-import { resolveVoice } from './audio/voices';
+import { isOwnedVoice, resolveVoice } from './audio/voices';
 import { buildNativeModeration } from './moderation/native';
 import { googleRequestTier } from './providers/google/tiers';
 import { openaiTierDecision } from './providers/openai/tiers';
@@ -227,6 +227,70 @@ export function makeRegistry(a: AdapterHandles): Registry {
 
     /** Gemini TTS voice, with the adapter's default. */
     googleTtsVoice: (_v, ctx: Ctx) => resolveVoice('google', ctx.req.params?.voice) ?? 'Kore',
+
+    /** The whole `speechConfig`, because its two shapes are not variations of
+     *  one another.
+     *
+     *  - one voice  -> `voiceConfig`, and WHICH field depends on ownership: a
+     *    catalog name keeps `prebuiltVoiceConfig.voiceName` exactly as before,
+     *    while a `{ id }` takes the flat `voice`, the field Google validates
+     *    custom ids against.
+     *  - several    -> `multiSpeakerVoiceConfig.speakerVoiceConfigs[]`, one
+     *    entry per speaker.
+     *
+     *  Speakers win when both are given: asking for a cast and a single voice is
+     *  a contradiction, and the cast is the more specific request. */
+    googleSpeechConfig: (_v, ctx: Ctx) => {
+      const params = ctx.req.params ?? {};
+      const speakers = Array.isArray(params.speakers) ? params.speakers : [];
+      const voiceFor = (v: unknown): Record<string, unknown> =>
+        isOwnedVoice(v as never)
+          ? { voice: resolveVoice('google', v as never) }
+          : { prebuiltVoiceConfig: { voiceName: resolveVoice('google', v as never) ?? 'Kore' } };
+
+      if (speakers.length > 0) {
+        return {
+          multiSpeakerVoiceConfig: {
+            speakerVoiceConfigs: speakers
+              .filter((sp: any) => typeof sp?.name === 'string' && sp.name)
+              .map((sp: any) => ({ speaker: sp.name, voiceConfig: voiceFor(sp.voice) })),
+          },
+        };
+      }
+      return { voiceConfig: voiceFor(params.voice) };
+    },
+
+    /** The `contents` parts for TTS.
+     *
+     *  With `segments`, each becomes its own part carrying `speechMetadata`.
+     *  That is not a stylistic choice -- measured 2026-09-30, a multi-speaker
+     *  request is refused outright unless EVERY text part names its speaker:
+     *  *"Multi-speaker generation requests must specify speech_metadata.speaker
+     *  for each text part in the contents."* So the two halves are one feature
+     *  and both are built from the same `segments`.
+     *
+     *  Without segments it is the single `input` part, unchanged. */
+    googleTtsParts: (_v, ctx: Ctx) => {
+      const segments = ctx.req.params?.segments;
+      if (!Array.isArray(segments) || segments.length === 0) {
+        return [{ parts: [{ text: ctx.req.input }] }];
+      }
+      return [
+        {
+          parts: segments
+            .filter((seg: any) => typeof seg?.text === 'string')
+            .map((seg: any) => {
+              const meta: Record<string, unknown> = {};
+              if (typeof seg.speaker === 'string' && seg.speaker) meta.speaker = seg.speaker;
+              if (typeof seg.style === 'string' && seg.style) meta.style = seg.style;
+              return {
+                text: seg.text,
+                ...(Object.keys(meta).length > 0 ? { speechMetadata: meta } : {}),
+              };
+            }),
+        },
+      ];
+    },
 
     // ── the variant rule a pattern cannot express (FINDING) ───────────────
     /** Version arithmetic: family-then-version ids compared against 4.6.

@@ -65,12 +65,46 @@ export interface ImageEditRequest extends ImageGenRequest {
   mask?: DataSource;
 }
 
+/** Which voice speaks. A unified alias (`'warm'`), a provider voice name
+ *  (`'Kore'`), or a voice you own.
+ *
+ *  The object form exists for custom voices, whose ids are not names you can
+ *  guess -- Google's are `voice_…`, created through its voices API. Widening
+ *  rather than replacing: a string means exactly what it always meant, so no
+ *  existing call changes. */
+export type VoiceRef = string | { id: string };
+
+/** One stretch of speech attributed to a speaker, for multi-speaker TTS.
+ *
+ *  Both halves are required together and the provider says so: measured
+ *  2026-09-30, a request carrying `multiSpeakerVoiceConfig` without a speaker
+ *  on every part is refused -- *"Multi-speaker generation requests must specify
+ *  speech_metadata.speaker for each text part"*. So a caller gives segments and
+ *  the adapter derives both sides from them. */
+export interface SpeechSegment {
+  /** Who says this. Must match a name in `params.speakers`. */
+  speaker: string;
+  /** What they say. */
+  text: string;
+  /** How to say it, in words -- `'excited, fast-paced'`. Per segment, so one
+   *  line can be hesitant and the next certain. */
+  style?: string;
+}
+
 export interface AudioGenRequest {
   provider: string;
   model?: string;
+  /** The text to speak. Ignored when `params.segments` is set, which carries
+   *  its own text per speaker. */
   input: string;
   params?: {
-    voice?: string;
+    /** The single voice for the whole output. */
+    voice?: VoiceRef;
+    /** Who is in the conversation, for multi-speaker TTS. Each `name` is what a
+     *  segment refers to. Google only, and the model must support it. */
+    speakers?: Array<{ name: string; voice: VoiceRef }>;
+    /** The script, when more than one voice speaks. Supersedes `input`. */
+    segments?: SpeechSegment[];
     format?: string;
     speed?: number;
     instructions?: string;

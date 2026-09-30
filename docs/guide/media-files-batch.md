@@ -112,6 +112,55 @@ clip, chosen via `params.videoMode`:
 Gate this on the model's `capabilities.videoExtension` -- only extension-capable
 models accept a `sourceVideo`.
 
+### Voices: catalog, custom, and several at once
+
+`params.voice` takes a unified alias (`'warm'`), a provider catalog name (`'Kore'`), or a voice you
+own:
+
+```ts
+params: { voice: 'warm' }                        // alias -> the provider's name
+params: { voice: 'Kore' }                        // the provider's own name
+params: { voice: { id: 'voice_011CZk...' } }     // a custom voice you created
+```
+
+The object form exists because a custom voice id is not a name anyone could guess — it is issued
+when the voice is created. A plain string still means exactly what it always meant, and builds
+exactly the request it always built.
+
+**Several voices** need a cast and a script. Both, together:
+
+```ts
+await media.generateAudio({
+  model: 'google/gemini-3.8-flash-tts',
+  input: 'TTS this conversation.',
+  params: {
+    speakers: [
+      { name: 'Ada', voice: 'Kore' },
+      { name: 'Grace', voice: { id: 'voice_011CZk...' } },
+    ],
+    segments: [
+      { speaker: 'Ada', text: 'The meeting is Tuesday.', style: 'brisk' },
+      { speaker: 'Grace', text: 'I will be there.' },
+    ],
+  },
+});
+```
+
+`style` is free text and per segment, so one line can be hesitant and the next certain. A cast wins
+over a single `voice` — asking for both is a contradiction, and the cast is the more specific ask.
+
+> Measured 2026-09-30. The two halves are **one feature**: a request carrying the speaker configs
+> without a speaker on every text part is refused — *"Multi-speaker generation requests must specify
+> speech_metadata.speaker for each text part in the contents."* So both are derived from your
+> `segments`, and there is no way to supply one and forget the other. A catalog name goes to
+> `prebuiltVoiceConfig.voiceName` exactly as before; a `{ id }` goes to the flat `voiceConfig.voice`,
+> which is the field Google validates custom ids against.
+
+**Creating** a custom voice is not part of this library yet. The voices API is reachable, so this is
+a design decision rather than a limitation: voice management deserves a provider-neutral resource
+rather than one ported from a single vendor's shape, and that design is still open. Bring your own
+id and everything above works.
+
 ### The audio track
 
 Video models generate sound by default, so the useful thing to say is "don't".
