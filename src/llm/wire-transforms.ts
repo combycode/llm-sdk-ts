@@ -260,6 +260,26 @@ export function makeRegistry(a: AdapterHandles): Registry {
       return { voiceConfig: voiceFor(params.voice) };
     },
 
+    /** A Live session's `speechConfig`. Same ownership split as TTS: a catalog
+     *  name keeps `prebuiltVoiceConfig.voiceName`, a voice the caller owns takes
+     *  the flat `voice`. `voiceOwned` is decided by the helper, so the branch
+     *  here is a lookup rather than a second copy of the rule. */
+    googleLiveVoiceConfig: (_v, ctx: Ctx) =>
+      ctx.req.voiceOwned
+        ? { voiceConfig: { voice: ctx.req.voice } }
+        : { voiceConfig: { prebuiltVoiceConfig: { voiceName: ctx.req.voice } } },
+
+    /** Live translation config. `echoTargetLanguage` is only sent when the
+     *  caller said something about it -- its default is the server's to choose,
+     *  and `false` is a meaningful value that a truthy gate would eat. */
+    googleLiveTranslation: (_v, ctx: Ctx) => {
+      const t = ctx.req.translation ?? {};
+      return {
+        targetLanguageCode: t.targetLanguageCode,
+        ...(t.echoTargetLanguage !== undefined ? { echoTargetLanguage: t.echoTargetLanguage } : {}),
+      };
+    },
+
     /** The `contents` parts for TTS.
      *
      *  With `segments`, each becomes its own part carrying `speechMetadata`.

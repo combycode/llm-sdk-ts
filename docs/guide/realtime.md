@@ -33,10 +33,37 @@ createRealtime(opts: CreateRealtimeOptions): RealtimeSession
 | `audio` | `AudioOptions` | no | `{ voice?, format? }` for audio output |
 | `voice` | `string` | no | Deprecated; use `audio.voice` |
 | `instructions` | `string` | no | System-level instructions for the session |
+| `translation` | `{ targetLanguageCode?, echoTargetLanguage? }` | no | **Google.** Turns the session into a live translator — see below |
+| `affectiveDialog` | `boolean` | no | **Google.** Detect the speaker's emotion and adapt the reply |
+| `inputTranscription` | `{ mode?: 'VERBATIM' \| 'SMART' }` | no | **Google.** How to transcribe what the session HEARS |
 | `engine` | `EngineHandle` | no | Defaults to the registered engine |
 
 Returns a `RealtimeSession` immediately (synchronous). The underlying WebSocket
 connection opens asynchronously; listen for the `'open'` event before sending.
+
+### Live translation (Google)
+
+`gemini-3.5-live-translate` is a translator, and until now there was no way to tell it what to
+translate into — so it could be connected to and had nothing to do. `translation` is what makes it
+usable:
+
+```ts
+const session = createRealtime({
+  model: 'google/gemini-3.5-live-translate',
+  translation: { targetLanguageCode: 'es', echoTargetLanguage: false },
+  modalities: ['audio'],
+});
+```
+
+`echoTargetLanguage` decides what happens when the target language is **already** being spoken:
+`true` parrots it back, `false` stays quiet. In a two-way conversation that is the difference
+between hearing yourself repeated and not, so `false` is usually what you want — and it is sent
+whenever you mention it, rather than being dropped for being falsy.
+
+> Measured 2026-09-30 by streaming the same English sentence into two sessions, which is the only
+> way to check this: a **bogus** target language also returns `setupComplete`, so "the server
+> accepted it" proves nothing. With no `translationConfig` the output transcription came back
+> empty; with `targetLanguageCode: 'es'` it came back *"Buenos días. La reunión se ha"*.
 
 ## `RealtimeSession` interface
 

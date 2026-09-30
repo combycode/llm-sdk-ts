@@ -16,10 +16,21 @@ export interface RealtimeSessionConfig {
   /** Desired output modalities. Default `['text']`. Note: some models are
    *  audio-native (Gemini Live streams audio regardless). */
   modalities?: RealtimeModality[];
-  /** Voice id for audio output, where the provider supports selection. */
+  /** Voice id for audio output, where the provider supports selection.
+   *  Already resolved: an alias has been mapped and an owned id unwrapped. */
   voice?: string;
+  /** Whether `voice` is an id the caller OWNS rather than a catalog name.
+   *  Decides which wire field carries it, the same split as TTS. */
+  voiceOwned?: boolean;
   /** System instructions for the session. */
   instructions?: string;
+  /** Live translation (Google). `echoTargetLanguage` decides whether speech
+   *  already in the target language is parroted back or left alone. */
+  translation?: { targetLanguageCode?: string; echoTargetLanguage?: boolean };
+  /** Detect the speaker's emotion and adapt the reply (Google). */
+  affectiveDialog?: boolean;
+  /** How to transcribe what the session HEARS (Google). */
+  inputTranscription?: { mode?: 'VERBATIM' | 'SMART' };
 }
 
 /** One input turn (or partial turn) from the user. */
