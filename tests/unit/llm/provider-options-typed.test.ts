@@ -51,9 +51,11 @@ describe('every documented ProviderOptions key reaches the wire', () => {
 
   it('openai: promptCacheOptions and reasoningMode', () => {
     const cached = openaiResponses.buildRequest(
-      req({ providerOptions: { promptCacheOptions: { ttl: 60 } } }),
+      // A field the typed shape does not know: the index signature exists so
+      // an option OpenAI ships before we model it still reaches the wire.
+      req({ providerOptions: { promptCacheOptions: { ttl: '30m', some_future_knob: 60 } } }),
     ).body as any;
-    expect(cached.prompt_cache_options).toEqual({ ttl: 60 });
+    expect(cached.prompt_cache_options).toEqual({ ttl: '30m', some_future_knob: 60 });
 
     const reasoning = openaiResponses.buildRequest(
       req({ thinking: { mode: 'on' }, providerOptions: { reasoningMode: 'pro' } }),

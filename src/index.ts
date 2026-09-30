@@ -119,7 +119,14 @@ export type {
   Usage,
 } from './llm/types/response';
 export type { FileStream, RetrievedFile } from './llm/files/retrieve';
-export type { CacheConfig, NormalizedRequest, ProviderOptions, ReasoningContext, ThinkingConfig } from './llm/types/request';
+export type {
+  CacheConfig,
+  NormalizedRequest,
+  PromptCacheOptions,
+  ProviderOptions,
+  ReasoningContext,
+  ThinkingConfig,
+} from './llm/types/request';
 export type { MediaStreamType, StreamEvent } from './llm/types/stream';
 export type { ExecuteOptions } from './llm/types/options';
 export type { ProviderName, ApiType, ProviderConfig, ProviderHttpRequest, ProviderAdapter } from './llm/types/provider';

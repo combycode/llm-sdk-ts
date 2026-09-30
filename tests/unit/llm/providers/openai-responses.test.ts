@@ -69,7 +69,7 @@ describe('OpenAIResponsesAdapter — buildRequest basics', () => {
   });
 
   it('providerOptions.promptCacheOptions → prompt_cache_options (explicit caching)', () => {
-    const opts = { mode: 'explicit', ttl: '30m' };
+    const opts = { mode: 'explicit', ttl: '30m' } as const;
     const r = a.buildRequest({ ...baseReq, providerOptions: { promptCacheOptions: opts } });
     expect(r.body.prompt_cache_options).toEqual(opts);
     expect(a.buildRequest(baseReq).body.prompt_cache_options).toBeUndefined();

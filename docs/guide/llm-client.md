@@ -258,12 +258,52 @@ reads the keys it understands and ignores the rest:
   unified `moderation` option stays report-only; use this (or `moderationGuardrail` at the agent layer)
   to block.
 - **OpenAI (Responses + chat, gpt-5.6+)** — `promptCacheOptions` → `prompt_cache_options`
-  (`{ mode: 'implicit'|'explicit', ttl: '30m' }`). Note: OpenAI caches **implicitly by default**, so the
-  unified `cache` config already caches on OpenAI with no config — this is for manual control only.
+  (typed as `PromptCacheOptions`: `{ mode?: 'implicit'|'explicit', ttl?: '30m', prewarm?: boolean }`).
+  Note: OpenAI caches **implicitly by default**, so the unified `cache` config already caches on
+  OpenAI with no config — this is for manual control only. `gpt-5.6+` is not advisory: an older
+  model refuses the whole object with `400 prompt_cache_options is not supported on this model`.
+  See [Warming the cache before you need it](#warming-the-cache-before-you-need-it).
 
 ```ts
 await complete({ model: 'anthropic/claude-haiku-4.5', apiKey, prompt: '…', providerOptions: { userProfileId: 'usr_42' } });
 ```
+
+### Warming the cache before you need it
+
+`prewarm: true` writes the prompt cache and generates **nothing** — it overrides `generate` to
+false. Use it when a long shared prefix is about to be hit by several requests and you would rather
+pay the cache write once, up front, than make the first real request slow.
+
+```ts
+const PREFIX = '…a few thousand tokens of shared context…';
+
+// 1. warm it. Comes back completed and empty — that is success, not a failure.
+const warm = await complete({
+  model: 'openai/gpt-5.6-terra',
+  apiKey,
+  prompt: PREFIX,
+  providerOptions: { promptCacheOptions: { prewarm: true, ttl: '30m' } },
+});
+console.log(warm.response.finishReason); // 'stop'
+console.log(warm.response.text);         // ''
+
+// 2. the real requests read it
+const answer = await complete({ model: 'openai/gpt-5.6-terra', apiKey, prompt: `${PREFIX}
+
+Q: …` });
+console.log(answer.response.usage.cachedTokens); // most of the prefix
+```
+
+A prewarm response has an empty `output[]`, which this library reports as an ordinary empty result
+— `finishReason: 'stop'`, no content, no `error`. Do not read the blank text as a broken request.
+
+It is not free: the prewarm pays for the input tokens it writes (`usage.cacheWriteTokens`), so it
+is worth it only when the prefix will actually be reused.
+
+> Measured 2026-09-30 on `gpt-5.6-terra`: the prewarm call returned 0 output items and 0 cached
+> tokens, and the next call on the same 4177-token prompt read **4174 of them from cache**. The
+> prompt carried a per-run nonce, so that hit can only have come from the prewarm. Note also that
+> caching needs a prompt long enough to qualify — an earlier 613-token attempt cached nothing.
 
 ### Workspaces
 

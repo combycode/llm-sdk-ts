@@ -25,6 +25,35 @@ import type { Tool, ToolChoice } from './tools';
  *
  *  Keys are grouped by the provider that consumes them; sending one to a
  *  different provider is ignored, not an error. */
+/** OpenAI `prompt_cache_options` (gpt-5.6+). Typed for editor help; forwarded
+ *  verbatim, so a field OpenAI adds tomorrow still works today. */
+export interface PromptCacheOptions {
+  /** Prepare the cache WITHOUT generating anything. Overrides `generate` to
+   *  false, so the response comes back complete with an empty output — which
+   *  this library reports as an ordinary empty result (`finishReason: 'stop'`,
+   *  no content), not a failure.
+   *
+   *  Measured 2026-09-30 on `gpt-5.6-terra`: a prewarm call returned 0 output
+   *  items and 0 cached tokens, and the next call on the same 4177-token
+   *  prompt read 4174 of them from cache. The prompt carried a per-run nonce,
+   *  so that hit can only have come from the prewarm. */
+  prewarm?: boolean;
+  /** `implicit` (default) lets OpenAI add one breakpoint of its own; with
+   *  `explicit` it adds none, so a request with no explicit breakpoint does
+   *  not use prompt caching at all. */
+  mode?: 'implicit' | 'explicit';
+  /** Minimum lifetime for every breakpoint this request writes. `30m` is the
+   *  only value OpenAI accepts *currently* -- their word -- so the union stays
+   *  open rather than rejecting the next one they add. It may retain entries
+   *  longer than asked. */
+  ttl?: '30m' | (string & {});
+  /** A previous response id to compare against, which asks for cache
+   *  diagnostics — see `response.cacheDiagnostics`. */
+  comparison_response_id?: string;
+  /** Forward-compat: any other field OpenAI accepts is passed through. */
+  [key: string]: unknown;
+}
+
 export interface ProviderOptions {
   // ── Anthropic ──────────────────────────────────────────────────────────
   /** Forwarded as the `anthropic-user-profile-id` header: identifies the end
@@ -50,8 +79,12 @@ export interface ProviderOptions {
   // ── OpenAI (responses + chat-completions) ──────────────────────────────
   /** Native moderation policy, sent alongside the `moderation` request field. */
   moderationPolicy?: Record<string, unknown>;
-  /** `prompt_cache_options` — OpenAI-only prompt-cache controls. */
-  promptCacheOptions?: Record<string, unknown>;
+  /** `prompt_cache_options` — OpenAI-only prompt-cache controls, gpt-5.6+.
+   *
+   *  Measured 2026-09-30: the whole object is refused on an older model with
+   *  `400 prompt_cache_options is not supported on this model`, so this is not
+   *  a knob to set globally and forget. */
+  promptCacheOptions?: PromptCacheOptions;
   /** `reasoning.mode` on the Responses API. */
   reasoningMode?: 'standard' | 'pro';
 
