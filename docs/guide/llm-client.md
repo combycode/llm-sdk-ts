@@ -268,6 +268,55 @@ reads the keys it understands and ignores the rest:
 await complete({ model: 'anthropic/claude-haiku-4.5', apiKey, prompt: '…', providerOptions: { userProfileId: 'usr_42' } });
 ```
 
+### How a model reads a video (Google)
+
+Two ways, and on a long video the difference is cost, not style:
+
+| `processing` | What happens |
+| --- | --- |
+| `'agentic'` | the model navigates the video itself, seeking to what it needs |
+| `'static'` | a fixed frame rate, every extracted frame placed in the context window |
+| `{ type: 'static', fps, startOffset, endOffset }` | static, with the sampling spelled out |
+
+The object form is the one worth reaching for: `fps` trades detail against tokens, and the offsets
+are how a question about 30 seconds of a two-hour recording costs what 30 seconds should. Offsets
+are seconds with an `s` suffix, as Google writes them.
+
+```ts
+await complete({
+  model: 'google/gemini-3.1-flash-lite',
+  apiKey,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'video',
+          source: { type: 'url', url: 'https://www.youtube.com/watch?v=…' },
+          providerOptions: { processing: { type: 'static', fps: 1, startOffset: '5s', endOffset: '20s' } },
+        },
+        { type: 'text', text: 'What happens in this clip?' },
+      ],
+    },
+  ],
+});
+```
+
+**The two Google surfaces take different shapes, and one cannot express the sampling.**
+`generateContent` has `Part.mediaProcessing`, an enum with exactly two values — so the object form
+is honoured on Interactions and reduced to plain `STATIC` there. A window of a long video is a
+request only Interactions can carry.
+
+> Measured 2026-09-30. `mediaProcessing` is refused unless the same part carries a **video** mime
+> type (`400 mime_type must be set when media_processing is specified`, and with a generic
+> `application/octet-stream` it is `400 media_processing can only be set on video parts`). Our
+> `url` and `file` sources carry no mime type at all, so one is supplied for a video that asked for
+> processing — and only then, leaving every request that did not ask byte-identical.
+>
+> `'agentic'` is gated per model: on `gemini-3.1-flash-lite` it is `400 Agentic video processing is
+> not enabled for this model`. That gate is not encoded here — a hard-coded model list would go
+> stale, and the provider's own message already says exactly what is wrong.
+
 ### Images Anthropic would otherwise shrink without telling you
 
 An image larger than the model's maximum is **downsized by default, silently**. The model reasons

@@ -4,7 +4,7 @@
  *  previous_interaction_id for stateful, 72h retention. */
 
 import type { SSEEvent } from '../../../network/types';
-import type { ContentPart, Message } from '../../types/messages';
+import type { ContentPart, Message, VideoProcessing } from '../../types/messages';
 import { splitToolResult } from '../_shared/tool-result';
 import { buildFromSpec } from '../../../wire/interpreter';
 import { buildResponse } from '../../../wire/response-interpreter';
@@ -39,6 +39,28 @@ export function googleInteractionsUsage(u: Record<string, unknown> | undefined):
     cachedTokens: (u.total_cached_tokens as number) ?? 0,
     cacheWriteTokens: 0,
     reasoningTokens: (u.total_thought_tokens as number) ?? 0,
+  };
+}
+
+/** `processing` -> the Interactions video input's own shape.
+ *
+ *  Two forms reach the wire unchanged: the bare mode (`'static'`/`'agentic'`)
+ *  and the object, whose keys are snake_case there (`start_offset`,
+ *  `end_offset`) while ours are camelCase. Omitted keys stay omitted rather
+ *  than becoming nulls -- `fps` absent means "your default", `fps: null` is a
+ *  value the server has to reject.
+ */
+function interactionsProcessing(
+  processing: VideoProcessing | undefined,
+): string | Record<string, unknown> | undefined {
+  if (processing === undefined) return undefined;
+  if (typeof processing === 'string') return processing;
+  if (processing.type !== 'static') return undefined;
+  return {
+    type: 'static',
+    ...(typeof processing.fps === 'number' ? { fps: processing.fps } : {}),
+    ...(processing.startOffset ? { start_offset: processing.startOffset } : {}),
+    ...(processing.endOffset ? { end_offset: processing.endOffset } : {}),
   };
 }
 
@@ -94,7 +116,17 @@ export class GoogleInteractionsAdapter implements ProviderAdapter {
         if (s.type === 'base64') parts.push({ type: 'audio', mime_type: s.mimeType, data: s.data });
       } else if (p.type === 'video') {
         const s = p.source;
-        if (s.type === 'url') parts.push({ type: 'video', uri: s.url });
+        if (s.type === 'url') {
+          const part: Record<string, unknown> = { type: 'video', uri: s.url };
+          // Interactions takes the RICH form: a mode, or `static` with the
+          // sampling spelled out. Offsets travel snake_case, which is why this
+          // cannot just forward what generateContent takes.
+          const processing = interactionsProcessing(p.providerOptions?.processing);
+          if (processing !== undefined) part.processing = processing;
+          const name = p.providerOptions?.name;
+          if (typeof name === 'string' && name) part.name = name;
+          parts.push(part);
+        }
       }
     }
     return parts;

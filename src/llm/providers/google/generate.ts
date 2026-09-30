@@ -1,7 +1,7 @@
 /** Google Gemini provider adapter (generateContent API). */
 
 import type { SSEEvent } from '../../../network/types';
-import type { ContentPart, DataSource } from '../../types/messages';
+import type { ContentPart, DataSource, VideoProcessing } from '../../types/messages';
 import type { ProviderAdapter, ProviderHttpRequest } from '../../types/provider';
 import { splitToolResult } from '../_shared/tool-result';
 import { buildFromSpec } from '../../../wire/interpreter';
@@ -53,6 +53,33 @@ export function googleUsage(u: Record<string, unknown> | undefined): Usage {
     // Billed service tier (output-only `usageMetadata.serviceTier`).
     ...googleBilledTier(u.serviceTier),
   };
+}
+
+/** What a video part claims to be when its source did not say.
+ *
+ *  A guess, and a deliberate one: `url` and `file` sources carry no mime type
+ *  in this library, Google will not accept `media_processing` without a video
+ *  one, and it treats the value as a hint rather than a strict claim -- a
+ *  YouTube link declared `video/mp4` is accepted and understood. */
+const DEFAULT_VIDEO_MIME = 'video/mp4';
+
+const isVideoMime = (m: string | undefined): boolean => typeof m === 'string' && m.startsWith('video/');
+
+/** `processing` -> generateContent's `Part.mediaProcessing` enum.
+ *
+ *  This surface has two values and nothing else: STATIC (fixed-rate frame
+ *  extraction, every frame in context) or AGENTIC (the model navigates). The
+ *  object form's `fps` and offsets belong to Interactions and have nowhere to
+ *  go here -- so the MODE is taken and the sampling is dropped, which is worth
+ *  knowing: a 30-second window of a two-hour video is a request only the
+ *  Interactions surface can honour.
+ */
+function googleMediaProcessing(processing: VideoProcessing | undefined): string | undefined {
+  if (processing === undefined) return undefined;
+  if (typeof processing === 'string') {
+    return processing === 'agentic' ? 'AGENTIC' : processing === 'static' ? 'STATIC' : undefined;
+  }
+  return processing.type === 'static' ? 'STATIC' : undefined;
 }
 
 export class GoogleAdapter implements ProviderAdapter {
@@ -128,13 +155,35 @@ export class GoogleAdapter implements ProviderAdapter {
           case 'video':
           case 'document': {
             const s = p.source;
-            if (s.type === 'base64')
-              parts.push({ inlineData: { mimeType: s.mimeType, data: s.data } });
+            let part: Record<string, unknown> | undefined;
+            if (s.type === 'base64') part = { inlineData: { mimeType: s.mimeType, data: s.data } };
             else if (s.type === 'url')
-              parts.push({ fileData: { fileUri: s.url, mimeType: 'application/octet-stream' } });
+              part = { fileData: { fileUri: s.url, mimeType: 'application/octet-stream' } };
             else if (s.type === 'provider_ref')
-              parts.push({ fileData: { fileUri: s.refId, mimeType: s.mimeType } });
-            else if (s.type === 'file') parts.push({ fileData: { fileUri: s.fileId } });
+              part = { fileData: { fileUri: s.refId, mimeType: s.mimeType } };
+            else if (s.type === 'file') part = { fileData: { fileUri: s.fileId } };
+            // generateContent takes the MODE only -- a screaming-snake enum on
+            // the part itself; the object form's sampling has no home here.
+            //
+            // It also refuses the enum unless the SAME part carries a video
+            // mime type: measured 2026-09-30, `media_processing` with no mime
+            // is `400 mime_type must be set when media_processing is
+            // specified`, and with our `application/octet-stream` default it
+            // is `400 media_processing can only be set on video parts`. A
+            // `url` or `file` source carries no mime type at all, so one is
+            // supplied here -- only for a video that actually asked for
+            // processing, leaving every existing request byte-identical.
+            if (part && p.type === 'video') {
+              const mode = googleMediaProcessing(p.providerOptions?.processing);
+              if (mode) {
+                part.mediaProcessing = mode;
+                const fd = part.fileData as { mimeType?: string } | undefined;
+                if (fd && !isVideoMime(fd.mimeType)) fd.mimeType = DEFAULT_VIDEO_MIME;
+                const inline = part.inlineData as { mimeType?: string } | undefined;
+                if (inline && !isVideoMime(inline.mimeType)) inline.mimeType = DEFAULT_VIDEO_MIME;
+              }
+            }
+            if (part) parts.push(part);
             break;
           }
           case 'tool_call': {

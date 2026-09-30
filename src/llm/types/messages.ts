@@ -96,9 +96,52 @@ export interface AudioPart {
   source: DataSource;
 }
 
+/** Provider-specific knobs for ONE video. Same shape and reasoning as
+ *  `ImagePartProviderOptions`: flat, grouped by comment, ignored by a provider
+ *  that does not read the key. */
+export interface VideoPartProviderOptions {
+  // ── Google ─────────────────────────────────────────────────────────────
+  /** How the model works through this video.
+   *
+   *  - `'agentic'` — the model navigates the video itself, seeking to what it
+   *    needs. Google recommends it for most cases.
+   *  - `'static'` — a fixed frame rate, every extracted frame placed in the
+   *    context window. Predictable, and predictably expensive on a long video.
+   *
+   *  The object form is `'static'` with the sampling spelled out, which is the
+   *  form worth reaching for: `fps` trades detail against tokens, and the
+   *  offsets let a question about 30 seconds of a two-hour recording cost what
+   *  30 seconds should.
+   *
+   *  Offsets are seconds with an `s` suffix, as Google writes them —
+   *  `'10.5s'`, `'30s'`. */
+  processing?: VideoProcessing;
+  /** Interactions only: a label for this video, echoed back so a turn that
+   *  carries several can be told apart. */
+  name?: string;
+  /** Forward-compat: any other per-video field a provider accepts. */
+  [key: string]: unknown;
+}
+
+/** `'agentic'`, `'static'`, or `'static'` with its sampling described. */
+export type VideoProcessing =
+  | 'static'
+  | 'agentic'
+  | {
+      type: 'static';
+      /** Frames sampled per second. */
+      fps?: number;
+      /** Where to start, e.g. `'10.5s'`. Non-negative. */
+      startOffset?: string;
+      /** Where to stop, e.g. `'30s'`. Must be greater than `startOffset`. */
+      endOffset?: string;
+    };
+
 export interface VideoPart {
   type: 'video';
   source: DataSource;
+  /** Provider-specific handling for THIS video. */
+  providerOptions?: VideoPartProviderOptions;
 }
 
 /** Who invoked a tool: the model itself, or code the model wrote.
