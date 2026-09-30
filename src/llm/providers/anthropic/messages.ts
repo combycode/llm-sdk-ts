@@ -221,17 +221,25 @@ export class AnthropicAdapter implements ProviderAdapter {
         return { type: 'text', text: part.text };
       case 'image': {
         const s = part.source;
-        if (s.type === 'base64')
-          return {
-            type: 'image',
-            source: { type: 'base64', media_type: s.mimeType, data: s.data },
-          };
-        if (s.type === 'url') return { type: 'image', source: { type: 'url', url: s.url } };
-        if (s.type === 'provider_ref')
-          return { type: 'image', source: { type: 'file', file_id: s.refId } };
-        if (s.type === 'file')
-          return { type: 'image', source: { type: 'file', file_id: s.fileId } };
-        return { type: 'image', source: {} };
+        const source =
+          s.type === 'base64'
+            ? { type: 'base64', media_type: s.mimeType, data: s.data }
+            : s.type === 'url'
+              ? { type: 'url', url: s.url }
+              : s.type === 'provider_ref'
+                ? { type: 'file', file_id: s.refId }
+                : s.type === 'file'
+                  ? { type: 'file', file_id: s.fileId }
+                  : {};
+        // Per-image, and only when asked for: the server's default is to
+        // downsize an oversized image silently, and restating that default on
+        // every block would freeze it into requests that never chose it.
+        const transformations = part.providerOptions?.transformations;
+        return {
+          type: 'image',
+          source,
+          ...(transformations && Object.keys(transformations).length > 0 ? { transformations } : {}),
+        };
       }
       case 'document': {
         const s = part.source;

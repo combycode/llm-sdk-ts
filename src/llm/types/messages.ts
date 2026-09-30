@@ -55,10 +55,34 @@ export interface TextPart {
   phase?: AssistantPhase;
 }
 
+/** Provider-specific knobs for ONE image, as opposed to the whole request.
+ *
+ *  Flat and grouped by comment, the same shape as the request-level
+ *  `ProviderOptions`: a key a provider does not read is ignored, not an error.
+ *  Per-part rather than shared because the question it answers is about this
+ *  image -- one oversized screenshot in a conversation should not change how
+ *  every other image is handled. */
+export interface ImagePartProviderOptions {
+  // ── Anthropic ──────────────────────────────────────────────────────────
+  /** What the server does to this image before the model sees it.
+   *
+   *  `oversized_image` is the one that matters: the default `'downsize'`
+   *  scales an over-large image to fit and does not say so, so the model
+   *  observes dimensions you did not choose and nothing in the response tells
+   *  you. `'error'` refuses instead, with a 400 naming the image's dimensions
+   *  and the largest that would fit -- which is what you want when the detail
+   *  being scaled away is the point of sending the image. */
+  transformations?: { oversized_image?: 'downsize' | 'error' };
+  /** Forward-compat: any other per-image field a provider accepts. */
+  [key: string]: unknown;
+}
+
 export interface ImagePart {
   type: 'image';
   source: DataSource;
   detail?: 'auto' | 'low' | 'high';
+  /** Provider-specific handling for THIS image. */
+  providerOptions?: ImagePartProviderOptions;
 }
 
 export interface DocumentPart {

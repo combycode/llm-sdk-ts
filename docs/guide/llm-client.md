@@ -268,6 +268,51 @@ reads the keys it understands and ignores the rest:
 await complete({ model: 'anthropic/claude-haiku-4.5', apiKey, prompt: '…', providerOptions: { userProfileId: 'usr_42' } });
 ```
 
+### Images Anthropic would otherwise shrink without telling you
+
+An image larger than the model's maximum is **downsized by default, silently**. The model reasons
+over dimensions you did not choose, the answer comes back looking normal, and nothing in the
+response says the detail you were asking about was resampled away.
+
+Measured 2026-09-30 — a 4000x4000 image sent to `claude-haiku-4.5`:
+
+> image dimensions 4000x4000 exceed the maximum image size of a model named on this request and
+> **would be downsized to 1092x1092**; scale the image to at most 1092x1092 or set the image's
+> `oversized_image` setting to `"downsize"`
+
+1092x1092 is **7% of the pixels that were sent**. For a screenshot of small text, or a scan someone
+is asking you to read, that is the difference between an answer and a guess.
+
+`oversized_image: 'error'` turns the silent shrink into that refusal, per image:
+
+```ts
+await complete({
+  model: 'anthropic/claude-haiku-4.5',
+  apiKey,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        {
+          type: 'image',
+          source: { type: 'base64', mimeType: 'image/png', data },
+          // Refuse rather than resample. The 400 names the dimensions and the
+          // largest that would fit, so you can scale it deliberately.
+          providerOptions: { transformations: { oversized_image: 'error' } },
+        },
+        { type: 'text', text: 'What does the error message in this screenshot say?' },
+      ],
+    },
+  ],
+});
+```
+
+Per **image**, not per request: one oversized screenshot in a long conversation should not change
+how every other image in it is handled. Omitted entirely when unset, so the server default stands.
+
+> A separate, higher limit exists above this one: a dimension over **8000px** is refused outright
+> whatever `oversized_image` says.
+
 ### Warming the cache before you need it
 
 `prewarm: true` writes the prompt cache and generates **nothing** — it overrides `generate` to
