@@ -151,6 +151,26 @@ const INTENTIONAL: Array<{ match: RegExp; reason: string }> = [
       'which is why the pro rows in this corpus show a field their live requests never ' +
       'carry: the corpus builds bodies through the adapter, below that guard.',
   },
+  {
+    match: /^xai\/grok-4\.(?:3|5|6|7) (?:thinking\.|structured\+thinking)/,
+    reason:
+      'A reasoning effort the catalog ADVERTISED never reached the wire. The xAI ' +
+      'overlay deleted `reasoning` for every model whose id lacked `multi-agent`, ' +
+      'on the belief that only that model used the field, while the catalog ' +
+      'carried `effortControl: true` with `xhigh` for grok-4.5 and 4.6 — so the ' +
+      'catalog promised a control the request did not carry and a caller asking ' +
+      'for `xhigh` silently got the default. Measured 2026-09-30 on /v1/responses, ' +
+      'reasoning tokens on a hard prompt (a trivial one cannot separate the ' +
+      'efforts, which is how "accepted and inert" hides): grok-4.6 low 449 -> ' +
+      'xhigh 3066, grok-4.5 low 95 -> xhigh 3475, grok-4.3 low 1307 -> xhigh 9729, ' +
+      'ranges disjoint in each. On chat-completions grok-4.6 goes low 927 -> xhigh ' +
+      '7043. So these models now carry the effort they always should have. The ' +
+      'whole grok-4.20 line answers 400 "does not support parameter ' +
+      'reasoningEffort" and is deliberately NOT in this waiver: its rows are ' +
+      'unchanged, which is what makes the fix a table rather than a version ' +
+      'comparison — 4.20 refuses the field while the numerically lower 4.3 ' +
+      'honours it.',
+  },
 ];
 
 /** Which waivers actually fired, so an obsolete one cannot go unnoticed. */

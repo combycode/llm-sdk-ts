@@ -154,9 +154,22 @@ await complete({ model: 'openai/gpt-5.4-nano', apiKey, prompt: '…', presencePe
 - `mode: 'auto' | 'on' | 'off'` — enable/disable reasoning.
 - `mode: 'between_tools'` — reason only BETWEEN tool calls. Anthropic-only and model-gated;
   see below.
-- `effort: 'low' | 'medium' | 'high' | 'max'` — intensity, mapped per provider (Anthropic
-  `budget_tokens` below 4.6 and `output_config.effort` on 4.6+, OpenAI/xAI `effort`, Google
-  `thinkingBudget` on 2.5 / `thinkingLevel` on 3.x).
+- `effort: 'low' | 'medium' | 'high' | 'max' | 'xhigh'` — intensity, **mapped** per provider, never
+  passed through: Anthropic `budget_tokens` below 4.6 and `output_config.effort` on 4.6+, OpenAI and
+  xAI `reasoning.effort` on Responses and `reasoning_effort` on chat-completions, Google
+  `thinkingBudget` on 2.5 / `thinkingLevel` on 3.x.
+
+  `max` means *the most this model will do*, so it lands on the top rung of each provider's own
+  ladder — `xhigh` on OpenAI and xAI, `high` on Google, whose ladder ends there. Name `xhigh`
+  directly when you want that rung specifically rather than "whatever the maximum is"; a model that
+  does not take it answers 400 naming the value, which beats being quietly served a different amount
+  of thinking than you asked for.
+
+  Measured 2026-09-30: xAI honours the effort on the grok-4.3 line and up on **both** surfaces
+  (grok-4.6 Responses low 449 → xhigh 3066 reasoning tokens, chat-completions low 927 → xhigh 7043),
+  while the whole grok-4.20 line answers `400 "does not support parameter reasoningEffort"` and the
+  SDK therefore omits the field for it. `grok-4.20-multi-agent` accepts it but reads it as an agent
+  count, so it is not treated as an effort control.
 - `visibility: 'full' (default) | 'summary' | 'hidden'` — how much reasoning comes back: Anthropic
   `enabled.display`, OpenAI Responses `summary`, Google `includeThoughts`. Best-effort — a provider
   without a middle state degrades `summary` to `full`.

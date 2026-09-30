@@ -14,6 +14,10 @@ import { resolveVoice } from './audio/voices';
 import { buildNativeModeration } from './moderation/native';
 import { googleRequestTier } from './providers/google/tiers';
 import { openaiTierDecision } from './providers/openai/tiers';
+import {
+  xaiTakesReasoningEffort,
+  xaiUsesEffortAsAgentCount,
+} from './providers/xai/reasoning';
 import { xaiRequestTier } from './providers/xai/tiers';
 import { bytesToBase64 } from '../util/base64';
 import { fnv1a32Hex } from '../util/hash';
@@ -274,8 +278,18 @@ export function makeRegistry(a: AdapterHandles): Registry {
     /** Google emits speechConfig only when a voice actually resolves. */
     googleHasVoice: (ctx) => Boolean(resolveVoice('google', ctx.req.audio?.voice)),
 
-    /** Only the multi-agent grok uses reasoning.effort (as an agent count). */
-    xaiMultiAgent: (ctx) => String(ctx.req.model).includes('multi-agent'),
+    /** Does this xAI model take `reasoning` AT ALL?
+     *
+     *  Was `includes('multi-agent')`, on the belief that only that model used the
+     *  field -- so the overlay deleted `reasoning` for every other xAI model while
+     *  the catalog advertised effort control for grok-4.5/4.6. The catalog promised
+     *  a control the request never carried. Measured per model in
+     *  `providers/xai/reasoning.ts`, because grok-4.20 REFUSES the parameter by
+     *  name while the numerically lower 4.3/4.5/4.6 honour it, which rules out any
+     *  rule shaped like a version comparison. */
+    xaiTakesReasoning: (ctx) =>
+      xaiTakesReasoningEffort(String(ctx.req.model)) ||
+      xaiUsesEffortAsAgentCount(String(ctx.req.model)),
 
     wantsNativeModeration: (ctx) =>
       Boolean(

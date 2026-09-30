@@ -8,6 +8,39 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **Reasoning effort now reaches the wire on OpenAI and xAI, and `max` stops failing.** Three
+  measured faults behind one field. (1) `thinking: { effort: 'max' }` -- a value in our own public
+  type and our own docs -- was passed through raw on both OpenAI surfaces, and **neither provider has
+  it**: measured 2026-09-30, both answer 400, OpenAI in as many words ("Unsupported value: 'max' is
+  not supported with the 'gpt-5.4-nano' model"). Every other provider already mapped effort through a
+  table; these two did not, so the documented way to ask for maximum thinking was a guaranteed failed
+  request. `max` now lands on the top rung of each ladder -- `xhigh` on OpenAI and xAI, as Google's
+  table has always mapped it to `high`, its own ladder ending there -- and `xhigh` joins the unified
+  vocabulary so it can be named directly. (2) On chat-completions the spec built `reasoning: {effort}`,
+  which is the **Responses** shape: OpenAI answers `400 Unknown parameter: 'reasoning'`, so asking for
+  thinking on that surface failed every single time. It now sends `reasoning_effort`, the top-level
+  string that API actually takes. xAI hid the same bug behind an overlay that deleted the field
+  outright. (3) That overlay dropped `reasoning` for every xAI model whose id lacked `multi-agent`,
+  while the catalog advertised `effortControl: true` with `xhigh` for grok-4.5/4.6 -- the catalog
+  promising a control the request never carried. Measured per model, reasoning tokens on a hard prompt
+  (a trivial one cannot separate the efforts, which is how "accepted and inert" hides): grok-4.6
+  ×6.8, grok-4.5 ×36.6, grok-4.3 ×7.4 on Responses, and grok-4.6 ×10 on chat-completions, ranges
+  disjoint in every case. The whole **grok-4.20** line answers `400 "does not support parameter
+  reasoningEffort"` and is still omitted -- which is why this is an explicit table and not a version
+  comparison: 4.20 refuses the field while the numerically lower 4.3 honours it. `grok-4.20-multi-agent`
+  accepts it as an agent COUNT, so it is deliberately not treated as an effort control.
+- **Catalog: `grok-4.3` and `grok-4.7` were recorded as having no reasoning support at all**, while
+  the older 4.5 and 4.6 were recorded as having effort control -- an ordering that was wrong on its
+  face. Measured 2026-09-30: both accept `low|medium|high|xhigh`, and 4.3 honours the difference
+  ×7.4. Corrected.
+
+- **`grok-imagine-image-pro` resolves and prices.** It appears in NEITHER `/v1/models` nor
+  `/v1/image-generation-models`, and generates an image on request (verified live 2026-09-30, 200
+  with one image back) -- so a catalog built from a listing could not know it, and a caller using it
+  was billed at $0.00 for the same reason the undated Anthropic aliases once were. Added as an alias
+  of `grok-imagine-image-quality`, which is the target xai-py's own changelog names. The id sent on
+  the wire is still the one the caller asked for.
+
 - **A cost calculated at a service tier the catalog does not price now says so** (`onWarning`,
   `code: 'unpriced_tier'`). An unpriced MODEL already reported 0, which is visibly wrong. A model
   that IS priced but was billed at an unknown tier fell back to the flat rate and returned a

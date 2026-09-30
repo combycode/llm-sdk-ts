@@ -240,16 +240,30 @@ describe('OpenAIAdapter — tools', () => {
 describe('OpenAIAdapter — thinking and structured', () => {
   const a = new OpenAIAdapter({ apiKey: 'k' });
 
-  it('thinking auto adds reasoning effort', () => {
-    expect(a.buildRequest({ ...baseReq, thinking: { mode: 'auto' } }).body.reasoning).toEqual({
-      effort: 'medium',
-    });
+  // These two used to assert `body.reasoning = {effort}` — the RESPONSES shape, on
+  // chat-completions. Measured 2026-09-30: OpenAI answers `400 Unknown parameter:
+  // 'reasoning'` to it, so what they pinned was a request that always failed. The
+  // field here is `reasoning_effort`, a top-level string.
+  it('thinking auto sends the default reasoning_effort', () => {
+    const body = a.buildRequest({ ...baseReq, thinking: { mode: 'auto' } }).body;
+    expect(body.reasoning_effort).toBe('medium');
+    expect(body.reasoning).toBeUndefined();
   });
 
   it('thinking effort overrides default', () => {
     expect(
-      a.buildRequest({ ...baseReq, thinking: { mode: 'auto', effort: 'high' } }).body.reasoning,
-    ).toEqual({ effort: 'high' });
+      a.buildRequest({ ...baseReq, thinking: { mode: 'auto', effort: 'high' } }).body
+        .reasoning_effort,
+    ).toBe('high');
+  });
+
+  it('max becomes xhigh, the top rung this API has', () => {
+    // `max` is not a value OpenAI accepts — it answered 400 naming it. Every other
+    // provider already mapped effort through a table; this surface did not.
+    expect(
+      a.buildRequest({ ...baseReq, thinking: { mode: 'auto', effort: 'max' } }).body
+        .reasoning_effort,
+    ).toBe('xhigh');
   });
 
   it('thinking off omits reasoning', () => {

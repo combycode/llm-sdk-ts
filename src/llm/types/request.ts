@@ -163,16 +163,33 @@ export type ReasoningContext = 'auto' | 'current_turn' | 'all_turns';
  *  `includeThoughts`; providers without a control ignore it. */
 export type ThinkingVisibility = 'full' | 'summary' | 'hidden';
 
+/** How hard to think, in one vocabulary across providers.
+ *
+ *  `max` means "the most this model will do" and is MAPPED per provider, not sent:
+ *  Google's ladder tops out at `high`, OpenAI's and xAI's at `xhigh`. It used to
+ *  be passed through raw on the OpenAI and xAI Responses surfaces, where it is not
+ *  a value at all -- measured 2026-09-30, both answer 400 to `effort: "max"`, and
+ *  OpenAI says so in as many words ("Unsupported value: 'max' is not supported
+ *  with the 'gpt-5.4-nano' model"). So the value our own type and docs offered was
+ *  a guaranteed failure on two providers.
+ *
+ *  `xhigh` is nameable directly for the caller who wants that specific rung rather
+ *  than "whatever the maximum is". A model that does not take it answers 400
+ *  naming the value, which is the same honest outcome an access-controlled service
+ *  tier gets -- better than being quietly served a different amount of thinking
+ *  than was asked for. */
+export type ThinkingEffort = 'low' | 'medium' | 'high' | 'max' | 'xhigh';
+
 export type ThinkingConfig =
   | {
       mode: 'auto';
-      effort?: 'low' | 'medium' | 'high' | 'max';
+      effort?: ThinkingEffort;
       visibility?: ThinkingVisibility;
       context?: ReasoningContext;
     }
   | {
       mode: 'on';
-      effort?: 'low' | 'medium' | 'high' | 'max';
+      effort?: ThinkingEffort;
       visibility?: ThinkingVisibility;
       context?: ReasoningContext;
     }

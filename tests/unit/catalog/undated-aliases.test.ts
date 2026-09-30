@@ -119,3 +119,38 @@ describe('the rule stays anthropic-only', () => {
     }
   });
 });
+
+/** An id absent from EVERY listing can still be the one people call.
+ *
+ *  `grok-imagine-image-pro` appears in neither `/v1/models` nor
+ *  `/v1/image-generation-models`, and generates an image on request — verified
+ *  live 2026-09-30, 200 with one image back. xai-py's changelog names what it
+ *  points at: "removed `grok-imagine-image-pro` (an alias of
+ *  `grok-imagine-image-quality`)", removed from the type literal precisely
+ *  because the literal is editor autocomplete and the alias keeps working.
+ *
+ *  So a catalog built from a listing cannot know it, and a caller using it was
+ *  billed at $0.00 for the same reason the anthropic aliases above were.
+ */
+const XAI_ALIASES = [
+  ['grok-imagine-image-pro', 'grok-imagine-image-quality'],
+  ['grok-imagine-video-1.5-preview', 'grok-imagine-video-1.5'],
+  ['grok-4.5-latest', 'grok-4.5'],
+] as const;
+
+describe('an xai alias that no listing mentions still resolves and prices', () => {
+  for (const [alias, canonical] of XAI_ALIASES) {
+    it(`${alias} → ${canonical}`, () => {
+      expect(catalog.get('xai', alias)?.model).toBe(canonical);
+      expect(catalog.getPricing('xai', alias)).toBeDefined();
+    });
+  }
+
+  it('still SENDS the id the caller asked for', () => {
+    // Recognising more ids is the fix; sending a different one would be a new
+    // bug. An alias is a name the provider itself accepts.
+    for (const [alias] of XAI_ALIASES) {
+      expect(catalog.resolveModelId('xai', alias)).toBe(alias);
+    }
+  });
+});
