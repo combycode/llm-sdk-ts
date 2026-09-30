@@ -112,6 +112,42 @@ clip, chosen via `params.videoMode`:
 Gate this on the model's `capabilities.videoExtension` -- only extension-capable
 models accept a `sourceVideo`.
 
+### The audio track
+
+Video models generate sound by default, so the useful thing to say is "don't".
+
+| Param | What it does | Where it lands |
+| --- | --- | --- |
+| `params.generateAudio` | `false` asks for a **silent** video | xAI `generate_audio`, on `grok-imagine-video` and `-1.5` |
+| `params.referenceAudios` | voices to condition the speech on, `[{ voiceId: 'ara' }]`, at most three | xAI `reference_audios`, **`grok-imagine-video-1.5` only** |
+
+`generateAudio` is not sent to Google or OpenAI. The parameter does exist on Veo, but
+only in Vertex / Gemini Enterprise mode -- on the Developer API this library speaks,
+google-genai throws rather than send it. Sora has no equivalent. On those providers the
+video comes back however the provider defaults it.
+
+Voice ids come from xAI's text-to-speech catalog, and custom ids from
+`/v1/custom-voices` work too. There is no client-side list: an unknown id is refused
+with the whole catalog in the error, which is better than a copy that goes stale.
+
+```ts
+// a silent clip
+await media.generateVideo({ prompt: 'rain on a window', params: { generateAudio: false } });
+
+// pick the voices, on 1.5
+await media.generateVideo({
+  model: 'xai/grok-imagine-video-1.5',
+  prompt: 'two friends arguing about the weather',
+  params: { referenceAudios: [{ voiceId: 'ara' }, { voiceId: 'rex' }] },
+});
+```
+
+> Measured 2026-09-30. Worth knowing when adding to this: **xAI answers 200 to a request
+> carrying a field it has never heard of**, so a successful submission proves nothing
+> about whether a parameter was understood. What proves it is a refusal -- a wrongly
+> typed `generate_audio` is a `422` naming the expected type, and `reference_audios` on
+> the non-1.5 model is a `400` saying it is unsupported there.
+
 ```ts
 const media = createMediaOutput({
   model: 'xai/grok-imagine-video',

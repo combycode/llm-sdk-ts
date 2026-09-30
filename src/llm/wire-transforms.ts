@@ -160,6 +160,19 @@ export function makeRegistry(a: AdapterHandles): Registry {
     /** xAI media refs, reusing the library's own normalisers. */
     xaiSourceImageRef: (_v, ctx: Ctx) => xaiImageRef(normalizeImageSource(ctx.req.sourceImage)),
     xaiSourceVideoRef: (_v, ctx: Ctx) => xaiVideoRef(ctx.req.sourceVideo),
+    /** `[{voiceId}]` -> `[{voice_id}]`, xAI's AudioUrlContent. Entries without
+     *  a voice id are dropped rather than sent as `{}`: the proto's `source` is
+     *  a oneof, so an empty entry is a request the server has to reject, and
+     *  asking it to is worse than sending one fewer voice. Undefined when
+     *  nothing usable survives, so the field is absent rather than `[]`. */
+    xaiReferenceAudios: (_v, ctx: Ctx) => {
+      const list = ctx.req.params?.referenceAudios;
+      if (!Array.isArray(list)) return undefined;
+      const out = list
+        .filter((a: any) => typeof a?.voiceId === 'string' && a.voiceId.length > 0)
+        .map((a: any) => ({ voice_id: a.voiceId }));
+      return out.length ? out : undefined;
+    },
     /** OpenRouter sends the source image as a data URL inside a chat part. */
     openrouterDataUrl: (_v, ctx: Ctx) => toDataUrl(normalizeImageSource(ctx.req.sourceImage)),
     /** image_config is built by the adapter's own private helper. */

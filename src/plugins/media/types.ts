@@ -99,6 +99,34 @@ export interface VideoGenRequest {
      *  continues the clip from its last frame; `edit` modifies it in place per
      *  the prompt. Ignored without `sourceVideo`. */
     videoMode?: 'extend' | 'edit';
+    /** Whether the generated video carries an audio track. Both xAI and Veo
+     *  generate audio by DEFAULT, so this is really "give me a silent video".
+     *
+     *  Honoured on xAI (`generate_audio`), on both `grok-imagine-video` and
+     *  `grok-imagine-video-1.5` -- measured 2026-09-30, where a wrongly typed
+     *  value is refused `422 invalid type: string, expected a boolean`, which
+     *  is how we know the field is read rather than ignored.
+     *
+     *  Not sent on Google: the parameter exists on Veo, but only on Vertex /
+     *  Gemini Enterprise, and the Developer API this library speaks refuses it
+     *  -- google-genai throws client-side rather than send it there. Not sent
+     *  on OpenAI Sora, which has no such parameter. On those providers the
+     *  video comes back as the provider defaults it, audio and all. */
+    generateAudio?: boolean;
+    /** Voices to condition the generated audio on, as xAI voice-catalog preset
+     *  ids (`[{ voiceId: 'ara' }]`). At most three.
+     *
+     *  **xAI `grok-imagine-video-1.5` only.** Measured 2026-09-30: the older
+     *  `grok-imagine-video` refuses the field outright with a 400 saying it is
+     *  not supported for that model. An unknown voice id is refused with the
+     *  whole catalog listed in the error, so no client-side voice list is kept
+     *  here -- it would be a second copy of something the server already tells
+     *  you, and custom ids from `/v1/custom-voices` are accepted too.
+     *
+     *  Kept in `params` rather than a provider escape hatch for the same reason
+     *  `size` is: `params` is where a generation knob lives, and the providers
+     *  that do not understand one ignore it. */
+    referenceAudios?: Array<{ voiceId: string }>;
   };
 }
 
