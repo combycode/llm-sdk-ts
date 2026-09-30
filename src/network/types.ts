@@ -35,6 +35,17 @@ export interface HttpRequest {
    *  the shared policy or get its own queue. Mirrors Google moving `retryOptions` from client-level
    *  to per-request `HttpOptions` (google-ts 2.15). */
   retry?: RequestRetryOverride;
+  /** How far a redirect may take this request. Default `'follow'` — the platform
+   *  default, and what every provider call has always used.
+   *
+   *  `'same-origin'` is for a request whose CREDENTIALS were configured for one
+   *  endpoint: an MCP transport and its OAuth flow. There a redirect is a
+   *  credential-leak primitive — the platform follows it and sends the bearer
+   *  token to wherever `Location` points, including another origin — and a 301,
+   *  302 or 303 additionally turns a POST into a body-less GET, which silently
+   *  drops the JSON-RPC message the request was made of. See
+   *  {@link followSameOrigin} for the exact rule. */
+  redirect?: 'follow' | 'same-origin';
 }
 
 /** The retry knobs a single request may override.

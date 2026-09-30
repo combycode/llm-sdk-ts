@@ -316,6 +316,27 @@ The stamp is the URL discovery used, not the `issuer` in the authorization serve
 document. Binding to a value the server hands us would let the server choose which stored
 credentials it receives, which is the thing being defended against.
 
+### Redirects are followed only within the endpoint's own origin
+
+Every MCP request carries things configured for ONE endpoint: the bearer token, the session header,
+the JSON-RPC body. A platform `fetch` follows a redirect by default and sends all of that to
+wherever `Location` points — so a server (or anyone who can set that header) can name another
+origin and be handed the token. And a `301`, `302` or `303` turns the POST into a body-less GET,
+which drops the message even when the target is the same host.
+
+So the MCP transport and its OAuth flow follow a redirect only when **all** of the following hold,
+and return the redirect response as the non-success it is otherwise:
+
+- the **method survives** — `307`/`308`, or any redirect of a `GET`;
+- the target is the **same origin**, or its `http` → `https` upgrade on default ports;
+- the target introduces **no userinfo** of its own (`https://attacker@host/` would be sent as Basic
+  auth, changing who we authenticate as).
+
+At most three such hops, because the redirects this permits are normalisations — a trailing slash,
+an https upgrade — and a longer budget only buys patience for a loop. Each followed hop emits an
+`onWarning` with code `redirect_followed`. Provider calls are untouched and keep the platform
+default.
+
 For full MCP design notes see [docs/design/mcp.md](../design/mcp.md).
 
 ## Observability hooks

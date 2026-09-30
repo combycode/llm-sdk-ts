@@ -317,6 +317,12 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
       ...(noBody ? {} : { body }),
       provider: 'mcp',
       model: this.config.name ?? 'server',
+      // A redirect here is a credential-leak primitive: the bearer token, the
+      // session header and the JSON-RPC body were all configured for THIS
+      // endpoint, and the platform default sends them wherever `Location`
+      // points. 301/302/303 additionally turn the POST into a body-less GET,
+      // dropping the message. Same rule the official MCP SDK applies.
+      redirect: 'same-origin' as const,
     };
   }
 

@@ -10,6 +10,7 @@ import type { HookBus } from '../bus/hook-bus';
 import { sleep } from '../util/async';
 import {
   anySignal,
+  followSameOrigin,
   headersToRecord,
   isStatefulRequest,
   isStreamBody,
@@ -33,6 +34,13 @@ function bodySizeOf(body: unknown): number {
 }
 
 // ─── QueueState ─────────────────────────────────────────────────────────
+
+/** How many same-origin redirects one attempt may follow.
+ *
+ *  Small on purpose: the redirects this rule permits are normalisations -- a
+ *  trailing slash, an http-to-https upgrade -- and a legitimate endpoint needs
+ *  one or two, never five. A longer budget only buys patience for a loop. */
+const MAX_SAME_ORIGIN_REDIRECTS = 3;
 
 export class QueueState {
   readonly queueName: string;
@@ -627,9 +635,48 @@ export class QueueState {
             ? req.body
             : JSON.stringify(req.body);
       }
-      return await this.fetchFn(req.url, init);
+      if (req.redirect !== 'same-origin') return await this.fetchFn(req.url, init);
+      return await this.sendFollowingSameOrigin(req, init, method ?? 'POST');
     } finally {
       clearTimeout(timeoutId);
+    }
+  }
+
+  /** One attempt, following only a redirect that keeps both the origin and the
+   *  method — see {@link followSameOrigin} for why each half matters.
+   *
+   *  Not a retry, so it lives inside the attempt: a redirect is the server
+   *  answering this request, and counting it against the retry budget would let
+   *  a redirect loop consume the patience meant for real failures. It gets its
+   *  own small budget instead, and a redirect we will not follow is returned AS
+   *  the response, which is exactly what the platform does with redirects off —
+   *  the caller then classifies a 302 the way it classifies any other
+   *  non-success.
+   *
+   *  A streaming body cannot be re-sent, so it is never followed: replaying a
+   *  consumed stream would send an empty body to the new URL, which is worse
+   *  than not following. Same reasoning the retry layer applies. */
+  private async sendFollowingSameOrigin(
+    req: HttpRequest,
+    init: RequestInit,
+    method: string,
+  ): Promise<Response> {
+    const replayable = !isStreamBody(req.body);
+    let url = req.url;
+    for (let hop = 0; ; hop++) {
+      const res = await this.fetchFn(url, { ...init, redirect: 'manual' });
+      if (hop >= MAX_SAME_ORIGIN_REDIRECTS || !replayable) return res;
+      const next = followSameOrigin(url, method, res.status, res.headers.get('location'));
+      if (next === null) return res;
+      // Drain the redirect body so the connection can go back to the pool.
+      await res.arrayBuffer().catch(() => undefined);
+      void this.hooks.emit('onWarning', {
+        source: 'network',
+        code: 'redirect_followed',
+        message: `${method} ${url} was redirected (${res.status}) within its own origin and followed.`,
+        details: { from: url, status: res.status, provider: req.provider },
+      });
+      url = next;
     }
   }
 

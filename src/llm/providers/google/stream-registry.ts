@@ -158,16 +158,28 @@ export const GOOGLE_STREAM_REGISTRY: Registry = {
       const fc = p.functionCall as Record<string, unknown>;
       const meta: Record<string, unknown> = {};
       if (p.thoughtSignature) meta.thoughtSignature = p.thoughtSignature;
+      // The SAME id on all three events. The delta and the end used to carry
+      // `''`, which left the accumulator to guess which call they belonged to --
+      // and with two function calls in one response it guessed the first, so the
+      // second call's arguments were appended to the first and the second got
+      // none. Google sends `functionCall.id` on every part, so there is nothing
+      // to guess; the `?? ''` remains only for a part that genuinely has none,
+      // where the accumulator falls back to the most recent call.
+      const callId = (fc.id as string) ?? '';
       out.events.push({
         type: 'tool_call_start',
-        id: (fc.id as string) ?? '',
+        id: callId,
         name: fc.name as string,
         ...(Object.keys(meta).length > 0 ? { _meta: meta } : {}),
       });
       if (fc.args) {
-        out.events.push({ type: 'tool_call_delta', id: '', arguments: JSON.stringify(fc.args) });
+        out.events.push({
+          type: 'tool_call_delta',
+          id: callId,
+          arguments: JSON.stringify(fc.args),
+        });
       }
-      out.events.push({ type: 'tool_call_end', id: '' });
+      out.events.push({ type: 'tool_call_end', id: callId });
     },
 
     /** Web search has no per-call markers: one pair, the first time grounding

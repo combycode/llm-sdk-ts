@@ -213,6 +213,11 @@ function oauthRequest(specId: string, input: object, config: Record<string, unkn
     provider: 'mcp',
     model: 'oauth',
     responseType: 'json',
+    // The token endpoint is the one request in the SDK carrying a client secret
+    // and a refresh token. A cross-origin redirect would hand both to whoever
+    // set `Location`, so redirects are followed only within the origin the
+    // metadata named -- see `followSameOrigin`.
+    redirect: 'same-origin' as const,
   };
 }
 

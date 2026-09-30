@@ -142,7 +142,12 @@ describe('accumulateStreamEvent — tool call reassembly', () => {
     expect(state.stepToolCalls).toHaveLength(1);
   });
 
-  it('the mismatch fallback picks the FIRST still-open call, in start order', () => {
+  it('an unmatched end resolves to the MOST RECENT call, and only once', () => {
+    // Was "picks the FIRST still-open call, in start order". A stream delivers a
+    // call's events after its start, so the most recent open call is the only
+    // reading that holds once more than one is in flight. Two unmatched ends
+    // therefore close `beta` once; `alpha` is recovered by the end-of-step
+    // rescue, with its own arguments intact.
     const { state } = feed([
       { type: 'tool_call_start', id: 'a', name: 'alpha' },
       { type: 'tool_call_delta', id: 'a', arguments: '{"x":1}' },
@@ -151,7 +156,12 @@ describe('accumulateStreamEvent — tool call reassembly', () => {
       { type: 'tool_call_end', id: 'unknown-1' },
       { type: 'tool_call_end', id: 'unknown-2' },
     ] as StreamEvent[]);
-    expect(state.stepToolCalls.map((t) => t.name)).toEqual(['alpha', 'beta']);
+    expect(state.stepToolCalls.map((t) => t.name)).toEqual(['beta']);
+    finalizeUnendedToolCalls(state);
+    expect(state.stepToolCalls.map((t) => [t.name, t.arguments])).toEqual([
+      ['beta', { y: 2 }],
+      ['alpha', { x: 1 }],
+    ]);
   });
 
   it('tool_call_end with no accumulator at all emits nothing', () => {
@@ -159,25 +169,65 @@ describe('accumulateStreamEvent — tool call reassembly', () => {
     expect(state.stepToolCalls).toEqual([]);
   });
 
-  // KNOWN DEFECT, pinned deliberately. `(event.id && get(event.id)) ?? fallback`
-  // short-circuits to the EMPTY STRING for `id: ''`, and `'' ?? x` is `''` — so
-  // the fallback never runs and the buffered call is silently dropped. An `||`
-  // would make this behave like the mismatched-id case above. No shipping adapter
-  // emits `id: ''` today, which is why it has gone unnoticed; if one ever does,
-  // the model's tool call disappears with no error. This test fails the moment
-  // the operator is fixed — which is the intended signal.
-  it('tool_call_end with an EMPTY id drops the call (see note: `??` should be `||`)', () => {
+  // WAS a deliberately pinned defect: `(event.id && get(event.id)) ?? fallback`
+  // short-circuits to the EMPTY STRING for `id: ''`, and `'' ?? x` is `''`, so
+  // the fallback never ran and the call was silently dropped until the
+  // end-of-step rescue recovered it.
+  //
+  // The note here said "no shipping adapter emits `id: ''` today, which is why
+  // it has gone unnoticed". That was WRONG, and the reason the defect survived:
+  // Google's stream registry emitted `id: ''` on EVERY tool_call_delta and every
+  // tool_call_end while having `functionCall.id` in hand. An empty grep is a fact
+  // about the search, not about the adapters.
+  it('tool_call_end with an EMPTY id closes the call it belongs to', () => {
     const { state } = feed([
       { type: 'tool_call_start', id: 'c1', name: 'first' },
       { type: 'tool_call_delta', id: 'c1', arguments: '{"n":1}' },
       { type: 'tool_call_end', id: '' },
     ] as StreamEvent[]);
-    expect(state.stepToolCalls).toEqual([]);
-    // The data is not lost — the end-of-step rescue still recovers it.
-    finalizeUnendedToolCalls(state);
     expect(state.stepToolCalls).toEqual([
       { type: 'tool_call', id: 'c1', name: 'first', arguments: { n: 1 } },
     ]);
+    // And the end-of-step rescue does not add it a second time.
+    finalizeUnendedToolCalls(state);
+    expect(state.stepToolCalls).toHaveLength(1);
+  });
+
+  it('a second mismatched end does not emit the same call twice', () => {
+    const { state } = feed([
+      { type: 'tool_call_start', id: 'c1', name: 'first' },
+      { type: 'tool_call_delta', id: 'c1', arguments: '{"n":1}' },
+      { type: 'tool_call_end', id: 'x' },
+      { type: 'tool_call_end', id: 'y' },
+    ] as StreamEvent[]);
+    expect(state.stepToolCalls).toHaveLength(1);
+  });
+
+  it('an unmatched end resolves to the MOST RECENT call, and only once', () => {
+    // Was "picks the FIRST still-open call, in start order". A stream delivers a
+    // call's events after its start, so the most recent open call is the only
+    // reading that holds once more than one is in flight. Two unmatched ends
+    // therefore close `beta` once; `alpha` is recovered by the end-of-step
+    // rescue, with its own arguments intact.
+    const { state } = feed([
+      { type: 'tool_call_start', id: 'a', name: 'alpha' },
+      { type: 'tool_call_delta', id: 'a', arguments: '{"x":1}' },
+      { type: 'tool_call_start', id: 'b', name: 'beta' },
+      { type: 'tool_call_delta', id: 'b', arguments: '{"y":2}' },
+      { type: 'tool_call_end', id: 'unknown-1' },
+      { type: 'tool_call_end', id: 'unknown-2' },
+    ] as StreamEvent[]);
+    expect(state.stepToolCalls.map((t) => t.name)).toEqual(['beta']);
+    finalizeUnendedToolCalls(state);
+    expect(state.stepToolCalls.map((t) => [t.name, t.arguments])).toEqual([
+      ['beta', { y: 2 }],
+      ['alpha', { x: 1 }],
+    ]);
+  });
+
+  it('tool_call_end with no accumulator at all emits nothing', () => {
+    const { state } = feed([{ type: 'tool_call_end', id: 'nope' }] as StreamEvent[]);
+    expect(state.stepToolCalls).toEqual([]);
   });
 
   // This test used to assert `arguments: {}` and nothing more, under the heading

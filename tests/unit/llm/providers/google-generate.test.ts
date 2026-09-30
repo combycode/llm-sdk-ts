@@ -632,10 +632,14 @@ describe('GoogleAdapter — parseStreamEvent', () => {
       }),
     };
     const events = a.parseStreamEvent(evt);
+    // All three carry the call's id. They used to send `''` on the delta and the
+    // end, which left the accumulator to guess the owner -- and with two
+    // functionCall parts in one response it guessed the first, merging the
+    // second call's arguments into it and leaving the second with none.
     expect(events).toEqual([
       { type: 'tool_call_start', id: 'c1', name: 'lookup' },
-      { type: 'tool_call_delta', id: '', arguments: '{"q":"x"}' },
-      { type: 'tool_call_end', id: '' },
+      { type: 'tool_call_delta', id: 'c1', arguments: '{"q":"x"}' },
+      { type: 'tool_call_end', id: 'c1' },
     ]);
   });
 

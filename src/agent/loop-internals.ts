@@ -43,6 +43,34 @@ export function makeStepState(): StepState {
   };
 }
 
+/** Which accumulating tool call a delta or an end belongs to.
+ *
+ *  By ID whenever there is one -- that is the whole point of the id, and with
+ *  parallel calls in flight it is the only thing that can be right.
+ *
+ *  When the event carries no id the answer is the MOST RECENTLY STARTED call,
+ *  not the first. A stream delivers a call's deltas after its start, so "most
+ *  recent" is the only reading that holds for more than one call. This used to
+ *  take `values().next().value` -- the FIRST accumulator -- which with two
+ *  parallel Google function calls appended the second call's arguments to the
+ *  first: `read_file` ended up with `{"path":"/a"}{"path":"/b"}` (unparseable, so
+ *  refused as malformed) and `delete_file` ended up with NOTHING, which is an
+ *  empty args string, which is indistinguishable from a deliberate no-argument
+ *  call -- so it executed with `{}`. Exactly the failure `parseAccumEntry` was
+ *  written to prevent, reached through a different door.
+ *
+ *  An id we have never seen is treated the same way: it is either a provider
+ *  that does not echo ids on deltas, or a start we missed, and in both cases the
+ *  most recent call is the best available answer. Inventing an accumulator for
+ *  it would produce a nameless call that cannot be executed. */
+function accumFor(state: StepState, id: string): ToolCallAccumEntry | undefined {
+  const byId = id ? state.toolCallAccum.get(id) : undefined;
+  if (byId) return byId;
+  let last: ToolCallAccumEntry | undefined;
+  for (const acc of state.toolCallAccum.values()) last = acc;
+  return last;
+}
+
 /** Accumulate one SSE StreamEvent into StepState.
  *  Returns the AgentStreamEvent to yield upstream, or null if nothing to yield. */
 export function accumulateStreamEvent(
@@ -75,18 +103,17 @@ export function accumulateStreamEvent(
       return null;
 
     case 'tool_call_delta': {
-      const acc = state.toolCallAccum.get(event.id) ?? state.toolCallAccum.values().next().value;
+      const acc = accumFor(state, event.id);
       if (acc) acc.args += event.arguments;
       return null;
     }
 
     case 'tool_call_end': {
-      const acc =
-        (event.id && state.toolCallAccum.get(event.id)) ??
-        [...state.toolCallAccum.values()].find(
-          (a) => !state.stepToolCalls.some((tc) => tc.id === a.id),
-        );
-      if (acc) {
+      const acc = accumFor(state, event.id);
+      // De-duped on the accumulator's OWN id, not the event's: an end with no id
+      // resolves to an accumulator that may already have been pushed, and pushing
+      // it twice runs the tool twice.
+      if (acc && !state.stepToolCalls.some((tc) => tc.id === acc.id)) {
         state.stepToolCalls.push(parseAccumEntry(acc));
       }
       return null;

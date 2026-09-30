@@ -8,6 +8,37 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **Two streamed tool calls no longer merge into one.** The accumulator routed a delta with no
+  matching id to the FIRST call in flight, and Google's stream registry emitted `id: ''` on every
+  `tool_call_delta` and every `tool_call_end` while holding `functionCall.id`. With two function
+  calls in one response that meant the second call's arguments were appended to the first: the first
+  ended up with `{"path":"/a"}{"path":"/b"}` -- unparseable, so refused as malformed and visibly
+  broken -- and the second ended up with NOTHING. An empty arguments string is deliberately read as a
+  genuine no-argument call, so the second was NOT marked malformed and **executed with `{}`**: the
+  model asked to delete `/b` and the tool ran with no arguments at all. Exactly the failure
+  `parseAccumEntry` exists to prevent, reached through a different door. Fixed at both ends: Google
+  carries the call id on all three events, and an unmatched delta or end now resolves to the most
+  recently STARTED call rather than the first, since a stream delivers a call's events after its
+  start. An end is also honoured once -- it de-dupes on the accumulator's own id, so a repeated or
+  id-less end cannot push the same call twice and run the tool twice.
+
+### Security
+
+- **An MCP redirect no longer carries the bearer token to another origin.** Every MCP request holds
+  things configured for ONE endpoint -- the token, the session header, the JSON-RPC body -- and the
+  platform `fetch` follows a redirect by default, sending all of it to wherever `Location` points.
+  Anyone who can set that header could therefore name another origin and be handed the credentials.
+  A `301`, `302` or `303` additionally turns the POST into a body-less GET, so even a same-host
+  redirect silently dropped the message and the server answered a question nobody asked. The MCP
+  transport and its OAuth flow -- including the token request, the one call carrying a client secret
+  and a refresh token -- now follow a redirect only when the method survives (`307`/`308`, or any
+  redirect of a `GET`), the origin does not change (or upgrades `http` to `https` on default ports),
+  and the target introduces no userinfo of its own; at most three hops, each emitting an `onWarning`
+  with code `redirect_followed`. Anything else is returned as the non-success it is. Provider calls
+  keep the platform default: the new `HttpRequest.redirect` defaults to `'follow'`.
+
+### Fixed
+
 - **Reasoning effort now reaches the wire on OpenAI and xAI, and `max` stops failing.** Three
   measured faults behind one field. (1) `thinking: { effort: 'max' }` -- a value in our own public
   type and our own docs -- was passed through raw on both OpenAI surfaces, and **neither provider has
