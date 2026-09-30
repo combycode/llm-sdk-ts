@@ -283,7 +283,7 @@ export { ClientResolver, isNamespacedModelId, parseModelId } from './helpers/cli
 export type { ClientResolverConfig, ResolvedClient } from './helpers/client-resolver';
 export { defineTool } from './helpers/define-tool';
 export type { DefineToolInput, ParamSpec } from './helpers/define-tool';
-export { delegate } from './helpers/delegate';
+export { delegate, nestedRunOptions } from './helpers/delegate';
 export { handoff } from './helpers/handoff';
 export type { HandoffOptions, HandoffResult } from './helpers/handoff-types';
 export { moderationGuardrail } from './helpers/moderation-guardrail';

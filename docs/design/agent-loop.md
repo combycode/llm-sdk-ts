@@ -33,7 +33,7 @@ interface AgentTool {
 interface ToolExecutionContext {
   step: number;
   callId: string;
-  signal: AbortSignal;   // pre-wired to toolTimeout AbortController
+  signal: AbortSignal;   // toolTimeout OR the run being stopped; `reason` says which
   metrics: Map<string, { value: number | string | boolean; type: string }>;
   trace?: TraceContext;
 }

@@ -48,17 +48,39 @@ export function parseIntHeader(headers: Record<string, string>, key: string): nu
   return Number.isNaN(n) ? null : n;
 }
 
-/** Combine multiple AbortSignals into one that aborts when any of them does. */
-export function anySignal(...signals: AbortSignal[]): AbortSignal {
+/** Combine several AbortSignals into one, and hand back the way to unsubscribe.
+ *
+ *  `dispose()` matters wherever a SHORT-lived signal is linked to a LONG-lived
+ *  one -- a tool call against its run, say. The listener lives on the long-lived
+ *  signal, so without unsubscribing every finished call leaves its dead
+ *  controller reachable until the run ends. One call is nothing; a long run with
+ *  a tool call per step is a slow leak nobody would think to look for. */
+export function linkSignals(...signals: AbortSignal[]): {
+  signal: AbortSignal;
+  dispose: () => void;
+} {
   const c = new AbortController();
+  const off: Array<() => void> = [];
+  const dispose = () => {
+    for (const f of off) f();
+    off.length = 0;
+  };
   for (const s of signals) {
     if (s.aborted) {
       c.abort(s.reason);
-      return c.signal;
+      dispose();
+      return { signal: c.signal, dispose };
     }
-    s.addEventListener('abort', () => c.abort(s.reason), { once: true });
+    const onAbort = () => c.abort(s.reason);
+    s.addEventListener('abort', onAbort, { once: true });
+    off.push(() => s.removeEventListener('abort', onAbort));
   }
-  return c.signal;
+  return { signal: c.signal, dispose };
+}
+
+/** Combine multiple AbortSignals into one that aborts when any of them does. */
+export function anySignal(...signals: AbortSignal[]): AbortSignal {
+  return linkSignals(...signals).signal;
 }
 
 /** Parse a fetch Response body by declared type. */

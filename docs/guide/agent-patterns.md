@@ -60,7 +60,30 @@ function delegate(
 ): AgentTool
 ```
 
-The tool receives `{ task: string }` from the parent, runs `agent.complete(task)`, and returns `response.text` as the tool result. Sub-agent usage is not forwarded to the parent.
+The tool receives `{ task: string }` from the parent, runs the sub-agent, and returns `response.text` as the tool result. Sub-agent usage is not forwarded to the parent.
+
+**A nested run belongs to the run above it.** `delegate()` passes the calling tool's cancellation
+and trace down, so stopping the parent stops the child, and the child's spans join the caller's
+trace instead of rooting one of their own. Writing your own agent-as-tool wrapper?
+`nestedRunOptions(ctx)` is that same inheritance as a function — without it a hand-rolled wrapper
+keeps the old behaviour, where a stopped parent left its sub-agent answering a question nobody
+would read:
+
+```ts
+import { defineTool, nestedRunOptions } from '@combycode/llm-sdk';
+
+const researchTool = defineTool({
+  name: 'research',
+  description: 'Delegate research to the specialist.',
+  params: { task: 'string' },
+  // ctx carries this tool call's signal and trace; the sub-run inherits both.
+  execute: async ({ task }, ctx) => (await researcher.complete(task, nestedRunOptions(ctx))).text,
+});
+```
+
+What it does **not** pass down is anything about tool selection. A sub-agent is a different agent
+with its own tools, so a parent's `toolChoice` means nothing to it — the official agents SDK
+excludes the same fields from nested inheritance for the same reason.
 
 ### Step 2 -- structured handoff with `handoff()`
 

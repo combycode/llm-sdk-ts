@@ -12,6 +12,7 @@
 import type { AgentLoop } from '../agent/loop';
 import type { AgentTool } from '../agent/types';
 import { defineTool } from './define-tool';
+import { nestedRunOptions } from './delegate';
 import type { HandoffOptions, HandoffResult } from './handoff-types';
 
 export function handoff(
@@ -26,9 +27,12 @@ export function handoff(
     name,
     description,
     params: { task: 'string' },
-    execute: async ({ task }) => {
+    execute: async ({ task }, ctx) => {
       const resolvedTask = inputFilter ? inputFilter(task) : task;
-      const response = await agent.complete(resolvedTask);
+      // The nested run inherits the caller's cancellation and trace — see
+      // `nestedRunOptions`. Without it, stopping the parent left this run going
+      // and its spans rooted a trace of their own.
+      const response = await agent.complete(resolvedTask, nestedRunOptions(ctx));
 
       const result: HandoffResult = {
         text: response.text,

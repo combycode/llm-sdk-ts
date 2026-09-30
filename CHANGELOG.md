@@ -8,6 +8,25 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **`stop()` now reaches a running tool, and a nested agent run inherits the run above it.** Three
+  gaps in one seam. (1) `ToolExecutionContext.signal` was wired to the tool TIMEOUT and nothing
+  else, so `stop()` cancelled the in-flight LLM request while a tool already executing ran to
+  completion -- its fetch finished, its side effects landed, and the loop that had already stopped
+  threw the result away. The signal now fires on either cause and `signal.reason` says which, because
+  a tool cleans up differently for a timeout (its own problem to report) than for a stop (the caller
+  changing their mind). (2) A caller's `signal` REPLACED the run's, so passing one quietly disabled
+  that loop's own `stop()` -- and the likeliest caller to pass one is a parent agent handing down its
+  cancellation, i.e. exactly when both must work. A caller's signal is now linked into the run's own
+  controller when the run begins, rather than combined at each use: every loop's signal then already
+  carries its caller's, so a tool three agents deep hears the top-level caller give up without any
+  site downstream remembering to combine anything. (3) `delegate()` and
+  `handoff()` called `agent.complete(task)` with nothing, so a sub-agent inherited neither the
+  caller's cancellation (stop the parent, the child kept answering a question nobody would read) nor
+  its trace (the child rooted a trace of its own, so the two halves of one request could not be
+  joined). Both now travel, via the new exported `nestedRunOptions(ctx)` -- exported because a
+  hand-written agent-as-tool wrapper is the common case, and it would otherwise have silently kept
+  the old behaviour. Tool selection is deliberately NOT inherited: a sub-agent is a different agent
+  with its own tools, and the official agents SDK excludes the same fields for the same reason.
 - **A tool that returns media now sends media.** `AgentTool.execute` has always been typed
   `Promise<string | ContentPart[]>` and the loop always carried the array into
   `ToolResultPart.content`, whose type says the same -- then every adapter called `JSON.stringify`

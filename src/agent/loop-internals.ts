@@ -7,6 +7,7 @@ import { emptyUsage, type CompletionResponse } from '../llm/types/response';
 import { isFunctionTool } from '../llm/types/tools';
 import type { StreamEvent } from '../llm/types/stream';
 import type { TraceContext } from '../network/types';
+import { linkSignals } from '../util/http';
 import type { AgentStreamEvent, AgentTool, ToolCallReport, ToolExecutionContext } from './types';
 import type { StepState, ToolCallAccumEntry } from './loop-step-state';
 
@@ -304,21 +305,40 @@ export async function lookupToolOrError(
 
 // ─── Tool execution with timeout ─────────────────────────────────────────
 
-/** Execute a tool with an AbortController-based timeout.
- *  Builds a ToolExecutionContext with the timeout signal internally. */
+/** Execute a tool under a signal that fires on the tool's timeout OR on the run
+ *  being stopped.
+ *
+ *  `stop()` used to reach the in-flight LLM request and nothing else, so a tool
+ *  already running kept running: a fetch inside it finished, its side effects
+ *  landed, and the result was then thrown away by a loop that had already
+ *  stopped. A cancellation that only cancels the cheap half of the work is not
+ *  a cancellation.
+ *
+ *  The two causes stay distinguishable through `signal.reason`, because a tool
+ *  writing its own cleanup needs to know which happened -- a timeout is its own
+ *  problem to report, a stop is the caller changing their mind. */
 export async function executeWithTimeout(
   tool: AgentTool,
   tc: ToolCallPart,
   baseCtx: Omit<ToolExecutionContext, 'signal'>,
   timeoutMs: number,
+  runSignal?: AbortSignal,
 ): Promise<string | ContentPart[]> {
   const abortController = new AbortController();
-  const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
-  const ctx: ToolExecutionContext = { ...baseCtx, signal: abortController.signal };
+  const timeoutId = setTimeout(
+    () => abortController.abort(new Error(`Tool "${tc.name}" timed out after ${timeoutMs}ms`)),
+    timeoutMs,
+  );
+  const linked = runSignal
+    ? linkSignals(abortController.signal, runSignal)
+    : { signal: abortController.signal, dispose: () => {} };
+  const ctx: ToolExecutionContext = { ...baseCtx, signal: linked.signal };
   try {
     return await tool.execute(tc.arguments, ctx);
   } finally {
     clearTimeout(timeoutId);
+    // The run's signal outlives this call, so the listener has to come off it.
+    linked.dispose();
   }
 }
 

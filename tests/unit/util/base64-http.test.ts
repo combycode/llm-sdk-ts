@@ -4,7 +4,7 @@
 
 import { afterEach, describe, expect, it } from 'bun:test';
 import { base64ToBytes, base64ToUtf8, bytesToBase64 } from '../../../src/util/base64';
-import { anySignal, header, isStreamBody, parseIntHeader } from '../../../src/util/http';
+import { anySignal, header, isStreamBody, linkSignals, parseIntHeader } from '../../../src/util/http';
 
 const g = globalThis as unknown as { Buffer?: unknown };
 const realBuffer = g.Buffer;
@@ -88,5 +88,39 @@ describe('http odds and ends', () => {
     expect(isStreamBody('text')).toBe(false);
     expect(isStreamBody(new Uint8Array([1]))).toBe(false);
     expect(isStreamBody(undefined)).toBe(false);
+  });
+});
+
+describe('linkSignals — anySignal, plus the way to unsubscribe', () => {
+  it('behaves exactly as anySignal does while it is live', () => {
+    const c = new AbortController();
+    const { signal } = linkSignals(c.signal);
+    expect(signal.aborted).toBe(false);
+    c.abort('later');
+    expect(signal.reason).toBe('later');
+  });
+
+  it('after dispose(), the source aborting no longer reaches it', () => {
+    // Why it exists: a SHORT-lived signal linked to a LONG-lived one leaves its
+    // dead controller reachable from that long-lived signal until it aborts. One
+    // tool call is nothing; a tool call per step for a long run is a slow leak.
+    const longLived = new AbortController();
+    const { signal, dispose } = linkSignals(longLived.signal);
+    dispose();
+    longLived.abort('too late');
+    expect(signal.aborted).toBe(false);
+  });
+
+  it('dispose() twice is harmless', () => {
+    const c = new AbortController();
+    const { dispose } = linkSignals(c.signal);
+    dispose();
+    expect(() => dispose()).not.toThrow();
+  });
+
+  it('an already-aborted source needs no unsubscribing', () => {
+    const { signal, dispose } = linkSignals(AbortSignal.abort('gone'));
+    expect(signal.aborted).toBe(true);
+    expect(() => dispose()).not.toThrow();
   });
 });

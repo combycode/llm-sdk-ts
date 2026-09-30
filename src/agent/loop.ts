@@ -12,6 +12,7 @@
  *    - Input shapes (`string | ContentPart[] | Message[]`) APPEND to history. */
 
 import { HookBus } from '../bus/hook-bus';
+import { linkSignals } from '../util/http';
 import {
   contentText,
   finalAnswerText,
@@ -124,6 +125,8 @@ export class AgentLoop {
   private _running = false;
   private _stopRequested = false;
   private _abortController: AbortController | null = null;
+  /** Removes the listener that links a caller's signal to this run's. */
+  private _callerSignalLink: (() => void) | undefined;
 
   constructor(config: AgentLoopConfig) {
     if (!config.client) throw new Error('AgentLoop: client is required');
@@ -461,7 +464,14 @@ export class AgentLoop {
         // and silently overwriting it is how its telemetry stops joining up.
         ...options.ctx,
       },
-      signal: options.signal ?? this._abortController?.signal,
+      // ONE signal for the whole run. A caller's signal used to REPLACE the
+      // run's here, which quietly disabled this loop's own `stop()` for anyone
+      // who passed one — and the caller most likely to pass one is a parent
+      // agent handing down its cancellation, i.e. exactly when both must work.
+      // `beginRun` now links the caller's into the run's controller, so
+      // everything downstream (this request, and every tool call) gets both from
+      // a single place rather than each site remembering to combine them.
+      signal: this._abortController?.signal ?? options.signal,
     };
   }
 
@@ -471,7 +481,7 @@ export class AgentLoop {
     input: string | ContentPart[] | Message[],
     options: ExecuteOptions = {},
   ): Promise<CompletionResponse> {
-    const { runId, startedAt, startPerf, userMessageText, runTrace } = await this.beginRun(input, options.ctx);
+    const { runId, startedAt, startPerf, userMessageText, runTrace } = await this.beginRun(input, options.ctx, options.signal);
 
     const steps: StepReport[] = [];
     const totalUsage = emptyUsage();
@@ -670,6 +680,8 @@ export class AgentLoop {
     } finally {
       this._running = false;
       this._abortController = null;
+      this._callerSignalLink?.();
+      this._callerSignalLink = undefined;
     }
 
     const finalText = this.resolveFinalText({ reason, guardrailTripReason, lastResponse });
@@ -731,7 +743,7 @@ export class AgentLoop {
     input: string | ContentPart[] | Message[],
     options: ExecuteOptions = {},
   ): AsyncIterable<AgentStreamEvent> {
-    const { runId, startedAt, startPerf, userMessageText, runTrace } = await this.beginRun(input, options.ctx);
+    const { runId, startedAt, startPerf, userMessageText, runTrace } = await this.beginRun(input, options.ctx, options.signal);
 
     const steps: StepReport[] = [];
     const totalUsage = emptyUsage();
@@ -910,6 +922,8 @@ export class AgentLoop {
     } finally {
       this._running = false;
       this._abortController = null;
+      this._callerSignalLink?.();
+      this._callerSignalLink = undefined;
 
       // Everything below used to sit AFTER this block, which meant it never ran
       // when a consumer broke out of `for await`: closing a generator resumes it
@@ -1096,7 +1110,13 @@ export class AgentLoop {
     // ─── Execute ─────────────────────────────────────────────────────────
     try {
       const baseCtx = { step, callId: tc.id, metrics, trace: { ...runTrace, callId: tc.id } };
-      const result = await executeWithTimeout(lookup.tool, tc, baseCtx, this._toolTimeout);
+      const result = await executeWithTimeout(
+        lookup.tool,
+        tc,
+        baseCtx,
+        this._toolTimeout,
+        this._abortController?.signal,
+      );
       return await this.buildSuccessResult(tc, result, runId, step, metrics, reports, toolStart, runTrace, lookup.tool, baseCtx);
     } catch (e) {
       return handleToolError(e, tc, this.hooks, runId, this.id, step, metrics, reports, toolStart, runTrace);
@@ -1317,7 +1337,13 @@ export class AgentLoop {
       }
       try {
         const baseCtx = { step, callId: tc.id, metrics, trace: { ...runTrace, callId: tc.id } };
-        const result = await executeWithTimeout(tool, tc, baseCtx, this._toolTimeout);
+        const result = await executeWithTimeout(
+          tool,
+          tc,
+          baseCtx,
+          this._toolTimeout,
+          this._abortController?.signal,
+        );
         return await this.buildSuccessResult(tc, result, runId, step, metrics, reports, toolStart, runTrace, tool, baseCtx);
       } catch (e) {
         return handleToolError(e, tc, this.hooks, runId, this.id, step, metrics, reports, toolStart, runTrace);
@@ -1516,6 +1542,7 @@ export class AgentLoop {
   private async beginRun(
     input: string | ContentPart[] | Message[],
     callerCtx?: Partial<RequestContext>,
+    callerSignal?: AbortSignal,
   ): Promise<{
     runId: string;
     startedAt: number;
@@ -1527,6 +1554,21 @@ export class AgentLoop {
     this._running = true;
     this._stopRequested = false;
     this._abortController = new AbortController();
+    // A caller's cancellation becomes part of THIS run's cancellation, once,
+    // here. Linking it at the source is what lets a tool three agents deep hear
+    // the top-level caller give up: each loop's controller already carries its
+    // caller's, so the chain needs no site to remember to combine anything.
+    this._callerSignalLink?.();
+    this._callerSignalLink = undefined;
+    if (callerSignal) {
+      const controller = this._abortController;
+      const link = linkSignals(callerSignal);
+      link.signal.addEventListener('abort', () => controller.abort(link.signal.reason), {
+        once: true,
+      });
+      // The caller's signal outlives the run, so the listener has to come off it.
+      this._callerSignalLink = link.dispose;
+    }
     // The search budget is per RUN. Carrying it across runs would silently starve a long
     // conversation of discovery after the fifth search of its life.
     this._lazyState.searches = 0;
