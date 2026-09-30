@@ -97,6 +97,41 @@ function searchActionPayload(item: Record<string, unknown>): { query?: string; u
   return out;
 }
 
+/** The URLs a search drew on: `action.sources[] = {type:'url', url}`. */
+function searchSources(item: Record<string, unknown>): string[] | undefined {
+  const sources = (item.action as { sources?: unknown } | undefined)?.sources;
+  if (!Array.isArray(sources)) return undefined;
+  const urls = sources
+    .map((s) => (s as { url?: unknown } | null)?.url)
+    .filter((u): u is string => typeof u === 'string' && u.length > 0);
+  return urls.length ? urls : undefined;
+}
+
+/** `web_search_call.results[]`, present only when the request included them.
+ *
+ *  The four documented image fields are renamed to the library's camelCase;
+ *  every other key is carried through untouched. Normalising only what is
+ *  documented and dropping the rest would lose whatever OpenAI adds next, and
+ *  this array exists precisely because the payload is richer than our type. */
+function searchResults(item: Record<string, unknown>): BuiltinToolCall['results'] {
+  const raw = item.results;
+  if (!Array.isArray(raw)) return undefined;
+  const RENAME: Record<string, string> = {
+    image_url: 'imageUrl',
+    source_website_url: 'sourceWebsiteUrl',
+    thumbnail_url: 'thumbnailUrl',
+    caption: 'caption',
+  };
+  const out = raw
+    .filter((r): r is Record<string, unknown> => Boolean(r) && typeof r === 'object')
+    .map((r) => {
+      const entry: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(r)) entry[RENAME[key] ?? key] = value;
+      return entry;
+    });
+  return out.length ? out : undefined;
+}
+
 /** Hosted builtin-tool output items (provider-run) → a unified `BuiltinToolCall`
  *  (with its code/output/query payload), or null for non-builtin items. Shared by
  *  the buffered and streamed paths. */
@@ -116,6 +151,10 @@ export function builtinCallFromResponsesItem(
     const { query, url } = searchActionPayload(item);
     if (query) call.query = query;
     if (url) call.url = url;
+    const sources = searchSources(item);
+    if (sources) call.sources = sources;
+    const results = searchResults(item);
+    if (results) call.results = results;
   }
   return call;
 }

@@ -201,6 +201,29 @@ export interface BuiltinToolCall {
   /** `web_search`: the URL the model opened/read (OpenAI/xAI `open_page`/`find`
    *  actions, which carry a URL instead of a query). Absent for plain searches. */
   url?: string;
+  /** `web_search`: the URLs the search drew on, when the provider names them
+   *  (OpenAI `action.sources[]`). The pages behind an answer, which is what a
+   *  caller needs to show a citation list or audit where a claim came from. */
+  sources?: string[];
+  /** `web_search`: the results themselves, when the provider returned them.
+   *
+   *  OpenAI omits `web_search_call.results` unless the request asked for it,
+   *  and the adapter asks whenever `search_content_types` includes `'image'`
+   *  -- so image results arrive rather than being silently absent. The four
+   *  documented image fields are normalised; anything else the provider sent
+   *  is preserved alongside them rather than dropped. */
+  results?: Array<{
+    /** The image itself. */
+    imageUrl?: string;
+    /** The page the image was found on. */
+    sourceWebsiteUrl?: string;
+    /** A smaller preview, when one exists. */
+    thumbnailUrl?: string;
+    /** A short description, when `image_settings.caption` asked for one. */
+    caption?: string;
+    /** Whatever else this provider put on a result. */
+    [key: string]: unknown;
+  }>;
 }
 
 /** The finish reasons this SDK documents and maps deliberately. */

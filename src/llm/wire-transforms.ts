@@ -157,6 +157,29 @@ export function makeRegistry(a: AdapterHandles): Registry {
     /** turnComplete defaults to true; only an explicit `false` suppresses it. */
     realtimeTurnComplete: (_v, ctx: Ctx) => ctx.req.turnComplete !== false,
 
+    /** `include` on a Responses request: extra payload the API omits unless
+     *  asked for.
+     *
+     *  Today that is image search results. `web_search_call.results` is NOT
+     *  returned by default -- asking for `search_content_types: ['image']`
+     *  alone gets you a search that found images and a response that does not
+     *  contain them. The include is what makes the results arrive, so it is
+     *  derived here rather than left to the caller: a caller who asked for
+     *  images has already said what they want.
+     *
+     *  Undefined when nothing needs including, so the field is absent rather
+     *  than an empty array. */
+    openaiResponsesInclude: (_v, ctx: Ctx) => {
+      const tools = ctx.req.tools;
+      if (!Array.isArray(tools)) return undefined;
+      const wantsImages = tools.some((t: any) => {
+        if (isFunctionToolValue(t) || t?.type !== 'web_search') return false;
+        const kinds = t?.params?.search_content_types;
+        return Array.isArray(kinds) && kinds.includes('image');
+      });
+      return wantsImages ? ['web_search_call.results'] : undefined;
+    },
+
     /** xAI media refs, reusing the library's own normalisers. */
     xaiSourceImageRef: (_v, ctx: Ctx) => xaiImageRef(normalizeImageSource(ctx.req.sourceImage)),
     xaiSourceVideoRef: (_v, ctx: Ctx) => xaiVideoRef(ctx.req.sourceVideo),

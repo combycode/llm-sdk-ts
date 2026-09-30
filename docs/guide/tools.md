@@ -326,6 +326,14 @@ interface BuiltinToolCall {
   output?: string;   // code_interpreter: the code's stdout / logs
   query?: string;    // web_search: the query the model searched for
   url?: string;      // web_search: a page opened/read; web_fetch: the URL fetched
+  sources?: string[];          // web_search: the URLs the search drew on
+  results?: Array<{            // web_search: the results, when asked for
+    imageUrl?: string;
+    sourceWebsiteUrl?: string;
+    thumbnailUrl?: string;
+    caption?: string;
+    [key: string]: unknown;    // whatever else the provider sent
+  }>;
 }
 ```
 
@@ -333,6 +341,59 @@ The payload is normalized across providers and present on both `complete()` and 
 (the `builtin_tool_end` event carries the same fields). These are **informational** — unlike
 `tool_call_*` (a function call the client must execute), the provider runs these itself. Use them
 to show a "🔎 Searching: <query>" / "⚙️ Running code" panel with the actual code and output.
+
+### Image results from `web_search` (OpenAI)
+
+Two halves, and only one of them is a parameter you set:
+
+```ts
+import type { WebSearchToolParams } from '@combycode/llm-sdk';
+
+const search: { type: 'web_search'; params: WebSearchToolParams } = {
+  type: 'web_search',
+  params: {
+    search_content_types: ['image', 'text'],
+    image_settings: { max_results: 3, caption: true },
+  },
+};
+
+const { response } = await complete({ model: 'openai/gpt-5.4-nano', apiKey, prompt: '…', tools: [search] });
+for (const call of response.builtinToolCalls ?? []) {
+  for (const r of call.results ?? []) console.log(r.imageUrl, r.caption);
+}
+```
+
+The other half is `include: ['web_search_call.results']` on the request, and **the adapter adds it
+for you** whenever `search_content_types` contains `'image'`. That matters because the results are
+otherwise simply absent: measured 2026-09-30, the same request with the include returns results and
+without it returns none — a search that found images and a response that does not contain them,
+which reads as "no images found" rather than as a missing parameter.
+
+`external_web_access: false` runs the search cache-only, fetching no new external content.
+
+### Restricting what `web_fetch` may fetch (Anthropic)
+
+`url_sources` decides which URLs are eligible — use the exported `WebFetchToolParams` for editor
+help. Each key is a tagged variant: `user_input` is `all` or `none`; the two tool filters add
+`only` and `except`, whose `tool_names` must name tools declared in the same request.
+
+```ts
+import type { WebFetchToolParams } from '@combycode/llm-sdk';
+
+const fetchTool: { type: 'web_fetch'; params: WebFetchToolParams } = {
+  type: 'web_fetch',
+  params: {
+    url_sources: {
+      user_input: { type: 'all' },                              // URLs the user pasted
+      server_tool_results: { type: 'only', tool_names: ['web_search'] },
+      client_tool_results: { type: 'none' },                    // nothing from your own tools
+    },
+  },
+};
+```
+
+Worth setting deliberately: left unset, the fetchable set is whatever the server defaults to, and
+"any URL any tool result mentioned" is a wider reach than most callers intend.
 
 ### Hosted MCP tool (`{ type: 'mcp' }`)
 
