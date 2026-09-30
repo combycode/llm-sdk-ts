@@ -17,6 +17,7 @@ import { parseNativeModeration } from '../../moderation/native';
 import { extractCitations } from '../_shared/citations';
 import { extractFinishReason } from '../_shared/response-utils';
 import type { Ctx, Registry } from '../../../wire/interpreter';
+import type { CompletionResponse } from '../../types/response';
 
 type Item = Record<string, unknown>;
 
@@ -25,6 +26,36 @@ const rawOf = (ctx: Ctx): Record<string, unknown> =>
 const outOf = (ctx: Ctx): { content: unknown[]; toolCalls: unknown[]; reasoningItems: Item[] } =>
   (ctx.req as { out: { content: unknown[]; toolCalls: unknown[]; reasoningItems: Item[] } }).out;
 const itemOf = (ctx: Ctx): Item => (ctx.item?.value ?? {}) as Item;
+
+/** What a safety block said about itself, if it said anything.
+ *
+ *  OpenAI added this in 2026-09 beside the `misalignment_policy_violation`
+ *  code. `message` only reports that the turn was blocked; this reports what
+ *  about it looked wrong and, when the provider offers one, a continuation to
+ *  send instead. Returned wrapped so the caller can spread it: an error with no
+ *  misalignment must not grow an `undefined` key.
+ *
+ *  `errorType` is passed through whatever it is -- the provider documents four
+ *  values and says in as many words that clients must accept more, so
+ *  validating against the four would drop exactly the ones worth knowing about.
+ *
+ *  Exported because the same object rides the Responses WebSocket error event.
+ */
+export function openaiMisalignment(
+  value: unknown,
+): { misalignment: NonNullable<CompletionResponse['error']>['misalignment'] } | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const m = value as { detailed_explanation?: unknown; error_type?: unknown; steer?: unknown };
+  const steerMessage = (m.steer as { message?: unknown } | null | undefined)?.message;
+  const out = {
+    ...(typeof m.detailed_explanation === 'string' ? { detailedExplanation: m.detailed_explanation } : {}),
+    ...(typeof m.error_type === 'string' ? { errorType: m.error_type } : {}),
+    ...(typeof steerMessage === 'string' ? { steer: { message: steerMessage } } : {}),
+  };
+  // An empty object is not a report; `misalignment: {}` would read as "a safety
+  // system explained itself" when nothing did.
+  return Object.keys(out).length > 0 ? { misalignment: out } : undefined;
+}
 
 /** The text a message item contributes, concatenated in output order.
  *
@@ -201,13 +232,28 @@ export const OPENAI_RESPONSES_REGISTRY: Registry = {
       openaiCacheDiagnostics(rawOf(ctx).prompt_cache_diagnostics),
 
     /** A Responses call can fail INSIDE a 200, so there is no exception to
-     *  catch and this is the only signal the caller gets. */
+     *  catch and this is the only signal the caller gets.
+     *
+     *  A numeric `code` counts. The field was read only when it was already a
+     *  string, so a number was dropped and the caller saw a failure with no
+     *  code at all -- and OpenAI does send both, which is why openai-py 3.14
+     *  began coercing it the same way.
+     *
+     *  `misalignment` is what a safety block says about itself (2026-09,
+     *  alongside the `misalignment_policy_violation` code). It is kept because
+     *  `steer.message` is a continuation the caller can act on: without it the
+     *  only thing an agent learns is that it was stopped. */
     oaiRespError: (_arg: unknown, ctx: Ctx) => {
-      const e = rawOf(ctx).error as { code?: unknown; message?: unknown } | null | undefined;
+      const e = rawOf(ctx).error as
+        | { code?: unknown; message?: unknown; misalignment?: unknown }
+        | null
+        | undefined;
       if (!e || (e.code === undefined && e.message === undefined)) return undefined;
+      const code = typeof e.code === 'string' ? e.code : typeof e.code === 'number' ? String(e.code) : undefined;
       return {
-        ...(typeof e.code === 'string' ? { code: e.code } : {}),
+        ...(code !== undefined ? { code } : {}),
         ...(typeof e.message === 'string' ? { message: e.message } : {}),
+        ...(openaiMisalignment(e.misalignment) ?? {}),
       };
     },
 

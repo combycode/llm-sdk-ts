@@ -50,9 +50,31 @@ export interface CompletionResponse {
    *  there is no exception to catch — without this the caller only sees an empty result.
    *  Absent unless the provider reported a failure. */
   error?: {
-    /** Provider error code, e.g. OpenAI `data_residency_mismatch` (added 2026-07). */
+    /** Provider error code, e.g. OpenAI `data_residency_mismatch` (added 2026-07)
+     *  or `misalignment_policy_violation` (added 2026-09). A number on the wire is
+     *  read as its decimal string: OpenAI sends both, and openai-py 3.14 coerces
+     *  the same way, so a numeric code is a code and not an absent one. */
     code?: string;
     message?: string;
+    /** Present when a safety system blocked the turn AND explained itself
+     *  (OpenAI `misalignment_policy_violation`, 2026-09). `message` says the turn
+     *  was blocked; this says what about it looked wrong and, sometimes, what to
+     *  send instead -- which is the difference between an agent that stops and
+     *  one that can carry on. */
+    misalignment?: {
+      /** The public explanation for the block. */
+      detailedExplanation?: string;
+      /** Deliberately open: the provider documents four values and says clients
+       *  must accept more. */
+      errorType?:
+        | 'potentially_unintended_data_transfer'
+        | 'potentially_unintended_data_access'
+        | 'potentially_unintended_destructive_activity'
+        | 'other'
+        | (string & {});
+      /** A continuation instruction, when the provider offers one. */
+      steer?: { message: string };
+    };
   };
 
   /** Opaque provider state this turn produced that the NEXT request has to send

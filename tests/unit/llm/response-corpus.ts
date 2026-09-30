@@ -517,6 +517,42 @@ export const RESPONSE_SCENARIOS: ResponseScenario[] = [
       },
     },
   },
+  {
+    name: 'error.misalignment',
+    streaming: false,
+    // The richest error body the Responses API sends, and the one that used to
+    // arrive emptiest: a numeric code was dropped for not being a string, and
+    // `misalignment` was not read at all -- so a safety block that explained
+    // itself, and offered a continuation, reached the caller as a bare message.
+    targets: ['openai/responses'],
+    input: '(synthetic)',
+    options: {},
+    synthetic: {
+      from: 'text',
+      provenance:
+        'openai-ts 7.4.0 `ResponseError.misalignment` + the `misalignment_policy_violation` ' +
+        'code member, both added 2026-09. `error_type` is documented as open ("clients must ' +
+        'accept additional values"). TYPE-DERIVED, not measured: provoking a real safety ' +
+        'block to record one is neither reliable nor something to automate.',
+      build: {
+        'openai/responses': (raw) => ({
+          ...raw,
+          status: 'failed',
+          error: {
+            code: 'misalignment_policy_violation',
+            message: 'Blocked by the safety systems.',
+            misalignment: {
+              detailed_explanation: 'The requested action would have sent private file contents to an external address.',
+              error_type: 'potentially_unintended_data_transfer',
+              steer: { message: 'Confirm the recipient with the user before sending anything.' },
+            },
+          },
+          incomplete_details: null,
+          output: [],
+        }),
+      },
+    },
+  },
 ];
 
 /** Does this scenario apply to this target? */

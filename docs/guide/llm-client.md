@@ -105,7 +105,9 @@ try {
   response.
 - **`'error'`** — the provider reported a failure *inside a 200 response* (OpenAI Responses
   `status: 'failed'`, Google Interactions `status: 'failed'`), so there is no exception to catch.
-  When set, `response.error` carries `{ code?, message? }` — e.g. OpenAI's `data_residency_mismatch`.
+  When set, `response.error` carries `{ code?, message?, misalignment? }` — e.g. OpenAI's
+  `data_residency_mismatch`. A code the provider sends as a number is read as its decimal string,
+  so a numeric code is a code rather than an absent one.
 
 ```ts
 const { response } = await complete({ model: 'openai/gpt-5.4-nano', apiKey, prompt: '…' });
@@ -115,6 +117,35 @@ if (response.finishReason === 'pending') {
   console.error(response.error?.code, response.error?.message);
 }
 ```
+
+#### A safety block that explains itself
+
+OpenAI's `misalignment_policy_violation` (2026-09) comes with `error.misalignment`, and it is the
+one error body worth reading past `message`:
+
+| Field | What it is |
+| --- | --- |
+| `detailedExplanation` | why this particular turn looked wrong |
+| `errorType` | a classification — `potentially_unintended_data_transfer`, `…_data_access`, `…_destructive_activity`, `other`. **Open**: the provider says clients must accept more, so it is typed as a string |
+| `steer.message` | a continuation the provider suggests sending instead |
+
+`steer` is the part that changes what an agent can do. Without it the only thing the run learns is
+that it was stopped:
+
+```ts
+if (response.error?.misalignment) {
+  const { detailedExplanation, steer } = response.error.misalignment;
+  console.warn(`blocked: ${detailedExplanation}`);
+  if (steer) {
+    // A path forward the provider itself offered — worth surfacing to the user
+    // before deciding whether to retry.
+    console.warn(`suggested: ${steer.message}`);
+  }
+}
+```
+
+Absent unless the provider sent one, and never an empty object: `misalignment` being present means
+a safety system actually explained itself.
 
 > Anthropic's `refusal` stop reason maps to `'content_filter'` (a safety decline is a block, not a
 > clean finish), and `model_context_window_exceeded` maps to `'length'`.

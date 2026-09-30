@@ -8,6 +8,24 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **A safety block that explains itself is no longer flattened to its message.** OpenAI's
+  `misalignment_policy_violation` (2026-09) arrives with `error.misalignment`, and it is the one
+  error body worth reading past `message`: `detailedExplanation` says what about this turn looked
+  wrong, `errorType` classifies it, and `steer.message` is a continuation the provider itself
+  suggests sending instead. We read `code` and `message` and dropped the rest, so an agent learned
+  only that it had been stopped -- with the path forward sitting unread in `response.raw`.
+  `errorType` is typed as an open string because the provider documents four values and says
+  clients must accept more; validating against the four would drop precisely the new ones.
+
+### Fixed
+
+- **A numeric error code is no longer dropped.** `response.error.code` was read only when it was
+  already a string, so a code OpenAI sent as a number became an error with NO code -- not a wrong
+  one, an absent one, which reads as "the provider did not say why". It is now read as its decimal
+  string, which is what openai-py 3.14 started doing for the same reason.
+
+### Added
+
 - **A 403 `insufficient_scope` now re-authorizes, asking for the union of scopes** (SEP-2350). Only
   a 401 sent the client back through authorization, so a server saying "your token is valid but too
   narrow" surfaced as a plain failure and the operation could never succeed however many times it
