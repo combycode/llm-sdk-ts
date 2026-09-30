@@ -108,6 +108,64 @@ export function issuersMatch(a: string, b: string): boolean {
   return x === y || (x.endsWith('/') && x.slice(0, -1) === y) || (y.endsWith('/') && y.slice(0, -1) === x);
 }
 
+/** The parameters of a `WWW-Authenticate: Bearer …` challenge.
+ *
+ *  Only the ones the client acts on are named; the rest are still returned, so a
+ *  caller can read `realm` or anything a server adds without this needing to
+ *  know about it. */
+export interface BearerChallenge {
+  error?: string;
+  scope?: string;
+  /** SEP-985: where the protected-resource metadata lives. Carried on a 403 as
+   *  well as a 401, which is the point of reading it here rather than only on
+   *  the unauthorized path. */
+  resource_metadata?: string;
+  [param: string]: string | undefined;
+}
+
+/** Parse a `WWW-Authenticate` header's Bearer parameters.
+ *
+ *  Deliberately forgiving about shape and strict about nothing: the header is a
+ *  hint that decides whether to re-authorize, never a credential. Values may be
+ *  quoted or bare, separated by commas and any amount of space, and a scheme
+ *  other than Bearer simply yields nothing.
+ *
+ *  Returns undefined when there is no Bearer challenge at all, which reads
+ *  differently from a challenge carrying no parameters. */
+export function parseBearerChallenge(header: string | undefined): BearerChallenge | undefined {
+  if (!header) return undefined;
+  const bearer = /(?:^|,)\s*Bearer\b\s*(.*)$/i.exec(header);
+  if (!bearer) return undefined;
+  const out: BearerChallenge = {};
+  // key="quoted value" | key=bare-value
+  const param = /([A-Za-z0-9_-]+)\s*=\s*(?:"([^"]*)"|([^\s,]+))/g;
+  for (const m of (bearer[1] ?? '').matchAll(param)) {
+    out[m[1]!.toLowerCase()] = m[2] ?? m[3] ?? '';
+  }
+  return out;
+}
+
+/** Merge two space-delimited scope strings, keeping order and dropping repeats.
+ *
+ *  SEP-2350: a step-up re-authorization asks for the union of what was already
+ *  requested and what the server just challenged for. Asking for the challenged
+ *  scope ALONE is the failure this prevents — the new grant replaces the old
+ *  one, so escalating one operation silently revokes the permissions another
+ *  operation was relying on. */
+export function unionScopes(previous?: string, next?: string): string | undefined {
+  if (!previous) return next;
+  if (!next) return previous;
+  const merged = previous.split(/\s+/).filter(Boolean);
+  const seen = new Set(merged);
+  for (const scope of next.split(/\s+/).filter(Boolean)) {
+    if (!seen.has(scope)) {
+      seen.add(scope);
+      merged.push(scope);
+    }
+  }
+  return merged.join(' ');
+}
+
 /** Validate the RFC 9207 authorization-response issuer.
  *
  *  This is the mix-up-attack defence: without it a malicious authorization server can hand back a
@@ -385,10 +443,28 @@ export class McpOAuth {
   }
 
   /** Handle a 401: refresh if we can (return true -> retry), else start a redirect. */
-  async reauthorize(): Promise<boolean> {
+  /** Get back in, after the server refused the token we hold.
+   *
+   *  `challengedScope` is set when the refusal was a SEP-2350 step-up -- a 403
+   *  saying the token is valid but not broad enough. That case skips the
+   *  refresh entirely: a refresh token mints another token with the SAME scope,
+   *  which is the scope just rejected, so it can only fail a second time.
+   *
+   *  The scope asked for is the UNION of everything previously requested, what
+   *  the stored token was actually granted, and what the server now demands.
+   *  Asking for the challenged scope alone is the failure SEP-2350 describes:
+   *  the new grant replaces the old one, so escalating one operation silently
+   *  drops the permissions another operation depends on. The granted scope has
+   *  to come from the token because `clientMetadata.scope` is whatever this
+   *  process was configured with -- after a restart that is the only record of
+   *  what the user actually consented to. */
+  async reauthorize(challengedScope?: string): Promise<boolean> {
     const tokens = await this.boundTokens();
-    if (tokens?.refresh_token && (await this.tryRefresh(tokens.refresh_token))) return true;
-    await this.startRedirect();
+    if (!challengedScope) {
+      if (tokens?.refresh_token && (await this.tryRefresh(tokens.refresh_token))) return true;
+    }
+    const granted = unionScopes(this.provider.clientMetadata.scope, tokens?.scope);
+    await this.startRedirect(challengedScope ? unionScopes(granted, challengedScope) : undefined);
     return false;
   }
 
@@ -419,7 +495,9 @@ export class McpOAuth {
     await this.provider.saveTokens({ ...tokens, issuer: this.expectedIssuer() });
   }
 
-  private async startRedirect(): Promise<void> {
+  /** `scope` overrides the configured one for a step-up, where the union of
+   *  old and newly challenged scopes is what must be asked for. */
+  private async startRedirect(scope?: string): Promise<void> {
     const meta = await this.ensureMetadata();
     const client = await this.ensureClient(meta);
     const { verifier, challenge } = await generatePkce();
@@ -430,7 +508,7 @@ export class McpOAuth {
       client_id: client.client_id,
       redirect_uri: this.provider.redirectUrl,
       code_challenge: challenge,
-      scope: this.provider.clientMetadata.scope,
+      scope: scope ?? this.provider.clientMetadata.scope,
       state,
       resource: this.serverUrl,
     });

@@ -164,7 +164,7 @@ export async function connectMcp(
       queueName: `mcp/${ns}`,
       timeoutMs: opts.timeoutMs,
       getAuthHeaders: oauth ? () => oauth.authHeader() : undefined,
-      onUnauthorized: oauth ? () => oauth.reauthorize() : undefined,
+      onUnauthorized: oauth ? (scope?: string) => oauth.reauthorize(scope) : undefined,
     });
   } else {
     transport = new StdioTransport(config as McpStdioConfig, { timeoutMs: opts.timeoutMs });

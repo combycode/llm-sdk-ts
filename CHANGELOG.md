@@ -6,7 +6,38 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ## [Unreleased]
 
+### Added
+
+- **A 403 `insufficient_scope` now re-authorizes, asking for the union of scopes** (SEP-2350). Only
+  a 401 sent the client back through authorization, so a server saying "your token is valid but too
+  narrow" surfaced as a plain failure and the operation could never succeed however many times it
+  was tried. A step-up skips the refresh -- a refresh token mints another token with the scope that
+  was just refused -- and requests the UNION of what this process was configured with, what the
+  stored token was actually granted, and what the server challenged for. The granted scope is read
+  from the token because after a restart it is the only record of what the user consented to, and
+  asking for the challenged scope alone is the failure SEP-2350 describes: the new grant replaces
+  the old one, so escalating one operation would silently revoke another's permissions. Any other
+  403 is left as the error it is, since re-authorizing could only loop. Retried once. New exported
+  `parseBearerChallenge` also reads `resource_metadata`, which a 403 carries as well as a 401.
+
 ### Fixed
+
+- **A session the server has forgotten is now rebuilt instead of ending the connection.** A stateful
+  MCP server answers `404` to a session id it no longer holds -- it restarted, evicted the session,
+  or let it expire. That became `ConnectionClosed`, and because the id is held for the life of the
+  transport, EVERY later request failed the same way: one server restart permanently broke a
+  connected client, with nothing wrong at the transport level and nothing that would ever try again.
+  A 404 while a session id is held now drops that id, re-runs the handshake once, and replays the
+  request. Only the handshake -- not the full negotiation, whose version question is already settled
+  with this server -- and only in the handshake era, since the modern wire has no session to rebuild.
+  A 404 with no session id held is left alone, being an ordinary wrong URL, and a recovery that
+  itself 404s does not start another, so a bad server cannot put the transport in a loop. When
+  recovery fails the original 404 is what surfaces, not a second error about the recovery.
+
+- **The MCP client told every server it was version `1.0.0`.** Hard-coded in `clientInfo` since the
+  first release and never once equal to the shipped version, so server-side logs, compatibility
+  shims and telemetry all attributed our traffic to a client that does not exist. It now sends the
+  real version, from the new `SDK_VERSION` export, which a test keeps equal to `package.json`.
 
 - **Two streamed tool calls no longer merge into one.** The accumulator routed a delta with no
   matching id to the FIRST call in flight, and Google's stream registry emitted `id: ''` on every

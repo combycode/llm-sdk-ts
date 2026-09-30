@@ -1,6 +1,9 @@
 /** @combycode/llm-sdk — unified, pluggable AI SDK across all major LLM providers.
  *  This is the public API surface. */
 
+// This library's own version — what the MCP client tells a server it is.
+export { SDK_VERSION } from './version';
+
 // Runtime detection (isBrowser + lazy node loaders)
 export { isBrowser } from './runtime/runtime';
 
@@ -306,10 +309,12 @@ export {
   generatePkce,
   McpOAuth,
   McpUnauthorizedError,
+  parseBearerChallenge,
   refreshTokens,
   registerClient,
+  unionScopes,
 } from './plugins/mcp/oauth';
-export type { AuthServerMetadata, McpAuthProvider, McpOAuthClientInfo, McpOAuthClientMetadata, McpOAuthTokens } from './plugins/mcp/oauth';
+export type { AuthServerMetadata, BearerChallenge, McpAuthProvider, McpOAuthClientInfo, McpOAuthClientMetadata, McpOAuthTokens } from './plugins/mcp/oauth';
 export { WsTransport } from './plugins/mcp/transport-ws';
 export type { McpWsConfig } from './plugins/mcp/transport-ws';
 export { mcpContentToResult, mcpPromptToMessages, mcpToolToAgentTool } from './plugins/mcp/tools';

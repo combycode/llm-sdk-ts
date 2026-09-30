@@ -316,6 +316,25 @@ The stamp is the URL discovery used, not the `issuer` in the authorization serve
 document. Binding to a value the server hands us would let the server choose which stored
 credentials it receives, which is the thing being defended against.
 
+### A 403 can mean "re-authorize", and then the scopes are merged
+
+Two refusals send the client back through authorization, and they are not the same:
+
+| Response | Means | What happens |
+| --- | --- | --- |
+| `401` | the token is missing, expired or rejected | refresh if possible, else a fresh authorization; scope unchanged |
+| `403` + `WWW-Authenticate: Bearer error="insufficient_scope"` | the token is valid but **too narrow** (SEP-2350) | a fresh authorization asking for MORE; a refresh is skipped, because it would mint the same scope that was just refused |
+| any other `403` | the caller may not do this at all | surfaced as the error it is; re-authorizing would only loop |
+
+On a step-up the scope requested is the **union** of three things: what this process was configured
+with, what the stored token was actually granted, and what the server just challenged for. The
+granted scope has to come from the token — after a restart it is the only record of what the user
+consented to. Asking for the challenged scope alone is the failure SEP-2350 describes: the new grant
+*replaces* the old one, so escalating one operation would silently revoke the permissions another
+was relying on.
+
+It is retried once. A server that answers `insufficient_scope` again gets the error, not a loop.
+
 ### Redirects are followed only within the endpoint's own origin
 
 Every MCP request carries things configured for ONE endpoint: the bearer token, the session header,
@@ -336,6 +355,41 @@ At most three such hops, because the redirects this permits are normalisations �
 an https upgrade — and a longer budget only buys patience for a loop. Each followed hop emits an
 `onWarning` with code `redirect_followed`. Provider calls are untouched and keep the platform
 default.
+
+### A forgotten session is rebuilt, not reported as dead
+
+A stateful HTTP server issues a session id and expects it back on every request. When it no longer
+recognises one — it restarted, evicted the session, or let it expire — it answers `404`. The id is
+held for the life of the transport, so without special handling that single 404 becomes every
+subsequent request's 404: one server restart permanently breaks a connected client, with nothing
+actually wrong at the transport level.
+
+A `404` received **while a session id is held** therefore drops that id, re-runs `initialize` once,
+and replays the request. Three deliberate limits:
+
+- **only the handshake**, not the full protocol negotiation. The version question is already
+  settled with this server, and re-asking it on every dropped session would be both slower and a
+  chance to land on a different answer.
+- **only in the handshake era.** The 2026 wire has no session to rebuild, so recovery declines.
+- **a 404 with no session id held is left alone.** That is an ordinary wrong URL, and
+  re-initializing against it would turn one clear error into a confusing pair.
+
+Recovery does not recurse: re-initializing goes back through the same transport, and a `404` on
+that call does not start another recovery. If recovery fails, the original `404` is what surfaces —
+a failed recovery should not replace the error that explains what happened.
+
+Nothing needs to be enabled; this is how `McpClient` over HTTP behaves. stdio and WebSocket have no
+sessions and are unaffected.
+
+### What we tell the server we are
+
+`clientInfo` carries `SDK_VERSION`, the library's real version, exported from the package root:
+
+```ts
+import { SDK_VERSION } from '@combycode/llm-sdk';
+```
+
+Pass `clientInfo` in the client options to identify your application instead.
 
 For full MCP design notes see [docs/design/mcp.md](../design/mcp.md).
 

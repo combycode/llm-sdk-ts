@@ -5,6 +5,7 @@
 
 import type { HookBus } from '../../bus/hook-bus';
 import { McpError, McpErrorCode } from './jsonrpc';
+import { SDK_VERSION } from '../../version';
 import type { McpTransport } from './transport';
 import type { TraceContext } from '../../network/types';
 import { MCP_PROTOCOL_VERSION } from './types';
@@ -170,6 +171,10 @@ export class McpClient {
         this.opts.onNotification?.(method, params);
       },
     });
+    // How to come back from a session the server has forgotten. Installed here
+    // because only the client knows how to hand-shake and only the transport
+    // sees the 404 that says the session is gone.
+    this.transport.setOnSessionLost?.(() => this.recoverSession());
     await this.transport.start();
 
     const mode = this.opts.protocolMode ?? 'auto';
@@ -195,6 +200,29 @@ export class McpClient {
       (this.pingTimer as unknown as { unref?: () => void }).unref?.();
     }
     return this.serverInfo as McpInitializeResult;
+  }
+
+  /** Re-establish a session the server no longer holds, keeping the era we
+   *  already negotiated.
+   *
+   *  A stateful server answers 404 to a session id it has forgotten -- it
+   *  restarted, evicted the session, or let it expire -- and every subsequent
+   *  request fails the same way until someone hand-shakes again. Re-running the
+   *  FULL negotiation would be wrong twice over: it re-probes a version question
+   *  already settled with this server, and on the modern era there is no session
+   *  to rebuild in the first place.
+   *
+   *  Returns whether the caller's request is worth replaying. False rather than
+   *  throwing: the original 404 is the better error to surface, and a recovery
+   *  that failed should not replace it with its own. */
+  private async recoverSession(): Promise<boolean> {
+    if (this.era !== 'handshake') return false;
+    try {
+      await this.handshake();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** The pre-2026 path, unchanged: `initialize` + `notifications/initialized`. */
@@ -736,7 +764,7 @@ export class McpClient {
   }
 
   private clientInfo(): { name: string; version: string } {
-    return this.opts.clientInfo ?? { name: '@combycode/llm-sdk', version: '1.0.0' };
+    return this.opts.clientInfo ?? { name: '@combycode/llm-sdk', version: SDK_VERSION };
   }
 
   private async handleServerRequest(method: string, params: unknown): Promise<unknown> {

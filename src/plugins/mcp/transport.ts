@@ -27,6 +27,14 @@ export interface McpTransport {
    *  `Mcp-Session-Id`, and every request carries `Mcp-Method` / `Mcp-Name` routing headers so an
    *  intermediary can route without parsing the body. Optional — stdio has no headers to set. */
   setEra?(era: 'handshake' | 'modern'): void;
+  /** Install a way to rebuild a session the server no longer holds.
+   *
+   *  A stateful MCP server answers 404 to a session id it has forgotten -- it
+   *  restarted, evicted the session, or let it expire. Only the CLIENT knows how
+   *  to `initialize`, and only the transport sees the 404, so the recovery is
+   *  installed here rather than living in either alone. Optional: stdio has no
+   *  sessions to lose. */
+  setOnSessionLost?(recover: () => Promise<boolean>): void;
   /** Send a long-lived request (`subscriptions/listen`) and return its id, without arming the
    *  normal response timeout.
    *

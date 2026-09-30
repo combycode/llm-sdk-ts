@@ -8,6 +8,7 @@
 
 import type { EngineFetch, EngineFetchStream, SSEEvent } from '../../network/types';
 import { McpError, McpErrorCode } from './jsonrpc';
+import { parseBearerChallenge } from './oauth';
 import { buildFromSpec, type Registry } from '../../wire/interpreter';
 import { mcpSpec } from '../../wire/mcp-specs';
 import { makeRegistry } from '../../llm/wire-transforms';
@@ -24,8 +25,10 @@ export interface HttpTransportDeps {
   timeoutMs?: number;
   /** Authorization headers (Bearer) to attach to every request. */
   getAuthHeaders?: () => Promise<Record<string, string>>;
-  /** Called on a 401; return true to retry the request once (after re-auth). */
-  onUnauthorized?: () => Promise<boolean>;
+  /** Re-authorize and say whether the request is worth retrying. `scope` is
+   *  set only for a SEP-2350 step-up, where the server named the scope it
+   *  wants and the new grant must be the UNION with what is already held. */
+  onUnauthorized?: (scope?: string) => Promise<boolean>;
 }
 
 /** Resumption budget for a dropped long-lived stream. Bounded on purpose: an
@@ -34,9 +37,40 @@ export interface HttpTransportDeps {
 const MAX_RESUME_ATTEMPTS = 5;
 const RESUME_BACKOFF_MS = 500;
 
+/** Should this response send us back through authorization, and asking for what?
+ *
+ *  Two refusals mean "re-authorize", and they mean different things:
+ *
+ *  - **401** -- the token is missing, expired or rejected. A refresh may fix it,
+ *    and the scope does not change.
+ *  - **403 with `error="insufficient_scope"`** (SEP-2350) -- the token is
+ *    perfectly valid and simply not broad enough. A refresh is useless here: it
+ *    mints another token with the scope that was just refused. What is needed is
+ *    a new grant covering the scope the server named, UNIONED with what is
+ *    already held, which is why the scope travels back with the answer.
+ *
+ *  Any other 403 is a real authorization failure -- the caller may not do this,
+ *  whatever token they hold -- and re-authorizing would only loop. */
+function reauthTrigger(
+  status: number,
+  wwwAuthenticate: string | undefined,
+): { scope?: string } | null {
+  if (status === 401) return {};
+  if (status !== 403) return null;
+  const challenge = parseBearerChallenge(wwwAuthenticate);
+  if (challenge?.error !== 'insufficient_scope') return null;
+  return { scope: challenge.scope };
+}
+
 export class HttpTransport extends BaseJsonRpcTransport implements McpTransport {
   private nextHttpId = 0;
   private sessionId: string | null = null;
+  /** Re-establish a session the server says it no longer holds. Installed by the
+   *  client, which is what knows how to `initialize`; null until then. */
+  private onSessionLost: (() => Promise<boolean>) | null = null;
+  /** Guards the recursion: re-initializing goes back through this transport, and
+   *  a 404 on THAT must not try to recover again. */
+  private recovering = false;
   private protocolVersion: string | null = null;
   /** Handshake until negotiation says otherwise — an un-negotiated connection must behave exactly
    *  as it did before 2026 support existed. */
@@ -60,6 +94,10 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
 
   setProtocolVersion(version: string): void {
     this.protocolVersion = version;
+  }
+
+  setOnSessionLost(recover: () => Promise<boolean>): void {
+    this.onSessionLost = recover;
   }
 
   setEra(era: 'handshake' | 'modern'): void {
@@ -126,10 +164,33 @@ export class HttpTransport extends BaseJsonRpcTransport implements McpTransport 
     let res = await this.post('mcp/http.request', call);
     if (res.headers['mcp-session-id']) this.sessionId = res.headers['mcp-session-id'];
 
-    // 401 -> re-auth and retry once.
-    if (res.status === 401 && this.deps.onUnauthorized && (await this.deps.onUnauthorized())) {
+    // 401, or a 403 step-up -> re-auth and retry ONCE.
+    const reauth = reauthTrigger(res.status, res.headers['www-authenticate']);
+    if (reauth && this.deps.onUnauthorized && (await this.deps.onUnauthorized(reauth.scope))) {
       res = await this.post('mcp/http.request', call);
       if (res.headers['mcp-session-id']) this.sessionId = res.headers['mcp-session-id'];
+    }
+
+    // 404 while we HOLD a session id -> the server no longer has that session
+    // (restarted, evicted it, expired it). Re-initialize once and replay.
+    //
+    // Only when a session id is held: a 404 without one is an ordinary wrong
+    // URL, and re-initializing against it would turn a clear error into a
+    // confusing pair of them. The id is dropped BEFORE re-initializing so the
+    // new handshake does not present the dead one.
+    if (res.status === 404 && this.sessionId && this.onSessionLost && !this.recovering) {
+      this.sessionId = null;
+      this.recovering = true;
+      let recovered = false;
+      try {
+        recovered = await this.onSessionLost();
+      } finally {
+        this.recovering = false;
+      }
+      if (recovered) {
+        res = await this.post('mcp/http.request', call);
+        if (res.headers['mcp-session-id']) this.sessionId = res.headers['mcp-session-id'];
+      }
     }
 
     if (res.status >= 400) {
