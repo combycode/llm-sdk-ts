@@ -252,6 +252,7 @@ export class CostCollector {
     this.ledger.push(entry);
     this._runningTotal += cost.total;
     this.noteIfUnpriced(entry);
+    this.noteIfTierUnpriced(entry, pricingTier);
 
     this.hooks.emitSync('onCostEntry', { entry, runningTotal: this._runningTotal });
     this.checkBudgets(entry);
@@ -278,6 +279,38 @@ export class CostCollector {
         `No catalog pricing for ${key} — its cost is reported as 0, which is not the same as free. ` +
         'Check the model id against the catalog, or add pricing for it.',
       details: { provider: entry.provider, model: entry.model },
+    });
+  }
+
+  /** The model IS priced, but not at the tier the provider says it billed.
+   *
+   *  Distinct from an unpriced model, and quieter, which is what makes it worth
+   *  saying: cost falls back to the flat (standard) rates, so the caller is
+   *  handed a confident `source: 'calculated'` number computed at the wrong
+   *  tier. A latency tier is bought BECAUSE it costs more, so the error is
+   *  always in the direction of under-reporting. `ultrafast` is the live case —
+   *  the Responses API accepts it, `gpt-5.6-sol` prices `fast` but not
+   *  `ultrafast`, and the bill would have read as standard.
+   *
+   *  Only when the model declares a `tiers` map at all. Without one there is
+   *  nothing to be missing from: that model is flat-priced and the flat rate is
+   *  the right answer, so warning would be noise on every priority call to
+   *  every model that has no tier pricing. */
+  private noteIfTierUnpriced(entry: CostEntry, tier?: string): void {
+    if (!tier || tier === 'standard' || entry.cost.source !== 'calculated') return;
+    const tiers = this.catalog.getPricing(entry.provider, entry.model)?.tiers;
+    if (!tiers || tiers[tier]) return;
+    const key = `${entry.provider}/${entry.model}@${tier}`;
+    if (this.warnedUnpriced.has(key)) return;
+    this.warnedUnpriced.add(key);
+    this.hooks.emitSync('onWarning', {
+      source: 'cost',
+      code: 'unpriced_tier',
+      message:
+        `${entry.provider}/${entry.model} was billed at service tier "${tier}", which the catalog ` +
+        `does not price — this cost was calculated at the standard rate and is therefore too low. ` +
+        `Priced tiers for this model: ${Object.keys(tiers).join(', ')}.`,
+      details: { provider: entry.provider, model: entry.model, tier, priced: Object.keys(tiers) },
     });
   }
 

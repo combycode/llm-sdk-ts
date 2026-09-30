@@ -112,3 +112,82 @@ describe('unpriced models are reported, not silently zeroed', () => {
     expect(s.unpricedModels).toEqual([]);
   });
 });
+
+/** An unpriced TIER is the quieter sibling, and the one that lies.
+ *
+ *  An unpriced model reports 0 — visibly wrong. An unpriced tier falls back to
+ *  the flat rate and reports a confident `source: 'calculated'` number computed
+ *  at the WRONG tier. A latency tier is bought because it costs more, so the
+ *  error runs one way: under-reporting, on the requests the caller chose to pay
+ *  extra for.
+ *
+ *  The live case is `ultrafast`: the Responses API takes it, `gpt-5.6-sol`
+ *  prices `fast` but not `ultrafast`, and that bill read as standard.
+ */
+function tiered(): ModelCatalog {
+  const catalog = new ModelCatalog();
+  catalog.set('openai', 'tiered-model', {
+    pricing: {
+      inputPerMTok: 1,
+      outputPerMTok: 5,
+      tiers: { fast: { inputPerMTok: 2, outputPerMTok: 10 } },
+    },
+  });
+  catalog.set('openai', 'flat-model', { pricing: { inputPerMTok: 1, outputPerMTok: 5 } });
+  return catalog;
+}
+
+function billedAt(tier: string, model = 'tiered-model'): CompletionContext {
+  const c = ctx('openai', model);
+  // Both, as an adapter sets them: `serviceTier` is what the provider reported,
+  // `pricingTier` the catalog key the adapter normalised it to.
+  c.response.usage.pricingTier = tier;
+  c.response.usage.serviceTier = tier;
+  return c;
+}
+
+function warningsFor(...calls: CompletionContext[]): WarningContext[] {
+  const hooks = new HookBus();
+  const seen: WarningContext[] = [];
+  hooks.on('onWarning', (w) => {
+    seen.push({ ...w });
+  });
+  new CostCollector({ catalog: tiered(), hooks });
+  for (const c of calls) hooks.emitSync('onCompletion', c);
+  return seen.filter((w) => w.code === 'unpriced_tier');
+}
+
+describe('a billed tier the catalog does not price is reported', () => {
+  it('warns, naming the tier and the ones that ARE priced', () => {
+    const [w] = warningsFor(billedAt('ultrafast'));
+    expect(w).toBeDefined();
+    expect(w?.message).toContain('ultrafast');
+    expect(w?.message).toContain('too low');
+    expect((w?.details as { priced: string[] }).priced).toEqual(['fast']);
+  });
+
+  it('stays silent for a tier it does price', () => {
+    expect(warningsFor(billedAt('fast'))).toHaveLength(0);
+  });
+
+  it('stays silent for the standard tier, which IS the flat rate', () => {
+    expect(warningsFor(billedAt('standard'))).toHaveLength(0);
+  });
+
+  it('stays silent for a model with no tier pricing at all', () => {
+    // Nothing to be missing from: that model is flat-priced and the flat rate
+    // is the right answer. Warning here would fire on every priority call to
+    // every model without tier rates.
+    expect(warningsFor(billedAt('priority', 'flat-model'))).toHaveLength(0);
+  });
+
+  it('says it once per model and tier, not once per call', () => {
+    // A missing price is a catalog fact, not a per-request event; repeating it
+    // trains the reader to ignore it.
+    expect(warningsFor(billedAt('ultrafast'), billedAt('ultrafast'))).toHaveLength(1);
+  });
+
+  it('but separately for a second unpriced tier on the same model', () => {
+    expect(warningsFor(billedAt('ultrafast'), billedAt('scale'))).toHaveLength(2);
+  });
+});

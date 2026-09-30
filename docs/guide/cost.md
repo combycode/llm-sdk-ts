@@ -153,6 +153,17 @@ The usual cause is a model id that reaches the provider but is not a catalog key
 `anthropic/claude-haiku-4.5`. Genuinely free calls are *not* counted here: they are priced
 `'calculated'` at zero, with a note explaining why.
 
+**An unpriced *tier* is the quieter sibling, and the one that lies** (`code: 'unpriced_tier'`).
+An unpriced model reports 0, which is visibly wrong. A model that IS priced but was billed at a
+tier the catalog has no rate for falls back to the flat rate and reports a confident
+`source: 'calculated'` number computed at the wrong tier -- and since a latency tier is bought
+*because* it costs more, the error always runs the same way: too low, on exactly the requests you
+chose to pay extra for. The live case is OpenAI's `ultrafast`, which the Responses API accepts and
+the catalog does not yet price.
+
+It fires only when the model declares tier pricing at all. Without a `tiers` map there is nothing
+to be missing from: that model is flat-priced and the flat rate is the right answer.
+
 ### Step 5 -- slice by provider, model, or tag
 
 ```ts

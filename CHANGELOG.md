@@ -8,6 +8,17 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Fixed
 
+- **A cost calculated at a service tier the catalog does not price now says so** (`onWarning`,
+  `code: 'unpriced_tier'`). An unpriced MODEL already reported 0, which is visibly wrong. A model
+  that IS priced but was billed at an unknown tier fell back to the flat rate and returned a
+  confident `source: 'calculated'` number computed at the wrong one -- and since a latency tier is
+  bought BECAUSE it costs more, the error always ran the same way: too low, on exactly the requests
+  the caller chose to pay extra for. Found while checking whether `openaiBilledTier` has a catalog
+  price key for `ultrafast`: the Responses API accepts the tier, `gpt-5.6-sol` prices `fast` and not
+  `ultrafast`, and that bill read as standard. Fires once per model and tier, and only for a model
+  that declares tier pricing at all -- without a `tiers` map there is nothing to be missing from and
+  the flat rate IS the right answer.
+
 - **`stop()` now reaches a running tool, and a nested agent run inherits the run above it.** Three
   gaps in one seam. (1) `ToolExecutionContext.signal` was wired to the tool TIMEOUT and nothing
   else, so `stop()` cancelled the in-flight LLM request while a tool already executing ran to
