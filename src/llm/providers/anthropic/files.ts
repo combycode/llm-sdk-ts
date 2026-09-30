@@ -19,6 +19,10 @@ import { ANTHROPIC_API_VERSION } from './constants';
 export interface AnthropicFileAdapterConfig {
   apiKey: string;
   baseURL?: string;
+  /** Workspace to act in, sent as `anthropic-workspace-id`. Only needed for a
+   *  credential spanning several Workspaces; omitted from the request when
+   *  unset. */
+  workspaceId?: string;
 }
 
 export class AnthropicFileAdapter implements FileProviderAdapter {
@@ -36,10 +40,12 @@ export class AnthropicFileAdapter implements FileProviderAdapter {
 
   private readonly apiKey: string;
   private readonly baseURL: string;
+  private readonly workspaceId?: string;
 
   constructor(config: AnthropicFileAdapterConfig) {
     this.apiKey = config.apiKey;
     this.baseURL = config.baseURL ?? 'https://api.anthropic.com';
+    this.workspaceId = config.workspaceId;
   }
 
   /** File rules need no adapter handles. */
@@ -51,7 +57,7 @@ export class AnthropicFileAdapter implements FileProviderAdapter {
    *  its attachment in and the descriptor is filled here. `bodyKind: none` arrives
    *  as `noBody`; the engine wants the field simply absent. */
   private fromSpec(specId: string, input: object, file?: MultipartFile): HttpRequest {
-    const built = buildFromSpec(serviceSpec(specId), input as never, this.wireRegistry, 'anthropic', undefined, { baseURL: this.baseURL, apiKey: this.apiKey, apiVersion: ANTHROPIC_API_VERSION }) as unknown as Record<string, unknown>;
+    const built = buildFromSpec(serviceSpec(specId), input as never, this.wireRegistry, 'anthropic', undefined, { baseURL: this.baseURL, apiKey: this.apiKey, apiVersion: ANTHROPIC_API_VERSION, workspaceId: this.workspaceId }) as unknown as Record<string, unknown>;
     const { noBody, body, multipart, ...rest } = built;
     const form = multipart && file ? toFormData(multipart as MultipartField[], file) : undefined;
     return {

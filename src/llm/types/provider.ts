@@ -67,6 +67,13 @@ export interface ProviderAdapter {
   /** Base URL — provider's domain root. */
   baseURL(): string;
 
+  /** The tenancy this client acts in, when the provider has one and the caller
+   *  named it. Only Anthropic does today (`anthropic-workspace-id`), which is
+   *  why it is optional: it exists so requests built OUTSIDE the completion
+   *  path -- retrieving a hosted-tool file, say -- can be sent to the same
+   *  place the completion was billed to, rather than to the default. */
+  workspaceId?: string;
+
   /** Path appended to baseURL for the completion endpoint. */
   completionPath(): string;
 

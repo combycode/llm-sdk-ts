@@ -31,6 +31,21 @@ export interface ProviderOptions {
    *  user a request acts on behalf of. Needs the account-level
    *  `user-profiles` beta. */
   userProfileId?: string;
+  /** Forwarded as the `anthropic-workspace-id` header, e.g.
+   *  `wrkspc_011CZkZaBF1tNoB5wlCeusgy`.
+   *
+   *  Only needed for a credential that can act on more than one Workspace; one
+   *  that belongs to a single Workspace may omit it, and if sent it must match.
+   *  Workspace is where spend, rate limits and retention are accounted, so a
+   *  multi-workspace key that omits it does not fail -- it charges the wrong
+   *  place, quietly.
+   *
+   *  This is the per-request way, and the one `createLLM` callers use. The
+   *  other Anthropic surfaces -- files, batches, token counting, model listing
+   *  -- take a `workspaceId` on their own config instead, because they are not
+   *  completions and have no `providerOptions`. An `AnthropicAdapter`
+   *  constructed directly also takes one, and this option overrides it. */
+  workspaceId?: string;
 
   // ── OpenAI (responses + chat-completions) ──────────────────────────────
   /** Native moderation policy, sent alongside the `moderation` request field. */

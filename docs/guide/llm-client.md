@@ -242,6 +242,8 @@ reads the keys it understands and ignores the rest:
 
 - **Anthropic** — `userProfileId` → the `anthropic-user-profile-id` header (identifies the end user a
   request acts on behalf of; needs the account-level `user-profiles` beta).
+- **Anthropic** — `workspaceId` → the `anthropic-workspace-id` header (selects the Workspace, e.g.
+  `wrkspc_011CZ…`). See [Workspaces](#workspaces) below.
 - **Google generateContent** — `translationConfig` → `generationConfig.translationConfig`
   (`{ targetLanguageCode }`; Gemini Developer API).
 - **Google generateContent** — `cachedContent` → top-level `cachedContent`, an explicit context-cache
@@ -262,6 +264,37 @@ reads the keys it understands and ignores the rest:
 ```ts
 await complete({ model: 'anthropic/claude-haiku-4.5', apiKey, prompt: '…', providerOptions: { userProfileId: 'usr_42' } });
 ```
+
+### Workspaces
+
+Anthropic accounts **spend, rate limits and retention** against a Workspace, and
+`anthropic-workspace-id` is what selects one. A credential scoped to a single Workspace may omit
+it. A credential that can act on **several** and omits it does not fail — it charges the default
+Workspace. That is the failure worth designing against: silent, and first visible on a bill.
+
+So the header is sent on every Anthropic request this library makes, not only completions. Each
+surface takes it where that surface is configured:
+
+| Surface | Where |
+| --- | --- |
+| completions | `providerOptions.workspaceId` per request, or `new AnthropicAdapter({ apiKey, workspaceId })` as a client-wide default — the request wins |
+| files | `new AnthropicFileAdapter({ apiKey, workspaceId })` |
+| batches | `new AnthropicBatchAdapter({ apiKey, workspaceId })` — on submit *and* on every poll |
+| token counting | `new AnthropicCountApi(apiKey, fetch, baseURL, workspaceId)` |
+| model listing | `listModelsLive({ provider: 'anthropic', apiKey, workspaceId })` |
+| retrieving a file a turn produced | filled in from the client's adapter — `llm.retrieveFile(f)` uses the Workspace the turn was billed to |
+
+```ts
+await complete({
+  model: 'anthropic/claude-haiku-4.5',
+  apiKey,
+  prompt: '…',
+  providerOptions: { workspaceId: 'wrkspc_011CZkZaBF1tNoB5wlCeusgy' },
+});
+```
+
+Omitted entirely when unset. "No Workspace named" and "the Workspace named is the empty string"
+are different requests, and only the first one means what an unconfigured client means.
 
 ### What `cache: 'auto'` actually does per provider
 

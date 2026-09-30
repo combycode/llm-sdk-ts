@@ -236,6 +236,11 @@ export class LLMClient {
       apiKey: this.apiKey,
       fetch: this.fetchFn,
       baseURL: this.adapter.baseURL(),
+      // A file produced by a turn lives in the Workspace that turn was billed
+      // to, so retrieving it has to name the same one. Undefined for every
+      // provider that has no such notion, and for an Anthropic client that
+      // was given none.
+      workspaceId: this.adapter.workspaceId,
     };
   }
 

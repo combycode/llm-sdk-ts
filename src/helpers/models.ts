@@ -34,6 +34,10 @@ export interface ListModelsLiveOptions {
   raw?: boolean;
   /** Bypass the 24h memory cache and re-fetch. */
   refresh?: boolean;
+  /** Anthropic only: Workspace to act in, sent as `anthropic-workspace-id`.
+   *  Needed only by a credential spanning several Workspaces; omitted from the
+   *  request when unset. */
+  workspaceId?: string;
 }
 
 interface LiveSpec {
@@ -185,7 +189,7 @@ async function fetchLiveBody(opts: ListModelsLiveOptions): Promise<Record<string
       makeRegistry({}),
       opts.provider,
       undefined,
-      { apiKey, apiVersion: ANTHROPIC_API_VERSION },
+      { apiKey, apiVersion: ANTHROPIC_API_VERSION, workspaceId: opts.workspaceId },
     ) as unknown as Record<string, unknown>;
     const { noBody: _noBody, body: _body, ...rest } = built;
     const res = await engine.fetch(

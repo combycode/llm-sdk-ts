@@ -33,6 +33,15 @@ import { ANTHROPIC_API_VERSION } from './constants';
 export interface AnthropicAdapterConfig {
   apiKey: string;
   baseURL?: string;
+  /** Workspace this client acts in, sent as `anthropic-workspace-id`.
+   *
+   *  Only meaningful for a credential that can act on more than one Workspace;
+   *  one scoped to a single Workspace may omit it, and if sent it must match.
+   *  Worth setting because Workspace is where spend, rate limits and retention
+   *  are accounted: a multi-workspace key that omits it does not fail, it bills
+   *  the wrong place silently. `providerOptions.workspaceId` overrides it for a
+   *  single request. */
+  workspaceId?: string;
 }
 
 // ─── service tiers (provider-specific, kept local) ───
@@ -125,10 +134,12 @@ export class AnthropicAdapter implements ProviderAdapter {
   readonly name = 'anthropic' as const;
   protected readonly apiKey: string;
   protected readonly _baseURL?: string;
+  readonly workspaceId?: string;
 
   constructor(config: AnthropicAdapterConfig) {
     this.apiKey = config.apiKey;
     this._baseURL = config.baseURL;
+    this.workspaceId = config.workspaceId;
   }
 
   authHeaders(): Record<string, string> {
@@ -141,6 +152,10 @@ export class AnthropicAdapter implements ProviderAdapter {
     // opt-in header is present. Send it only in the browser (BYOK direct calls);
     // harmless to omit on Node/Bun. See runtime.isBrowser().
     if (isBrowser()) headers['anthropic-dangerous-direct-browser-access'] = 'true';
+    // The client-wide default. A per-request `providerOptions.workspaceId`
+    // lands in the spec envelope, and the client spreads those AFTER these, so
+    // the request wins -- which is the order a caller would expect.
+    if (this.workspaceId) headers['anthropic-workspace-id'] = this.workspaceId;
     return headers;
   }
 

@@ -31,10 +31,15 @@ function countRequest(
 
 /** Anthropic count endpoint: POST /v1/messages/count_tokens */
 export class AnthropicCountApi {
+  /** `workspaceId` is the Workspace to count against, sent as
+   *  `anthropic-workspace-id`. Counting is not billed, but a credential that
+   *  can act on several Workspaces still has to name one it may act on -- so
+   *  it has to be the same one the completion will use. */
   constructor(
     private readonly apiKey: string,
     private readonly fetchFn: EngineFetch,
     private readonly baseURL: string = 'https://api.anthropic.com',
+    private readonly workspaceId?: string,
   ) {}
 
   async countMessages(
@@ -46,7 +51,7 @@ export class AnthropicCountApi {
       countRequest(
         'anthropic/count.messages',
         { model, messages, system },
-        { baseURL: this.baseURL, apiKey: this.apiKey, apiVersion: ANTHROPIC_API_VERSION },
+        { baseURL: this.baseURL, apiKey: this.apiKey, apiVersion: ANTHROPIC_API_VERSION, workspaceId: this.workspaceId },
         'anthropic',
       ) as never,
     );

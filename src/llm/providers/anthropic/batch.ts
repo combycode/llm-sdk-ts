@@ -17,16 +17,22 @@ import { ANTHROPIC_API_VERSION } from './constants';
 export interface AnthropicBatchAdapterConfig {
   apiKey: string;
   baseURL?: string;
+  /** Workspace to act in, sent as `anthropic-workspace-id`. Only needed for a
+   *  credential spanning several Workspaces; omitted from the request when
+   *  unset. */
+  workspaceId?: string;
 }
 
 export class AnthropicBatchAdapter implements BatchProviderAdapter {
   readonly name = 'anthropic';
   private readonly apiKey: string;
   private readonly baseURL: string;
+  private readonly workspaceId?: string;
 
   constructor(config: AnthropicBatchAdapterConfig) {
     this.apiKey = config.apiKey;
     this.baseURL = config.baseURL ?? 'https://api.anthropic.com';
+    this.workspaceId = config.workspaceId;
   }
 
   /** Batch rules need no adapter handles: the requests are mapped by the spec. */
@@ -43,6 +49,7 @@ export class AnthropicBatchAdapter implements BatchProviderAdapter {
       baseURL: this.baseURL,
       apiKey: this.apiKey,
       apiVersion: ANTHROPIC_API_VERSION,
+      workspaceId: this.workspaceId,
     }) as unknown as Record<string, unknown>;
     // `bodyKind: none` in a spec means the request carries no body at all. The
     // interpreter says so with `noBody`; the engine wants the field simply absent.

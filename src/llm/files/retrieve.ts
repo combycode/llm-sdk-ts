@@ -25,6 +25,10 @@ export interface RetrieveContext {
   fetch: EngineFetch;
   /** Provider API base URL; defaults per provider when omitted. */
   baseURL?: string;
+  /** Anthropic only: Workspace to act in, sent as `anthropic-workspace-id`.
+   *  Needed only by a credential spanning several Workspaces; omitted from the
+   *  request when unset. */
+  workspaceId?: string;
 }
 
 /** A retrieved file's bytes plus the metadata an end user needs to display and
@@ -93,6 +97,7 @@ function buildFileRequest(
       baseURL: ctx.baseURL ?? DEFAULT_BASE[ctx.provider],
       apiKey: ctx.apiKey,
       apiVersion: ANTHROPIC_API_VERSION,
+      workspaceId: ctx.workspaceId,
     },
   ) as unknown as Record<string, unknown>;
   const { noBody: _noBody, body: _body, ...rest } = built;

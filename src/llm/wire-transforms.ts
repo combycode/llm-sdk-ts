@@ -271,6 +271,10 @@ export function makeRegistry(a: AdapterHandles): Registry {
       const v = ctx.req.providerOptions?.userProfileId;
       return typeof v === 'string' && v.length > 0;
     },
+    hasWorkspaceId: (ctx) => {
+      const v = ctx.req.providerOptions?.workspaceId;
+      return typeof v === 'string' && v.length > 0;
+    },
     /** image_config ships only when the adapter's helper produced something. */
     openrouterHasImageConfig: (ctx) =>
       Object.keys(a.openrouterMedia.imageConfig(ctx.req.params) ?? {}).length > 0,
