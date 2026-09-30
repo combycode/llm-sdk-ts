@@ -89,6 +89,12 @@ export interface ProviderOptions {
   reasoningMode?: 'standard' | 'pro';
 
   // ── Google (generate) ──────────────────────────────────────────────────
+  /** `generationConfig.audioTranscriptionConfig`. Set `transcribe({ mode })`
+   *  rather than this directly; it is here because the transcribe helper is
+   *  built on an ordinary completion. */
+  audioTranscriptionConfig?: { mode?: 'VERBATIM' | 'SMART'; [key: string]: unknown };
+
+  // ── Google (generate) ──────────────────────────────────────────────────
   /** Overrides `generationConfig.responseModalities`, e.g. for image or audio
    *  generation. Wins over the modality implied by `outputModalities`. */
   responseModalities?: string[];

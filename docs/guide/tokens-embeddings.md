@@ -167,6 +167,40 @@ API and then ignored -- a request carrying it comes back byte-identical to one w
 `onWarning` (`transcription_option_unsupported`) so the missing speakers are visible
 rather than quietly absent.
 
+### Verbatim or readable (`mode`)
+
+`mode` decides whether the transcript keeps the speech as spoken:
+
+| | Result on "Um, so, I was -- I was thinking, uh, maybe Tuesday" |
+| --- | --- |
+| `'VERBATIM'` | `Um, so I was I was thinking uh maybe we could, you know, meet on Tuesday...` |
+| `'SMART'` | `So I was thinking maybe we could meet on Tuesday or Wednesday, whichever works.` |
+
+```ts
+const { text } = await transcribe({
+  provider: 'google',
+  model: 'gemini-3.5-transcribe',
+  audio: './interview.wav',
+  mode: 'SMART',
+});
+```
+
+**It works on a model that implements it, and is inert on one that does not.** Measured
+2026-09-30 on deliberately disfluent audio: `gemini-3.5-transcribe` removed all four
+fillers under `SMART` and kept them under `VERBATIM`, with two runs of the same config
+byte-identical — so that difference is real. On `gemini-3.1-flash-lite` the two modes were
+indistinguishable from two runs of no config at all, though an invalid value is still a
+`400` naming the enum. Accepted, validated, and does nothing.
+
+It is therefore sent as asked rather than gated on a model list — a hard-coded list goes
+stale — and documented as honoured only where it was measured. `SMART` cannot be combined
+with timestamps or diarization.
+
+> The same probe found that `gemini-3.5-transcribe` returns its transcript as
+> `parts[].audioTranscription.text` rather than `parts[].text`. This library read only the
+> latter, so transcribing with the dedicated model returned an **empty string** — a
+> successful, billed request with nothing in it. Fixed in the shared part parser.
+
 ## Related
 
 - [Cost tracking + estimate()](./cost.md)

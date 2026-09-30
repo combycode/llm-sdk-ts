@@ -52,6 +52,20 @@ export interface TranscribeOptions {
    *  OpenAI: `gpt-4o-transcribe-diarize` only — other models reject it with a 400.
    *  Cannot be combined with `wordTimestamps`: no model returns both. */
   diarization?: boolean;
+  /** Whether the transcript keeps the speech as spoken.
+   *
+   *  - `'VERBATIM'` — every "um", every false start, every repeated word.
+   *  - `'SMART'` — the same speech cleaned up into readable prose.
+   *
+   *  **Google only, and only on a model that implements it.** Measured
+   *  2026-09-30 on a deliberately disfluent recording: `gemini-3.5-transcribe`
+   *  honours it (SMART removed all four fillers and the false start; VERBATIM
+   *  kept them), while on `gemini-3.1-flash-lite` the two were indistinguishable
+   *  from two runs of no config at all -- the field is type-validated there and
+   *  does nothing. Sent as given; the provider refuses an unknown value.
+   *
+   *  `SMART` cannot be combined with timestamps or diarization. */
+  mode?: 'VERBATIM' | 'SMART';
   /** Prompt used for generateContent-style providers (ignored by openai). */
   prompt?: string;
   /** Caller-supplied audio duration in seconds, used to price the call.
@@ -115,6 +129,7 @@ export async function transcribe(opts: TranscribeOptions): Promise<TranscribeRes
   // generateContent providers (google, …): STT is a normal completion.
   warnUnsupportedStructuredOptions(engine, provider, opts);
   const { text } = await complete({
+    ...(opts.mode ? { providerOptions: { audioTranscriptionConfig: { mode: opts.mode } } } : {}),
     model: opts.model,
     provider,
     apiKey,

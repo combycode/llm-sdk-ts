@@ -63,6 +63,13 @@ export const GOOGLE_RESPONSE_REGISTRY: Registry = {
     /** `text !== undefined`, not truthiness: an empty string is still a text part. */
     googleTextPart: (_arg: unknown, ctx: Ctx) => {
       const p = partOf(ctx);
+      // A dedicated transcription model does not answer with `text`. It
+      // answers with `audioTranscription: { text }`, and reading only `text`
+      // meant `gemini-3.5-transcribe` returned an EMPTY transcript through
+      // this library -- a successful, billed request with nothing in it.
+      // Measured 2026-09-30.
+      const transcript = (p.audioTranscription as { text?: unknown } | undefined)?.text;
+      if (typeof transcript === 'string') return { type: 'text', text: transcript };
       if (p.text === undefined || p.thought) return undefined;
       return { type: 'text', text: p.text as string };
     },
