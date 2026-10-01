@@ -17,6 +17,27 @@ export interface AgentLoopConfig {
   /** LLM client. AgentLoop reads `client.model` and uses `client.complete`/`client.stream`. */
   client: LLMClient;
 
+  /** Backup clients for a step whose request fails in a way another model could
+   *  survive -- a 429, a 503, a timeout. Tried in order, each once per step.
+   *
+   *  `route()` already does this for a one-shot call; a run is where it matters
+   *  more. A rate limit on step 7 of a nine-step run threw away six steps of work
+   *  and every tool call they paid for, and the only recourse was to start again.
+   *
+   *  Each STEP starts from the primary: a rate limit is transient, and a run that
+   *  fell over once should not spend the rest of its life on the backup. And a
+   *  streamed step stops being able to fall over at its first event -- a consumer
+   *  holding half an answer cannot be handed the start of a different one.
+   *
+   *  `client.model` still reports the PRIMARY, as it must: it is read before any
+   *  request is made. Each step's report and span name whoever actually served. */
+  fallbackClients?: LLMClient[];
+
+  /** Which failure classes move to the next client. Defaults to the set `route()`
+   *  uses, which excludes the ones a different model cannot fix: auth, a
+   *  malformed request, a content filter, a prompt that is simply too long. */
+  fallbackOn?: import('../network/errors').ErrorKind[];
+
   /** Human name for this agent, e.g. `'briefing'`. Without it telemetry only has the
    *  agent's generated id, and a trace reads as `invoke_agent` with no clue which of your
    *  agents ran — the ids differ per process, so they cannot be compared across runs

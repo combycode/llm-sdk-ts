@@ -303,6 +303,66 @@ that rely on a deliberate override) but emits an `onWarning` with code `tool_nam
 which tool lost. `toolNameCollisionPolicy: 'error'` throws at construction instead, before the model
 is ever called.
 
+## Backup models (`fallbackClients`)
+
+`route()` falls over between models for a one-shot `complete()`. A run is where it
+matters more: a rate limit on step 7 of a nine-step run threw away six steps of
+work and every tool call they paid for, and the only recourse was to start again.
+
+```ts
+const agent = new AgentLoop({
+  client: primary,                 // openai/gpt-5.6-sol
+  fallbackClients: [backup],       // anthropic/claude-haiku-4.5
+  tools: [...],
+});
+```
+
+Four rules, and the third is the one that cannot be got wrong:
+
+1. **Each client is tried once per step.** Retrying one client is the network
+   engine's job; doing it here too would retry a single failure twice over, at two
+   layers.
+2. **Only a failure another model could survive moves on** — `rate_limit`,
+   `server_error`, `model_not_found`, `timeout`, `network`, `quota_exceeded`,
+   `unsupported`. An auth failure, a malformed request, a content filter or a
+   prompt that is simply too long is the same request failing the same way
+   everywhere, so it propagates immediately instead of being offered to every
+   backup in turn. Override the set with `fallbackOn`.
+3. **A streamed step stops being able to fall over at its first event.** A
+   streamed turn can fail after several chunks, and the consumer has already
+   rendered half an answer; a backup would start a different one mid-sentence and
+   the two would be spliced into one turn. So the error reaches the caller.
+4. **Every step starts from the primary again.** A rate limit is transient, and a
+   run that fell over once should not spend the rest of its life on the backup.
+
+When every client fails, the **last** one's error is what you get: the provider's
+own message is the useful half, and a wrapper saying "all models failed" buries it.
+
+Each hand-off emits `onWarning` with code `model_fallback` and
+`details: { from, to, kind }`, per step — a silent fallback is a latency and cost
+change nobody can see.
+
+**What gets attributed to whom.** `agent.model` still reports the primary: it is
+read before any request is made, and a caller asking what model an agent is
+configured with means the primary. But each step's history entry and span name
+whoever actually served, and that is not cosmetic — provenance is model-bound, so
+a stateful continuation (`previous_response_id`, `previous_interaction_id`) is only
+valid against the model that issued the state. Recording the primary on a turn the
+backup produced would have the next step offer the backup's server state to the
+primary.
+
+Backups are supplied to `AgentLoop.restore()` the same way the client is — a
+snapshot carries neither, because both are live objects, and a restore that
+silently lost them would resume a run *less* resilient than the one it continues.
+
+```ts
+const resumed = AgentLoop.restore(snapshot, {
+  client: primary,
+  tools,
+  fallbackClients: [backup],
+});
+```
+
 ## Server-state continuation
 
 On a stateful API (OpenAI Responses, Google Interactions) the loop automatically **continues by id**

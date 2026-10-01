@@ -68,6 +68,53 @@ Rules are evaluated in declaration order; the first match wins. A policy with
 no matching rule defaults to `deny`. Always end with a catch-all `allow` (or
 `deny`) rule so uncovered tools are not silently blocked.
 
+#### Asking about the call, not just the tool — `withArgs`
+
+A target also carries the **arguments** of the call being decided, so a rule can
+depend on them:
+
+```ts
+import { PermissionPolicy, withArgs } from '@combycode/llm-sdk';
+
+const policy = new PermissionPolicy([
+  {
+    action: 'execute',
+    target: withArgs('amount', (v) => Number(v) > 1000),
+    effect: 'ask',
+    reason: 'A transfer over 1000 needs a human.',
+  },
+  { effect: 'allow' },
+]);
+```
+
+Without this a rule about `transfer` had two settings — ask about every transfer,
+or ask about none — and neither is the rule anyone wants. A gate that fires on
+every call is one people learn to click through, which is worse than no gate
+because it looks like one.
+
+The arguments live on the **policy** rather than in a `requiresApproval` callback
+on each tool: *"over 1000 needs a human"* is a policy statement, and it belongs
+beside *"deploy needs approval"* so that the answer to **what requires approval
+here** is readable in one place. Spread across tool definitions it is only
+available by reading every tool.
+
+This is safe because an approval is already bound to the invocation it was granted
+for — the tool name plus a digest of the canonical arguments — so a resumed run
+whose model came back with different arguments is refused rather than executed
+under the old answer. Without that binding, argument-conditional approval would be
+the bug: consent for `{amount: 5}` authorising `{amount: 5000}`.
+
+**`arguments` is absent on a decision made before any call exists** — a pre-flight
+capability check, a catalog lookup. A matcher that reads it must tolerate that, or
+it throws on those paths and takes the run down with it. `withArgs` is the version
+that handles it: an absent argument means *this rule has nothing to say*, so it
+does not match. Hand-written matchers want `t.arguments?.amount`, never
+`t.arguments.amount`.
+
+`withArgs` tests for the key's PRESENCE, not its truthiness — `amount: 0` is an
+argument, and "0 is under the line" should be a decision rather than a silence. The
+value reaches the predicate untouched, so what `"5000"` means is the caller's call.
+
 ### 2. Wire the policy and `approve` callback into `AgentLoop`
 
 ```ts

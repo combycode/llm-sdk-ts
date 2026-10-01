@@ -71,6 +71,10 @@ export { RealtimeConnectionImpl } from './network/realtime-connection';
 export { LLMError, classifyError } from './network/errors';
 export type { ErrorKind } from './network/errors';
 export { approvalDigest } from './agent/approval-types';
+// The HITL shapes the approval guide documents. They were reachable only
+// through a deep import, so a caller writing the documented `approve`
+// callback could not name its parameter's type.
+export type { ApprovalDecision, ApprovalRequest, PendingToolCall } from './agent/approval-types';
 export { AgentRunError, ApprovalMismatchError, InvalidFinalOutputError } from './llm/output-errors';
 export { Semaphore } from './network/semaphore';
 export { RateLimiter, TokenBucket } from './network/rate-limiter';
@@ -96,6 +100,10 @@ export type {
 export { contentParts, contentText, finalAnswerText } from './llm/types/messages';
 export type { AssistantPhase, Role, MessageOrigin, ContentPart, TextPart, ImagePart, ImagePartProviderOptions, DocumentPart, AudioPart, VideoPart, VideoPartProviderOptions, VideoProcessing, ToolCallPart, ToolResultPart, ToolCaller, ToolCallerType, ProgramCallPart, ProgramResultPart, ConfigurationUpdatePart, ConfigurationEffort, ImageOutputPart, AudioOutputPart, VideoOutputPart, MediaOutputPart, DataSource, Content, Message } from './llm/types/messages';
 export { isFunctionTool, isBuiltinTool } from './llm/types/tools';
+// Backup models for a run's steps. The helpers are exported so a caller can
+// build the same chain around something other than an AgentLoop.
+export { DEFAULT_AGENT_FALLBACK_KINDS, clientChain, completeWithFallback, streamWithFallback } from './agent/fallback';
+export type { FallbackNotice, FallbackRun } from './agent/fallback';
 export type {
   FunctionTool,
   BuiltinTool,
@@ -236,6 +244,7 @@ export type { GlobOptions } from './plugins/permissions/glob';
 export { anyOfKind, fsGlob, memoryCategory, shellGlob, urlPattern } from './plugins/permissions/matchers';
 export { PermissionPolicy } from './plugins/permissions/policy';
 export type { PermissionDecision, PermissionTarget, Rule, TargetMatcher } from './plugins/permissions/types';
+export { withArgs } from './plugins/permissions/types';
 export { ToolCatalog } from './plugins/tool-catalog/catalog';
 export type { ToolCatalogConfig } from './plugins/tool-catalog/catalog';
 export { NoToolAccess, PermissionDenied, ToolNotFound, ToolRegistrationError } from './plugins/tool-catalog/errors';

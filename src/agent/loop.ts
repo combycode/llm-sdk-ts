@@ -31,6 +31,8 @@ import {
 } from '../llm/types/response';
 import type { FileStream, RetrievedFile } from '../llm/files/retrieve';
 import type { LLMClient } from '../llm/client';
+import { clientChain, completeWithFallback, streamWithFallback } from './fallback';
+import type { FallbackRun } from './fallback';
 import type { SchemaSource } from '../llm/types/standard-schema';
 import { buildAssistantMessage, parseStructured as parseStructuredText } from '../llm/client-internal';
 import { AgentRunError, ApprovalMismatchError } from '../llm/output-errors';
@@ -126,6 +128,12 @@ export class AgentLoop {
   /** User input staged by `addInput()`, waiting for the next model call. */
   private _pendingInput: Message[] = [];
 
+  /** The primary plus its backups, in order. One entry when none were given, so
+   *  every step takes the same path whether or not fallback is configured. */
+  private readonly _clientChain: LLMClient[];
+  private readonly _fallbackOn: readonly import('../network/errors').ErrorKind[] | undefined;
+
+
   private _running = false;
   private _stopRequested = false;
   private _abortController: AbortController | null = null;
@@ -136,6 +144,8 @@ export class AgentLoop {
     if (!config.client) throw new Error('AgentLoop: client is required');
 
     this.client = config.client;
+    this._clientChain = clientChain(config.client, config.fallbackClients);
+    this._fallbackOn = config.fallbackOn;
     this.hooks = config.hooks ?? new HookBus();
     if (typeof config.system === 'function') {
       this._systemThunk = config.system;
@@ -549,9 +559,12 @@ export class AgentLoop {
           break;
         }
 
-        lastResponse = await this.client.complete(this._history.messages(), {
-          ...this.buildStepOptions(options, composedSystemStr, runTrace),
-        });
+        const served = await completeWithFallback(
+          this.stepFallback(),
+          this._history.messages(),
+          { ...this.buildStepOptions(options, composedSystemStr, runTrace) },
+        );
+        lastResponse = served.response;
 
         const stepLatency = performance.now() - stepStart;
         totalLlmTimeMs += stepLatency;
@@ -610,13 +623,19 @@ export class AgentLoop {
         // previous_interaction_id) instead of resending the whole transcript — which
         // some stateful APIs (Google Interactions) reject outright. The server-state
         // brain still gates on catalog support + retention TTL + model binding.
+        //
+        // Stamped with WHO SERVED, not with the primary. Provenance is model-bound:
+        // a stateful continuation (`previous_response_id` /
+        // `previous_interaction_id`) is only valid against the model that issued
+        // the state, so recording the primary's name on a turn a backup produced
+        // would have the next step offer the backup's server state to the primary.
         this._history.append(
           buildAssistantMessage(lastResponse, {
-            provider: this.client.provider,
-            model: this.client.model,
-            api: this.client.api,
+            provider: served.servedBy.provider,
+            model: served.servedBy.model,
+            api: served.servedBy.api,
           }),
-          { model: this.client.model, usage: lastResponse.usage, latencyMs: stepLatency },
+          { model: served.servedBy.model, usage: lastResponse.usage, latencyMs: stepLatency },
         );
 
         const hasToolCalls =
@@ -817,9 +836,16 @@ export class AgentLoop {
           break;
         }
 
-        for await (const event of this.client.stream(this._history.messages(), {
-          ...this.buildStepOptions(options, composedSystemForStream, runTrace),
-        })) {
+        // Who served is read back AFTER the stream, not assumed: a step the backup
+        // answered must be stamped with the backup's model, or the report and the
+        // span both name a model that produced none of this.
+        const streamServedBy = { client: this.client };
+        for await (const event of streamWithFallback(
+          this.stepFallback(),
+          this._history.messages(),
+          { ...this.buildStepOptions(options, composedSystemForStream, runTrace) },
+          streamServedBy,
+        )) {
           const toYield = accumulateStreamEvent(event, state);
           if (toYield) yield toYield;
         }
@@ -828,7 +854,7 @@ export class AgentLoop {
 
         const { response: stepResponse, content, stepLatency } = buildStepResponse(
           state,
-          this.client.model,
+          streamServedBy.client.model,
           stepStart,
         );
 
@@ -843,13 +869,13 @@ export class AgentLoop {
         this._history.append(
           {
             ...buildAssistantMessage(lastResponse, {
-              provider: this.client.provider,
-              model: this.client.model,
-              api: this.client.api,
+              provider: streamServedBy.client.provider,
+              model: streamServedBy.client.model,
+              api: streamServedBy.client.api,
             }),
             content,
           },
-          { model: this.client.model, usage: state.stepUsage, latencyMs: stepLatency },
+          { model: streamServedBy.client.model, usage: state.stepUsage, latencyMs: stepLatency },
         );
 
         const hasToolCalls = state.stepToolCalls.length > 0;
@@ -1101,6 +1127,18 @@ export class AgentLoop {
       const target: import('../plugins/permissions/types').PermissionTarget = {
         kind: 'tool',
         toolName: tc.name,
+        // The arguments of THIS call, so a rule can depend on them -- "a transfer
+        // over 1000 needs a human" rather than "every transfer does". A policy
+        // that saw only the tool name had to choose between asking about every
+        // call and asking about none, and a gate that fires on every call is one
+        // people learn to click through.
+        //
+        // Safe because an approval is already bound to the invocation it was
+        // given for (tool name + argument digest): a resumed run whose model came
+        // back with different arguments is refused rather than executed under the
+        // old answer. Without that binding, an approval granted for `{amount: 5}`
+        // could have authorised `{amount: 5000}`.
+        arguments: tc.arguments,
       };
       const decision = this._policy.check('agent', target, 'execute');
 
@@ -1810,6 +1848,11 @@ export class AgentLoop {
       policy?: PermissionPolicy;
       approve?: (req: ApprovalRequest) => Promise<ApprovalDecision>;
       checkpoint?: import('../plugins/persistence/types').Persistence;
+      /** Backups, supplied like the client itself: a snapshot carries neither,
+       *  because both are live objects. A restore that silently lost them would
+       *  resume a run LESS resilient than the one it continues. */
+      fallbackClients?: LLMClient[];
+      fallbackOn?: import('../network/errors').ErrorKind[];
     },
   ): AgentLoop {
     const agent = new AgentLoop({
@@ -1822,6 +1865,8 @@ export class AgentLoop {
       policy: config.policy,
       approve: config.approve,
       checkpoint: config.checkpoint,
+      fallbackClients: config.fallbackClients,
+      fallbackOn: config.fallbackOn,
     });
 
     agent._reports = snapshot.reports ?? [];
@@ -1854,6 +1899,29 @@ export class AgentLoop {
     }
 
     return agent;
+  }
+
+  /** The chain a step runs against, with the warning wired to this agent's bus.
+   *
+   *  Built per step rather than once, so the hook fires with the step's own run
+   *  trace and a consumer reading `onWarning` can tell WHICH step fell over --
+   *  one warning per run would have been enough to notice the fallback and not
+   *  enough to find it. */
+  private stepFallback(): FallbackRun {
+    return {
+      chain: this._clientChain,
+      kinds: this._fallbackOn,
+      onFallback: (notice) => {
+        this.hooks.emitSync('onWarning', {
+          source: 'agent',
+          code: 'model_fallback',
+          message:
+            `Model "${notice.from}" failed (${notice.kind ?? 'error'}: ${notice.message}); ` +
+            `falling back to "${notice.to}".`,
+          details: { from: notice.from, to: notice.to, kind: notice.kind },
+        });
+      },
+    };
   }
 
   /** Return the list of tool calls currently suspended awaiting approval. */
