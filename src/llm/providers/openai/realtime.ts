@@ -21,6 +21,7 @@ import type { EngineConnect, RealtimeFrame, WsRequest } from '../../../network/t
 const RT_REGISTRY = makeRegistry({});
 import { BaseRealtimeSession } from '../../realtime/session';
 import { base64ToBytes, } from '../../../util/base64';
+import { wsUrl } from '../../join-url';
 import type {
   RealtimeInput,
   RealtimeProviderAdapter,
@@ -79,8 +80,20 @@ export class OpenAIRealtimeAdapter implements RealtimeProviderAdapter {
    *  SUBPROTOCOL, not a header or query param, because browsers cannot set
    *  WebSocket headers — which is why the spec models `protocols` at all. */
   buildConnectRequest(config: RealtimeSessionConfig): WsRequest {
+    // The URL is composed HERE rather than in the spec, which is the one place
+    // this library prefers to describe the wire -- because the composition is not
+    // expressible as a `$join`. An Azure-style base carries its own query
+    // (`?api-version=...`), so `model` has to MERGE into it: joined by `$join` it
+    // would read as one parameter called `api-version` whose value ends in
+    // `?model=...`. The spec records the shape in its `_note` and reads the
+    // finished URL.
+    //
+    // Until now `baseURL` was accepted by this adapter, handed to the spec, and
+    // never read by it -- so a caller who configured one got silence and the
+    // default host. Google's realtime adapter has always honoured its own, which
+    // is the behaviour this now matches.
     const conn = buildConnection(serviceSpec('openai/realtime'), 'connect', config, RT_REGISTRY, {
-      baseURL: this.baseURL,
+      url: wsUrl(this.baseURL, '/v1/realtime', { model: config.model }),
       apiKey: this.apiKey,
     });
     return { ...conn, provider: 'openai', model: config.model };

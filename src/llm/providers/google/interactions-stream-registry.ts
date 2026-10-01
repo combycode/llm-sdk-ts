@@ -93,9 +93,14 @@ export const GOOGLE_INTERACTIONS_STREAM_REGISTRY: Registry = {
       const raw = rawOf(ctx);
       closeOpenCall(out);
       const interaction = (raw.interaction as Record<string, unknown>) ?? {};
-      const usage =
-        (interaction.usage as Record<string, unknown>) ??
-        ((raw.metadata as Record<string, unknown>)?.total_usage as Record<string, unknown>);
+      // `interaction.usage`, and nothing else. There used to be a fallback to
+      // `metadata.total_usage`; google 2.25 deleted `StreamMetadata{total_usage}`
+      // from every event type, and the wire agrees -- measured 2026-10-01 by
+      // streaming a real interaction with each read removed in turn: without the
+      // fallback usage still arrives, and with ONLY the fallback no usage event
+      // fires at all. A branch that provably never executes is a line that
+      // misdescribes the wire to whoever reads it next.
+      const usage = interaction.usage as Record<string, unknown>;
       if (usage) out.events.push({ type: 'usage', usage: googleInteractionsUsage(usage) });
       // `queued` is NOT terminal (google 2.13): the interaction is still to run,
       // so it must never close the stream with a `done`.

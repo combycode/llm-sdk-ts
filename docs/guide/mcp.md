@@ -150,6 +150,15 @@ Measured against the reference server by counting wire frames (timing is not a r
 a local pipe): with hints and `cacheResults`, three `listTools()` calls produce **one** request;
 without hints, or with caching off, all three reach the wire.
 
+**A server from an older revision sending these hints is honoured, and reported.** `ttlMs` and
+`cacheScope` arrived with 2026-07-28, so a 2025-11-25 session sending them is describing itself with
+a later revision's vocabulary. They are still honoured, and you get one `onWarning`
+(`code: 'mcp_hint_before_era'`) per session saying so. Ignoring them would silently disable a cache
+you explicitly opted into, against a server that asked for it in as many words — while honouring an
+extra field a server volunteered risks nothing. (That is the opposite trade from keep-alive `ping`,
+which **is** suppressed on a 2026-07-28 session: *sending* a method the era no longer has can be
+rejected.) The warning is once per session, because a cached list would otherwise warn on every call.
+
 `connectMcp` also takes `inputRequiredMaxRounds` — the cap on MRTR retry rounds before it gives up
 (default 10).
 

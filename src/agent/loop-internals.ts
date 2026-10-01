@@ -30,8 +30,9 @@ export type { RunEndReason } from './types';
 // ─── Stream event accumulation ───────────────────────────────────────────
 
 /** Create a fresh StepState for the start of a streaming step. */
-export function makeStepState(): StepState {
+export function makeStepState(step = 0): StepState {
   return {
+    step,
     stepText: '',
     stepCommentary: '',
     stepThinking: '',
@@ -105,7 +106,17 @@ export function accumulateStreamEvent(
     case 'tool_call_delta': {
       const acc = accumFor(state, event.id);
       if (acc) acc.args += event.arguments;
-      return null;
+      // Forwarded as well as accumulated. The loop still needs the whole string to
+      // parse at `tool_call_end`, so this is not a handover -- it is a second
+      // reader. A UI that wants to show the arguments forming had no way to see
+      // them: the fragments arrived here and died, and `tool_call_start` only
+      // fires once they are complete.
+      return {
+        type: 'tool_call_delta',
+        step: state.step,
+        callId: acc?.id ?? event.id,
+        arguments: event.arguments,
+      };
     }
 
     case 'tool_call_end': {

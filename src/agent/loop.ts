@@ -116,6 +116,8 @@ export class AgentLoop {
   private readonly _reflectRetry: ReflectAndRetryPolicy | null;
   private _parallelToolCalls: boolean;
   private _toolTimeout: number;
+  /** Default per-step model-call timeout; a per-call `timeout` still wins. */
+  private readonly _modelTimeout: number | undefined;
   private _maxSteps: number;
   private _guardrails: Guardrail[];
   private _toolInputGuardrails: ToolInputGuardrail[];
@@ -167,6 +169,7 @@ export class AgentLoop {
     this._cache = config.cache;
     this._parallelToolCalls = config.parallelToolCalls ?? true;
     this._toolTimeout = config.toolTimeout ?? DEFAULT_TOOL_TIMEOUT_MS;
+    this._modelTimeout = config.modelTimeout;
     this._maxSteps =
       config.maxSteps !== undefined && config.maxSteps > 0
         ? config.maxSteps
@@ -465,6 +468,9 @@ export class AgentLoop {
       history: options.history ?? this._history,
       maxTokens: options.maxTokens ?? this._maxTokens,
       temperature: options.temperature ?? this._temperature,
+      // The caller's per-call value wins: `modelTimeout` is the run's DEFAULT for
+      // a step, not a cap on what one call may ask for.
+      timeout: options.timeout ?? this._modelTimeout,
       thinking: options.thinking ?? this._thinking,
       cache: options.cache ?? this._cache,
       tools: this.toolDefinitions(options),
@@ -823,7 +829,7 @@ export class AgentLoop {
         });
 
         const stepStart = performance.now();
-        const state = makeStepState();
+        const state = makeStepState(stepCount);
 
         const composedSystemStream = this._history.registry.flat({ tag: 'system' });
         const composedSystemForStream =

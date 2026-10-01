@@ -176,6 +176,18 @@ export type AgentStreamEvent =
       toolName: string;
       arguments: Record<string, unknown>;
     }
+  /** The model's arguments for a tool call, as they stream in.
+   *
+   *  Forwarded only, never interpreted: the fragments are raw JSON text and a
+   *  partial one is usually not parseable, so a consumer renders it ("searching
+   *  for 'quarterly rep…'") rather than acting on it. The loop keeps accumulating
+   *  them itself; the complete, parsed arguments still arrive on
+   *  `tool_call_start`, which is the event to act on.
+   *
+   *  Absent on providers that stream a tool call whole, which is most of them,
+   *  and absent on every step that calls no tools -- so a consumer that does not
+   *  want it needs no change. */
+  | { type: 'tool_call_delta'; step: number; callId: string; arguments: string }
   | { type: 'tool_call_end'; step: number; callId: string; latencyMs: number }
   | { type: 'step_end'; step: number; usage: Usage; latencyMs: number }
   | { type: 'done'; response: import('../llm/types/response').CompletionResponse };

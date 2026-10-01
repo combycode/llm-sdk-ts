@@ -252,11 +252,12 @@ a safety system actually explained itself.
 
 ### Sampling parameters
 
-`temperature` / `topP` are honoured everywhere. The rest are **not universal**, so the SDK emits each
-one only where the provider actually accepts it — sending them blindly is a hard 400, not a no-op:
+**No sampling parameter is universal** — not even `temperature`. The SDK emits each one only where
+the provider actually accepts it, because sending one blindly is a hard 400, not a no-op:
 
 | Option | Honoured by | Dropped for |
 |---|---|---|
+| `temperature` / `topP` | Everywhere **except Anthropic from the Opus 4.8 generation onward** | **Anthropic models on wire era `messages@4.7`** — `claude-opus-4.8` and every Claude 5.x — which reject them (400 `` `temperature` is deprecated for this model ``). Measured 2026-10-01; `claude-sonnet-4.6` and `claude-haiku-4.5` still accept them |
 | `topK` | **Anthropic**, on models up to Opus 4.6 — behaviourally verified. Also *sent* to Google + xAI, which accept it but showed no effect when measured | OpenAI (no top-k); **Anthropic models after Opus 4.6**, which reject it (400 `top_k` is deprecated) |
 | `seed` | OpenAI **chat-completions**, Google (both surfaces), xAI (chat + responses), OpenRouter chat | Anthropic, OpenAI **Responses** (both reject it) |
 | `presencePenalty` / `frequencyPenalty` (`[-2, 2]`) | OpenAI/xAI **chat-completions**, OpenRouter, Google (**generateContent** + Interactions) | OpenAI/xAI **Responses**, Anthropic |
@@ -264,6 +265,17 @@ one only where the provider actually accepts it — sending them blindly is a ha
 
 You pass them the same way regardless; where a provider can't take one it is left out of the request
 rather than forwarded and rejected.
+
+**Anthropic refuses `temperature` and `topP` in the same request** on the models that take either
+(400 `` `temperature` and `top_p` cannot both be specified for this model. Please use only one. ``).
+Set both and `topP` is dropped, `temperature` is sent, and you get an `onWarning` saying so — a
+request that works beats one that fails, and the alternative is a 400 for a combination that is
+perfectly ordinary elsewhere.
+
+**Every drop is reported.** Each one reaches you as `onWarning` with code `request_adjusted`, naming
+what was left out and why. Silence would be worse than the 400 it replaces: a caller who sets
+`temperature: 0` and gets default sampling has no way to find out, and `topK` behaved exactly that
+way between the Opus 4.7 release and this fix.
 
 > **Accepted is not the same as honoured.** A `200` only proves the field was not rejected. We
 > tested `topK` behaviourally (`top_k: 1` must force greedy decoding): only Anthropic actually

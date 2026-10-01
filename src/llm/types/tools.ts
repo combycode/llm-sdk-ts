@@ -153,12 +153,33 @@ export interface WebFetchToolParams {
  *    - `server_url`   — a publicly reachable MCP server OpenAI dials directly.
  *    - `connector_id` — a managed first-party connector (Gmail, Drive, …).
  *    - `tunnel_id`    — a Secure MCP Tunnel: reach a private/local server with no
- *                       public URL (behind NAT/firewall) via an outbound tunnel. */
+ *                       public URL (behind NAT/firewall) via an outbound tunnel.
+ *
+ *  Measured 2026-10-01: all three pairings are refused by name
+ *  (`Mutually exclusive parameters: 'tools[0]'. Ensure you are only providing one
+ *  of: 'server_url' or 'connector_id'`, and the same for each other pair), so the
+ *  one-of-three above is the API's rule, not our convention. `tunnel_id` is
+ *  pattern-validated (`^tunnel_[a-z0-9]{32}$`) and a well-formed one reaches the
+ *  point of dialling the tunnel, so it is a working field rather than a typed-only
+ *  one. */
 export interface McpToolParams {
   server_label: string;
   server_url?: string;
+  /** A managed first-party connector.
+   *
+   *  **Deprecated by OpenAI for models released after 1 September 2026**, in
+   *  favour of `server_url` or `tunnel_id`. It is still sent, and still works:
+   *  measured 2026-10-01 on `gpt-5.6-sol`, `connector_id` with `authorization`
+   *  answers 200. Without `authorization` it answers
+   *  `Must specify 'authorization' parameter with 'connector_id'` — which is a
+   *  requirement, not the deprecation biting.
+   *
+   *  So this is a documentation deprecation: nothing is removed here, because a
+   *  field a provider still honours is not ours to withdraw. Prefer `server_url`
+   *  or `tunnel_id` for new code. */
   connector_id?: string;
   tunnel_id?: string;
+  /** Required alongside `connector_id`; the connector's OAuth token. */
   authorization?: string;
   headers?: Record<string, string>;
   require_approval?: 'always' | 'never' | Record<string, unknown>;

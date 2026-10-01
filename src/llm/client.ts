@@ -68,6 +68,7 @@ import {
   resolveApi,
   type ClientRouting,
 } from './client-internal';
+import { joinUrl } from './join-url';
 import type { SchemaSource } from './types/standard-schema';
 import { InvalidFinalOutputError } from './output-errors';
 
@@ -303,6 +304,81 @@ export class LLMClient {
     );
   }
 
+  /** Anthropic refuses `temperature` and `top_p` TOGETHER on the models that accept
+   *  either (`400 \`temperature\` and \`top_p\` cannot both be specified for this
+   *  model. Please use only one.`, measured 2026-10-01 on claude-sonnet-4.6 and
+   *  claude-haiku-4.5). Sending both is a guaranteed failed request, so one goes.
+   *
+   *  `topP` is the one dropped: `temperature` is the option callers reach for, it
+   *  is what our own `AgentLoopConfig` exposes as a run default, and Anthropic's own
+   *  guidance is "use only one". Dropping the one the caller is less likely to have
+   *  meant, loudly, beats failing the request -- the same trade as every other
+   *  adjustment here.
+   *
+   *  Returns the note, or null when there was nothing to adjust. */
+  private limitSamplingPair(normalized: NormalizedRequest): string | null {
+    if (this.provider !== 'anthropic') return null;
+    if (normalized.temperature === undefined || normalized.topP === undefined) return null;
+    delete (normalized as { topP?: unknown }).topP;
+    return (
+      `anthropic refuses temperature and topP in the same request, so topP was dropped ` +
+      `and temperature (${normalized.temperature}) was sent. Set one or the other.`
+    );
+  }
+
+  /** `true` when this request is one where the pair rule above would fire. Read
+   *  BEFORE the rule mutates anything, so the note plumbing can tell a `topP` this
+   *  library dropped on purpose from one the provider does not accept -- the two
+   *  need different sentences, and the second one would be a lie about a model that
+   *  takes the field perfectly well. */
+  private wouldLimitSamplingPair(normalized: NormalizedRequest): boolean {
+    return (
+      this.provider === 'anthropic' &&
+      normalized.temperature !== undefined &&
+      normalized.topP !== undefined
+    );
+  }
+
+  /** A sampling option the caller set that the spec did not send.
+   *
+   *  `removeFields` deletes a field from a spec era wholesale, which is the right
+   *  model for "no model on this era accepts it" -- but it deletes it SILENTLY, so
+   *  a caller who set `temperature: 0` on claude-opus-5.5 got default sampling and
+   *  no way to know. `top_k` has behaved that way since 4.7 shipped.
+   *
+   *  One note naming all of them rather than one each: they are dropped for the
+   *  same reason by the same era, and three warnings about one decision read as
+   *  three problems. */
+  private noteDroppedSampling(
+    asked: SamplingAsk,
+    req: ProviderHttpRequest,
+  ): string | null {
+    const body = req.body as Record<string, unknown> | undefined;
+    if (!body) return null;
+    // Compared against what the CALLER asked for, captured before anything could
+    // mutate it -- not against the normalized request, which `limitSamplingPair`
+    // may already have taken a field out of. Read from the mutated form, a `topP`
+    // dropped by the pair rule on an era that would also have dropped it goes
+    // unmentioned, and the caller is told about one of their two options.
+    const dropped = (
+      [
+        ['temperature', 'temperature', asked.temperature],
+        ['topP', 'top_p', asked.topP],
+        ['topK', 'top_k', asked.topK],
+      ] as const
+    )
+      .filter(([, wire, value]) => value !== undefined && body[wire] === undefined)
+      .map(([ours]) => ours);
+    if (dropped.length === 0) return null;
+    return (
+      `${dropped.join(', ')} ${dropped.length === 1 ? 'was' : 'were'} not sent: ` +
+      `${this.provider}/${this.model} does not accept ${dropped.length === 1 ? 'it' : 'them'}, ` +
+      `so the model sampled as it defaults to. Anthropic deprecated sampling parameters from ` +
+      `the claude-opus-4.8 generation onward and REFUSES them with a 400, which is why they are ` +
+      `dropped rather than forwarded.`
+    );
+  }
+
   /** Drop `thinking: { mode: 'off' }` where the model cannot honour it, and say
    *  so. Returns the note, or null when there was nothing to adjust.
    *
@@ -436,12 +512,39 @@ export class LLMClient {
     }
 
     const thinkingNote = this.limitThinking(normalized);
+    // What the caller asked for, before any adjustment can take it away.
+    const sampling = samplingAsk(normalized);
+    const pairWouldFire = this.wouldLimitSamplingPair(normalized);
+    // Before the build: this one DROPS a field, so it has to happen while the
+    // request is still ours to change.
+    const samplingPairNote = this.limitSamplingPair(normalized);
     const providerReq = this.adapter.buildRequest(normalized);
     if (thinkingNote) (providerReq.notes ??= []).push(thinkingNote);
+    // The pair note is true only if `temperature` actually travelled. On an era
+    // that drops both, saying "topP was dropped so temperature could be sent"
+    // would describe a trade that did not happen -- the era note below covers it,
+    // and naming both fields.
+    const pairApplied =
+      samplingPairNote !== null &&
+      (providerReq.body as Record<string, unknown>)?.temperature !== undefined;
+    if (pairApplied) (providerReq.notes ??= []).push(samplingPairNote);
+    // After the build: this one REPORTS what the spec dropped, so it needs the
+    // body. When the pair rule is what removed `topP`, it is excluded here: the
+    // pair note already explains it, and "the model does not accept topP" would be
+    // false about a model that takes it alone.
+    const samplingNote = this.noteDroppedSampling(
+      pairApplied && pairWouldFire ? { ...sampling, topP: undefined } : sampling,
+      providerReq,
+    );
+    if (samplingNote) (providerReq.notes ??= []).push(samplingNote);
     const cacheDiagNote = this.noteUnsupportedCacheDiagnostics(normalized, providerReq);
     if (cacheDiagNote) (providerReq.notes ??= []).push(cacheDiagNote);
     this.reportBuildNotes(providerReq, ctx);
-    const url = this.adapter.baseURL() + (providerReq.path ?? this.adapter.completionPath());
+    // `base + path` is correct for a base that is only a host, which every base we
+    // SHIP is. It breaks on the one shape callers configure by hand: an Azure-style
+    // endpoint carrying `?api-version=...`, where the path lands inside the query
+    // VALUE and the error that comes back is about the version, not the URL.
+    const url = joinUrl(this.adapter.baseURL(), providerReq.path ?? this.adapter.completionPath());
 
     // Compute cacheKey if a custom builder was provided.
     if (this.cacheKeyFn) {
@@ -654,13 +757,40 @@ export class LLMClient {
     normalized.system = resolveCtx.system;
 
     const thinkingNote = this.limitThinking(normalized);
+    // What the caller asked for, before any adjustment can take it away.
+    const sampling = samplingAsk(normalized);
+    const pairWouldFire = this.wouldLimitSamplingPair(normalized);
+    // Before the build: this one DROPS a field, so it has to happen while the
+    // request is still ours to change.
+    const samplingPairNote = this.limitSamplingPair(normalized);
     const providerReq = this.adapter.buildRequest(normalized);
     if (thinkingNote) (providerReq.notes ??= []).push(thinkingNote);
+    // The pair note is true only if `temperature` actually travelled. On an era
+    // that drops both, saying "topP was dropped so temperature could be sent"
+    // would describe a trade that did not happen -- the era note below covers it,
+    // and naming both fields.
+    const pairApplied =
+      samplingPairNote !== null &&
+      (providerReq.body as Record<string, unknown>)?.temperature !== undefined;
+    if (pairApplied) (providerReq.notes ??= []).push(samplingPairNote);
+    // After the build: this one REPORTS what the spec dropped, so it needs the
+    // body. When the pair rule is what removed `topP`, it is excluded here: the
+    // pair note already explains it, and "the model does not accept topP" would be
+    // false about a model that takes it alone.
+    const samplingNote = this.noteDroppedSampling(
+      pairApplied && pairWouldFire ? { ...sampling, topP: undefined } : sampling,
+      providerReq,
+    );
+    if (samplingNote) (providerReq.notes ??= []).push(samplingNote);
     const cacheDiagNote = this.noteUnsupportedCacheDiagnostics(normalized, providerReq);
     if (cacheDiagNote) (providerReq.notes ??= []).push(cacheDiagNote);
     this.reportBuildNotes(providerReq, ctx);
     this.adapter.enableStreaming?.(providerReq, normalized);
-    const url = this.adapter.baseURL() + (providerReq.path ?? this.adapter.completionPath());
+    // `base + path` is correct for a base that is only a host, which every base we
+    // SHIP is. It breaks on the one shape callers configure by hand: an Azure-style
+    // endpoint carrying `?api-version=...`, where the path lands inside the query
+    // VALUE and the error that comes back is about the version, not the URL.
+    const url = joinUrl(this.adapter.baseURL(), providerReq.path ?? this.adapter.completionPath());
 
     const httpReq: HttpRequest = {
       url,
@@ -845,3 +975,15 @@ export class LLMClient {
   }
 }
 
+
+/** The sampling options a caller set, captured before any adjustment can remove
+ *  one. Compared against the built body to report what did not travel. */
+interface SamplingAsk {
+  temperature?: number;
+  topP?: number;
+  topK?: number;
+}
+
+function samplingAsk(req: NormalizedRequest): SamplingAsk {
+  return { temperature: req.temperature, topP: req.topP, topK: req.topK };
+}

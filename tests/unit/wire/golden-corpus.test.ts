@@ -171,6 +171,28 @@ const INTENTIONAL: Array<{ match: RegExp; reason: string }> = [
       'comparison — 4.20 refuses the field while the numerically lower 4.3 ' +
       'honours it.',
   },
+  {
+    match: /^anthropic\/claude-(?:opus-4-7|opus-4-8|opus-5|opus-5-5|sonnet-5|sonnet-5-5|fable-5|fable-5-1|mythos-5) sampling \[/,
+    reason:
+      'Sampling parameters we sent were REFUSED, not ignored. Measured 2026-10-01 on ' +
+      '/v1/messages: each of `temperature`, `top_p` and `top_k` answers 400 ' +
+      '"`<field>` is deprecated for this model" on every model whose wireSpec is ' +
+      'anthropic/messages@4.7, while every 4.6-era model accepts all three ' +
+      '(claude-sonnet-4.6, claude-haiku-4.5 both 200) — so the boundary is exactly ' +
+      'the spec era, and `top_k` had already been removed there for this reason. ' +
+      'So a caller who set `temperature` on claude-opus-5.5 got a FAILED REQUEST, ' +
+      'not a sampled one: the same defect class as the xAI waiver above, where our ' +
+      'own public option was a guaranteed 400. `temperature` and `top_p` now join ' +
+      "`top_k` in that era's `removeFields`, and the client reports the drop as " +
+      '`request_adjusted` so it is not silent — which `top_k` had been since 4.7 ' +
+      'shipped. The 4.6-era rows are deliberately NOT waived: they are unchanged, ' +
+      'which is what makes this an era boundary rather than a blanket removal. '  +
+      'The ids are listed rather than matched by prefix so that a 4.6-era row that ' +
+      'ever drifts is reported instead of quietly waived — which is how ' +
+      'claude-mythos-5 was found: it is inactive and so was not probed ' +
+      'individually, but its wireSpec is messages@4.7 and the corpus builds every ' +
+      'catalogued model regardless of `active`.',
+  },
 ];
 
 /** Which waivers actually fired, so an obsolete one cannot go unnoticed. */

@@ -303,6 +303,60 @@ that rely on a deliberate override) but emits an `onWarning` with code `tool_nam
 which tool lost. `toolNameCollisionPolicy: 'error'` throws at construction instead, before the model
 is ever called.
 
+## Watching tool arguments form (`tool_call_delta`)
+
+A streamed run now forwards the model's tool-call arguments as they arrive:
+
+```ts
+for await (const ev of agent.stream('find the Q3 report')) {
+  if (ev.type === 'tool_call_delta') {
+    // Raw JSON TEXT, usually not parseable on its own — for rendering.
+    process.stdout.write(ev.arguments);
+  }
+  if (ev.type === 'tool_call_start') {
+    // The complete, PARSED arguments. This is the event to act on.
+    console.log(ev.toolName, ev.arguments);
+  }
+}
+```
+
+The fragments used to reach the loop and die there — accumulated into the call's
+argument buffer and dropped — so a UI had no way to show a long argument list
+forming, and `tool_call_start` only fires once it is complete. They are now
+forwarded **as well as** accumulated: a second reader, not a handover, because the
+loop still needs the whole string to parse at the end of the call.
+
+- `arguments` is a raw JSON **fragment**. A partial one is usually not valid JSON,
+  so render it rather than act on it.
+- `callId` is the accumulator's id, not the event's — several providers omit the id
+  on later fragments, and the forwarded event has to carry something a consumer can
+  group by.
+- `step` is the step the fragments belong to, so they can be correlated with the
+  step that produced them.
+- Absent on providers that stream a call whole (most of them) and on every step
+  that calls no tools, so a consumer that does not want them needs no change.
+
+## Bounding a model call (`modelTimeout`)
+
+```ts
+const agent = new AgentLoop({ client, tools, modelTimeout: 30_000 });
+```
+
+`toolTimeout` already bounded the tool half of a step. The model half was bounded
+only by whatever the client was configured with — so on a long run one slow step
+could hold the whole run open past any deadline the caller thought they had set.
+
+Applied **per step**, not per run: a nine-step run with `modelTimeout: 30_000`
+allows each step thirty seconds, not the run. A run-wide budget is a different
+thing and you already have it — an `AbortSignal` you control.
+
+A per-call `ExecuteOptions.timeout` still wins, so one `complete()` can ask for
+longer. There is no new error type: the timeout surfaces as the
+`LLMError{ kind: 'timeout' }` the network layer already raises, which is what code
+catching timeouts already matches on. (Upstream names a `ModelTimeoutError`; a
+second class for a condition we already report would mean every consumer has to
+learn both.)
+
 ## Checking tool arguments (`validateToolArguments`)
 
 ```ts

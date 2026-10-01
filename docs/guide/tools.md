@@ -450,16 +450,37 @@ import type { McpToolParams } from '@combycode/llm-sdk';
 // 1. Public server — OpenAI dials the URL directly.
 { type: 'mcp', params: { server_label: 'docs', server_url: 'https://mcp.example/sse' } }
 
-// 2. Managed connector (Gmail, Drive, …).
-{ type: 'mcp', params: { server_label: 'gmail', connector_id: 'connector_gmail' } }
+// 2. Managed connector (Gmail, Drive, …) — needs `authorization`.
+//    DEPRECATED by OpenAI for models released after 1 September 2026; see below.
+{ type: 'mcp', params: {
+    server_label: 'gmail',
+    connector_id: 'connector_gmail',
+    authorization: oauthToken,
+} }
 
 // 3. Secure MCP Tunnel — reach a private/local server (behind NAT/firewall, no
 //    public URL) through an outbound tunnel registered under a tunnel id.
-{ type: 'mcp', params: { server_label: 'local', tunnel_id: 'tnl_abc123' } }
+{ type: 'mcp', params: { server_label: 'local', tunnel_id: `tunnel_${id}` } }
 ```
 
 Optional `params`: `authorization`, `headers`, `require_approval`, `allowed_tools`,
-`server_description`. OpenAI enforces the "exactly one target" rule server-side.
+`server_description`. OpenAI enforces the "exactly one target" rule server-side —
+measured 2026-10-01, every pairing is refused by name
+(`Mutually exclusive parameters: 'tools[0]'. Ensure you are only providing one of:
+'server_url' or 'connector_id'`, and likewise for each other pair).
+
+**`connector_id` is deprecated, and still works.** OpenAI documents it as
+deprecated for models released after 1 September 2026, in favour of `server_url`
+or `tunnel_id`. It is still sent and still honoured: measured 2026-10-01 on
+`gpt-5.6-sol`, `connector_id` with `authorization` answers 200. (Without
+`authorization` it answers `Must specify 'authorization' parameter with
+'connector_id'` — that is the field's own requirement, not the deprecation
+biting.) Nothing is removed here, because a field a provider still honours is not
+ours to withdraw; prefer `server_url` or `tunnel_id` for new code.
+
+`tunnel_id` is pattern-validated: `^tunnel_[a-z0-9]{32}$`. A malformed one is
+refused with that pattern quoted, and a well-formed one reaches the point of
+dialling the tunnel — so it is a working target, not a typed-only field.
 
 > This is the **provider-hosted** MCP path. For connecting the SDK itself to MCP
 > servers as a client, see [MCP (Model Context Protocol)](./mcp.md).

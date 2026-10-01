@@ -371,6 +371,70 @@ export class McpClient {
     return this.paginate<McpToolDef>('tools/list', 'tools');
   }
 
+  /** The server's cache hints, HONOURED on any era -- and reported when the era does
+   *  not define them.
+   *
+   *  `ttlMs` and `cacheScope` arrived with the modern wire (2026-07-28), so a
+   *  2025-11-25 session that sends them is sending fields its own revision does not
+   *  have. The row that prompted this asked for them to be ignored there, for
+   *  consistency with the dual-era rule. They are not, and the reason is the cost of
+   *  each mistake:
+   *
+   *   - ignoring them silently disables a cache the operator explicitly opted into
+   *     (`cacheResults: true`) against a server that asked for it in as many words;
+   *   - honouring them risks nothing. An extra field a server volunteered is not the
+   *     same hazard as SENDING a method the era lacks, which is why keep-alive `ping`
+   *     IS suppressed on a modern session: that one can be rejected.
+   *
+   *  So the non-conformance is reported rather than acted on -- once per session,
+   *  because a per-call warning on a cached list is noise -- and the operator decides
+   *  whether their server is doing something they want. Silence was the only outcome
+   *  worth avoiding. */
+  private eraHints(result: unknown): McpCacheHints | undefined {
+    const hints = result as McpCacheHints | undefined;
+    const carries = typeof hints?.ttlMs === 'number' || hints?.cacheScope !== undefined;
+    if (carries && this.era !== 'modern' && !this.warnedPreEraHints) {
+      this.warnedPreEraHints = true;
+      (this.opts.hooks ?? this.opts.telemetry?.hooks)?.emitSync('onWarning', {
+        // `plugin`, not a new union member: MCP lives in `src/plugins`, and widening
+        // a public union for one warning costs every consumer a case to consider.
+        source: 'plugin',
+        code: 'mcp_hint_before_era',
+        message:
+          `MCP server on protocol ${this.negotiatedVersion} sent cache hints ` +
+          `(ttlMs / cacheScope), which arrived with 2026-07-28. They are being honoured, ` +
+          `but the server is describing itself with a later revision's vocabulary.`,
+        details: { protocolVersion: this.negotiatedVersion, era: this.era },
+      });
+    }
+    return hints;
+  }
+
+  /** Said once per session: a cached list would otherwise warn on every call. */
+  private warnedPreEraHints = false;
+
+  /** The cache key for a method.
+   *
+   *  Upstream's client puts the negotiated VERSION in its cache arms, so an entry
+   *  written under one protocol era is never served under another -- the two wires
+   *  do not return the same content for the same method. That guard was considered
+   *  here and deliberately not added, because the hazard is not reachable in this
+   *  client: the era is decided during `connect()` and never changes afterwards
+   *  (`recoverSession` re-handshakes while KEEPING the era it already negotiated),
+   *  and each client owns its own cache, so two eras cannot meet over one entry.
+   *
+   *  An unreachable guard is not free -- it needs a key format, an era-aware
+   *  `clearMethod`, and tests that can only be written by contrivance, and the first
+   *  attempt at it silently broke invalidation (`clearMethod` matched on the whole
+   *  key, so an era prefix stopped it finding anything).
+   *
+   *  If re-negotiation ever changes an era mid-session, the era belongs in this key,
+   *  and `McpResultCache.clearMethod` has to match on the method segment rather than
+   *  on the key's prefix. */
+  private cacheKeyFor(method: string, params?: unknown): string {
+    return McpResultCache.key(method, params);
+  }
+
   /** Follow cursor pagination for a list method, collecting `field` from each page.
    *
    *  When result caching is enabled and the server sent a `ttlMs`, the assembled list is reused
@@ -378,7 +442,7 @@ export class McpClient {
    *  effective TTL is the MINIMUM across pages — taking the last page's value would let an early,
    *  more volatile page go stale unnoticed. */
   private async paginate<T>(method: string, field: string): Promise<T[]> {
-    const cacheKey = McpResultCache.key(method);
+    const cacheKey = this.cacheKeyFor(method);
     const cached = this.cache?.get(cacheKey) as T[] | undefined;
     if (cached) return cached;
 
@@ -390,7 +454,7 @@ export class McpClient {
       const res = (await this.send(method, cursor ? { cursor } : {})) as Record<string, unknown>;
       const page = res?.[field] as T[] | undefined;
       if (page) out.push(...page);
-      const hints = res as McpCacheHints;
+      const hints = this.eraHints(res);
       if (typeof hints?.ttlMs === 'number') {
         ttlMs = ttlMs === undefined ? hints.ttlMs : Math.min(ttlMs, hints.ttlMs);
       }
@@ -444,7 +508,7 @@ export class McpClient {
 
   /** Read a resource's contents by URI. */
   async readResource(uri: string): Promise<McpResourceContent[]> {
-    const cacheKey = McpResultCache.key('resources/read', { uri });
+    const cacheKey = this.cacheKeyFor('resources/read', { uri });
     const cached = this.cache?.get(cacheKey) as McpResourceContent[] | undefined;
     if (cached) return cached;
 
@@ -459,7 +523,7 @@ export class McpClient {
       }) as Promise<{ contents?: McpResourceContent[] }>,
     );
     const contents = res?.contents ?? [];
-    this.cache?.set(cacheKey, contents, res as McpCacheHints);
+    this.cache?.set(cacheKey, contents, this.eraHints(res));
     return contents;
   }
 

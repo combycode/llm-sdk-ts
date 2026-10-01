@@ -80,8 +80,66 @@ describe('accumulateStreamEvent — tool call reassembly', () => {
     expect(state.stepToolCalls).toEqual([
       { type: 'tool_call', id: 'c1', name: 'get_weather', arguments: { city: 'Berlin' } },
     ]);
-    // None of the tool-call plumbing is forwarded to the agent stream.
-    expect(yielded).toEqual([null, null, null, null]);
+    // The DELTAS are forwarded; start and end are not.
+    //
+    // Deltas used to die here: they were accumulated and dropped, so a UI had no
+    // way to show arguments forming and `tool_call_start` only fires once they are
+    // complete. They are now forwarded as well as accumulated -- a second reader,
+    // not a handover, since the loop still needs the whole string to parse at
+    // `tool_call_end`.
+    //
+    // `tool_call_start`/`_end` stay null because the LOOP yields its own versions
+    // of those, stamped with the step and the resolved tool name; forwarding these
+    // too would deliver each one twice.
+    expect(yielded).toEqual([
+      null,
+      { type: 'tool_call_delta', step: 0, callId: 'c1', arguments: '{"city":' },
+      { type: 'tool_call_delta', step: 0, callId: 'c1', arguments: '"Berlin"}' },
+      null,
+    ]);
+  });
+
+  it("forwards each delta under the accumulator's id, not the event's", () => {
+    // A provider may omit the id on later deltas (the accumulator resolves them by
+    // position). The forwarded event has to carry the id a consumer can correlate
+    // with `tool_call_start`, which is the accumulator's — not the blank one.
+    const { yielded } = feed([
+      { type: 'tool_call_start', id: 'c1', name: 'get_weather' },
+      { type: 'tool_call_delta', id: '', arguments: '{"a":1}' },
+    ] as StreamEvent[]);
+    expect(yielded[1]).toEqual({
+      type: 'tool_call_delta',
+      step: 0,
+      callId: 'c1',
+      arguments: '{"a":1}',
+    });
+  });
+
+  it('stamps the step the state belongs to', () => {
+    // A stream event with no step cannot be correlated with the step that produced
+    // it, which is why `StepState` now carries its own number.
+    const state = makeStepState(4);
+    accumulateStreamEvent(
+      { type: 'tool_call_start', id: 'c1', name: 'get_weather' } as StreamEvent,
+      state,
+    );
+    const ev = accumulateStreamEvent(
+      { type: 'tool_call_delta', id: 'c1', arguments: 'x' } as StreamEvent,
+      state,
+    );
+    expect(ev).toMatchObject({ type: 'tool_call_delta', step: 4 });
+  });
+
+  it('still accumulates what it forwards', () => {
+    // Forwarding is a second reader, not a handover: the loop needs the whole
+    // string to parse at `tool_call_end`.
+    const { state } = feed([
+      { type: 'tool_call_start', id: 'c1', name: 'get_weather' },
+      { type: 'tool_call_delta', id: 'c1', arguments: '{"city":' },
+      { type: 'tool_call_delta', id: 'c1', arguments: '"Berlin"}' },
+      { type: 'tool_call_end', id: 'c1' },
+    ] as StreamEvent[]);
+    expect(state.stepToolCalls[0]?.arguments).toEqual({ city: 'Berlin' });
   });
 
   it('two interleaved tool calls keep their own argument buffers', () => {

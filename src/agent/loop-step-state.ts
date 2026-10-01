@@ -14,6 +14,11 @@ export interface ToolCallAccumEntry {
 
 /** All mutable state for one streaming step inside AgentLoop.stream(). */
 export interface StepState {
+  /** Which step this state belongs to. Needed so an event forwarded from inside
+   *  the accumulator can be stamped like the ones the loop yields itself -- a
+   *  stream event without a step number cannot be correlated with the step that
+   *  produced it. */
+  step: number;
   stepText: string;
   /** Commentary deltas, kept apart from stepText so the step's answer excludes narration. */
   stepCommentary: string;

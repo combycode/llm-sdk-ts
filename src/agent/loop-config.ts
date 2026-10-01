@@ -138,6 +138,25 @@ export interface AgentLoopConfig {
   thinking?: ThinkingConfig;
   cache?: CacheConfig;
 
+  /** Default timeout for each MODEL call in a run, in milliseconds.
+   *
+   *  `toolTimeout` already bounded the tool half of a step; the model half was
+   *  bounded only by whatever the client was configured with, which for a long run
+   *  means one slow step can hold the whole run open past any deadline the caller
+   *  thought they had set.
+   *
+   *  Applied per STEP, not per run: a nine-step run with `modelTimeout: 30_000`
+   *  allows each step thirty seconds, not the run. A run-wide budget is a different
+   *  thing and the caller already has it -- an `AbortSignal` they control.
+   *
+   *  A per-call `ExecuteOptions.timeout` still wins, so a single `complete()` can
+   *  ask for longer. No new error type: the timeout surfaces as the
+   *  `LLMError{kind:'timeout'}` the network layer already raises, which is what a
+   *  caller catching timeouts is already matching on. Upstream names a
+   *  `ModelTimeoutError`; a second error class for a condition we already report
+   *  would mean every consumer has to learn both. */
+  modelTimeout?: number;
+
   // Tool execution
   parallelToolCalls?: boolean;
   toolTimeout?: number;
