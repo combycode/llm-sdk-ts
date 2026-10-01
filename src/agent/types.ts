@@ -4,7 +4,7 @@
 
 import type { ToolOutputGuardrail } from './guardrail-types';
 import type { AssistantPhase, ContentPart, Message } from '../llm/types/messages';
-import type { Tool } from '../llm/types/tools';
+import type { ToolInput } from '../llm/types/tools';
 import type { Usage } from '../llm/types/response';
 import type { HistorySnapshot } from './history-types';
 import type { PendingToolCall } from './approval-types';
@@ -60,7 +60,7 @@ export interface LearnInput {
 
 export interface AgentTool {
   /** Tool schema sent to the LLM. */
-  definition: Tool;
+  definition: ToolInput;
   /** Register the tool but do NOT declare it: the model finds it with `tool_search` and
    *  invokes it through `call_tool`. Exposure only — registration, validation and
    *  collision checking are unchanged, and nothing happens mid-run.

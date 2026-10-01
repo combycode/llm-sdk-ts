@@ -1,5 +1,7 @@
 /** Universal tool schema definitions. */
 
+import type { SchemaSource } from './standard-schema';
+
 export interface FunctionTool {
   type?: 'function';
   name: string;
@@ -139,10 +141,35 @@ export type ToolChoice = 'auto' | 'none' | 'required' | { name: string };
 
 export type JsonSchema = Record<string, unknown>;
 
-export function isFunctionTool(tool: Tool): tool is FunctionTool {
+/** A function tool as a CALLER may declare it: its schemas may be plain JSON
+ *  Schema or any **Standard Schema** (`~standard`) -- a Zod/Valibot/ArkType
+ *  schema passes straight in.
+ *
+ *  Separate from `FunctionTool` rather than a widening of it, because the two say
+ *  different things. `FunctionTool` is the NORMALIZED form: by the time a tool
+ *  reaches a wire spec, an adapter or a snapshot, every schema on it is plain
+ *  JSON Schema, and that invariant is worth having in the type rather than in a
+ *  comment. `toWireTools` is the one place the conversion happens. */
+export type FunctionToolInput = Omit<FunctionTool, 'parameters' | 'outputSchema'> & {
+  parameters: SchemaSource;
+  outputSchema?: SchemaSource;
+};
+
+/** A tool as a caller may declare it. */
+export type ToolInput = FunctionToolInput | BuiltinTool;
+
+/** Overloaded over the two forms so one guard serves both: callers hold a
+ *  declaration (`ToolInput`, whose schemas may be Standard Schemas) before the
+ *  request boundary and a normalized `Tool` after it, and neither should need a
+ *  second predicate to ask the same question. */
+export function isFunctionTool(tool: Tool): tool is FunctionTool;
+export function isFunctionTool(tool: ToolInput): tool is FunctionToolInput;
+export function isFunctionTool(tool: Tool | ToolInput): boolean {
   return !tool.type || tool.type === 'function';
 }
 
-export function isBuiltinTool(tool: Tool): tool is BuiltinTool {
+export function isBuiltinTool(tool: Tool): tool is BuiltinTool;
+export function isBuiltinTool(tool: ToolInput): tool is BuiltinTool;
+export function isBuiltinTool(tool: Tool | ToolInput): boolean {
   return !!tool.type && tool.type !== 'function';
 }

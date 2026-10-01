@@ -31,7 +31,7 @@
  *     makes the feature work.
  */
 
-import type { FunctionTool, Tool } from '../llm/types/tools';
+import type { FunctionToolInput, ToolInput } from '../llm/types/tools';
 import type { AgentTool, ToolExecutionContext } from './types';
 
 /** Tuning for lazy tool exposure. Every field is optional; the defaults are what the
@@ -68,7 +68,7 @@ function tokenize(s: string): string[] {
     .filter((w) => w.length > 2 && !STOP_WORDS.has(w));
 }
 
-const isFn = (t: Tool): t is FunctionTool => 'name' in t;
+const isFn = (t: ToolInput): t is FunctionToolInput => 'name' in t;
 const nameOf = (t: AgentTool): string => (isFn(t.definition) ? t.definition.name : '');
 
 /** Rank candidates by token overlap over name + description + parameter names, with name

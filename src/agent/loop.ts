@@ -31,6 +31,7 @@ import {
 } from '../llm/types/response';
 import type { FileStream, RetrievedFile } from '../llm/files/retrieve';
 import type { LLMClient } from '../llm/client';
+import type { SchemaSource } from '../llm/types/standard-schema';
 import { buildAssistantMessage, parseStructured as parseStructuredText } from '../llm/client-internal';
 import { AgentRunError, ApprovalMismatchError } from '../llm/output-errors';
 import { writeAgentLoopContext, writeAgentLoopSystem, writeLazyToolsProtocol } from './context-registry/layers';
@@ -730,14 +731,16 @@ export class AgentLoop {
    *  loop; only the FINAL turn is constrained. */
   async structuredComplete<T = unknown>(
     input: string | ContentPart[] | Message[],
-    schema: Record<string, unknown>,
+    schema: SchemaSource,
     options: ExecuteOptions = {},
   ): Promise<T> {
     const res = await this.complete(input, {
       ...options,
       structured: { ...(options.structured ?? {}), schema },
     });
-    return parseStructuredText<T>(res.text);
+    // The schema is handed to the parse too: a Standard Schema's refinements
+    // never reached the provider, which only saw the JSON Schema they convert to.
+    return parseStructuredText<T>(res.text, schema);
   }
 
   // ─── stream ─────────────────────────────────────────────────────────────
@@ -1486,7 +1489,7 @@ export class AgentLoop {
    *  Lazy tools are registered but NOT declared — that filter is the whole mechanism. */
   private toolDefinitions(
     options: ExecuteOptions,
-  ): import('../llm/types/tools').Tool[] | undefined {
+  ): import('../llm/types/tools').ToolInput[] | undefined {
     const own = [...this._tools.values()].filter((t) => !t.lazy).map((t) => t.definition);
     if (options.tools) return [...own, ...options.tools];
     return own.length > 0 ? own : undefined;

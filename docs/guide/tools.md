@@ -51,6 +51,15 @@ const { text } = await complete({
 console.log(text);
 ```
 
+### `parameters` may be a Standard Schema
+
+`parameters` takes a plain JSON Schema or any **Standard Schema** (`~standard`) —
+a Zod/Valibot/ArkType schema passes straight in, so the shape is described once
+instead of twice. Same for `outputSchema`, where the schema's OUTPUT side is used.
+The conversion happens once at the request boundary, and it is a protocol rather
+than a dependency. See
+[Standard Schema](./llm-client.md#standard-schema--pass-the-schema-you-already-have).
+
 ### Strict mode and optional parameters
 
 Strict mode makes a provider constrain the tool name and argument shape while generating

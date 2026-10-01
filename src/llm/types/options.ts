@@ -6,7 +6,8 @@ import type { ModerationRequest } from '../moderation/types';
 import type { AudioOptions } from './audio';
 import type { CacheConfig, ProviderOptions, ThinkingConfig } from './request';
 import type { ServiceTier } from './tiers';
-import type { Tool, ToolChoice } from './tools';
+import type { SchemaSource } from './standard-schema';
+import type { ToolChoice, ToolInput } from './tools';
 
 /** What to compare this request's prompt against when asking for cache
  *  diagnostics.
@@ -61,12 +62,20 @@ export interface ExecuteOptions {
 
   // Tools (schema-only — caller dispatches; AgentLoop's executable tools come
   // from its constructor and are merged in at the agent layer).
-  tools?: Tool[];
+  /** Schema-only tool declarations. Each tool's `parameters` may be a plain JSON
+   *  Schema or any Standard Schema; conversion happens once, at the request
+   *  boundary, so everything downstream sees plain JSON Schema. */
+  tools?: ToolInput[];
   toolChoice?: ToolChoice;
 
   // Structured output
   structured?: {
-    schema: Record<string, unknown>;
+    /** A JSON Schema, or any **Standard Schema** (`~standard`): a Zod/Valibot/
+     *  ArkType schema passes straight in. A Standard Schema is converted for the
+     *  wire AND applied to the parsed result, because the refinements it carries
+     *  have no JSON Schema equivalent and so were never enforced by the provider.
+     *  Its `validate` may transform, and the transformed value is what you get. */
+    schema: SchemaSource;
     name?: string;
     strict?: boolean;
     /** Opt-in repair: if the model's final output fails to parse, re-prompt this

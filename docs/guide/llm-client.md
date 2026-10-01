@@ -93,6 +93,77 @@ try {
 }
 ```
 
+### Standard Schema — pass the schema you already have
+
+Anywhere this library takes a JSON Schema it also takes a **Standard Schema**: any
+object carrying the `~standard` property, which Zod, Valibot, ArkType, Effect
+Schema and others all expose. That means a tool's `parameters`, a tool's
+`outputSchema`, and `structured.schema` / the `schema` argument of
+`structuredComplete`.
+
+```ts
+import { createLLM, defineTool } from '@combycode/llm-sdk';
+import { z } from 'zod'; // or valibot, arktype, effect/Schema, ...
+
+const llm = createLLM({ model: 'openai/gpt-5.4-nano', apiKey: process.env.OPENAI_API_KEY });
+const Weather = z.object({ city: z.string(), tempC: z.number().min(-90).max(60) });
+
+// As a structured-output schema -- `tempC` is range-checked here, which no JSON
+// Schema the provider saw could have told it to do.
+const weather = await llm.structuredComplete('Weather in Paris as JSON.', Weather);
+
+// ...and as a tool's parameters.
+const lookup = defineTool({
+  name: 'lookup',
+  description: 'Look up a city',
+  parameters: z.object({ city: z.string() }),
+  execute: async ({ city }: { city: string }) => `sunny in ${city}`,
+});
+```
+
+It is a **protocol, not a dependency**: the types are declared structurally and
+nothing is installed, so the library stays zero-dependency and a schema library
+that does not exist yet already works.
+
+Two things happen, and the second is the one worth knowing about:
+
+1. **Conversion.** The schema is converted to JSON Schema once, at the request
+   boundary, via its own `~standard.jsonSchema`. Everything downstream — the wire
+   specs, the provider adapters, snapshots — sees plain JSON Schema and never
+   learns the protocol exists.
+2. **Validation.** For a Standard Schema the parsed result is also run through
+   `~standard.validate`, and **the value it returns is what you get**. A schema
+   carries semantics JSON Schema cannot express (refinements, branded types,
+   cross-field rules), so the provider never enforced them — they are checked
+   here or nowhere. And `validate` may transform (coercions, defaults): handing
+   back the parsed object instead would return something that looks right and
+   skipped the schema's work.
+
+A validation failure throws the same `InvalidFinalOutputError` as a parse failure,
+on purpose: both mean "the output did not match the requested schema", so
+`structured.repairAttempts` re-prompts for a value that parsed and was wrong —
+which is the case a repair actually helps with.
+
+Two things are refused rather than worked around:
+
+- A Standard Schema with **no `~standard.jsonSchema`** (an older schema library).
+  There is nothing to put on the wire, and sending the request without a schema
+  would leave the model unconstrained while you believed it was constrained —
+  the failure you are least likely to notice, because the answer usually looks
+  about right anyway. Use the library's Standard JSON Schema adapter, or pass a
+  plain JSON Schema.
+- An **asynchronous** `validate`. Schemas are applied while parsing a response, in
+  synchronous code; a Promise is a truthy object with no `issues`, so awaited
+  nowhere it would have passed as a valid result and been handed back in place of
+  your data.
+
+A plain JSON Schema behaves exactly as before, including not being re-validated
+locally: the provider already enforced it, and a second check with a zero-dep
+validator would mostly surface places where we and the provider disagree.
+
+`isStandardSchema`, `isStandardSchemaWithJson`, `toJsonSchema` and
+`validateStandardSchema` are exported for callers building their own layer on top.
+
 ### Finish reasons — and the two non-obvious ones
 
 `response.finishReason` is unified across providers: `'stop' | 'tool_use' | 'length' |

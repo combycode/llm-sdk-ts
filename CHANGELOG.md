@@ -8,6 +8,38 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 
 ### Added
 
+- **Pass the schema you already have.** Anywhere this library takes a JSON Schema it now also
+  takes a **Standard Schema** (`~standard`): a tool's `parameters` and `outputSchema`,
+  `structured.schema`, and the `schema` argument of `structuredComplete`. A Zod/Valibot/ArkType
+  schema goes straight in, so a shape is described once instead of twice -- two descriptions of
+  one shape drift, and the one the provider sees is the one nobody reads.
+  It is a protocol, not a dependency: the types are declared structurally, nothing is installed,
+  and a schema library that does not exist yet already works. Conversion happens once at the
+  request boundary via the schema's own `~standard.jsonSchema`, so the wire specs, the adapters
+  and the snapshots keep reading plain JSON Schema.
+  The parsed result is then run through `~standard.validate` and **its** value is returned: a
+  schema carries refinements, branded types and cross-field rules that JSON Schema cannot
+  express and the provider therefore never enforced, and `validate` may transform, so returning
+  the parsed object would hand back something that looks right and skipped the schema's work. A
+  validation failure raises the same `InvalidFinalOutputError` as a parse failure on purpose, so
+  `structured.repairAttempts` re-prompts for a value that parsed and was wrong -- the case a
+  repair actually helps with.
+  Two things are refused rather than worked around. A schema with no `~standard.jsonSchema` (an
+  older library): there is nothing to send, and omitting the schema would leave the model
+  unconstrained while the caller believed it was constrained -- the failure least likely to be
+  noticed, because the answer usually looks about right. And an asynchronous `validate`: this
+  runs in synchronous parse code, and a Promise is a truthy object with no `issues`, so awaited
+  nowhere it would have passed as valid and been returned in place of the caller's data.
+  New exports: `SchemaSource`, `ToolInput`, `FunctionToolInput`, `StandardSchema`,
+  `StandardSchemaWithJson`, `isStandardSchema`, `isStandardSchemaWithJson`, `toJsonSchema`,
+  `validateStandardSchema`. `strictSupport` and `ensureAdditionalProperties` widened to take
+  either form, because they answer a question about a tool's DECLARED schema and a caller now
+  holds declarations whose schema is a Zod object -- making them convert it first would be
+  handing back work the library already does. A plain JSON Schema behaves exactly as before,
+  including not being re-validated locally.
+
+### Added
+
 - **Nowhere to put a correction made while a run was suspended.** A run stops at an approval
   gate; while the person is deciding, the user adds "use staging, not prod". `AgentLoop` now has
   `addInput()`, `pendingInput` and `clearPendingInput()`: staged input is admitted into history

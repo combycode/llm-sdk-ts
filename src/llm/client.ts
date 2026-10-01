@@ -62,10 +62,13 @@ import {
   extractSystem,
   normalizeInput,
   parseStructured,
+  toWireStructured,
+  toWireTools,
   resolveAdapter,
   resolveApi,
   type ClientRouting,
 } from './client-internal';
+import type { SchemaSource } from './types/standard-schema';
 import { InvalidFinalOutputError } from './output-errors';
 
 // ─── LLMClient ──────────────────────────────────────────────────────────
@@ -374,9 +377,12 @@ export class LLMClient {
       presencePenalty: options.presencePenalty,
       frequencyPenalty: options.frequencyPenalty,
       stop: options.stop,
-      tools: options.tools,
+      // Both schemas are converted HERE and nowhere else: a Standard Schema is a
+      // public input form, and everything past this line -- the wire specs, the
+      // adapters, the strict-mode checks -- reads a plain JSON Schema.
+      tools: toWireTools(options.tools),
       toolChoice: options.toolChoice,
-      structured: options.structured,
+      structured: toWireStructured(options.structured),
       thinking: options.thinking,
       cache: options.cache,
       serviceTier: options.serviceTier,
@@ -552,7 +558,7 @@ export class LLMClient {
    *  to T. Throws if the parse fails — callers should catch + retry. */
   async structuredComplete<T = unknown>(
     input: string | ContentPart[] | Message[],
-    schema: Record<string, unknown>,
+    schema: SchemaSource,
     options: ExecuteOptions = {},
   ): Promise<T> {
     const structured = { ...(options.structured ?? {}), schema };
@@ -565,7 +571,12 @@ export class LLMClient {
     for (let attempt = 0; ; attempt++) {
       const res = await this.complete(messages, { ...options, structured });
       try {
-        return parseStructured<T>(res.text);
+        // The schema travels to the parse as well as to the provider. For a
+        // Standard Schema the provider only ever saw the JSON Schema it converts
+        // to, so the refinements it carries are checked here or nowhere -- and a
+        // failure lands in the repair loop below, which is where a wrong value
+        // belongs.
+        return parseStructured<T>(res.text, schema);
       } catch (err) {
         if (!(err instanceof InvalidFinalOutputError) || attempt >= repairAttempts) throw err;
         messages.push(
@@ -607,7 +618,7 @@ export class LLMClient {
       presencePenalty: options.presencePenalty,
       frequencyPenalty: options.frequencyPenalty,
       stop: options.stop,
-      tools: options.tools,
+      tools: toWireTools(options.tools),
       toolChoice: options.toolChoice,
       thinking: options.thinking,
       cache: options.cache,

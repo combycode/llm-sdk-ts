@@ -1,14 +1,20 @@
 /** Shared JSON Schema utilities for provider-agnostic schema preprocessing. */
 
 import type { JsonSchema } from './tools';
+import type { SchemaSource } from './standard-schema';
+import { toJsonSchema } from './standard-schema';
 
 /**
  * Recursively ensure every object-typed schema has `additionalProperties: false`.
  * Required by OpenAI strict mode and Anthropic structured output — providers
  * reject schemas without this explicit flag. Safe across all providers.
  */
-export function ensureAdditionalProperties(schema: JsonSchema): JsonSchema {
-  const result: Record<string, unknown> = { ...schema };
+export function ensureAdditionalProperties(schema: SchemaSource): JsonSchema {
+  // A Standard Schema is converted first. These two helpers answer questions
+  // about a tool's DECLARED schema, and a caller now legitimately holds a
+  // declaration whose schema is a Zod/Valibot object -- making them convert it
+  // themselves would be handing back work this library already does.
+  const result: Record<string, unknown> = { ...toJsonSchema(schema) };
 
   if (result.type === 'object' && result.additionalProperties === undefined) {
     result.additionalProperties = false;
@@ -64,9 +70,10 @@ const ANTHROPIC_UNSUPPORTED = new Set([
  *  the schema to fit, promoting optional properties to required-and-nullable — changes
  *  what the tool actually receives, and the receiving end is the caller's code. */
 export function strictSupport(
-  schema: JsonSchema | undefined,
+  schema: SchemaSource | undefined,
   dialect: StrictDialect,
 ): { ok: boolean; reason?: string } {
+  const json = schema === undefined ? undefined : toJsonSchema(schema);
   const visit = (node: unknown, path: string): string | null => {
     if (!node || typeof node !== 'object' || Array.isArray(node)) return null;
     const n = node as Record<string, unknown>;
@@ -132,6 +139,6 @@ export function strictSupport(
     return null;
   };
 
-  const reason = visit(schema, '');
+  const reason = visit(json, '');
   return reason ? { ok: false, reason } : { ok: true };
 }

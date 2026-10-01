@@ -106,7 +106,27 @@ export type {
   Tool,
   ToolChoice,
   JsonSchema,
+  FunctionToolInput,
+  ToolInput,
 } from './llm/types/tools';
+// Standard Schema (`~standard`): accepted wherever a JSON Schema is, as a
+// protocol rather than a dependency -- the types are structural, so any
+// conforming library works and nothing is installed.
+export type {
+  SchemaSource,
+  StandardSchema,
+  StandardSchemaWithJson,
+  StandardSchemaIssue,
+  StandardSchemaResult,
+  StandardSchemaProps,
+  StandardJsonSchemaProps,
+} from './llm/types/standard-schema';
+export {
+  isStandardSchema,
+  isStandardSchemaWithJson,
+  toJsonSchema,
+  validateStandardSchema,
+} from './llm/types/standard-schema';
 export { emptyUsage } from './llm/types/response';
 export type {
   BuiltinToolCall,

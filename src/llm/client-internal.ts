@@ -9,6 +9,9 @@ import type { ContentPart, Message } from './types/messages';
 import type { ExecuteOptions } from './types/options';
 import type { ApiType, ProviderAdapter, ProviderName } from './types/provider';
 import type { CompletionResponse } from './types/response';
+import type { FunctionTool, FunctionToolInput, Tool, ToolInput } from './types/tools';
+import type { SchemaSource } from './types/standard-schema';
+import { isStandardSchema, toJsonSchema, validateStandardSchema } from './types/standard-schema';
 import { InvalidFinalOutputError } from './output-errors';
 
 export const PRIORITY_INTERACTIVE = 1;
@@ -81,20 +84,91 @@ function contentToText(content: ContentPart[]): string {
 }
 
 /** Strip leading/trailing markdown fences and JSON.parse. Exported so AgentLoop
- *  + helper can share the same parsing rules. */
-export function parseStructured<T>(text: string): T {
+ *  + helper can share the same parsing rules.
+ *
+ *  `schema` is optional and only does anything for a **Standard Schema**. A plain
+ *  JSON Schema has already done its work on the provider's side, where the model
+ *  was constrained by it; re-checking it here with a zero-dep validator would
+ *  mostly find places where we and the provider disagree.
+ *
+ *  A Standard Schema is a different thing. It carries semantics no JSON Schema
+ *  can express — refinements, branded types, cross-field rules — which the
+ *  provider therefore never enforced, and `validate` may TRANSFORM what it is
+ *  given. So its output, not the parsed object, is what the caller receives:
+ *  returning the parsed one would hand back a value that looks right and skipped
+ *  the schema's own work. */
+export function parseStructured<T>(text: string, schema?: SchemaSource): T {
   const stripped = text
     .trim()
     .replace(/^```(?:json)?\s*/i, '')
     .replace(/```\s*$/i, '')
     .trim();
+  let parsed: unknown;
   try {
-    return JSON.parse(stripped) as T;
+    parsed = JSON.parse(stripped);
   } catch (cause) {
     // Typed, differentiated failure — callers can `instanceof InvalidFinalOutputError`
     // and inspect `.rawText`, instead of catching a bare SyntaxError.
     throw new InvalidFinalOutputError(text, { cause });
   }
+  if (schema !== undefined && isStandardSchema(schema)) {
+    try {
+      return validateStandardSchema(schema, parsed) as T;
+    } catch (cause) {
+      // The SAME error as a parse failure, deliberately. Both mean "the final
+      // output did not match the requested schema", and that is what
+      // `structuredComplete`'s repair loop re-prompts on. A separate type here
+      // would have left the repair budget covering malformed JSON but not a
+      // value that parsed and was wrong — which is the case a repair helps with.
+      throw new InvalidFinalOutputError(text, { cause });
+    }
+  }
+  return parsed as T;
+}
+
+/** Tools as the wire needs them: a Standard Schema in a function tool's
+ *  `parameters` or `outputSchema`, converted to JSON Schema once, here.
+ *
+ *  Converting at the request boundary instead of widening the internal types is
+ *  the design. Everything downstream — the wire specs, the strict-mode checks,
+ *  the snapshots, every provider adapter — keeps reading a plain JSON Schema and
+ *  never learns this protocol exists. The array is rebuilt only when something
+ *  in it needs it, so the ordinary case allocates nothing. */
+export function toWireTools(tools: ToolInput[] | undefined): Tool[] | undefined {
+  // Nothing to convert: the declarations ARE normalized tools, and saying so
+  // costs a cast that `hasStandardSchema` has just ruled out for every entry.
+  if (!tools?.some(hasStandardSchema)) return tools as Tool[] | undefined;
+  return tools.map((tool) => {
+    if (!hasStandardSchema(tool)) return tool as Tool;
+    const next: FunctionTool = {
+      ...tool,
+      parameters: toJsonSchema(tool.parameters),
+      // The OUTPUT side: a transforming schema describes two different
+      // documents, and a tool's return value is the one it produces.
+      ...(tool.outputSchema !== undefined
+        ? { outputSchema: toJsonSchema(tool.outputSchema, 'output') }
+        : { outputSchema: undefined }),
+    };
+    if (next.outputSchema === undefined) delete next.outputSchema;
+    return next;
+  });
+}
+
+function hasStandardSchema(tool: ToolInput): tool is FunctionToolInput {
+  if (!('parameters' in tool)) return false;
+  const fn = tool as FunctionToolInput;
+  return isStandardSchema(fn.parameters) || isStandardSchema(fn.outputSchema);
+}
+
+/** A `structured` option with its schema converted for the wire. The return type
+ *  is the narrow one: past this point no Standard Schema remains. */
+export function toWireStructured<T extends { schema: SchemaSource }>(
+  structured: T | undefined,
+): (Omit<T, 'schema'> & { schema: Record<string, unknown> }) | undefined {
+  type Wire = Omit<T, 'schema'> & { schema: Record<string, unknown> };
+  if (!structured) return undefined;
+  if (!isStandardSchema(structured.schema)) return structured as Wire;
+  return { ...structured, schema: toJsonSchema(structured.schema) } as Wire;
 }
 
 /** The routing names `buildContext` needs from a client.

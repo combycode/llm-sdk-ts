@@ -223,7 +223,7 @@ export async function complete<T = unknown>(opts: CompleteOptions): Promise<Comp
       streamFile: (file) => llm.streamFile(file),
     };
     if (opts.structured?.schema) {
-      result.parsed = parseStructured<T>(res.text);
+      result.parsed = parseStructured<T>(res.text, opts.structured.schema);
     }
     return result;
   } finally {
