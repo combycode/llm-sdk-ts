@@ -4,6 +4,7 @@
  *  output items (not choices), function_call/function_call_output for tools. */
 
 import type { SSEEvent } from '../../../network/types';
+import { toOpenAIReasoningEffort } from './reasoning-effort';
 import type { ContentPart, Message, TextPart, ToolCaller } from '../../types/messages';
 import { buildFromSpec } from '../../../wire/interpreter';
 import { buildResponse } from '../../../wire/response-interpreter';
@@ -349,6 +350,27 @@ export class OpenAIResponsesAdapter implements ProviderAdapter {
   /** Reached through the wire registry while building the request. */
   buildInputItems(msg: Message, toolNames = new Map<string, string>()): unknown[] {
     const items: unknown[] = [];
+
+    // A configuration update is its own top-level item rather than content, and it
+    // goes FIRST. The API applies it to subsequent responses, so an update placed
+    // after the message it was meant to govern governs the next one instead -- and
+    // the caller would see their effort change take effect one turn late, which is
+    // not a failure anything reports.
+    //
+    // `id` is deliberately not echoed. It is the provider's id for the STORED item
+    // (`cnfu_...`); sending it back would be claiming to update an item that
+    // already exists, and the item carries no requirement to round-trip it (unlike
+    // `program_output`, which 400s without its id).
+    if (typeof msg.content !== 'string') {
+      for (const p of msg.content) {
+        if (p.type === 'configuration_update') {
+          items.push({
+            type: 'configuration_update',
+            reasoning: { effort: toOpenAIReasoningEffort(p.reasoning.effort) },
+          });
+        }
+      }
+    }
 
     if (msg.role === 'user' || msg.role === 'system') {
       // Simple text

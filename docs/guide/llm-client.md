@@ -306,6 +306,62 @@ a catalog entry before callers can use it — and until then they get a warning,
 
 (OpenAI's Responses-only execution mode `standard`/`pro` is `providerOptions.reasoningMode` — see below.)
 
+#### Changing the effort for the REST of a stored conversation
+
+`thinking.effort` applies to the request it is on. On a conversation the server is
+holding there is a second thing you may want: *from here on, think this hard*. That
+is a `configuration_update` content part.
+
+```ts
+await llm.complete(
+  [
+    {
+      role: 'user',
+      content: [
+        { type: 'configuration_update', reasoning: { effort: 'none' } },
+        { type: 'text', text: 'Just give me the number.' },
+      ],
+    },
+  ],
+  { providerOptions: { openai: { conversation: conversationId } } },
+);
+// Every later turn on this conversation inherits `effort: 'none'` until another
+// update replaces it.
+```
+
+The part is emitted as its own top-level item, **before** the message it travels
+with: the API applies an update to *subsequent* responses, so one placed after the
+message it was meant to govern governs the next one instead — a change that takes
+effect a turn late, with nothing reporting it.
+
+**Why this is not the same as the option.** Measured on `gpt-5.6-luna` on
+2026-10-01, three runs per arm, setting the effort in turn 1 and naming nothing in
+turn 2:
+
+| turn 1 set the effort via | turn 2 reasoning tokens |
+|---|---|
+| `configuration_update` | 0, 0, 0 |
+| `thinking.effort` | 244, 189, 172 |
+| nothing at all | 155, 129, 198 |
+
+The option does not persist and the item does. There is no other way to say it.
+
+**Support is narrow.** `gpt-5.6-sol` and `gpt-5.6-luna` accept the item;
+`gpt-5.4`, `gpt-5.4-nano` and `gpt-5.5` answer
+`400 The 'configuration_update' item type is not supported with this model`. Every
+non-OpenAI provider ignores the part.
+
+`effort` takes the unified ladder plus `none` and `minimal`, which OpenAI's item
+accepts and the unified ladder does not yet carry — `none` being the value that
+demonstrates the feature at all. `max` is mapped to `xhigh`, the same as
+everywhere else, so the word means one thing across the whole surface. `minimal`
+is model-dependent even within OpenAI: `gpt-5.6-luna` takes it, `gpt-5.6-sol`
+answers 400 naming the values it does take.
+
+One shape note, because the official SDK's types disagree: `reasoning` and
+`reasoning.effort` are both **required**, and `effort: null` is refused. Measured;
+`openai-ts` types all three as optional or nullable.
+
 ### Provider-specific options (`providerOptions`)
 
 `providerOptions` is a passthrough for provider features that have no unified equivalent. Each adapter

@@ -151,6 +151,26 @@ export const OPENAI_RESPONSES_REGISTRY: Registry = {
       };
     },
 
+    /** A stored configuration update, if one ever arrives in `response.output`.
+     *
+     *  Measured 2026-10-01 it does NOT: four turns that set one on `gpt-5.6-sol`
+     *  and `gpt-5.6-luna` returned `output: [message]` every time, and the item
+     *  was found only through `GET /v1/conversations/{id}/items`. It is parsed
+     *  anyway because OpenAI's own types put it in the output union, and the cost
+     *  of being wrong runs one way: dropping a configuration item from history
+     *  would silently revert the effort on the next turn, which is a change in
+     *  how much the model thinks with nothing to point at. */
+    oaiRespConfigurationUpdate: (_arg: unknown, ctx: Ctx) => {
+      const item = itemOf(ctx);
+      const effort = (item.reasoning as { effort?: unknown } | undefined)?.effort;
+      if (typeof effort !== 'string') return undefined;
+      return {
+        type: 'configuration_update',
+        reasoning: { effort },
+        ...(typeof item.id === 'string' ? { id: item.id } : {}),
+      };
+    },
+
     oaiRespProgramResult: (_arg: unknown, ctx: Ctx) => {
       const item = itemOf(ctx);
       return {
