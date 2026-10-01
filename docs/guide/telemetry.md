@@ -305,13 +305,17 @@ saves you writing a bespoke mapping per backend:
 | `gen_ai.request.model` | the model you asked for |
 | `gen_ai.response.model` | the model that answered -- an alias can resolve to a dated snapshot |
 | `gen_ai.conversation.id` | the agent's history id; absent for a bare client call |
-| `gen_ai.usage.input_tokens` / `output_tokens` | reported usage |
+| `gen_ai.usage.input_tokens` / `output_tokens` | reported usage. On a **chat** span, that call. On an **agent** span, the whole invocation -- every call the run made, including a run that failed |
 | `gen_ai.agent.id` | the agent that ran |
+| `gen_ai.agent.name` | its label, on the agent span **and on the tool spans beneath it** -- so tool calls group by the same name the agent does rather than by an opaque id. Absent when the run was given no label |
 | `gen_ai.tool.name` / `gen_ai.tool.call.id` | the tool that ran, and the call it answered |
 
 Exported span names follow from the operation: `chat {model}`, `execute_tool {name}`, and
-`invoke_agent` -- bare, because the SDK has agent IDs rather than human names and the convention
-only asks for the subject when one is readily available.
+`invoke_agent {label}` when the run was labelled -- bare otherwise.
+
+**Per-run cost.** `gen_ai.usage.*` on the agent span is the sum over the run, so "what did this
+invocation spend" is one attribute rather than a sum over the children. The process-wide counters in
+`snapshot().metrics` still answer the different question of how much has been spent overall.
 
 Internally the spans stay `llm.request`, `agent.run` and `tool.call`: `snapshot()` is unchanged,
 and that is what the sandbox sidebar groups by. These conventions are still marked *Development*

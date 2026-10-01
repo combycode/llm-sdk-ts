@@ -579,6 +579,14 @@ export class TelemetryAdapter {
         if (usage) {
           this.metrics.inputTokens += usage.inputTokens ?? 0;
           this.metrics.outputTokens += usage.outputTokens ?? 0;
+          // Also against THIS run, so the agent span can report what the whole
+          // invocation cost. Process totals answer "how much today"; a caller
+          // looking at one trace wants "how much did this run spend", and that
+          // number was not on any span -- it had to be summed by hand from the
+          // chat spans underneath.
+          // Keyed by TRACE, not run id: `RequestContext` carries no run id, and
+          // the agent span and the llm spans beneath it already share a trace.
+          this.addRunUsage(traceId, usage);
         }
         if (traceId) {
           // OTel GenAI semantic conventions. `gen_ai.provider.name` and
@@ -733,6 +741,7 @@ export class TelemetryAdapter {
         if (runId) {
           this.closeSpan(`agent:${runId}`, event.ctx.reason === 'error' ? 'error' : 'ok', {
             'agent.reason': event.ctx.reason,
+            ...this.runUsageAttrs(runId),
           });
         }
         break;
@@ -740,9 +749,12 @@ export class TelemetryAdapter {
       case 'onRunError': {
         const runId = event.ctx.runId;
         if (runId) {
+          // A failed run still spent tokens, and that is exactly when someone
+          // wants to know how many.
           this.closeSpan(`agent:${runId}`, 'error', {
             'agent.phase': event.ctx.phase,
             'agent.error': event.ctx.error?.message,
+            ...this.runUsageAttrs(runId),
           });
         }
         break;
@@ -758,6 +770,13 @@ export class TelemetryAdapter {
             'gen_ai.tool.name': event.ctx.toolName,
             'gen_ai.tool.call.id': callId,
             'gen_ai.agent.id': event.ctx.agentId,
+            // The agent's NAME, not just its id. Read back off the run's own
+            // span instead of threaded through `ToolCallStartContext`: the
+            // adapter already holds that span, and widening a public hook
+            // context to carry a label only telemetry wants is a worse trade.
+            // Without it a backend groups tool spans by an opaque id while the
+            // agent spans beside them are named.
+            'gen_ai.agent.name': this.agentNameFor(event.ctx.runId),
           });
         }
         break;
@@ -863,6 +882,37 @@ export class TelemetryAdapter {
   private parentFor(traceId: string): string | undefined {
     const stack = this.containers.get(traceId);
     return stack?.[stack.length - 1] ?? this.appParent.get(traceId);
+  }
+
+  /** Tokens spent per agent run, keyed by trace, for the agent span to
+   *  report when it closes. */
+  private readonly runUsage = new Map<string, { input: number; output: number }>();
+
+  private addRunUsage(trace: string | undefined, usage: { inputTokens?: number; outputTokens?: number }): void {
+    if (!trace) return;
+    const acc = this.runUsage.get(trace) ?? { input: 0, output: 0 };
+    acc.input += usage.inputTokens ?? 0;
+    acc.output += usage.outputTokens ?? 0;
+    this.runUsage.set(trace, acc);
+  }
+
+  /** The run's totals, and forget them -- a long-lived process must not grow a
+   *  map entry per run for the life of the process. */
+  private runUsageAttrs(runId: string): Record<string, number> {
+    const trace = this.open.get(`agent:${runId}`)?.traceId;
+    const acc = trace ? this.runUsage.get(trace) : undefined;
+    if (!acc || !trace) return {};
+    this.runUsage.delete(trace);
+    return {
+      'gen_ai.usage.input_tokens': acc.input,
+      'gen_ai.usage.output_tokens': acc.output,
+    };
+  }
+
+  /** The label the run was opened with, if it had one. */
+  private agentNameFor(runId: string | undefined): unknown {
+    if (!runId) return undefined;
+    return this.open.get(`agent:${runId}`)?.attributes['gen_ai.agent.name'];
   }
 
   private openSpan(
