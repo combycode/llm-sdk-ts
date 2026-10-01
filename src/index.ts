@@ -116,6 +116,7 @@ export type {
   JsonSchema,
   FunctionToolInput,
   ToolInput,
+  ImageGenerationToolParams,
 } from './llm/types/tools';
 // Standard Schema (`~standard`): accepted wherever a JSON Schema is, as a
 // protocol rather than a dependency -- the types are structural, so any

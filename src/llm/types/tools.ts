@@ -31,6 +31,39 @@ export interface BuiltinTool {
   params?: Record<string, unknown>;
 }
 
+/** Typed shape for an `image_generation` builtin's `params`. Editor help over a
+ *  verbatim passthrough -- the adapter spreads `params` as siblings of `type`, so
+ *  an option a provider adds tomorrow works today.
+ *
+ *  Supported on **openai** and **xai**, measured live 2026-10-01 through this
+ *  library on `gpt-5.6-sol`, `gpt-5.4-nano`, `grok-4.6`, `grok-4.5` and
+ *  `grok-4.3`: each returned an image on `response.media`.
+ *
+ *  One shape note worth knowing before reading `mimeType`: OpenAI reports
+ *  `output_format` and reports it accurately, while xAI returns JPEG bytes and no
+ *  format at all. The adapter therefore prefers the declared format, falls back to
+ *  the image's own magic bytes, and only then to PNG -- so an xAI image is labeled
+ *  `image/jpeg` rather than mislabeled `image/png`. */
+export interface ImageGenerationToolParams {
+  /** xAI: what the model may do with the tool. `auto` lets it choose, `generate`
+   *  makes a new image, `edit` changes a supplied one.
+   *
+   *  Validated rather than inert -- `action: 'paint'` is a 400 naming the three
+   *  values (measured 2026-10-01). Note `edit` with nothing to edit returns no
+   *  image at all, which is a 200 with a text-only answer. */
+  action?: 'auto' | 'generate' | 'edit' | (string & {});
+  /** OpenAI: the encoding to return. Reported back on the item, which is why an
+   *  OpenAI image's `mimeType` is the provider's word and an xAI image's is
+   *  sniffed. */
+  output_format?: 'png' | 'jpeg' | 'webp' | (string & {});
+  /** OpenAI: rendering quality / size / background, forwarded verbatim. */
+  quality?: string;
+  size?: string;
+  background?: string;
+  /** Anything else the provider accepts, forwarded as given. */
+  [key: string]: unknown;
+}
+
 /** Typed shape for a `web_search` builtin's `params` (OpenAI Responses). Like
  *  `McpToolParams` this is editor help over a verbatim passthrough -- the
  *  adapter forwards `params` as given -- so an option OpenAI adds tomorrow

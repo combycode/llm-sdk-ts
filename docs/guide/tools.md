@@ -351,6 +351,40 @@ The payload is normalized across providers and present on both `complete()` and 
 `tool_call_*` (a function call the client must execute), the provider runs these itself. Use them
 to show a "🔎 Searching: <query>" / "⚙️ Running code" panel with the actual code and output.
 
+### Generating an image mid-conversation (`image_generation`)
+
+```ts
+const res = await llm.complete('Draw a red circle on white.', {
+  tools: [{ type: 'image_generation', params: { action: 'generate' } }],
+});
+const image = res.media[0];           // { type: 'image_output', mimeType, ... }
+```
+
+Supported on **openai** and **xai** — measured live on 2026-10-01 through this
+library (`gpt-5.6-sol`, `gpt-5.4-nano`, `grok-4.6`, `grok-4.5`, `grok-4.3` all
+returned an image on `response.media`). `catalog.supportsBuiltinTool(provider,
+model, 'image_generation')` now says so; it used to answer `false` for both
+providers, including OpenAI where the tool has always worked, so a caller gating
+on the catalog refused itself.
+
+`params` is a verbatim passthrough spread beside `type`, with
+`ImageGenerationToolParams` for editor help:
+
+- **xAI** takes `action: 'auto' | 'generate' | 'edit'`. It is validated, not inert
+  — `action: 'paint'` is a 400 naming the three. `edit` with nothing to edit
+  returns no image at all: a 200 with a text-only answer.
+- **OpenAI** takes `output_format`, `quality`, `size`, `background`.
+
+**On `mimeType`.** OpenAI reports `output_format` and reports it accurately (ask
+for `jpeg`, get JPEG bytes). xAI reports none and returns JPEG. So the parser
+prefers the declared format, falls back to the image's own magic bytes, and only
+then to PNG — an xAI image is labeled `image/jpeg` rather than mislabeled
+`image/png`. That matters past cosmetics: a file written from a wrong `mimeType`
+gets the wrong extension, and a strict validator downstream (Google Veo compares
+the declared mime against the bytes) answers 400. A provider that *does* declare a
+format is believed even if the bytes disagree — second-guessing it would only move
+the question to which of two wrong answers to trust.
+
 ### Image results from `web_search` (OpenAI)
 
 Two halves, and only one of them is a parameter you set:

@@ -11,6 +11,8 @@ import {
   fromWireCaller,
   openaiResponsesUsage,
 } from './responses';
+import { base64ToBytes } from '../../../util/base64';
+import { sniffImageMime } from '../../../util/image-mime';
 import { openaiBilledTier } from './tiers';
 import { openaiCacheDiagnostics } from '../../cache-diagnostics';
 import { parseNativeModeration } from '../../moderation/native';
@@ -188,10 +190,20 @@ export const OPENAI_RESPONSES_REGISTRY: Registry = {
       const data = item.result as string;
       if (!data) return undefined;
       const fmt = item.output_format as string;
+      const declared =
+        fmt === 'jpeg' ? 'image/jpeg' : fmt === 'webp' ? 'image/webp' : fmt === 'png' ? 'image/png' : undefined;
       return {
         type: 'image_output',
         mediaId: '',
-        mimeType: fmt === 'jpeg' ? 'image/jpeg' : fmt === 'webp' ? 'image/webp' : 'image/png',
+        // The provider's own word first; its BYTES second; PNG only when neither
+        // says. The default alone was wrong for xAI, which returns JPEG from the
+        // `image_generation` chat tool and no `output_format` at all (measured
+        // 2026-10-01) -- so every generated image came back labeled `image/png`
+        // with JPEG inside it. A caller writing the file gets the wrong extension,
+        // and a strict validator downstream (Google Veo compares the declared mime
+        // against the bytes) answers 400. The same correction already existed one
+        // layer over, for xAI's image API; this path had been left out of it.
+        mimeType: declared ?? sniffImageMime(base64ToBytes(data.slice(0, 16))) ?? 'image/png',
         revisedPrompt: item.revised_prompt as string | undefined,
         _data: data,
       };
