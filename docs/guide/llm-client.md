@@ -93,6 +93,35 @@ try {
 }
 ```
 
+#### Checking the result yourself — `structured.validate`
+
+The provider enforced the schema, so this is off by default. Turn it on where that
+enforcement is weaker than the schema: a surface with no strict mode, a model that
+ignores the schema under load, a `required` the provider treats as advisory.
+
+```ts
+await llm.structuredComplete('Weather in Paris as JSON.', schema, {
+  structured: { schema, validate: true, repairAttempts: 2 },
+});
+```
+
+A validation failure raises the same `InvalidFinalOutputError` as a parse failure,
+so **one `repairAttempts` budget covers both** — and the re-prompt carries the
+errors, which is what makes the retry better than a re-roll. A value that parsed
+and was wrong is precisely the case re-prompting helps with; a separate error type
+would have left the budget covering malformed JSON and not that.
+
+It is opt-in for an honest reason, not caution: the bundled validator covers the
+common JSON Schema keywords and not all of Draft 2020-12 (no `allOf`/`anyOf`, no
+formats). On by default it would reject values that are valid under a schema it
+cannot fully read, and disagree with the provider that had just enforced it. Every
+error is reported, each with its path, because one error per round trip is a round
+trip per mistake.
+
+A **Standard Schema** validates through its own `validate` whether or not this flag
+is set — it carries refinements the provider never saw, so there is nothing to
+trust it with.
+
 ### Standard Schema — pass the schema you already have
 
 Anywhere this library takes a JSON Schema it also takes a **Standard Schema**: any

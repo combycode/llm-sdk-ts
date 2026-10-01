@@ -16,6 +16,7 @@
  *  before returning so callers don't leak. */
 
 import type { AgentTool } from '../agent/types';
+import type { SchemaSource } from '../llm/types/standard-schema';
 import type { CacheConfig, ProviderOptions, ThinkingConfig } from '../llm/types/request';
 import { AgentLoop } from '../agent/loop';
 import { parseStructured } from '../llm/client-internal';
@@ -72,7 +73,10 @@ export interface CompleteOptions {
   /** Best-effort deterministic sampling. Dropped on Anthropic, which has no seed.
    *  Determinism is never guaranteed. */
   seed?: number;
-  structured?: { schema: Record<string, unknown>; name?: string };
+  /** `schema` takes a JSON Schema or any Standard Schema, exactly as
+   *  `client.complete` does -- this helper declared its own narrower shape, so the
+   *  second form was accepted everywhere the docs said it was EXCEPT here. */
+  structured?: { schema: SchemaSource; name?: string; validate?: boolean };
 
   /** Output audio controls (voice/format) for audio-capable models. */
   audio?: AudioOptions;
@@ -223,7 +227,9 @@ export async function complete<T = unknown>(opts: CompleteOptions): Promise<Comp
       streamFile: (file) => llm.streamFile(file),
     };
     if (opts.structured?.schema) {
-      result.parsed = parseStructured<T>(res.text, opts.structured.schema);
+      result.parsed = parseStructured<T>(res.text, opts.structured.schema, {
+        validate: opts.structured.validate,
+      });
     }
     return result;
   } finally {

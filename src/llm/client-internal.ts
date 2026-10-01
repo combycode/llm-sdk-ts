@@ -12,6 +12,7 @@ import type { CompletionResponse } from './types/response';
 import type { FunctionTool, FunctionToolInput, Tool, ToolInput } from './types/tools';
 import type { SchemaSource } from './types/standard-schema';
 import { isStandardSchema, toJsonSchema, validateStandardSchema } from './types/standard-schema';
+import { validateJsonSchema } from '../util/json-schema';
 import { InvalidFinalOutputError } from './output-errors';
 
 export const PRIORITY_INTERACTIVE = 1;
@@ -97,7 +98,11 @@ function contentToText(content: ContentPart[]): string {
  *  given. So its output, not the parsed object, is what the caller receives:
  *  returning the parsed one would hand back a value that looks right and skipped
  *  the schema's own work. */
-export function parseStructured<T>(text: string, schema?: SchemaSource): T {
+export function parseStructured<T>(
+  text: string,
+  schema?: SchemaSource,
+  options?: { validate?: boolean },
+): T {
   const stripped = text
     .trim()
     .replace(/^```(?:json)?\s*/i, '')
@@ -110,6 +115,24 @@ export function parseStructured<T>(text: string, schema?: SchemaSource): T {
     // Typed, differentiated failure — callers can `instanceof InvalidFinalOutputError`
     // and inspect `.rawText`, instead of catching a bare SyntaxError.
     throw new InvalidFinalOutputError(text, { cause });
+  }
+  if (schema !== undefined && !isStandardSchema(schema) && options?.validate) {
+    // A plain JSON Schema, checked on request. The provider already enforced it,
+    // so this is for the cases where that enforcement is weaker than the schema:
+    // a surface with no strict mode, a model ignoring the schema under load, a
+    // `required` the provider treats as advisory.
+    //
+    // Opt-in because the bundled validator reads a subset of Draft 2020-12 --
+    // always-on it would reject responses that are valid under a schema it cannot
+    // fully read, and disagree with the provider that had just enforced it.
+    const errors = validateJsonSchema(schema, parsed);
+    if (errors.length > 0) {
+      // The same error as a parse failure, so one `repairAttempts` budget covers
+      // both: a value that parsed and was wrong is the case re-prompting helps
+      // with, and the message the model is re-prompted with has to say WHAT was
+      // wrong, which is why every error is listed rather than just the first.
+      throw new InvalidFinalOutputError(text, { cause: new Error(errors.join('; ')) });
+    }
   }
   if (schema !== undefined && isStandardSchema(schema)) {
     try {

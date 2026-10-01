@@ -78,10 +78,31 @@ export interface ExecuteOptions {
     schema: SchemaSource;
     name?: string;
     strict?: boolean;
-    /** Opt-in repair: if the model's final output fails to parse, re-prompt this
-     *  many times with the parse error before throwing `InvalidFinalOutputError`.
-     *  Default 0 (throw immediately). Honoured by `LLMClient.structuredComplete`. */
+    /** Opt-in repair: if the model's final output fails to parse OR fails
+     *  validation, re-prompt this many times with the error before throwing
+     *  `InvalidFinalOutputError`. Default 0 (throw immediately). Honoured by
+     *  `LLMClient.structuredComplete`. */
     repairAttempts?: number;
+    /** Check the parsed result against the schema, instead of trusting that the
+     *  provider enforced it. Default `false`.
+     *
+     *  Opt-in, and the reason is the honest one: the bundled validator covers the
+     *  common JSON Schema keywords, not all of Draft 2020-12 (no `allOf`/`anyOf`,
+     *  no formats), so on by default it would reject responses that are valid
+     *  under a schema it cannot fully read -- disagreeing with the provider that
+     *  just enforced it.
+     *
+     *  Worth turning on where the provider's enforcement is weaker than the
+     *  schema: a surface with no strict mode, a model that ignores the schema
+     *  under load, or a schema whose `required` the provider treats as advisory.
+     *  Validation errors go through the same `repairAttempts` budget as a parse
+     *  failure, because a value that parsed and was wrong is exactly what
+     *  re-prompting helps with.
+     *
+     *  A **Standard Schema** validates through its OWN `validate` regardless of
+     *  this flag: it carries refinements the provider never saw, so there is
+     *  nothing to trust it with. See `SchemaSource`. */
+    validate?: boolean;
   };
 
   // Audio output (voice/format) + which modalities to return. Default ['text'].

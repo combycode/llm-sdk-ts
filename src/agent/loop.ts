@@ -31,6 +31,9 @@ import {
 } from '../llm/types/response';
 import type { FileStream, RetrievedFile } from '../llm/files/retrieve';
 import type { LLMClient } from '../llm/client';
+import { validateJsonSchema } from '../util/json-schema';
+import { isFunctionTool } from '../llm/types/tools';
+import { toJsonSchema } from '../llm/types/standard-schema';
 import { clientChain, completeWithFallback, streamWithFallback } from './fallback';
 import type { FallbackRun } from './fallback';
 import type { SchemaSource } from '../llm/types/standard-schema';
@@ -133,6 +136,9 @@ export class AgentLoop {
   private readonly _clientChain: LLMClient[];
   private readonly _fallbackOn: readonly import('../network/errors').ErrorKind[] | undefined;
 
+  /** Opt-in: check a tool call's arguments against its own schema before running it. */
+  private readonly _validateToolArguments: boolean;
+
 
   private _running = false;
   private _stopRequested = false;
@@ -146,6 +152,7 @@ export class AgentLoop {
     this.client = config.client;
     this._clientChain = clientChain(config.client, config.fallbackClients);
     this._fallbackOn = config.fallbackOn;
+    this._validateToolArguments = config.validateToolArguments ?? false;
     this.hooks = config.hooks ?? new HookBus();
     if (typeof config.system === 'function') {
       this._systemThunk = config.system;
@@ -759,7 +766,7 @@ export class AgentLoop {
     });
     // The schema is handed to the parse too: a Standard Schema's refinements
     // never reached the provider, which only saw the JSON Schema they convert to.
-    return parseStructuredText<T>(res.text, schema);
+    return parseStructuredText<T>(res.text, schema, { validate: options.structured?.validate });
   }
 
   // ─── stream ─────────────────────────────────────────────────────────────
@@ -1119,6 +1126,44 @@ export class AgentLoop {
       });
       if (!decision.pass) {
         return this.buildDeniedResult(tc, decision.reason, reports);
+      }
+    }
+
+    // ─── Argument validation (opt-in) ────────────────────────────────────
+    // The model's arguments against the schema it was given. Opt-in, and the
+    // reason is the honest one: the validator here covers the common keywords,
+    // not all of Draft 2020-12 (no allOf/anyOf, no formats), so validating by
+    // default would refuse calls that are valid under a schema we cannot fully
+    // read. A provider's own strict mode is the better guarantee where it is
+    // available -- this is for the models and surfaces where it is not.
+    //
+    // A failure is a tool RESULT carrying the errors, not an exception: the model
+    // asked for something its schema forbids, and that is a thing it can fix on
+    // the next step. Ending the run would discard every step before it over a
+    // mistake the model usually corrects when told. The bound is `maxSteps`, the
+    // loop's existing one -- a second retry budget for this would be a second
+    // number to tune and the same answer.
+    const definition = lookup.tool.definition;
+    if (this._validateToolArguments && isFunctionTool(definition)) {
+      const errors = validateJsonSchema(toJsonSchema(definition.parameters), tc.arguments);
+      if (errors.length > 0) {
+        await this.hooks.emit('onWarning', {
+          source: 'agent',
+          code: 'tool_arguments_invalid',
+          message:
+            `Tool "${tc.name}" was called with arguments its schema rejects: ` +
+            `${errors.join('; ')}. The errors were returned to the model.`,
+          details: { toolName: tc.name, callId: tc.id, errors },
+        });
+        return this.buildDeniedResult(
+          tc,
+          // Addressed to the MODEL, so it says what to do rather than only what
+          // went wrong. A bare validator message reads as an internal error and
+          // models respond to it by apologising instead of re-calling.
+          `Invalid arguments for "${tc.name}": ${errors.join('; ')}. ` +
+            'Call the tool again with arguments matching its schema.',
+          reports,
+        );
       }
     }
 

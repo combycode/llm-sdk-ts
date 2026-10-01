@@ -33,6 +33,25 @@ export interface AgentLoopConfig {
    *  request is made. Each step's report and span name whoever actually served. */
   fallbackClients?: LLMClient[];
 
+  /** Check a tool call's arguments against the tool's own schema BEFORE running
+   *  it, and return the errors to the model instead of executing. Default `false`.
+   *
+   *  Opt-in, and the reason is the honest one: the bundled validator covers the
+   *  common JSON Schema keywords, not all of Draft 2020-12 (no `allOf`/`anyOf`, no
+   *  formats). On by default it would refuse calls that are valid under a schema
+   *  it cannot fully read. Where a provider's own strict mode is available that is
+   *  the better guarantee; this is for the models and surfaces where it is not,
+   *  and for schemas strict mode cannot express.
+   *
+   *  A failure is a tool RESULT carrying the errors, not an exception: the model
+   *  asked for something its schema forbids, which is a thing it can fix on the
+   *  next step, and ending the run would discard every step before it. The bound
+   *  is `maxSteps` -- the loop's existing one, rather than a second budget to tune
+   *  that would give the same answer. An `onWarning` with code
+   *  `tool_arguments_invalid` fires each time, so the loop is visible if the model
+   *  never gets it right. */
+  validateToolArguments?: boolean;
+
   /** Which failure classes move to the next client. Defaults to the set `route()`
    *  uses, which excludes the ones a different model cannot fix: auth, a
    *  malformed request, a content filter, a prompt that is simply too long. */

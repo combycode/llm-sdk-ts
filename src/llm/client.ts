@@ -576,7 +576,7 @@ export class LLMClient {
         // to, so the refinements it carries are checked here or nowhere -- and a
         // failure lands in the repair loop below, which is where a wrong value
         // belongs.
-        return parseStructured<T>(res.text, schema);
+        return parseStructured<T>(res.text, schema, { validate: structured.validate });
       } catch (err) {
         if (!(err instanceof InvalidFinalOutputError) || attempt >= repairAttempts) throw err;
         messages.push(

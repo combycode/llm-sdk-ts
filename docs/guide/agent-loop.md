@@ -303,6 +303,41 @@ that rely on a deliberate override) but emits an `onWarning` with code `tool_nam
 which tool lost. `toolNameCollisionPolicy: 'error'` throws at construction instead, before the model
 is ever called.
 
+## Checking tool arguments (`validateToolArguments`)
+
+```ts
+const agent = new AgentLoop({ client, tools, validateToolArguments: true });
+```
+
+Checks a tool call's arguments against that tool's own `parameters` schema before
+running it. On a failure the tool is **not** executed and the errors go back to the
+model as the tool's result:
+
+```
+Invalid arguments for "lookup": $.city: expected string, got number.
+Call the tool again with arguments matching its schema.
+```
+
+That shape is deliberate on both counts. It is a **result, not an exception**,
+because the model asked for something its own schema forbids — a thing it can fix
+on the next step — and ending the run would discard every step before it over a
+mistake the model usually corrects when told. And it says what to **do**: a bare
+validator message reads as an internal error, which models answer by apologising
+rather than by re-calling the tool.
+
+The bound is `maxSteps`, the loop's existing one, rather than a second retry budget
+to tune that would give the same answer. Each refusal emits `onWarning` with code
+`tool_arguments_invalid`, so a model that never gets it right is visible instead of
+quietly eating the step budget.
+
+Off by default for the same honest reason as `structured.validate`: the bundled
+validator reads the common JSON Schema keywords, not all of Draft 2020-12, so on by
+default it would refuse calls that are valid under a schema it cannot fully read.
+Where a provider's own strict mode is available that is the better guarantee — this
+is for the models and surfaces where it is not, and for schemas strict mode cannot
+express. A builtin tool (`{ type: 'web_search' }`) has no `parameters` and is left
+alone.
+
 ## Backup models (`fallbackClients`)
 
 `route()` falls over between models for a one-shot `complete()`. A run is where it
