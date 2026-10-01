@@ -356,6 +356,7 @@ const restored: AgentLoop = AgentLoop.restore(snap, {
 | `createdAt` | Timestamp when the `ConversationHistory` was created. |
 | `savedAt` | Timestamp of this snapshot. |
 | `pendingToolCalls?` | Present when the loop was suspended. Each entry has `callId`, `toolName`, `arguments`, `step`, `requestedAt`, `runId`. |
+| `pendingInput?` | Messages staged with `addInput()` and not yet admitted. Present only when something is staged. |
 
 ### `pendingApprovals` and `resumeWithApproval()`
 
@@ -375,6 +376,46 @@ without invoking the `approve` callback.
 
 If the `callId` is not in `pendingApprovals`, a warning is emitted on
 `onWarning` with code `'approval_callid_not_found'` and the call is a no-op.
+
+### `addInput()` — saying something more to a suspended run
+
+A run stops at an approval gate. While the person is deciding, the user adds a
+correction — *"use staging, not prod"*. `addInput()` is where it goes:
+
+```ts
+agent.addInput(input: string | ContentPart[] | Message[]): void
+agent.pendingInput: readonly Message[]   // staged, in the order added
+agent.clearPendingInput(): void          // they thought better of it
+```
+
+Staged input is admitted into history **immediately before the next run's first
+model call, after that run's own input**, and the staging is cleared as it goes
+in. It is carried in the snapshot (`pendingInput`), so a restart between the
+gate and the resume does not lose it.
+
+Both of those are the point rather than details:
+
+- **Last, not first.** Appending the correction to history yourself lands it
+  before `repairUnansweredToolCalls()`, the gate every run passes through — so
+  the model reads the new instruction and *then* a tool result. An instruction
+  that arrives ahead of the thing it corrects is not read as a correction.
+- **In the snapshot.** The staged message exists nowhere else. A dropped
+  approval can be asked for again; a sentence the user typed once is gone.
+
+`addInput()` throws if a run is in flight: that run's input was admitted when it
+started, so staging now would reach the *next* run — not the one the caller is
+watching. Stage before the run, or after it ends.
+
+```ts
+// A gate suspended the run; the user adds something while you wait.
+agent.addInput('use staging, not prod');
+await persistence.save(agent.dump());   // the correction travels with it
+
+// ...new process...
+const resumed = AgentLoop.restore(snapshot, { client, tools, policy, approve });
+resumed.resumeWithApproval(callId, { decision: 'approve' });
+await resumed.complete(originalMessage);  // model sees: original, then the correction
+```
 
 ## Observability hooks
 

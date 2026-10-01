@@ -195,6 +195,11 @@ export interface AgentLoopSnapshot {
   /** Tool calls suspended awaiting human approval. Present when the loop was
    *  checkpointed at an approval gate. Empty or absent otherwise. */
   pendingToolCalls?: PendingToolCall[];
+  /** User input staged with `addInput()` and not yet admitted -- normalized to
+   *  messages so it survives serialization. Admitted immediately before the next
+   *  run's first model call, after that run's own input. Absent when none is
+   *  staged, which is the usual case. */
+  pendingInput?: Message[];
 }
 
 export type { PendingToolCall };

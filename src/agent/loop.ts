@@ -122,6 +122,9 @@ export class AgentLoop {
   /** Tool calls suspended awaiting human approval (populated during a durable pause). */
   private _pendingToolCalls: PendingToolCall[] = [];
 
+  /** User input staged by `addInput()`, waiting for the next model call. */
+  private _pendingInput: Message[] = [];
+
   private _running = false;
   private _stopRequested = false;
   private _abortController: AbortController | null = null;
@@ -1640,12 +1643,15 @@ export class AgentLoop {
     this.repairUnansweredToolCalls();
 
     // Append (NOT replace). For Message[], append each; for string/ContentPart[], wrap as user.
-    if (typeof input === 'string') {
-      this._history.append({ role: 'user', content: input });
-    } else if (Array.isArray(input) && input.length > 0 && 'role' in input[0]) {
-      for (const m of input as Message[]) this._history.append(m);
-    } else {
-      this._history.append({ role: 'user', content: input as ContentPart[] });
+    for (const m of inputMessages(input)) this._history.append(m);
+
+    // Staged input goes in LAST, after the run's own. A correction made while the
+    // run was suspended ("use staging, not prod") has to sit after the message it
+    // corrects to be read as one. Cleared on admission: it is the transcript now,
+    // and a second run must not say it again.
+    if (this._pendingInput.length > 0) {
+      for (const m of this._pendingInput) this._history.append(m);
+      this._pendingInput = [];
     }
 
     return { runId, startedAt, startPerf, userMessageText, runTrace };
@@ -1786,6 +1792,9 @@ export class AgentLoop {
     if (this._pendingToolCalls.length > 0) {
       snap.pendingToolCalls = [...this._pendingToolCalls];
     }
+    if (this._pendingInput.length > 0) {
+      snap.pendingInput = [...this._pendingInput];
+    }
     return snap;
   }
 
@@ -1815,6 +1824,7 @@ export class AgentLoop {
     agent._reports = snapshot.reports ?? [];
     agent._metadata = snapshot.metadata ?? {};
     agent._pendingToolCalls = snapshot.pendingToolCalls ? [...snapshot.pendingToolCalls] : [];
+    agent._pendingInput = snapshot.pendingInput ? [...snapshot.pendingInput] : [];
 
     const snapshotNames = new Set(snapshot.toolNames);
     const currentNames = new Set(config.tools.map(toolKey));
@@ -1846,6 +1856,39 @@ export class AgentLoop {
   /** Return the list of tool calls currently suspended awaiting approval. */
   get pendingApprovals(): readonly PendingToolCall[] {
     return this._pendingToolCalls;
+  }
+
+  /** Stage user input for admission immediately before the next run's first
+   *  model call.
+   *
+   *  The case it exists for: a run suspends at an approval gate, and while the
+   *  human is deciding the user adds something -- "use staging, not prod". There
+   *  was nowhere to put it. Appending to history directly lands it BEFORE the
+   *  repair of the unanswered tool call that every run passes through, so the
+   *  model read the correction and then a tool result, in that order; and it was
+   *  lost if the process restarted between the gate and the resume. Staged input
+   *  rides in the snapshot and is admitted last, where a correction belongs.
+   *
+   *  Multiple calls preserve insertion order. Admission clears the staging. */
+  addInput(input: string | ContentPart[] | Message[]): void {
+    if (this._running) {
+      throw new Error(
+        'AgentLoop.addInput: a run is in flight, and its input was admitted when it ' +
+          'started -- staging now would reach the NEXT run, not this one. Stage input ' +
+          'before the run, or after it ends.',
+      );
+    }
+    this._pendingInput.push(...inputMessages(input));
+  }
+
+  /** Input staged for the next model call, in the order it was added. */
+  get pendingInput(): readonly Message[] {
+    return this._pendingInput;
+  }
+
+  /** Discard staged input -- the user thought better of it before the resume. */
+  clearPendingInput(): void {
+    this._pendingInput = [];
   }
 
   /** Feed an approval decision for a pending tool call identified by callId.
@@ -1940,6 +1983,16 @@ const DENIAL_DEFAULT_REASON = 'Tool call denied by permission policy';
 const APPROVAL_DEFAULT_WHEN_NO_APPROVER: ApprovalDecision['decision'] = 'deny';
 
 // ─── Helpers ────────────────────────────────────────────────────────────
+
+/** The run-input forms, as the messages they stand for: a bare string or a
+ *  `ContentPart[]` is one user message, a `Message[]` is already messages. Shared
+ *  by `run` and `addInput` so staged input normalizes exactly like direct input
+ *  -- two copies of this branching would drift. */
+function inputMessages(input: string | ContentPart[] | Message[]): Message[] {
+  if (typeof input === 'string') return [{ role: 'user', content: input }];
+  if (input.length > 0 && 'role' in input[0]!) return [...(input as Message[])];
+  return [{ role: 'user', content: input as ContentPart[] }];
+}
 
 function addUsage(target: Usage, source: Usage): void {
   target.inputTokens += source.inputTokens;
