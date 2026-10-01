@@ -598,6 +598,48 @@ await complete({
 Omitted entirely when unset. "No Workspace named" and "the Workspace named is the empty string"
 are different requests, and only the first one means what an unconfigured client means.
 
+### Data residency (OpenAI)
+
+OpenAI serves the same API from four hosts — `api.openai.com` and
+`{us,eu,ae}.api.openai.com` — and a project provisioned for one region must call that
+region's host. `dataResidency` names the region instead of making you write the URL:
+
+```ts
+import { createEngine } from '@combycode/llm-sdk';
+import type { OpenAIDataResidency } from '@combycode/llm-sdk';
+
+const region: OpenAIDataResidency = 'eu';
+const engine = createEngine({ apiKeys: { openai: process.env.OPENAI_API_KEY ?? '' } });
+const llm = engine.createClient({ model: 'openai/gpt-5.4-nano', dataResidency: region });
+// -> every request goes to https://eu.api.openai.com/v1/...
+```
+
+| `dataResidency` | Host |
+| --- | --- |
+| *(unset)* | `api.openai.com` |
+| `'global'` | `api.openai.com` |
+| `'us'` | `us.api.openai.com` |
+| `'eu'` | `eu.api.openai.com` |
+| `'ae'` | `ae.api.openai.com` |
+
+The wrong region fails loudly rather than leaking. Measured 2026-10-01 from an
+unrestricted project, `us.` answered `Attempted to access resource with incorrect
+regional hostname. Please make your request to api.openai.com` and `eu.` answered
+`This endpoint is only accessible by projects with geography restrictions enabled.`
+Both replies name the host that was actually reached.
+
+Three things are refused instead of being resolved for you:
+
+- **`dataResidency` together with `baseURL`** — two different answers to "which host".
+  Picking a winner would silently discard a configuration you wrote, and you could not
+  tell which one survived.
+- **A region that is not one of the four** — `'EU'` would otherwise fall through to the
+  default host and send EU-resident data to the global endpoint, which is the single
+  outcome this option exists to prevent.
+- **`dataResidency` on any other provider** — none of them has regional hosts. Accepting
+  it quietly would let you believe traffic was pinned to a region when the option did
+  nothing at all. Use `baseURL` if a provider offers a regional endpoint of its own.
+
 ### What `cache: 'auto'` actually does per provider
 
 `cache: 'auto'` is one option over three quite different mechanisms, and `usage.cachedTokens`

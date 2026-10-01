@@ -13,6 +13,7 @@ import type { FunctionTool, FunctionToolInput, Tool, ToolInput } from './types/t
 import type { SchemaSource } from './types/standard-schema';
 import { isStandardSchema, toJsonSchema, validateStandardSchema } from './types/standard-schema';
 import { validateJsonSchema } from '../util/json-schema';
+import { resolveDataResidency } from './providers/openai/data-residency';
 import { InvalidFinalOutputError } from './output-errors';
 
 export const PRIORITY_INTERACTIVE = 1;
@@ -257,7 +258,25 @@ export function resolveAdapter(config: LLMClientConfig, api: ApiType): ProviderA
     throw new Error('LLMClient: adapter or AdapterFactory must be supplied');
   }
   if (typeof a === 'function') {
-    return a(config.provider, config.apiKey, api, config.baseURL);
+    return a(config.provider, config.apiKey, api, resolveBaseURL(config));
   }
   return a;
+}
+
+/** The host this client calls: a named OpenAI region, or the caller's own `baseURL`.
+ *
+ *  Resolved HERE rather than in the adapter, because it is the one place every
+ *  adapter is built -- and because `dataResidency` is a client-construction choice.
+ *  It is checked even for a non-OpenAI provider: a `dataResidency` on an Anthropic
+ *  client is a mistake worth reporting, and silently ignoring it would let someone
+ *  believe their data was pinned to a region when the option did nothing. */
+function resolveBaseURL(config: LLMClientConfig): string | undefined {
+  if (config.dataResidency === undefined) return config.baseURL;
+  if (config.provider !== 'openai') {
+    throw new Error(
+      `dataResidency is an OpenAI option; ${config.provider} has no regional hosts. ` +
+        'Set `baseURL` if that provider offers a regional endpoint of its own.',
+    );
+  }
+  return resolveDataResidency(config.dataResidency, config.baseURL);
 }

@@ -175,6 +175,7 @@ export type { GoogleRealtimeAdapterConfig } from './llm/providers/google/realtim
 export { OpenAIBatchAdapter } from './llm/providers/openai/batch';
 export { OpenAIAdapter } from './llm/providers/openai/completions';
 export { OpenAIFileAdapter } from './llm/providers/openai/files';
+export type { OpenAIDataResidency } from './llm/providers/openai/data-residency';
 export { OpenAIMediaAdapter } from './llm/providers/openai/media';
 export { OpenRouterMediaAdapter } from './llm/providers/openrouter/media';
 export { OpenAIRealtimeAdapter } from './llm/providers/openai/realtime';

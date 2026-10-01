@@ -24,6 +24,23 @@ export interface LLMClientConfig {
   // Optional defaults
   system?: string;
   baseURL?: string;
+  /** OpenAI only: call a named region's host instead of writing one by hand.
+   *
+   *  `'global' | 'us' | 'eu' | 'ae'`, resolving to `api.openai.com` and
+   *  `{region}.api.openai.com`. A project provisioned for one region must use that
+   *  region's host, and the wrong choice fails loudly rather than leaking: measured
+   *  2026-10-01 from an unrestricted project, `us.` answers `Attempted to access
+   *  resource with incorrect regional hostname` and `eu.` answers `This endpoint is
+   *  only accessible by projects with geography restrictions enabled`.
+   *
+   *  **Mutually exclusive with `baseURL`**, and setting both THROWS rather than
+   *  picking a winner: they are two different answers to "which host", so honouring
+   *  one would silently discard a configuration the caller wrote.
+   *
+   *  Setting it on any other provider also THROWS -- none of them has regional
+   *  hosts, and ignoring it would let a caller believe their data was pinned to a
+   *  region when the option did nothing at all. */
+  dataResidency?: import('./providers/openai/data-residency').OpenAIDataResidency;
   /** Trace session id. createLLM passes `engine.sessionId`; a standalone client
    *  mints its own. Flows onto every RequestContext built by this client. */
   sessionId?: string;
