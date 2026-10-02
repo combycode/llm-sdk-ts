@@ -400,6 +400,45 @@ the commands wrote them.
 missing field) and only `local` is accepted, so a shell call on xAI is always a request for you to
 run something.
 
+### Reusing Anthropic's code container, and loading skills (`providerOptions.container`)
+
+Anthropic's code execution runs in a container. By default you get a cold one per turn and
+never see it. `providerOptions.container` makes it yours to reuse, and lets you load skills
+into it. GA — measured 2026-10-02 with no beta header.
+
+```ts
+const first = await llm.complete('Use python to compute 2+2.', {
+  tools: [{ type: 'code_interpreter' }],
+  providerOptions: {
+    container: { skills: [{ type: 'anthropic', skillId: 'xlsx', version: 'latest' }] },
+  },
+});
+// first.container = { id: 'container_…', expiresAt: '2026-10-02T12:55:18Z',
+//                     skills: [{ type: 'anthropic', skillId: 'xlsx', version: '20260914' }] }
+
+// Reuse it while it lives (about five minutes):
+await llm.complete('Now compute 3+3.', {
+  tools: [{ type: 'code_interpreter' }],
+  providerOptions: { container: { id: first.container!.id } },
+});
+```
+
+Four things worth knowing:
+
+- **The version you get back is the one that RAN.** Asking for `'latest'` returns
+  `'20260914'`, so record `response.container.skills`, not what you requested.
+- **Skills are validated by the provider.** An unknown skill is a `400 Unknown Anthropic
+  skill`, not a silent ignore — a typo fails loudly. `GET /v1/skills` lists the built-in ones
+  (`xlsx`, `pptx`, `pdf`, …) and is GA as well.
+- **A malformed skill ref is refused before the request leaves**, with the field named. Sending
+  it would make the provider complain about a key you never wrote.
+- **No container means no code ran.** A turn that executes nothing reports none, because none
+  was created — that is the normal answer, not a problem.
+
+When streaming, the container arrives on the `done` event and on the streamed response, so
+you keep the id either way. (It rides the terminal frame because that is where the provider
+sends it: `message_start.container` is `null` on every streamed turn.)
+
 ### Generating an image mid-conversation (`image_generation`)
 
 ```ts

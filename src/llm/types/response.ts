@@ -3,6 +3,12 @@
 import type { ModerationReport } from '../moderation/types';
 import type { ContentPart, MediaOutputPart, ToolCallPart } from './messages';
 
+import type { ContainerInfo } from '../providers/anthropic/container';
+
+/** Anthropic only: the container a code-execution turn ran in. Re-exported here
+ *  because it is a field of the response a caller reads, not an adapter detail. */
+export type { ContainerInfo };
+
 export interface CompletionResponse {
   id: string;
   model: string;
@@ -98,6 +104,11 @@ export interface CompletionResponse {
    *  `cacheDiagnostics` asked the provider to compare against one. Absent unless
    *  it was asked for and the provider had something to say. */
   cacheDiagnostics?: CacheDiagnostics;
+  /** Anthropic: the code-execution container this turn ran in, when one was created
+   *  -- its `id` (pass it back as `providerOptions.container.id` to reuse it), when
+   *  it expires, and any skills loaded, with versions resolved. Absent when the turn
+   *  ran no code, because no container existed. */
+  container?: ContainerInfo;
 
   // Timing
   latencyMs: number;

@@ -44,6 +44,7 @@ import type { NormalizedRequest } from './types/request';
 import { emptyUsage } from './types/response';
 import type {
   BuiltinToolCall,
+  ContainerInfo,
   CacheDiagnostics,
   Citation,
   CompletionResponse,
@@ -851,6 +852,7 @@ export class LLMClient {
     let moderationReport: ModerationReport | undefined;
     const files: FileOutput[] = [];
     const builtinToolCalls: BuiltinToolCall[] = [];
+    let container: ContainerInfo | undefined;
     // Deduped by url: Google repeats its grounding chunks on more than one late
     // chunk, and a model that cites one page twice is still one source.
     const citationsByUrl = new Map<string, Citation>();
@@ -926,6 +928,10 @@ export class LLMClient {
           // Opaque, provider-bound, and the streamed turn's only chance to keep
           // it: the terminal frame is where it rides out.
           if (event.signatures) signatures = event.signatures;
+          // Same reason as `files` and `citations`: a streamed turn must answer
+          // what complete() answers, and the container id is the one thing a
+          // caller needs in order to reuse the container next time.
+          if (event.container) container = event.container;
           break;
         case 'file':
           // Hosted-tool output file (code-execution artifact) — collect for the
@@ -982,6 +988,7 @@ export class LLMClient {
       ...(moderationReport ? { moderation: moderationReport } : {}),
       ...(cacheDiagnostics ? { cacheDiagnostics } : {}),
       ...(signatures ? { signatures } : {}),
+      ...(container ? { container } : {}),
       latencyMs: performance.now() - start,
       raw: null,
     };

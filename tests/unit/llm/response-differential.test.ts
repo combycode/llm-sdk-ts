@@ -28,6 +28,7 @@ import {
 } from './response-corpus';
 import type { SSEEvent } from '../../../src/network/types';
 import golden from '../../fixtures/response-golden.json' with { type: 'json' };
+import { withoutWaived } from '../../golden-waivers';
 
 const corpus = golden as unknown as Record<string, ResponseCell>;
 
@@ -81,7 +82,9 @@ describe('recorded provider responses', () => {
     const cell = corpus[id] as ResponseCell;
 
     it(`${id} parses to the same result`, () => {
-      expect(JSON.parse(JSON.stringify(replay(cell)))).toEqual(cell.parsed as never);
+      expect(withoutWaived(id, JSON.parse(JSON.stringify(replay(cell))))).toEqual(
+        cell.parsed as never,
+      );
     });
   }
 

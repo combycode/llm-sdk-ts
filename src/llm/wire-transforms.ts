@@ -30,6 +30,7 @@ import {
   xaiImageRef,
   xaiVideoRef,
 } from '../util/source-image';
+import { toWireContainer } from './providers/anthropic/container';
 
 const isFunctionToolValue = (t: any): boolean => !t?.type || t.type === 'function';
 
@@ -54,6 +55,14 @@ export function makeRegistry(a: AdapterHandles): Registry {
   const transforms: Registry['transforms'] = {
     // ── schema shape rules ────────────────────────────────────────────────
     ensureAdditionalProperties: (v) => ensureAdditionalProperties(v as any),
+
+    /** Anthropic: the code-execution container a caller asked for, snake_cased.
+     *
+     *  A named transform because the spec cannot rename `skillId` to `skill_id`,
+     *  and because only the keys the caller actually set may travel -- an empty
+     *  `skills: []` would be asking for something they did not ask for. */
+    anthropicContainerRequest: (_v: unknown, ctx: any) =>
+      toWireContainer(ctx.req.providerOptions?.container ?? {}),
 
     /** Anthropic: `input_schema` is hardened only on the strict path. */
     anthropicToolSchema: (tool: any) =>

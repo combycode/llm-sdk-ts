@@ -20,6 +20,7 @@ import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import { extractFinishReason } from '../_shared/response-utils';
 import { anthropicCacheDiagnostics } from '../../cache-diagnostics';
 import type { Ctx, Registry } from '../../../wire/interpreter';
+import { containerFromWire } from './container';
 
 type Block = Record<string, unknown>;
 
@@ -72,9 +73,14 @@ export const ANTHROPIC_STREAM_REGISTRY: Registry = {
       if (usage) events.push({ type: 'usage', usage: anthropicUsage(usage) });
       const sr = deltaOf(ctx).stop_reason as string | undefined;
       if (sr) {
+        // The container rides this frame, not the opening one: `message_start`
+        // sends `container: null` even when a container is created, and only
+        // `message_delta.delta.container` has it.
+        const container = containerFromWire(deltaOf(ctx).container);
         events.push({
           type: 'done',
           finishReason: extractFinishReason(sr === 'tool_use', sr, FINISH),
+          ...(container ? { container } : {}),
         });
       }
       return events;

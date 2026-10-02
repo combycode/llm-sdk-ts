@@ -3,6 +3,7 @@
 import type { ModerationEntry } from '../moderation/types';
 import type { AssistantPhase } from './messages';
 import type { CacheDiagnostics, Citation, FileOutput, Usage } from './response';
+import type { ContainerInfo } from '../providers/anthropic/container';
 
 export type MediaStreamType = 'image' | 'audio' | 'video';
 
@@ -25,7 +26,18 @@ export type StreamEvent =
    *  here rather than as its own event because a caller never reads it and a
    *  stream they do read should not fill with blobs. Collected onto the
    *  streamed final response, exactly as the buffered parse returns it. */
-  | { type: 'done'; finishReason: string; signatures?: unknown }
+  | {
+      type: 'done';
+      finishReason: string;
+      signatures?: unknown;
+      /** Anthropic: the code-execution container this turn ran in. It rides the
+       *  TERMINAL frame because that is where the provider sends it -- measured
+       *  2026-10-02, `message_start.container` is `null` on every streamed turn and
+       *  the real container arrives on `message_delta.delta.container`. Collected
+       *  onto the streamed response's `container`, so streaming does not cost you
+       *  the id you need to reuse the container. */
+      container?: ContainerInfo;
+    }
   | { type: 'error'; error: Error }
   | { type: 'media_start'; mediaType: MediaStreamType; mimeType: string }
   | { type: 'media_chunk'; data: string; progress?: number }

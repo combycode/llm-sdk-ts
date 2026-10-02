@@ -60,6 +60,14 @@ export interface ProviderOptions {
    *  user a request acts on behalf of. Needs the account-level
    *  `user-profiles` beta. */
   userProfileId?: string;
+  /** The code-execution container this turn should use: an `id` from an earlier
+   *  response's `container.id` to reuse a warm one, and/or `skills` to load into it.
+   *
+   *  GA -- measured 2026-10-02 with no beta header. A skill that does not exist is a
+   *  `400 Unknown Anthropic skill`, so a typo fails loudly rather than being ignored.
+   *  The container appears on `response.container` once a turn actually runs code;
+   *  a turn that never runs any reports none, because none was created. */
+  container?: import('../providers/anthropic/container').AnthropicContainerRequest;
   /** Forwarded as the `anthropic-workspace-id` header, e.g.
    *  `wrkspc_011CZkZaBF1tNoB5wlCeusgy`.
    *

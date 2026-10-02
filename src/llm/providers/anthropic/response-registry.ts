@@ -23,6 +23,7 @@ import { extractCitations } from '../_shared/citations';
 import { unifiedBuiltinTool } from '../_shared/builtin-tools';
 import { extractFinishReason } from '../_shared/response-utils';
 import type { Ctx, Registry } from '../../../wire/interpreter';
+import { containerFromWire } from './container';
 
 type Block = Record<string, unknown>;
 type Out = {
@@ -49,6 +50,11 @@ const FINISH: Record<string, string> = {
 
 export const ANTHROPIC_RESPONSE_REGISTRY: Registry = {
   transforms: {
+    /** The code-execution container this turn ran in, or nothing when it ran no
+     *  code -- `container: null` is the normal answer then, not a problem. */
+    anthropicContainer: (_arg: unknown, ctx: Ctx) =>
+      containerFromWire((ctx.req as { raw?: Record<string, unknown> }).raw?.container),
+
     /** A provider-run tool call, with the code or query it was given. */
     anthropicBuiltinCall: (_arg: unknown, ctx: Ctx) => {
       const b = blockOf(ctx);
