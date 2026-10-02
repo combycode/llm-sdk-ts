@@ -52,10 +52,41 @@ export type StreamEvent =
    *  itself, so there is nothing to execute or return. Also collected onto the
    *  streamed final response's `builtinToolCalls`. */
   | { type: 'builtin_tool_start'; tool: string; id?: string }
+  /** A hosted builtin tool made incremental progress: the model is still composing
+   *  what it will run, or the provider is streaming back what it produced.
+   *
+   *  `code` is a fragment of the input (OpenAI's shell streams the command text a
+   *  few characters at a time); `output` is a fragment of stdout/stderr as the
+   *  provider's container produces it. Both are fragments to APPEND, exactly like
+   *  `text` and `tool_call_delta` -- the complete values arrive again on
+   *  `builtin_tool_end`, so a consumer that only wants the result can ignore these.
+   *
+   *  Measured 2026-10-02: OpenAI emits `response.shell_call_command.{added,delta,done}`
+   *  for any shell call and `response.shell_call_output_content.{delta,done}` only when
+   *  the tool runs in a container. xAI sends its commands as one JSON arguments string
+   *  instead (`response.shell_call_arguments.*`), which is not a fragment of anything a
+   *  caller would display, so nothing is emitted for it -- its item already carries the
+   *  finished commands. Chopping that JSON into fake `code` deltas would be inventing
+   *  progress the provider never reported. */
+  | { type: 'builtin_tool_delta'; tool: string; id?: string; code?: string; output?: string }
   /** A hosted builtin tool finished executing server-side. Carries its inputs/outputs
    *  (`code` + `output` for code execution, `query` for web search) — the same payload
    *  the client collects onto `response.builtinToolCalls`. */
-  | { type: 'builtin_tool_end'; tool: string; id?: string; code?: string; output?: string; query?: string; url?: string }
+  | {
+      type: 'builtin_tool_end';
+      tool: string;
+      id?: string;
+      code?: string;
+      output?: string;
+      query?: string;
+      url?: string;
+      /** `shell` only -- see `BuiltinToolCall.callId` / `.environment`. Carried on the
+       *  event, not just on the buffered call, because `response.builtinToolCalls` is
+       *  assembled from these events when streaming: leaving them off would mean the
+       *  same turn told you where its commands ran only if you did not stream it. */
+      callId?: string;
+      environment?: string;
+    }
   /** A moderation result for the input or output. `source` distinguishes a
    *  provider-native result from a client-emulated one. Emitted by the moderation
    *  option (report-only). */

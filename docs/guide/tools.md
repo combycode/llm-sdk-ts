@@ -329,9 +329,11 @@ opens pages, and xAI / OpenRouter expose no separate fetch tool.
 
 ```ts
 interface BuiltinToolCall {
-  tool: string;      // 'web_search' | 'web_fetch' | 'code_interpreter'
+  tool: string;      // 'web_search' | 'web_fetch' | 'code_interpreter' | 'shell'
   id?: string;
-  code?: string;     // code_interpreter: the code the model executed
+  callId?: string;      // shell: the model's call id, to address an answer to
+  environment?: string; // shell: 'local' (it is asking YOU) or 'container_reference'
+  code?: string;     // code_interpreter: the code the model executed; shell: the commands
   output?: string;   // code_interpreter: the code's stdout / logs
   query?: string;    // web_search: the query the model searched for
   url?: string;      // web_search: a page opened/read; web_fetch: the URL fetched
@@ -350,6 +352,53 @@ The payload is normalized across providers and present on both `complete()` and 
 (the `builtin_tool_end` event carries the same fields). These are **informational** — unlike
 `tool_call_*` (a function call the client must execute), the provider runs these itself. Use them
 to show a "🔎 Searching: <query>" / "⚙️ Running code" panel with the actual code and output.
+
+**Progress while one runs.** A streamed turn also emits `{ type: 'builtin_tool_delta' }` between
+the start and the end, carrying `code` (a fragment of what the model is about to run) or `output`
+(a fragment of what it printed). Both are fragments to **append**, like `text`; the complete values
+arrive again on `builtin_tool_end`, so a consumer that only wants the result can ignore them.
+Currently emitted by OpenAI's `shell` tool — the only hosted tool that reports progress rather than
+just a result.
+
+### Shell commands (`shell`) — the builtin that may not run at all
+
+`shell` is the exception to everything above: it is only provider-run when you give it a container.
+
+| `params.environment` | What happens |
+| --- | --- |
+| `{ type: 'container_auto' }` | OpenAI provisions a container, runs the commands, and streams stdout/stderr back. A normal hosted tool call. The response reports `environment: 'container_reference'` — `container_auto` was the request, not the answer. |
+| `{ type: 'local' }`, or omitted | The model only **asks**. Nothing runs, the turn ends, and it is waiting on you. |
+
+```ts
+const res = await llm.complete('Run `echo one` and summarise.', {
+  tools: [{ type: 'shell', params: { environment: { type: 'container_auto' } } }],
+});
+// res.builtinToolCalls[0] = { tool: 'shell', code: 'echo one',
+//                            output: 'one
+', environment: 'container_reference', callId: '…' }
+```
+
+A **local** call ends the turn with `finishReason: 'stop'` and `text: ''`. That looks exactly like a
+model with nothing to say, so the commands are reported on `builtinToolCalls[].code` and an
+`onWarning` with code `shell_awaiting_caller` says what happened and how to answer it:
+
+```ts
+engine.hooks.on('onWarning', (w) => {
+  if (w.code === 'shell_awaiting_caller') console.warn(w.message);
+});
+```
+
+To answer one, run the commands yourself and send the result back addressed to the call's `callId`.
+
+Two wire details worth knowing, because they shape what you receive: a container run arrives as
+**two** output items (the commands, then the output, linked by `call_id`) and is reported as **one**
+tool call with one start and one end; and the per-command exit codes are not folded into `output`
+(that would mean inventing text inside program output) — `output` is stdout and stderr in the order
+the commands wrote them.
+
+**xAI** supports `shell` too, but narrower: `environment` is **required** there (a 422 names the
+missing field) and only `local` is accepted, so a shell call on xAI is always a request for you to
+run something.
 
 ### Generating an image mid-conversation (`image_generation`)
 

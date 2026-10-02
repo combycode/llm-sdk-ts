@@ -36,6 +36,7 @@ import { MODERATION_DEFAULT_INTERVAL, MODERATION_DEFAULT_STRATEGY } from './mode
 import { retrieveFile as retrieveFileImpl, streamFile as streamFileImpl } from './files/retrieve';
 import type { FileStream, RetrieveContext, RetrievedFile } from './files/retrieve';
 import { resolveServerState } from './server-state';
+import { mergeShellCalls, shellAwaitingNote } from './shell-calls';
 import type { ContentPart, Message } from './types/messages';
 import type { ExecuteOptions } from './types/options';
 import type { ApiType, ProviderAdapter, ProviderHttpRequest, ProviderName } from './types/provider';
@@ -275,6 +276,23 @@ export class LLMClient {
         details: { provider: this.provider, model: this.model, ctx },
       });
     }
+  }
+
+  /** One warning when the model asked the CALLER to run shell commands.
+   *
+   *  Emitted from here rather than from the adapter for the same reason every other
+   *  note is (`reportBuildNotes`, `openaiTierDecision`): the adapter decides what
+   *  happened, the client owns the hooks. Both call styles go through this, because
+   *  a turn that silently answers nothing is no less confusing when streamed. */
+  private reportShellAwaiting(calls: BuiltinToolCall[] | undefined, ctx: RequestContext): void {
+    const note = shellAwaitingNote(calls);
+    if (!note) return;
+    this.hooks.emitSync('onWarning', {
+      source: 'llm',
+      code: 'shell_awaiting_caller',
+      message: note,
+      details: { provider: this.provider, model: this.model, ctx },
+    });
   }
 
   /** `cacheDiagnostics` is a two-provider feature (Anthropic `diagnostics`,
@@ -616,6 +634,11 @@ export class LLMClient {
     this.shapeChecker?.checkResponse(response.body);
     const result = this.adapter.parseResponse(response.body, latencyMs);
 
+    // A container-run shell reports commands and output as two items, which the
+    // per-item mapping cannot join; done here, where the whole list exists, so a
+    // buffered turn reports the one call a streamed turn reports.
+    if (result.builtinToolCalls) result.builtinToolCalls = mergeShellCalls(result.builtinToolCalls);
+
     // Emulated inline moderation (non-OpenAI providers, or forced). Native results
     // are already on result.moderation from the adapter. Report-only: attach, never
     // block. Input + output run concurrently (the moderations endpoint is free).
@@ -637,6 +660,8 @@ export class LLMClient {
         ...(outputEntry ? { output: outputEntry } : {}),
       };
     }
+
+    this.reportShellAwaiting(result.builtinToolCalls, ctx);
 
     await this.hooks.emit('onCompletion', {
       provider: this.provider,
@@ -922,6 +947,8 @@ export class LLMClient {
             ...(event.output ? { output: event.output } : {}),
             ...(event.query ? { query: event.query } : {}),
             ...(event.url ? { url: event.url } : {}),
+            ...(event.callId ? { callId: event.callId } : {}),
+            ...(event.environment ? { environment: event.environment } : {}),
           });
           break;
         case 'moderation':
@@ -958,6 +985,7 @@ export class LLMClient {
       latencyMs: performance.now() - start,
       raw: null,
     };
+    this.reportShellAwaiting(response.builtinToolCalls, ctx);
     await this.hooks.emit('onCompletion', {
       provider: this.provider,
       model: this.model,

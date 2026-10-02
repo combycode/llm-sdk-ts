@@ -10,7 +10,15 @@
  *  buffered side calling the module function directly is exactly how its
  *  override got silently dropped.
  */
-import { builtinCallFromResponsesItem, filesFromResponsesOutputItem, openaiResponsesUsage } from './responses';
+import {
+  builtinCallFromResponsesItem,
+  filesFromResponsesOutputItem,
+  openaiResponsesUsage,
+  shellAwaitsCaller,
+  shellCommands,
+  shellEnvironmentName,
+  shellOutputText,
+} from './responses';
 import { openaiCacheDiagnostics } from '../../cache-diagnostics';
 import { parseNativeModeration } from '../../moderation/native';
 import { extractFinishReason } from '../_shared/response-utils';
@@ -22,6 +30,14 @@ interface StreamOut {
   events: unknown[];
   /** item id -> the phase announced when that item was added. */
   phaseByItem: Record<string, string>;
+  /** The `shell_call` awaiting its output, when one is open.
+   *
+   *  A container-run shell splits across TWO items (measured 2026-10-02): the
+   *  `shell_call` completes carrying only the commands, and a separate
+   *  `shell_call_output` item follows with stdout/stderr. So `builtin_tool_end`
+   *  cannot fire when the call item finishes -- it would report a shell command
+   *  with no output at all -- and this holds the call until the output lands. */
+  openShell?: { id?: string; code: string; callId?: string; environment?: string };
 }
 
 const rawOf = (ctx: Ctx): Record<string, unknown> =>
@@ -31,13 +47,23 @@ const itemOf = (ctx: Ctx): Item => ((rawOf(ctx).item as Item) ?? {});
 
 /** Mirrors the adapter's `builtinEndPayload`: the code, query or url a hosted
  *  tool ran, carried on its end event. */
-function endPayload(call: { code?: string; query?: string; url?: string; output?: string; id?: string }) {
+function endPayload(call: {
+  code?: string;
+  query?: string;
+  url?: string;
+  output?: string;
+  id?: string;
+  callId?: string;
+  environment?: string;
+}) {
   return {
     ...(call.id ? { id: call.id } : {}),
     ...(call.code ? { code: call.code } : {}),
     ...(call.query ? { query: call.query } : {}),
     ...(call.url ? { url: call.url } : {}),
     ...(call.output ? { output: call.output } : {}),
+    ...(call.callId ? { callId: call.callId } : {}),
+    ...(call.environment ? { environment: call.environment } : {}),
   };
 }
 
@@ -139,7 +165,11 @@ export const OPENAI_RESPONSES_STREAM_REGISTRY: Registry = {
       if (item.type === 'image_generation_call') {
         out.events.push({ type: 'media_start', mediaType: 'image', mimeType: 'image/png' });
       }
-      const builtin = builtinCallFromResponsesItem(item);
+      // `shell_call_output` is the SECOND item of one shell invocation, so it maps
+      // to a builtin call but must not announce a second start -- measured: doing
+      // so reported `starts=2 ends=1` for a single `echo`.
+      const builtin =
+        item.type === 'shell_call_output' ? null : builtinCallFromResponsesItem(item);
       if (builtin) {
         out.events.push({
           type: 'builtin_tool_start',
@@ -149,14 +179,72 @@ export const OPENAI_RESPONSES_STREAM_REGISTRY: Registry = {
       }
     },
 
+    /** The command text OpenAI streams while the model composes it.
+     *
+     *  Per `command_index`, because one shell call can ask for several commands;
+     *  the index is not forwarded because `code` is a fragment to append and the
+     *  commands read as one script, exactly as `builtin_tool_end.code` joins them.
+     *  `.added` carries `command: ''` and `.done` repeats the finished command, so
+     *  only `.delta` becomes an event -- forwarding `.done` as well would duplicate
+     *  every command in a consumer that appends what it is given. */
+    oaiRespStreamShellCommandDelta: (ctx: Ctx) => {
+      const out = outOf(ctx);
+      const delta = rawOf(ctx).delta;
+      if (typeof delta === 'string' && delta) {
+        out.events.push({ type: 'builtin_tool_delta', tool: 'shell', code: delta });
+      }
+    },
+
+    /** stdout/stderr as the provider's container produces it.
+     *
+     *  `delta` is an OBJECT here (`{stdout?}` or `{stderr?}`), not a string --
+     *  measured, and the one shape in this group that is not a plain delta. Both
+     *  streams become `output` rather than being split: they interleave in the
+     *  order the command wrote them, which is the order a reader needs. */
+    oaiRespStreamShellOutputDelta: (ctx: Ctx) => {
+      const out = outOf(ctx);
+      const delta = (rawOf(ctx).delta ?? {}) as { stdout?: unknown; stderr?: unknown };
+      const text = [delta.stdout, delta.stderr]
+        .filter((v): v is string => typeof v === 'string' && v.length > 0)
+        .join('');
+      if (text) out.events.push({ type: 'builtin_tool_delta', tool: 'shell', output: text });
+    },
+
     oaiRespStreamItemDone: (ctx: Ctx) => {
       const out = outOf(ctx);
       const raw = rawOf(ctx);
       const item = itemOf(ctx);
 
-      const builtin = builtinCallFromResponsesItem(item);
-      if (builtin) {
-        out.events.push({ type: 'builtin_tool_end', tool: builtin.tool, ...endPayload(builtin) });
+      // A shell call is the one builtin whose result may arrive in a LATER item,
+      // so it cannot simply end here. Three cases, all measured 2026-10-02:
+      //   local      -> no output item will ever come; end now, with the commands.
+      //   container  -> hold the call; the `shell_call_output` item below ends it.
+      //   the output -> end the held call, now carrying stdout/stderr.
+      if (item.type === 'shell_call' && !shellAwaitsCaller(item)) {
+        out.openShell = {
+          code: shellCommands(item),
+          ...(typeof item.id === 'string' ? { id: item.id } : {}),
+          ...(typeof item.call_id === 'string' ? { callId: item.call_id } : {}),
+          environment: shellEnvironmentName(item),
+        };
+      } else if (item.type === 'shell_call_output') {
+        const held = out.openShell;
+        out.openShell = undefined;
+        const output = shellOutputText(item);
+        out.events.push({
+          type: 'builtin_tool_end',
+          tool: 'shell',
+          ...(held?.id ? { id: held.id } : {}),
+          ...(held?.code ? { code: held.code } : {}),
+          ...(held?.callId ? { callId: held.callId } : {}),
+          ...(held?.environment ? { environment: held.environment } : {}),
+          ...(output ? { output } : {}),
+        });
+      } else {
+        const builtin = builtinCallFromResponsesItem(item);
+        if (builtin) {
+          out.events.push({ type: 'builtin_tool_end', tool: builtin.tool, ...endPayload(builtin) });
+        }
       }
       if (item.type === 'function_call') {
         out.events.push({ type: 'tool_call_end', id: (item.call_id as string) ?? '' });

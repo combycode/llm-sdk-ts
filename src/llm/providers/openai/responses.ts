@@ -136,7 +136,65 @@ function searchResults(item: Record<string, unknown>): BuiltinToolCall['results'
 /** Hosted builtin-tool output items (provider-run) → a unified `BuiltinToolCall`
  *  (with its code/output/query payload), or null for non-builtin items. Shared by
  *  the buffered and streamed paths. */
-const RESPONSES_BUILTIN_ITEMS = new Set(['web_search_call', 'code_interpreter_call']);
+const RESPONSES_BUILTIN_ITEMS = new Set([
+  'web_search_call',
+  'code_interpreter_call',
+  'shell_call',
+  // Mapped so a BUFFERED container shell still reports its output; `mergeShellCalls`
+  // then folds it into the call it belongs to, so a caller sees one tool call rather
+  // than two halves. The streamed path does the same join via its `openShell` state.
+  'shell_call_output',
+]);
+
+/** `environment` as the provider reports it on a `shell_call`.
+ *
+ *  Measured 2026-10-02: OpenAI sends `null` for a local call and rewrites
+ *  `container_auto` into `{type:'container_reference', container_id}`; xAI omits the
+ *  field entirely and only ever runs locally. All three absences mean the same
+ *  thing -- nobody ran these commands yet -- so they normalise to `'local'`. */
+export function shellEnvironmentName(item: Record<string, unknown>): string {
+  const env = item.environment as { type?: unknown } | null | undefined;
+  const type = env && typeof env === 'object' ? env.type : undefined;
+  return typeof type === 'string' ? type : 'local';
+}
+
+/** True when the provider is WAITING on the caller to run these commands.
+ *
+ *  The whole reason this is a named predicate: the turn ends normally with empty
+ *  text, so without asking this question a caller cannot tell a finished answer
+ *  from a request for work. */
+export function shellAwaitsCaller(item: Record<string, unknown>): boolean {
+  return item.type === 'shell_call' && shellEnvironmentName(item) === 'local';
+}
+
+/** The commands a `shell_call` item asks for, as one newline-joined block.
+ *
+ *  One item can carry several commands (measured: `["echo one","ls /nonexistent"]`),
+ *  and they run in order, so they read as a small script and are joined like one. */
+export function shellCommands(item: Record<string, unknown>): string {
+  const action = (item.action as { commands?: unknown }) ?? {};
+  const commands = Array.isArray(action.commands) ? action.commands : [];
+  return commands.filter((c): c is string => typeof c === 'string').join('\n');
+}
+
+/** stdout and stderr of a `shell_call_output` item, in command order.
+ *
+ *  Each entry is one command's `{outcome, stdout, stderr}`. stderr follows stdout
+ *  for the same command rather than being dropped: a failing command's only output
+ *  is usually on stderr, and `builtin_tool_end.output` is a caller's whole view of
+ *  what happened. The exit code is NOT folded into this string -- it would have to
+ *  be invented as text inside something callers read as program output, and it stays
+ *  available on the raw item. */
+export function shellOutputText(item: Record<string, unknown>): string {
+  const chunks = Array.isArray(item.output) ? item.output : [];
+  const parts: string[] = [];
+  for (const chunk of chunks) {
+    const c = (chunk ?? {}) as { stdout?: unknown; stderr?: unknown };
+    if (typeof c.stdout === 'string' && c.stdout) parts.push(c.stdout);
+    if (typeof c.stderr === 'string' && c.stderr) parts.push(c.stderr);
+  }
+  return parts.join('');
+}
 export function builtinCallFromResponsesItem(
   item: Record<string, unknown>,
 ): BuiltinToolCall | null {
@@ -148,6 +206,17 @@ export function builtinCallFromResponsesItem(
     if (typeof item.code === 'string') call.code = item.code;
     const output = codeOutputFromResponsesItem(item);
     if (output) call.output = output;
+  } else if (type === 'shell_call_output') {
+    const output = shellOutputText(item);
+    if (output) call.output = output;
+    if (typeof item.call_id === 'string') call.callId = item.call_id;
+  } else if (type === 'shell_call') {
+    const commands = shellCommands(item);
+    if (commands) call.code = commands;
+    call.environment = shellEnvironmentName(item);
+    // `call_id` (not the item `id`) is what the matching `shell_call_output` item
+    // points back to, so it is what a merge has to key on.
+    if (typeof item.call_id === 'string') call.callId = item.call_id;
   } else if (type === 'web_search_call') {
     const { query, url } = searchActionPayload(item);
     if (query) call.query = query;

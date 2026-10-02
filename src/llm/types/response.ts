@@ -195,6 +195,17 @@ export interface BuiltinToolCall {
   code?: string;
   /** `code_interpreter`: the code's textual output (stdout / logs). */
   output?: string;
+  /** `shell`: the model's own call id, which is what a `shell_call_output` has to
+   *  reference when the caller answers a local call. Distinct from `id`, the id of
+   *  the output ITEM. Not plumbing: without it a caller who wants to run the
+   *  commands cannot address their reply back to this call. */
+  callId?: string;
+  /** `shell`: which environment the commands ran in, as the provider named it --
+   *  `'local'` when the model only ASKED and the caller must run them, or
+   *  `'container_reference'` / `'container_auto'` when the provider ran them itself.
+   *  This is the difference between a finished call and a request waiting on you, so
+   *  it decides whether `output` can ever arrive. Absent for every other tool. */
+  environment?: string;
   /** `web_search`: the query the model searched for (the first, if it issued several).
    *  Absent for page-open/read steps — see `url`. */
   query?: string;

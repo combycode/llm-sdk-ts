@@ -27,7 +27,23 @@ export interface BuiltinTool {
     | 'file_search'
     | 'mcp'
     /** OpenAI Responses: lets the model write JS to orchestrate tool calls. */
-    | 'programmatic_tool_calling';
+    | 'programmatic_tool_calling'
+    /** Shell commands (OpenAI + xAI Responses). Unlike every other builtin, this
+     *  one is only provider-RUN when `params.environment` is a container:
+     *
+     *  - `{ environment: { type: 'container_auto' } }` -- OpenAI runs the commands
+     *    in a container it provisions and streams stdout/stderr back. Measured
+     *    2026-10-02: the request is rewritten to `container_reference` carrying the
+     *    `container_id` it chose.
+     *  - `{ environment: { type: 'local' } }` or omitted -- the model only ASKS;
+     *    whoever called has to run the commands and feed the output back. The turn
+     *    ends after the request, so `response.text` is empty by design and the
+     *    commands are in `builtinToolCalls[].code`. An `onWarning` says so, because
+     *    an empty answer with `finishReason: 'stop'` otherwise looks like success.
+     *
+     *  xAI REQUIRES `environment` (a 422 names the missing field) and accepts only
+     *  `local`, so a shell call on xAI is always the second case. */
+    | 'shell';
   params?: Record<string, unknown>;
 }
 
