@@ -4,7 +4,7 @@ All notable changes to `@combycode/llm-sdk` are documented here. The format foll
 [Keep a Changelog](https://keepachangelog.com/) and the project adheres to
 [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [3.4.0] - 2026-10-03
 
 ### Changed
 
@@ -2878,6 +2878,7 @@ First public release.
 - Service tiers end to end (request → bill → cost).
 - Cross-environment: runs on Node, Bun, and the browser. ESM, zero runtime deps.
 
+[3.4.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v3.4.0
 [1.6.1]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.6.1
 [1.6.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.6.0
 [1.2.0]: https://github.com/combycode/llm-sdk-ts/releases/tag/v1.2.0

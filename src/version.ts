@@ -12,4 +12,4 @@
  *  so every MCP server we ever spoke to was told the wrong client version, and
  *  nothing anywhere could notice.
  */
-export const SDK_VERSION = '3.3.1';
+export const SDK_VERSION = '3.4.0';

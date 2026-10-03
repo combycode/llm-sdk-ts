@@ -5,9 +5,15 @@ was one the SDK set for its own adapters to read rather than something an applic
 expected to write.
 
 **Already on 3.x? Nothing below applies to you.** 3.0.0 is the only release in the line that
-broke anything. 3.1.0 through 3.3.1 removed no public symbol and changed no signature — the one
+broke anything. 3.1.0 through 3.4.0 removed no public symbol and changed no signature — the one
 later `Removed` entry, in 3.2.0, took out five private functions whose names already began with
-an underscore.
+an underscore. 3.4.0 added 245 symbols and removed none.
+
+One 3.4.0 change is worth knowing about even though it breaks no signature: on Anthropic models
+served by the `@4.7` wire era, `temperature`, `topP` and `topK` are now dropped from the request
+instead of sent. Those models answer `400` to all three, so a request that set them used to fail
+outright; it now succeeds, with an `onWarning` naming what was dropped. If you were relying on
+that failure to tell you a model ignores sampling, read the warning instead.
 
 ## `ModelInfo.wire`, `NormalizedRequest.wire` and the `ModelWire` type are gone
 
